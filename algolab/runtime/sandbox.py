@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import math
 import multiprocessing as mp
@@ -11,6 +12,18 @@ from typing import Any
 
 class SandboxError(RuntimeError):
     """Raised when generated code cannot be executed safely."""
+
+
+DANGEROUS_DUNDER_NAMES = {
+    "__bases__",
+    "__builtins__",
+    "__class__",
+    "__dict__",
+    "__globals__",
+    "__import__",
+    "__mro__",
+    "__subclasses__",
+}
 
 
 def safe_import(name: str, globals=None, locals=None, fromlist=(), level=0):
@@ -29,6 +42,41 @@ def safe_import(name: str, globals=None, locals=None, fromlist=(), level=0):
     return __import__(name, globals, locals, fromlist, level)
 
 
+def validate_code_safety(code: str) -> None:
+    """Reject introspection patterns that can escape the restricted namespace."""
+
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as exc:
+        raise SandboxError(f"代码语法错误：{exc}") from exc
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and _is_dunder_name(node.attr):
+            raise SandboxError(f"禁止访问内部属性：{node.attr}")
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if _is_dunder_name(node.value):
+                raise SandboxError(f"禁止访问内部属性名：{node.value}")
+            if "__" in node.value:
+                raise SandboxError("禁止构造内部属性名")
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+            if _string_multiplier_can_build_dunder(node.left, node.right) or _string_multiplier_can_build_dunder(node.right, node.left):
+                raise SandboxError("禁止构造内部属性名")
+
+
+def _is_dunder_name(value: str) -> bool:
+    return value in DANGEROUS_DUNDER_NAMES or (value.startswith("__") and value.endswith("__"))
+
+
+def _string_multiplier_can_build_dunder(left: ast.AST, right: ast.AST) -> bool:
+    return (
+        isinstance(left, ast.Constant)
+        and left.value == "_"
+        and isinstance(right, ast.Constant)
+        and isinstance(right.value, int)
+        and right.value >= 2
+    )
+
+
 def build_namespace() -> dict[str, Any]:
     import bisect
     import collections
@@ -36,6 +84,8 @@ def build_namespace() -> dict[str, Any]:
     import functools
     import heapq
     import itertools
+
+    from algolab.runtime.tracer import Tracer
 
     builtins = {
         "__import__": safe_import,
@@ -75,6 +125,7 @@ def build_namespace() -> dict[str, Any]:
         "heapq": heapq,
         "itertools": itertools,
         "math": math,
+        "Tracer": Tracer,
     }
 
 
@@ -84,6 +135,7 @@ def json_clone(value: Any) -> Any:
 
 def _worker(code: str, function_name: str, input_data: Any, queue: mp.Queue):
     try:
+        validate_code_safety(code)
         namespace = build_namespace()
         exec(code, namespace)
         fn = namespace.get(function_name)

@@ -144,6 +144,38 @@ def test_benchmark_cases_are_multi_input_release_ready():
                     assert expected_layout in layouts, (case.id, index, expected_layout, layouts)
 
 
+def test_convex_hull_trace_exposes_scan_phases_and_pop_steps():
+    case = next(item for item in benchmark_cases() if item.id == "convex_hull")
+    artifact, errors = materialize_case(case, sample_index=0)
+
+    assert errors == []
+    trace = artifact.variants[0].trace
+    assert trace is not None
+    events = trace.events
+    states = [event.state for event in events]
+    phases = [state.get("phase") for state in states]
+    pop_events = [event for event in events if event.op.value == "pop"]
+    current_values = [tuple(state.get("current")) for state in states if state.get("current") is not None]
+    hull_snapshots = {
+        tuple((state.get("geometry") or {}).get("hull") or [])
+        for state in states
+        if state.get("geometry")
+    }
+    scene = artifact.scenes[case.id]
+    hull_edge_counts = [
+        sum(1 for obj in frame.objects if obj.type.value == "edge" and obj.meta.get("shape") == "hull")
+        for frame in scene.frames
+    ]
+
+    assert "lower" in phases
+    assert "upper" in phases
+    assert pop_events
+    assert any("非左转" in event.reason for event in pop_events)
+    assert len(set(current_values)) >= 3
+    assert len(hull_snapshots) >= 4
+    assert max(hull_edge_counts) > min(hull_edge_counts)
+
+
 def test_contract_tests_block_bad_solve():
     case = next(item for item in benchmark_cases() if item.id == "two_sum")
     spec = spec_for_case(case)
@@ -659,6 +691,7 @@ def benchmark_coverage_artifact() -> BuildArtifact:
 
 def run_all():
     test_benchmark_cases_are_multi_input_release_ready()
+    test_convex_hull_trace_exposes_scan_phases_and_pop_steps()
     test_contract_tests_block_bad_solve()
     test_llm_benchmark_request_uses_problem_and_expected()
     test_llm_benchmark_sample_selection_and_failure_classification(Path(tempfile.gettempdir()))

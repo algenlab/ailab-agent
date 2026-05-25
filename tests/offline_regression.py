@@ -6,11 +6,13 @@ schema -> validator -> scene compiler -> renderer -> sandbox.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from algolab.compiler.scene_compiler import compile_scene
+from app import benchmark_preset_choices, load_benchmark_preset
 import algolab.generation.solution_generator as solution_generator
 from algolab.generation.solution_generator import (
     build_contract_with_repair,
@@ -50,6 +52,7 @@ from tests.fixtures import (
     trie_trace,
     union_find_trace,
 )
+from tests.benchmark_cases import benchmark_cases
 
 
 def _two_sum_contract_payload() -> dict:
@@ -205,6 +208,28 @@ def test_visual_plan_prompt_and_validator_use_capabilities():
     assert report["warnings"]
 
 
+def test_app_benchmark_presets_cover_documented_benchmark_samples():
+    choices = benchmark_preset_choices()
+    cases = benchmark_cases()
+    expected_count = sum(len(case.samples) for case in cases)
+
+    assert len(choices) == expected_count
+    for case in cases:
+        assert any(f"({case.id})" in choice for choice in choices), case.id
+
+    first = choices[0]
+    problem, input_json, strategy, expected_json, user_code, solutions = load_benchmark_preset(first)
+    first_case = cases[0]
+    first_sample = first_case.samples[0]
+
+    assert problem == first_case.problem
+    assert json.loads(input_json) == first_sample.input_data
+    assert strategy == first_case.strategy
+    assert json.loads(expected_json) == first_sample.expected
+    assert user_code == ""
+    assert solutions == 1
+
+
 def test_layout_registry_declares_phase6_components():
     expected = {
         "array": "array",
@@ -330,6 +355,56 @@ def test_stable_renderer_exposes_correctness_and_step_evidence(tmp_path: Path):
     assert "Contract tests" in html
     assert "目标写入核对" in html
     assert "seen only contains values from previous indices" in html
+
+
+def test_scene_compiler_hides_internal_trace_meta_from_rendered_state(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "内部字段过滤",
+            "input_data": {"x": 1},
+            "result": 1,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "answer"}],
+                    "state": {
+                        "answer": 1,
+                        "_trace_meta": {
+                            "policy": "full",
+                            "max_events": 80,
+                            "raw_event_count": 1,
+                            "emitted_event_count": 1,
+                            "sampled": False,
+                            "expected_updates": {"answer": 1},
+                            "recorded_updates": {"answer": 1},
+                            "coverage": {"answer": 1.0},
+                        },
+                    },
+                    "value": 1,
+                    "reason": "记录答案。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    scene = compile_scene(trace)
+
+    assert "_trace_meta" in trace.events[-1].state
+    assert "_trace_meta" not in scene.frames[-1].state
+
+    artifact = fixture_artifact().model_copy(deep=True)
+    artifact.variants[0].id = "internal_state"
+    artifact.variants[0].trace = trace
+    artifact.scenes = {"internal_state": scene}
+    out = save_html(artifact, tmp_path / "internal_state.html")
+    html = out.read_text(encoding="utf-8")
+    artifact_json = out.with_suffix(".json").read_text(encoding="utf-8")
+
+    assert "_trace_meta" not in html
+    assert "coverage" not in html
+    assert "_trace_meta" in artifact_json
 
 
 def test_teaching_schema_rejects_unknown_fields():
@@ -582,6 +657,20 @@ def test_contract_prompt_states_json_expected_and_verifier_boundaries():
     assert "expected 优先" in prompt
     assert "不是形式化证明" in prompt
     assert "HTML" in prompt and "Three.js" in prompt
+
+
+def test_tracker_prompt_requires_tracer_api():
+    prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
+    assert "Tracer" in prompt
+    assert "tracer.set" in prompt
+    assert "不要直接手写 events.append" in prompt
+
+
+def test_repair_prompt_converts_sparse_trace_to_tracer_api():
+    prompt = Path("algolab/generation/prompts/repair_system.txt").read_text(encoding="utf-8")
+    assert "Tracer API" in prompt
+    assert "events.append" in prompt
+    assert "tracer.set" in prompt
 
 
 def test_contract_prompt_examples_normalize_for_two_sum_dp_graph_stack():
@@ -996,6 +1085,80 @@ def test_process_validator_rejects_sparse_unique_paths_trace():
     )
     errors, _warnings = validate_process(trace)
     assert any("缺少逐帧状态转移" in e for e in errors), errors
+
+
+def test_process_validator_rejects_low_tracer_coverage_meta():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "覆盖率不足",
+            "input_data": {"x": 1},
+            "result": 1,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "answer"}],
+                    "state": {
+                        "answer": 1,
+                        "_trace_meta": {
+                            "policy": "full",
+                            "max_events": 80,
+                            "raw_event_count": 1,
+                            "emitted_event_count": 1,
+                            "sampled": False,
+                            "expected_updates": {"dp": 12},
+                            "recorded_updates": {"dp": 6},
+                            "coverage": {"dp": 0.5},
+                        },
+                    },
+                    "after": 1,
+                    "reason": "覆盖率不足。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+    errors, _warnings = validate_process(trace)
+    assert any("trace coverage dp 不足" in error for error in errors), errors
+
+
+def test_process_validator_rejects_forged_tracer_coverage_meta():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "伪造覆盖率",
+            "input_data": {"x": 1},
+            "result": 1,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "dp[1][1]"}],
+                    "state": {
+                        "dp": [[1, 1], [1, 2]],
+                        "_trace_meta": {
+                            "policy": "full",
+                            "max_events": 80,
+                            "raw_event_count": 1,
+                            "emitted_event_count": 1,
+                            "sampled": False,
+                            "expected_updates": {"dp": 12},
+                            "recorded_updates": {"dp": 1},
+                            "coverage": {"dp": 1.0},
+                        },
+                    },
+                    "value": 2,
+                    "reason": "只记录了一个更新，但覆盖率被伪造为完整。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+    errors, _warnings = validate_process(trace)
+    assert any("trace coverage dp 不足" in error for error in errors), errors
 
 
 def test_process_validator_rejects_bad_bfs_distance():
@@ -1759,6 +1922,35 @@ def test_sandbox_blocks_imports_and_times_out():
         raise AssertionError("sandbox 应终止死循环")
 
 
+def test_sandbox_exposes_tracer_to_generated_tracker():
+    code = """
+def trace(input_data):
+    tracer = Tracer(input_data, algorithm="常量")
+    tracer.create("answer", state={"answer": 1}, reason="初始化答案。")
+    tracer.result(1)
+    return tracer.to_trace()
+"""
+    result = run_function(code, "trace", {"x": 1})
+    assert result["algorithm"] == "常量"
+    assert result["result"] == 1
+    assert result["events"][0]["op"] == "create"
+
+
+def test_sandbox_blocks_dunder_introspection_import_escape():
+    attacks = [
+        'def solve(input_data):\n    return Tracer.__init__.__globals__["__builtins__"]["__import__"]("os").getcwd()',
+        'def solve(input_data):\n    return copy.deepcopy.__globals__["__builtins__"]["__import__"]("os").getcwd()',
+        'def solve(input_data):\n    key = "_" * 2 + "import" + "_" * 2\n    return Tracer.__init__.__globals__["__builtins__"][key]("os").getcwd()',
+    ]
+    for code in attacks:
+        try:
+            run_function(code, "solve", {}, timeout_s=1)
+        except SandboxError as exc:
+            assert "禁止访问内部属性" in str(exc) or "禁止构造内部属性名" in str(exc)
+        else:
+            raise AssertionError("sandbox should reject dunder introspection import escape")
+
+
 def test_renderer_writes_html(tmp_path: Path):
     out = save_html(fixture_artifact(), tmp_path / "fixture.html")
     html = out.read_text(encoding="utf-8")
@@ -1934,6 +2126,7 @@ def run_all():
         test_correctness_contract_rejects_invalid_contract,
         test_visual_plan_accepts_2d_3d_hybrid_and_rejects_invalid_target,
         test_visual_plan_prompt_and_validator_use_capabilities,
+        test_app_benchmark_presets_cover_documented_benchmark_samples,
         test_layout_registry_declares_phase6_components,
         test_teaching_schema_rejects_unknown_fields,
         test_build_artifact_accepts_old_payload_without_new_optional_fields,
@@ -1947,6 +2140,8 @@ def run_all():
         test_contract_validator_supports_expected_user_and_generated_oracles,
         test_contract_validator_blocks_oracle_expected_mismatch_and_timeout,
         test_contract_prompt_states_json_expected_and_verifier_boundaries,
+        test_tracker_prompt_requires_tracer_api,
+        test_repair_prompt_converts_sparse_trace_to_tracer_api,
         test_contract_prompt_examples_normalize_for_two_sum_dp_graph_stack,
         test_contract_repair_loop_fixes_truncated_json,
         test_contract_repair_loop_handles_validator_and_oracle_failures,
@@ -1960,6 +2155,8 @@ def run_all():
         test_semantic_event_normalizes_null_optional_text,
         test_process_validator_rejects_bad_unique_paths_transition,
         test_process_validator_rejects_sparse_unique_paths_trace,
+        test_process_validator_rejects_low_tracer_coverage_meta,
+        test_process_validator_rejects_forged_tracer_coverage_meta,
         test_process_validator_rejects_bad_bfs_distance,
         test_process_validator_rejects_bad_subset_sum_transition,
         test_process_validator_rejects_binary_search_mid_outside_window,
@@ -1981,6 +2178,8 @@ def run_all():
         test_ml_correctness_rejects_bad_linear_regression_gradient_and_loss_curve,
         test_ml_correctness_checks_parameter_update_tolerance_and_random_seed,
         test_sandbox_blocks_imports_and_times_out,
+        test_sandbox_exposes_tracer_to_generated_tracker,
+        test_sandbox_blocks_dunder_introspection_import_escape,
         test_execute_variant_requires_trace_input_data,
         test_execute_variant_normalizes_event_steps,
         test_scene_validator_rejects_empty_visual_frame,
@@ -1996,6 +2195,7 @@ def run_all():
     with tempfile.TemporaryDirectory() as d:
         test_teaching_schema_compiles_explicit_fields_and_reason_fallback(Path(d))
         test_stable_renderer_exposes_correctness_and_step_evidence(Path(d))
+        test_scene_compiler_hides_internal_trace_meta_from_rendered_state(Path(d))
         test_renderer_writes_html(Path(d))
         test_ml_primitives_cover_linear_and_logistic_regression(Path(d))
 

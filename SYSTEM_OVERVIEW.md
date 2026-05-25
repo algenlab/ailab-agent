@@ -193,6 +193,31 @@ push / pop / enter / exit / explain
 
 事件必须包含可核对的状态快照，不能只写自然语言。
 
+## Tracer API
+
+新 tracker 应使用系统提供的 `Tracer`，不要直接手写 `events.append({...})`。
+
+当前状态：
+
+- `tracker_code` 可以调用 `Tracer` 生成标准 `SemanticTrace`。
+- 小规模 DP 等语义更新数不超过预算的输入会保留完整逐帧过程。
+- 大输入会进入 sampled mode，并在 `_trace_meta` 中记录抽样状态。
+- process validator 会基于事件重新计算 coverage，拒绝非抽样模式下覆盖不足的 trace。
+- executor 对 Tracer full trace 放宽 raw event 数限制，允许 compare + set 这类多事件逐帧表达。
+
+作用：
+
+1. 防止跳帧。
+2. 统一 trace schema。
+3. 统一粒度策略。
+4. 支持标准轨迹和学生轨迹对齐。
+5. 输出 trace coverage 指标。
+6. 大输入时明确进入 sampled mode。
+
+已知限制：
+
+第一版定位为科研原型，默认 generated tracker 按 Tracer API 生成 trace。`_trace_meta` 目前仍放在 trace 事件的 `state` 中，不是不可伪造的执行侧证明；恶意手写 tracker 理论上可以构造类似 meta 影响预算判断。这个限制不影响正常 Tracer 路径、逐帧展示、coverage 统计和 demo 流程。后续如果进入生产化，需要把 Tracer 输出来源做成 executor 内部可信标记，或在 budget 阶段重新计算并严格校验 meta 与事件序列的一致性。
+
 ### SceneGraph
 
 位置：`algolab/schemas/scene_graph.py`

@@ -23,7 +23,7 @@ def save_html(artifact: BuildArtifact, output_path: str | Path) -> Path:
 
 
 def render_html(artifact: BuildArtifact) -> str:
-    lab_json = artifact.model_dump_json().replace("</", "<\\/")
+    lab_json = json.dumps(_public_artifact_payload(artifact.model_dump()), ensure_ascii=False).replace("</", "<\\/")
     title = _escape(artifact.problem_title)
     render_target = select_render_target(artifact)
     return f"""{document_start(title)}
@@ -931,3 +931,15 @@ def _escape(value: Any) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
+
+
+def _public_artifact_payload(payload: Any) -> Any:
+    if isinstance(payload, list):
+        return [_public_artifact_payload(item) for item in payload]
+    if isinstance(payload, dict):
+        return {
+            key: _public_artifact_payload(value)
+            for key, value in payload.items()
+            if not str(key).startswith("_")
+        }
+    return payload

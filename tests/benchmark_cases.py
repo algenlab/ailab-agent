@@ -160,14 +160,32 @@ def solve(input_data):
 UNIQUE_PATHS_TRACKER = """
 def trace(input_data):
     m, n = input_data["m"], input_data["n"]
+    tracer = Tracer(input_data, algorithm="不同路径", pseudocode=["dp[i][j] = dp[i-1][j] + dp[i][j-1]"])
     dp = [[1] * n for _ in range(m)]
-    events = [{"step": 0, "op": "create", "targets": [{"id": "dp"}], "state": {"dp": [row[:] for row in dp]}, "reason": "第一行和第一列只有一种路径。", "code_line": 1}]
+    tracer.expect_updates("dp", max(0, (m - 1) * (n - 1)))
+    tracer.create("dp", state={"dp": [row[:] for row in dp]}, reason="第一行和第一列只有一种路径。", code_line=1)
     for i in range(1, m):
         for j in range(1, n):
-            events.append({"step": len(events), "op": "compare", "targets": [{"id": f"dp[{i}][{j}]"}], "deps": [{"id": f"dp[{i-1}][{j}]"}, {"id": f"dp[{i}][{j-1}]"}], "state": {"dp": [row[:] for row in dp]}, "role": "candidate", "reason": "当前位置只能从上方或左侧到达。", "code_line": 3})
+            tracer.compare(
+                [f"dp[{i}][{j}]"],
+                deps=[f"dp[{i-1}][{j}]", f"dp[{i}][{j-1}]"],
+                state={"dp": [row[:] for row in dp], "i": i, "j": j},
+                role="candidate",
+                reason="当前位置只能从上方或左侧到达。",
+                code_line=3,
+            )
             dp[i][j] = dp[i - 1][j] + dp[i][j - 1]
-            events.append({"step": len(events), "op": "set", "targets": [{"id": f"dp[{i}][{j}]"}], "deps": [{"id": f"dp[{i-1}][{j}]"}, {"id": f"dp[{i}][{j-1}]"}], "state": {"dp": [row[:] for row in dp]}, "role": "answer", "reason": "写入上方和左侧路径数之和。", "code_line": 3})
-    return {"schema_version": "semantic-trace-v1", "algorithm": "不同路径", "input_data": input_data, "result": dp[m - 1][n - 1], "pseudocode": ["dp[i][j] = dp[i-1][j] + dp[i][j-1]"], "events": events}
+            tracer.set(
+                f"dp[{i}][{j}]",
+                value=dp[i][j],
+                deps=[f"dp[{i-1}][{j}]", f"dp[{i}][{j-1}]"],
+                state={"dp": [row[:] for row in dp], "i": i, "j": j},
+                role="answer",
+                reason="写入上方和左侧路径数之和。",
+                code_line=3,
+            )
+    tracer.result(dp[m - 1][n - 1])
+    return tracer.to_trace()
 """
 
 
@@ -756,26 +774,131 @@ CONVEX_HULL_TRACKER = """
 def trace(input_data):
     raw_points = input_data["points"]
     points = sorted(set(tuple(p) for p in raw_points))
-    geometry_points = [{"id": str(i), "x": p[0], "y": p[1], "label": str(list(p))} for i, p in enumerate(points)]
-    events = [{"step": 0, "op": "create", "targets": [{"id": "geometry"}], "state": {"geometry": {"points": geometry_points}}, "reason": "按坐标排序点集，准备 Graham/Andrew 扫描。", "code_line": 1}]
+    point_ids = {p: str(i) for i, p in enumerate(points)}
+    geometry_points = [{"id": point_ids[p], "x": p[0], "y": p[1], "label": str(list(p))} for p in points]
+    def ids(chain):
+        return [point_ids[x] for x in chain]
+    def lists(chain):
+        return [list(x) for x in chain]
+    def geom(chain, current=None, closed=False, segments=None, sweep_x=None):
+        data = {"points": geometry_points, "hull": ids(chain), "closed": closed}
+        if current is not None:
+            data["sweep_x"] = current[0] if sweep_x is None else sweep_x
+        if segments:
+            data["segments"] = segments
+        return data
+    def state(phase, current, lower, upper, chain, segments=None, closed=False):
+        data = {
+            "geometry": geom(chain, current=current, closed=closed, segments=segments),
+            "phase": phase,
+            "current": list(current) if current is not None else None,
+            "lower": lists(lower),
+            "upper": lists(upper),
+        }
+        return data
+    events = [{
+        "step": 0,
+        "op": "create",
+        "targets": [{"id": "geometry"}],
+        "state": {"geometry": {"points": geometry_points}, "phase": "sort", "lower": [], "upper": []},
+        "reason": "按坐标排序点集，准备 Andrew 单调链扫描。",
+        "code_line": 1,
+    }]
     if len(points) <= 1:
         return {"schema_version": "semantic-trace-v1", "algorithm": "凸包", "input_data": input_data, "result": [list(p) for p in points], "events": events}
     def cross(o, a, b):
         return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
     lower = []
     for p in points:
+        events.append({
+            "step": len(events),
+            "op": "mark",
+            "targets": [{"id": f"point:{point_ids[p]}"}],
+            "state": state("lower", p, lower, [], lower),
+            "role": "current",
+            "reason": "扫描当前点，尝试加入下凸壳。",
+            "code_line": 8,
+        })
         while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
-            lower.pop()
+            removed = lower.pop()
+            segments = [
+                {"from": point_ids[lower[-1]], "to": point_ids[removed], "label": "old"},
+                {"from": point_ids[removed], "to": point_ids[p], "label": "turn"},
+            ]
+            events.append({
+                "step": len(events),
+                "op": "pop",
+                "targets": [{"id": f"point:{point_ids[removed]}"}],
+                "deps": [{"id": f"point:{point_ids[lower[-1]]}"}, {"id": f"point:{point_ids[p]}"}],
+                "value": list(removed),
+                "state": state("lower", p, lower, [], lower, segments=segments),
+                "role": "conflict",
+                "reason": "下凸壳末尾三点形成非左转，移除中间点。",
+                "code_line": 10,
+            })
         lower.append(p)
-        events.append({"step": len(events), "op": "mark", "targets": [{"id": f"point:{points.index(p)}"}], "state": {"geometry": {"points": geometry_points, "hull": [str(points.index(x)) for x in lower], "closed": False}}, "role": "current", "reason": "维护下凸壳，保证连续三点保持左转。", "code_line": 9})
+        events.append({
+            "step": len(events),
+            "op": "push",
+            "targets": [{"id": "lower"}],
+            "value": list(p),
+            "state": state("lower", p, lower, [], lower),
+            "role": "current",
+            "reason": "加入当前点后，下凸壳保持左转不变量。",
+            "code_line": 11,
+        })
     upper = []
     for p in reversed(points):
+        events.append({
+            "step": len(events),
+            "op": "mark",
+            "targets": [{"id": f"point:{point_ids[p]}"}],
+            "state": state("upper", p, lower, upper, upper),
+            "role": "current",
+            "reason": "反向扫描当前点，尝试加入上凸壳。",
+            "code_line": 14,
+        })
         while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
-            upper.pop()
+            removed = upper.pop()
+            segments = [
+                {"from": point_ids[upper[-1]], "to": point_ids[removed], "label": "old"},
+                {"from": point_ids[removed], "to": point_ids[p], "label": "turn"},
+            ]
+            events.append({
+                "step": len(events),
+                "op": "pop",
+                "targets": [{"id": f"point:{point_ids[removed]}"}],
+                "deps": [{"id": f"point:{point_ids[upper[-1]]}"}, {"id": f"point:{point_ids[p]}"}],
+                "value": list(removed),
+                "state": state("upper", p, lower, upper, upper, segments=segments),
+                "role": "conflict",
+                "reason": "上凸壳末尾三点形成非左转，移除中间点。",
+                "code_line": 16,
+            })
         upper.append(p)
+        events.append({
+            "step": len(events),
+            "op": "push",
+            "targets": [{"id": "upper"}],
+            "value": list(p),
+            "state": state("upper", p, lower, upper, upper),
+            "role": "current",
+            "reason": "加入当前点后，上凸壳保持左转不变量。",
+            "code_line": 17,
+        })
     hull = lower[:-1] + upper[:-1]
     result = [list(p) for p in hull]
-    events.append({"step": len(events), "op": "mark", "targets": [{"id": "geometry"}], "state": {"geometry": {"points": geometry_points, "hull": [str(points.index(x)) for x in hull], "closed": True}, "answer": result}, "role": "answer", "reason": "合并上下凸壳得到最终凸包。", "code_line": 18})
+    final_state = state("final", None, lower, upper, hull, closed=True)
+    final_state["answer"] = result
+    events.append({
+        "step": len(events),
+        "op": "mark",
+        "targets": [{"id": "geometry"}],
+        "state": final_state,
+        "role": "answer",
+        "reason": "合并上下凸壳并闭合，得到最终凸包。",
+        "code_line": 19,
+    })
     return {"schema_version": "semantic-trace-v1", "algorithm": "凸包", "input_data": input_data, "result": result, "pseudocode": ["排序点集", "维护下凸壳和上凸壳", "合并得到凸包"], "events": events}
 """
 

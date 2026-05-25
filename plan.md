@@ -1106,6 +1106,7 @@ quality_checks: PASS
 - 不实现完整 debug mode UI。
 - 不做 AST 自动插桩。
 - 不引入新的 SemanticTrace schema version。
+- 不做 `_trace_meta` 的强可信来源证明；第一版按科研原型处理，默认 generated tracker 使用 Tracer API。
 
 这些留到后续：
 
@@ -1113,6 +1114,13 @@ quality_checks: PASS
 2. LLM benchmark 统计 Tracer 使用率。
 3. Debug mode：reference trace vs student trace 第一处分歧。
 4. 更细粒度的 sampled mode，例如按阶段抽样、保留关键分支、保留错误传播链。
+5. 生产化预算安全：由 executor 记录 Tracer 来源，或在 budget 阶段重新计算 `_trace_meta` 并拒绝伪造 meta。
+
+### 5.1 当前边界说明
+
+当前实现已经满足科研 demo 的主路径：LLM 生成 tracker 时调用系统注入的 `Tracer`，由 Tracer 统一生成 event schema、逐帧/抽样策略和 coverage meta。正常 Tracer 路径下，小输入不会因为 compare + set 的 raw event 数超过 80 而被错误抽样；大输入会明确标记 sampled mode。
+
+需要明确的是，`_trace_meta` 现在仍随 trace 一起返回，属于 trace 数据的一部分。它能支撑流程展示、质量统计和 repair 信号，但不是强安全边界。恶意手写 tracker 可以伪造类似 meta；这对论文原型和受控 demo 影响有限，但生产环境应把 meta 来源移到 executor 内部或增加强一致性校验。
 
 ---
 

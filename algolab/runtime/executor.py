@@ -95,11 +95,53 @@ def _validate_trace_budget(raw_trace: dict[str, Any]) -> None:
     events = raw_trace.get("events")
     if not isinstance(events, list):
         return
-    if len(events) > 80:
-        raise ValueError(f"trace events 过多：{len(events)}，请压缩到 80 步以内")
+    max_events = _trace_max_events(raw_trace)
+    if len(events) > max_events and not _has_tracer_full_semantic_budget(raw_trace, max_events):
+        raise ValueError(f"trace events 过多：{len(events)}，请压缩到 {max_events} 步以内")
     for event in events:
         if not isinstance(event, dict):
             continue
         state = event.get("state")
         if isinstance(state, dict) and len(str(state)) > 20000:
             raise ValueError("单步 state 过大，请只保留可视化必要变量")
+
+
+def _trace_max_events(raw_trace: dict[str, Any]) -> int:
+    events = raw_trace.get("events")
+    if not isinstance(events, list):
+        return 80
+    meta = _trace_meta_from_events(events)
+    if isinstance(meta, dict) and isinstance(meta.get("max_events"), int) and meta["max_events"] > 0:
+        return meta["max_events"]
+    return 80
+
+
+def _has_tracer_full_semantic_budget(raw_trace: dict[str, Any], max_events: int) -> bool:
+    events = raw_trace.get("events")
+    if not isinstance(events, list):
+        return False
+    meta = _trace_meta_from_events(events)
+    if not isinstance(meta, dict) or meta.get("sampled") is True:
+        return False
+    expected_updates = meta.get("expected_updates")
+    if not isinstance(expected_updates, dict) or not expected_updates:
+        return False
+    expected_total = 0
+    for value in expected_updates.values():
+        if not isinstance(value, int) or value < 0:
+            return False
+        expected_total += value
+    return expected_total <= max_events
+
+
+def _trace_meta_from_events(events: list[Any]) -> dict[str, Any] | None:
+    for event in reversed(events):
+        if not isinstance(event, dict):
+            continue
+        state = event.get("state")
+        if not isinstance(state, dict):
+            continue
+        meta = state.get("_trace_meta")
+        if isinstance(meta, dict):
+            return meta
+    return None

@@ -28,4 +28,5 @@
 18. 如果上次错误包含“执行超时”或“超过 5 秒”：必须丢弃上一次对应 solve/trace/verifier 中可能死循环的实现，重写为短小、有界、标准模板。所有 while 每轮必须单调推进；二分不能写 left=mid 或 right=mid，BFS 队列必须推进 head 或 popleft，并查集 find 必须更新 x。
 19. 如果上次错误是执行、trace、process 或 scene 校验错误：不要重写无关内容，只修失败原因；仍返回完整 JSON。
 20. 如果错误包含“小 DP 表缺少逐帧状态转移”：tracker 必须在真实循环中对每个需要更新的 DP 单元输出一个 set 事件，例如不同路径的每个内部 dp[i][j] 都要单独记录；不要用 len(events) 抽样，不要直接跳到最终格。
-21. 不要输出 markdown。
+21. 如果 tracker_code 直接手写 events.append、跳过中间状态、或错误包含“缺少逐帧状态转移 / trace coverage”，必须改写为 Tracer API：使用 tracer.set / tracer.push / tracer.move / tracer.compare 记录真实算法操作，最后 return tracer.to_trace()。
+22. 不要输出 markdown。

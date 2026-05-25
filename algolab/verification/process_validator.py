@@ -66,6 +66,7 @@ def _normalize_levels(levels: ProcessInvariantLevel | Iterable[ProcessInvariantL
 def _validate_core_invariants(trace: SemanticTrace) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
+    errors.extend(_validate_trace_meta_coverage(trace))
     errors.extend(_validate_observable_process_evidence(trace))
     replay_errors, replay_warnings = _validate_set_replay(trace)
     errors.extend(replay_errors)
@@ -73,6 +74,54 @@ def _validate_core_invariants(trace: SemanticTrace) -> tuple[list[str], list[str
     warnings.extend(_validate_dependency_presence(trace))
     warnings.extend(_validate_reason_grounding(trace))
     return errors, warnings
+
+
+def _validate_trace_meta_coverage(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        meta = (event.state or {}).get("_trace_meta")
+        if not isinstance(meta, dict):
+            continue
+        sampled = meta.get("sampled") is True
+        if sampled:
+            continue
+        coverage = _recompute_trace_meta_coverage(trace, meta)
+        for name, value in coverage.items():
+            if value < 1.0:
+                errors.append(f"第 {event.step} 步 trace coverage {name} 不足：{value}")
+    return errors
+
+
+def _recompute_trace_meta_coverage(trace: SemanticTrace, meta: dict[str, Any]) -> dict[str, float]:
+    expected_updates = meta.get("expected_updates")
+    if not isinstance(expected_updates, dict):
+        return {}
+    recorded_updates = _count_recorded_updates(trace)
+    coverage: dict[str, float] = {}
+    for raw_name, raw_expected in expected_updates.items():
+        if not isinstance(raw_expected, int):
+            continue
+        name = str(raw_name)
+        recorded = recorded_updates.get(name, 0)
+        coverage[name] = 1.0 if raw_expected == 0 else round(recorded / raw_expected, 6)
+    return coverage
+
+
+def _count_recorded_updates(trace: SemanticTrace) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for event in trace.events:
+        if event.op not in {SemanticOp.SET, SemanticOp.MARK, SemanticOp.MOVE, SemanticOp.PUSH, SemanticOp.POP}:
+            continue
+        for target in event.targets:
+            name = _coverage_name_for_target(target.id)
+            counts[name] = counts.get(name, 0) + 1
+    return counts
+
+
+def _coverage_name_for_target(target_id: str) -> str:
+    if target_id.startswith("pointer:"):
+        return target_id
+    return target_id.split("[", 1)[0]
 
 
 def _validate_observable_process_evidence(trace: SemanticTrace) -> list[str]:

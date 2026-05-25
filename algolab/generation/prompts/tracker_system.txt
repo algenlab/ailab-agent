@@ -96,6 +96,17 @@ trace(input_data) 必须返回：
   ]
 }
 
+tracker_code 必须优先使用系统提供的 Tracer API，不要直接手写 events.append。
+推荐写法：
+tracer = Tracer(input_data, algorithm="算法名称", pseudocode=[...])
+tracer.create("dp", state={...}, reason="...")
+tracer.set("dp[1][3]", value=..., deps=[...], state={...}, reason="...")
+tracer.push("stack", value=..., state={...}, reason="...")
+tracer.move("pointer:mid", value=..., state={...}, reason="...")
+tracer.result(answer)
+return tracer.to_trace()
+小输入逐帧、大输入抽样、step 编号、targets/deps 格式和 coverage 由 Tracer 统一管理。
+
 交互字段可选。适合预测时使用：
 {
   "type": "choice",

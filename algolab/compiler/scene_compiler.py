@@ -21,7 +21,8 @@ def compile_scene(trace: SemanticTrace) -> SceneGraph:
 
 
 def compile_frame(trace: SemanticTrace, event: SemanticEvent) -> SceneFrame:
-    state = event.state or {}
+    raw_state = event.state or {}
+    state = _public_state(raw_state)
     objects: list[SceneObject] = []
     marks: list[VisualMark] = []
 
@@ -60,6 +61,10 @@ def compile_frame(trace: SemanticTrace, event: SemanticEvent) -> SceneFrame:
         teaching=_teaching_for_event(event),
         evidence=_evidence_for_event(event),
     )
+
+
+def _public_state(state: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in state.items() if not key.startswith("_")}
 
 
 def _title_for_event(event: SemanticEvent) -> str:
