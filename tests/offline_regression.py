@@ -11,17 +11,31 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from algolab.compiler.scene_compiler import compile_scene
+import algolab.generation.solution_generator as solution_generator
+from algolab.generation.solution_generator import (
+    build_contract_with_repair,
+    normalize_contract_spec,
+    normalize_visual_plan_spec,
+)
+from algolab.renderer.layout_registry import LAYOUT_RENDERERS
+from algolab.renderer.capabilities import runtime_capabilities
 from algolab.pipeline import _try_materialize
 from algolab.renderer.export import save_html
 from algolab.runtime.sandbox import SandboxError, run_function
 from algolab.runtime.executor import execute_variant
-from algolab.schemas.semantic_trace import SemanticTrace
+from algolab.schemas.correctness import CorrectnessContract, OracleStrategy
+from algolab.schemas.render_report import RenderReport
+from algolab.schemas.semantic_trace import SemanticTrace, TeachingStep
 from algolab.schemas.semantic_trace import SolutionVariant
 from algolab.schemas.input import ProblemInput
 from algolab.schemas.scene_graph import SceneGraph
+from algolab.schemas.validation import BuildArtifact
+from algolab.schemas.visual_plan import RenderTarget, VisualPlan
 from algolab.verification.scene_validator import validate_scene
+from algolab.verification.contract_validator import validate_contract
 from algolab.verification.process_validator import validate_process
 from algolab.verification.trace_validator import validate_trace
+from algolab.verification.visual_plan_validator import validate_visual_plan
 from tests.fixtures import (
     algorithm_subfamily_traces,
     algorithm_family_traces,
@@ -36,6 +50,703 @@ from tests.fixtures import (
     trie_trace,
     union_find_trace,
 )
+
+
+def _two_sum_contract_payload() -> dict:
+    return {
+        "schema_version": "correctness-contract-v1",
+        "input_schema": {"nums": "int[]", "target": "int"},
+        "output_schema": "int[2] | []",
+        "preconditions": ["nums contains integers"],
+        "postconditions": [
+            "if output is [i,j], then 0 <= i < j < len(nums)",
+            "if output is [i,j], then nums[i] + nums[j] == target",
+            "if output is [], no valid pair exists",
+        ],
+        "oracle_strategy": "brute_force",
+        "oracle_code": (
+            "def brute_force(input_data):\n"
+            "    nums = input_data['nums']\n"
+            "    target = input_data['target']\n"
+            "    for i in range(len(nums)):\n"
+            "        for j in range(i + 1, len(nums)):\n"
+            "            if nums[i] + nums[j] == target:\n"
+            "                return [i, j]\n"
+            "    return []\n"
+        ),
+        "test_cases": [
+            {"input": {"nums": [2, 7, 11, 15], "target": 9}, "expected": [0, 1]},
+        ],
+        "metamorphic_relations": [
+            "appending a number that cannot participate keeps an existing answer valid",
+        ],
+        "process_invariants": ["seen only contains values from previous indices"],
+    }
+
+
+def test_correctness_contract_accepts_minimal_two_sum():
+    contract = CorrectnessContract.model_validate(_two_sum_contract_payload())
+    assert contract.schema_version == "correctness-contract-v1"
+    assert contract.input_schema.root == {"nums": "int[]", "target": "int"}
+    assert contract.output_schema.root == "int[2] | []"
+    assert contract.oracle_strategy == OracleStrategy.BRUTE_FORCE
+    assert contract.test_cases[0].input == {"nums": [2, 7, 11, 15], "target": 9}
+    assert contract.postconditions[0].expression.startswith("if output")
+
+
+def test_correctness_contract_rejects_invalid_contract():
+    bad_version = _two_sum_contract_payload()
+    bad_version["schema_version"] = "correctness-contract-v0"
+    try:
+        CorrectnessContract.model_validate(bad_version)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("CorrectnessContract should reject an unknown schema_version")
+
+    empty_output = _two_sum_contract_payload()
+    empty_output["output_schema"] = ""
+    try:
+        CorrectnessContract.model_validate(empty_output)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("CorrectnessContract should reject an empty output_schema")
+
+    no_postconditions = _two_sum_contract_payload()
+    no_postconditions["postconditions"] = []
+    try:
+        CorrectnessContract.model_validate(no_postconditions)
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("CorrectnessContract should reject missing postconditions")
+
+
+def test_visual_plan_accepts_2d_3d_hybrid_and_rejects_invalid_target():
+    for target in ("teaching_2d", "spatial_3d", "hybrid_2_5d", "creative"):
+        plan = VisualPlan.model_validate(
+            {
+                "schema_version": "visual-plan-v1",
+                "mode": "hybrid" if target == "hybrid_2_5d" else "teaching",
+                "stage": target,
+                "camera": {
+                    "type": "orbit" if target == "spatial_3d" else "fixed",
+                    "default_view": "isometric" if target == "spatial_3d" else "top_down",
+                    "focus_policy": "current_target",
+                },
+                "animation": {
+                    "pace": "medium",
+                    "transition": "smooth",
+                    "emphasize": ["current", "dependency"],
+                },
+                "teaching": {
+                    "level": "beginner",
+                    "show_invariant": True,
+                    "quiz_density": "medium",
+                },
+                "layout_preferences": {"graph": "layered_depth"},
+                "baseline_target": "teaching_2d",
+            }
+        )
+        assert plan.stage == RenderTarget(target)
+        assert plan.baseline_target == RenderTarget.TEACHING_2D
+
+    try:
+        VisualPlan.model_validate({"schema_version": "visual-plan-v1", "stage": "concept_video"})
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("VisualPlan should reject an unsupported render target")
+
+
+def test_visual_plan_prompt_and_validator_use_capabilities():
+    prompt = Path("algolab/generation/prompts/visual_plan_system.txt").read_text(encoding="utf-8")
+    assert "只能输出 JSON" in prompt
+    assert "visual-plan-v1" in prompt
+    assert "capabilities.render_targets" in prompt
+    assert "不要输出 HTML" in prompt
+    assert "不能改变算法结果" in prompt
+
+    plan = normalize_visual_plan_spec(
+        {
+            "schema_version": "visual-plan-v1",
+            "mode": "teaching",
+            "stage": "spatial_3d",
+            "camera": {"type": "orbit", "default_view": "isometric", "focus_policy": "current_target"},
+            "animation": {"pace": "medium", "transition": "smooth", "emphasize": ["current"]},
+            "teaching": {"level": "beginner", "show_invariant": True, "quiz_density": "low"},
+            "layout_preferences": {"graph": "layered_depth"},
+            "baseline_target": "teaching_2d",
+        }
+    )
+    validated, report = validate_visual_plan(plan, runtime_capabilities())
+    assert validated.stage == RenderTarget.SPATIAL_3D
+    assert report["requested_target"] == "spatial_3d"
+    assert report["actual_target"] == "spatial_3d"
+    assert report["used_baseline_renderer"] is False
+
+    try:
+        normalize_visual_plan_spec({"schema_version": "visual-plan-v1", "stage": "concept_video"})
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("invalid VisualPlan stage should be rejected")
+
+    cleaned, report = validate_visual_plan(
+        {
+            "schema_version": "visual-plan-v1",
+            "stage": "teaching_2d",
+            "layout_preferences": {"unknown_layout": "x", "array": "array"},
+        },
+        runtime_capabilities(),
+    )
+    assert "unknown_layout" not in cleaned.layout_preferences.root
+    assert report["warnings"]
+
+
+def test_layout_registry_declares_phase6_components():
+    expected = {
+        "array": "array",
+        "matrix": "matrix",
+        "graph": "graph",
+        "queue": "queue",
+        "stack": "stack",
+        "map": "map",
+        "tree": "tree",
+        "recursion_tree": "tree",
+        "heap": "heap",
+        "trie": "tree",
+        "union_find": "tree",
+        "string": "string",
+        "geometry": "geometry",
+        "generic": "map",
+    }
+    for layout, renderer in expected.items():
+        assert LAYOUT_RENDERERS.get(layout) == renderer
+
+
+def test_teaching_schema_compiles_explicit_fields_and_reason_fallback(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "教学字段测试",
+            "input_data": {"nums": [1, 2]},
+            "result": 3,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "nums"}],
+                    "state": {"nums": [1, 2]},
+                    "reason": "创建输入数组。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "answer"}],
+                    "deps": [{"id": "nums[0]"}, {"id": "nums[1]"}],
+                    "state": {"nums": [1, 2], "answer": 3},
+                    "reason": "合并两个数。",
+                    "code_line": 2,
+                    "teaching": {
+                        "what": "写入 answer",
+                        "why": "两个元素都已经读到。",
+                        "formula": "answer = nums[0] + nums[1]",
+                        "invariant": "answer 等于已处理元素之和。",
+                        "common_mistake": "不要漏掉第二个元素。",
+                        "hint": "先看 deps。",
+                    },
+                },
+            ],
+        }
+    )
+
+    scene = compile_scene(trace)
+
+    fallback = scene.frames[0].teaching
+    explicit = scene.frames[1].teaching
+    evidence = scene.frames[1].evidence
+    assert fallback is not None
+    assert fallback["what"].startswith("初始化结构")
+    assert fallback["why"] == "创建输入数组。"
+    assert fallback["hint"] == "关注 nums"
+    assert explicit == {
+        "what": "写入 answer",
+        "why": "两个元素都已经读到。",
+        "formula": "answer = nums[0] + nums[1]",
+        "invariant": "answer 等于已处理元素之和。",
+        "common_mistake": "不要漏掉第二个元素。",
+        "hint": "先看 deps。",
+    }
+    assert evidence["operation"] == "set"
+    assert evidence["targets"] == ["answer"]
+    assert evidence["deps"] == ["nums[0]", "nums[1]"]
+    assert evidence["reason"] == "合并两个数。"
+
+    artifact = fixture_artifact().model_copy(deep=True)
+    first_scene_id = artifact.variants[0].id
+    artifact.scenes[first_scene_id] = scene
+    out = save_html(artifact, tmp_path / "teaching.html")
+    html = out.read_text(encoding="utf-8")
+    assert 'id="teaching"' in html
+    assert "function renderTeaching" in html
+    assert "common_mistake" in html
+
+
+def test_stable_renderer_exposes_correctness_and_step_evidence(tmp_path: Path):
+    artifact = fixture_artifact().model_copy(deep=True)
+    artifact.correctness_contract = CorrectnessContract.model_validate(_two_sum_contract_payload())
+    artifact.validation.checks.extend(
+        [
+            "独立 verifier 执行通过",
+            "动态规划：solve/trace/process/scene 均通过",
+            "contract tests：1/1 passed",
+        ]
+    )
+    artifact.validation.contract_test_results = [
+        {
+            "case_index": 0,
+            "variant_id": "dp",
+            "ok": True,
+            "input": {"nums": [2, 7, 11, 15], "target": 9},
+            "expected": [0, 1],
+            "oracle_result": [0, 1],
+            "solve_result": [0, 1],
+            "error": "",
+        }
+    ]
+
+    out = save_html(artifact, tmp_path / "stable_evidence.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert 'id="evidence"' in html
+    assert 'id="step-evidence"' in html
+    assert "function renderEvidence" in html
+    assert "function renderStepEvidence" in html
+    assert "function stateDiff" in html
+    assert "CorrectnessContract" in html
+    assert "Contract tests" in html
+    assert "目标写入核对" in html
+    assert "seen only contains values from previous indices" in html
+
+
+def test_teaching_schema_rejects_unknown_fields():
+    try:
+        TeachingStep.model_validate({"what": "做一步", "unknown": "x"})
+    except ValidationError:
+        pass
+    else:
+        raise AssertionError("TeachingStep should reject unknown fields")
+
+
+def test_build_artifact_accepts_old_payload_without_new_optional_fields():
+    payload = fixture_artifact().model_dump()
+    payload.pop("correctness_contract", None)
+    payload.pop("visual_plan", None)
+    payload.pop("render_report", None)
+
+    restored = BuildArtifact.model_validate(payload)
+
+    assert restored.correctness_contract is None
+    assert restored.visual_plan is None
+    assert restored.render_report is None
+    assert restored.validation.release_gate.release_ready
+
+
+def test_build_artifact_dumps_optional_contract_visual_plan_and_render_report():
+    payload = fixture_artifact().model_dump()
+    payload["correctness_contract"] = _two_sum_contract_payload()
+    payload["visual_plan"] = {
+        "schema_version": "visual-plan-v1",
+        "mode": "hybrid",
+        "stage": "spatial_3d",
+        "metaphor": "BFS wavefront",
+        "camera": {"type": "orbit", "default_view": "isometric", "focus_policy": "current_target"},
+        "animation": {"pace": "medium", "transition": "smooth", "emphasize": ["current", "answer"]},
+        "teaching": {"level": "interview", "show_invariant": True, "quiz_density": "low"},
+        "layout_preferences": {"graph": "layered_depth", "queue": "dock_bottom"},
+        "baseline_target": "teaching_2d",
+    }
+    payload["render_report"] = {
+        "requested_target": "spatial_3d",
+        "actual_target": "teaching_2d",
+        "fallback_reasons": ["spatial runtime unavailable"],
+    }
+
+    artifact = BuildArtifact.model_validate(payload)
+    dumped = artifact.model_dump_json()
+    restored = BuildArtifact.model_validate_json(dumped)
+
+    assert restored.correctness_contract is not None
+    assert restored.correctness_contract.oracle_strategy == OracleStrategy.BRUTE_FORCE
+    assert restored.visual_plan is not None
+    assert restored.visual_plan.stage == RenderTarget.SPATIAL_3D
+    assert restored.render_report is not None
+    assert restored.render_report.actual_target == RenderTarget.TEACHING_2D
+
+
+def test_render_report_schema_records_target_fallback_and_browser_smoke():
+    report = RenderReport.model_validate(
+        {
+            "schema_version": "render-report-v1",
+            "requested_target": "spatial_3d",
+            "actual_target": "teaching_2d",
+            "baseline_target": "teaching_2d",
+            "used_baseline_renderer": True,
+            "fallback_reasons": ["spatial runtime is planned"],
+            "browser_smoke": {
+                "checked": True,
+                "passed": False,
+                "reason": "canvas target unavailable",
+            },
+            "release_ready": True,
+        }
+    )
+    assert report.requested_target == RenderTarget.SPATIAL_3D
+    assert report.actual_target == RenderTarget.TEACHING_2D
+    assert report.baseline_target == RenderTarget.TEACHING_2D
+    assert report.used_baseline_renderer is True
+    assert report.fallback_reasons == ["spatial runtime is planned"]
+    assert report.browser_smoke.checked is True
+    assert report.browser_smoke.passed is False
+
+
+def test_contract_validator_rejects_bad_schema_and_expected_mismatch():
+    request = ProblemInput(
+        problem="Two Sum",
+        input_data={"nums": [2, 7, 11, 15], "target": 9},
+        expected_result=[0, 1],
+    )
+    bad = _two_sum_contract_payload()
+    bad["schema_version"] = "bad-version"
+    report = validate_contract(bad, request)
+    assert report.errors
+    assert not report.release_gate.schema_ready
+    assert not report.release_gate.contract_ready
+
+    mismatch = _two_sum_contract_payload()
+    mismatch["test_cases"][0]["expected"] = [1, 2]
+    report = validate_contract(mismatch, request)
+    assert any("expected_result" in error for error in report.errors), report
+    assert report.release_gate.schema_ready
+    assert not report.release_gate.expected_consistent
+    assert not report.release_gate.contract_ready
+
+
+def test_contract_validator_accepts_expected_only_partial_contract():
+    request = ProblemInput(
+        problem="Two Sum",
+        input_data={"nums": [2, 7, 11, 15], "target": 9},
+        expected_result=[0, 1],
+    )
+    payload = _two_sum_contract_payload()
+    payload["oracle_strategy"] = "none"
+    payload["oracle_code"] = ""
+
+    report = validate_contract(payload, request)
+
+    assert report.errors == []
+    assert report.release_gate.schema_ready
+    assert not report.release_gate.oracle_ready
+    assert report.release_gate.expected_consistent
+    assert report.release_gate.generated_tests_pass
+    assert report.release_gate.contract_ready
+    assert any("部分校验" in warning for warning in report.warnings), report.warnings
+
+
+def test_contract_validator_rejects_unusable_test_cases():
+    request = ProblemInput(problem="Two Sum", input_data={"nums": [2], "target": 3}, expected_result=[])
+    payload = _two_sum_contract_payload()
+    payload["test_cases"][0]["input"] = {"nums": [2]}
+
+    report = validate_contract(payload, request)
+
+    assert any("缺少字段" in error for error in report.errors), report.errors
+    assert not report.release_gate.generated_tests_pass
+    assert not report.release_gate.contract_ready
+
+
+def test_contract_validator_executes_two_sum_brute_force_oracle():
+    request = ProblemInput(
+        problem="Two Sum",
+        input_data={"nums": [3, 2, 4], "target": 6},
+        expected_result=[1, 2],
+    )
+    payload = _two_sum_contract_payload()
+    payload["test_cases"].append({"input": request.input_data, "expected": request.expected_result})
+
+    report = validate_contract(payload, request)
+
+    assert report.errors == []
+    assert report.release_gate.oracle_ready
+    assert report.release_gate.contract_ready
+    assert any("oracle 执行通过" in check for check in report.checks), report.checks
+
+
+def test_contract_validator_executes_daily_temperatures_brute_force_oracle():
+    request = ProblemInput(
+        problem="Daily Temperatures",
+        input_data={"temperatures": [73, 74, 75, 71, 69, 72, 76, 73]},
+        expected_result=[1, 1, 4, 2, 1, 1, 0, 0],
+    )
+    payload = {
+        "schema_version": "correctness-contract-v1",
+        "input_schema": {"temperatures": "int[]"},
+        "output_schema": "int[]",
+        "postconditions": ["answer[i] is the wait until a warmer day, or 0 if none exists"],
+        "oracle_strategy": "brute_force",
+        "oracle_code": (
+            "def brute_force(input_data):\n"
+            "    temperatures = input_data['temperatures']\n"
+            "    ans = []\n"
+            "    for i, temp in enumerate(temperatures):\n"
+            "        wait = 0\n"
+            "        for j in range(i + 1, len(temperatures)):\n"
+            "            if temperatures[j] > temp:\n"
+            "                wait = j - i\n"
+            "                break\n"
+            "        ans.append(wait)\n"
+            "    return ans\n"
+        ),
+        "test_cases": [{"input": request.input_data, "expected": request.expected_result}],
+    }
+
+    report = validate_contract(payload, request)
+
+    assert report.errors == []
+    assert report.release_gate.oracle_ready
+    assert report.release_gate.contract_ready
+
+
+def test_contract_validator_supports_expected_user_and_generated_oracles():
+    request = ProblemInput(problem="identity", input_data={"x": 7}, expected_result=7)
+    base = {
+        "schema_version": "correctness-contract-v1",
+        "input_schema": {"x": "int"},
+        "output_schema": "int",
+        "postconditions": ["return x"],
+        "test_cases": [{"input": {"x": 7}, "expected": 7}],
+    }
+
+    expected_only = {**base, "oracle_strategy": "expected_only"}
+    report = validate_contract(expected_only, request)
+    assert report.errors == []
+    assert report.release_gate.oracle_ready
+
+    user_provided = {
+        **base,
+        "oracle_strategy": "user_provided",
+        "oracle_code": "def oracle(input_data):\n    return input_data['x']",
+    }
+    report = validate_contract(user_provided, request)
+    assert report.errors == []
+    assert report.release_gate.oracle_ready
+
+    generated = {
+        **base,
+        "oracle_strategy": "generated_verifier",
+        "oracle_code": "def verify(input_data):\n    return input_data['x']",
+    }
+    report = validate_contract(generated, request)
+    assert report.errors == []
+    assert report.release_gate.oracle_ready
+
+
+def test_contract_validator_blocks_oracle_expected_mismatch_and_timeout():
+    request = ProblemInput(problem="Two Sum", input_data={"nums": [2, 7], "target": 9}, expected_result=[0, 1])
+    mismatch = _two_sum_contract_payload()
+    mismatch["oracle_code"] = "def brute_force(input_data):\n    return []"
+    report = validate_contract(mismatch, request)
+    assert any("oracle result" in error for error in report.errors), report.errors
+    assert not report.release_gate.oracle_ready
+    assert not report.release_gate.contract_ready
+
+    timeout = _two_sum_contract_payload()
+    timeout["oracle_code"] = "def brute_force(input_data):\n    while True:\n        pass"
+    report = validate_contract(timeout, request, oracle_timeout_s=1)
+    assert any("超时" in error for error in report.errors), report.errors
+    assert not report.release_gate.oracle_ready
+    assert not report.release_gate.contract_ready
+
+
+def test_contract_prompt_states_json_expected_and_verifier_boundaries():
+    prompt = Path("algolab/generation/prompts/contract_system.txt").read_text(encoding="utf-8")
+    assert "只能输出 JSON" in prompt
+    assert "schema_version" in prompt
+    assert "input_schema" in prompt
+    assert "postconditions" in prompt
+    assert "oracle_strategy" in prompt
+    assert "test_cases" in prompt
+    assert "expected 优先" in prompt
+    assert "不是形式化证明" in prompt
+    assert "HTML" in prompt and "Three.js" in prompt
+
+
+def test_contract_prompt_examples_normalize_for_two_sum_dp_graph_stack():
+    examples = [
+        (
+            "two_sum",
+            {
+                **_two_sum_contract_payload(),
+                "test_cases": [{"input": {"nums": [2, 7, 11, 15], "target": 9}, "expected": [0, 1]}],
+            },
+            ProblemInput(problem="Two Sum", input_data={"nums": [2, 7, 11, 15], "target": 9}, expected_result=[0, 1]),
+        ),
+        (
+            "dp",
+            {
+                "schema_version": "correctness-contract-v1",
+                "input_schema": {"nums": "int[]"},
+                "output_schema": "int",
+                "postconditions": ["output is the maximum non-adjacent sum"],
+                "oracle_strategy": "brute_force",
+                "oracle_code": (
+                    "def brute_force(input_data):\n"
+                    "    nums = input_data['nums']\n"
+                    "    def dfs(i):\n"
+                    "        if i >= len(nums):\n"
+                    "            return 0\n"
+                    "        return max(dfs(i + 1), nums[i] + dfs(i + 2))\n"
+                    "    return dfs(0)\n"
+                ),
+                "test_cases": [{"input": {"nums": [2, 7, 9, 3, 1]}, "expected": 12}],
+            },
+            ProblemInput(problem="House Robber", input_data={"nums": [2, 7, 9, 3, 1]}, expected_result=12),
+        ),
+        (
+            "graph",
+            {
+                "schema_version": "correctness-contract-v1",
+                "input_schema": {"graph": "object", "start": "str"},
+                "output_schema": "object",
+                "postconditions": ["output maps each reachable node to its BFS distance"],
+                "oracle_strategy": "brute_force",
+                "oracle_code": (
+                    "def brute_force(input_data):\n"
+                    "    graph = input_data['graph']\n"
+                    "    start = input_data['start']\n"
+                    "    dist = {start: 0}\n"
+                    "    queue = [start]\n"
+                    "    head = 0\n"
+                    "    while head < len(queue):\n"
+                    "        cur = queue[head]\n"
+                    "        head += 1\n"
+                    "        for nei in graph.get(cur, []):\n"
+                    "            if nei not in dist:\n"
+                    "                dist[nei] = dist[cur] + 1\n"
+                    "                queue.append(nei)\n"
+                    "    return dist\n"
+                ),
+                "test_cases": [{"input": {"graph": {"A": ["B"], "B": []}, "start": "A"}, "expected": {"A": 0, "B": 1}}],
+            },
+            ProblemInput(problem="BFS", input_data={"graph": {"A": ["B"], "B": []}, "start": "A"}, expected_result={"A": 0, "B": 1}),
+        ),
+        (
+            "stack",
+            {
+                "schema_version": "correctness-contract-v1",
+                "input_schema": {"temperatures": "int[]"},
+                "output_schema": "int[]",
+                "postconditions": ["answer[i] is wait until a warmer day"],
+                "oracle_strategy": "brute_force",
+                "oracle_code": (
+                    "def brute_force(input_data):\n"
+                    "    temperatures = input_data['temperatures']\n"
+                    "    ans = []\n"
+                    "    for i, temp in enumerate(temperatures):\n"
+                    "        wait = 0\n"
+                    "        for j in range(i + 1, len(temperatures)):\n"
+                    "            if temperatures[j] > temp:\n"
+                    "                wait = j - i\n"
+                    "                break\n"
+                    "        ans.append(wait)\n"
+                    "    return ans\n"
+                ),
+                "test_cases": [{"input": {"temperatures": [30, 40, 50, 60]}, "expected": [1, 1, 1, 0]}],
+            },
+            ProblemInput(problem="Daily Temperatures", input_data={"temperatures": [30, 40, 50, 60]}, expected_result=[1, 1, 1, 0]),
+        ),
+    ]
+    for name, raw, request in examples:
+        contract = normalize_contract_spec(raw)
+        report = validate_contract(contract, request)
+        assert report.errors == [], (name, report.errors)
+        assert report.release_gate.contract_ready, (name, report.release_gate)
+
+
+def test_contract_repair_loop_fixes_truncated_json():
+    request = ProblemInput(
+        problem="Two Sum",
+        input_data={"nums": [2, 7, 11, 15], "target": 9},
+        expected_result=[0, 1],
+    )
+    responses = iter(
+        [
+            "{truncated",
+            _two_sum_contract_payload(),
+        ]
+    )
+
+    def fake_chat_json(_system_prompt, _user_prompt):
+        item = next(responses)
+        if isinstance(item, str):
+            from llm_client import parse_json_content
+
+            return parse_json_content(item)
+        return item
+
+    original = solution_generator.chat_json
+    solution_generator.chat_json = fake_chat_json
+    try:
+        contract, repair_log = build_contract_with_repair(request, max_rounds=1)
+    finally:
+        solution_generator.chat_json = original
+
+    assert contract.schema_version == "correctness-contract-v1"
+    assert repair_log[0]["status"] == "failed"
+    assert "LLMJsonError" in repair_log[0]["errors"][0]
+    assert repair_log[-1]["status"] == "ok"
+
+
+def test_contract_repair_loop_handles_validator_and_oracle_failures():
+    request = ProblemInput(
+        problem="Two Sum",
+        input_data={"nums": [2, 7, 11, 15], "target": 9},
+        expected_result=[0, 1],
+    )
+    bad_expected = _two_sum_contract_payload()
+    bad_expected["test_cases"][0]["expected"] = [1, 2]
+    fixed_expected = _two_sum_contract_payload()
+    responses = iter([bad_expected, fixed_expected])
+
+    original = solution_generator.chat_json
+    solution_generator.chat_json = lambda _system_prompt, _user_prompt: next(responses)
+    try:
+        contract, repair_log = build_contract_with_repair(request, max_rounds=1)
+    finally:
+        solution_generator.chat_json = original
+
+    assert contract.test_cases[0].expected == [0, 1]
+    assert repair_log[0]["status"] == "failed"
+    assert any("expected_result" in error for error in repair_log[0]["errors"])
+    assert repair_log[-1]["status"] == "ok"
+
+    bad_oracle = _two_sum_contract_payload()
+    bad_oracle["oracle_code"] = "def brute_force(input_data):\n    return []"
+    fixed_oracle = _two_sum_contract_payload()
+    responses = iter([bad_oracle, fixed_oracle])
+    solution_generator.chat_json = lambda _system_prompt, _user_prompt: next(responses)
+    try:
+        contract, repair_log = build_contract_with_repair(request, max_rounds=1)
+    finally:
+        solution_generator.chat_json = original
+
+    assert contract.oracle_code == fixed_oracle["oracle_code"]
+    assert repair_log[0]["status"] == "failed"
+    assert any("oracle result" in error for error in repair_log[0]["errors"])
+    assert repair_log[-1]["status"] == "ok"
 
 
 def test_schema_rejects_non_contiguous_steps():
@@ -244,6 +955,47 @@ def test_process_validator_rejects_bad_unique_paths_transition():
     )
     errors, _warnings = validate_process(trace)
     assert any("不同路径转移" in e for e in errors), errors
+
+
+def test_process_validator_rejects_sparse_unique_paths_trace():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "不同路径",
+            "input_data": {"m": 3, "n": 7},
+            "result": 28,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "dp"}],
+                    "state": {"dp": [[1] * 7 for _ in range(3)]},
+                    "reason": "初始化 DP 表。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "dp[1][1]"}],
+                    "deps": [{"id": "dp[0][1]"}, {"id": "dp[1][0]"}],
+                    "state": {"dp": [[1, 1, 1, 1, 1, 1, 1], [1, 2, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1]]},
+                    "reason": "只展示了一个中间格。",
+                    "code_line": 3,
+                },
+                {
+                    "step": 2,
+                    "op": "set",
+                    "targets": [{"id": "dp[2][6]"}],
+                    "deps": [{"id": "dp[1][6]"}, {"id": "dp[2][5]"}],
+                    "state": {"dp": [[1, 1, 1, 1, 1, 1, 1], [1, 2, 3, 4, 5, 6, 7], [1, 3, 6, 10, 15, 21, 28]]},
+                    "reason": "直接跳到最后一个格子。",
+                    "code_line": 3,
+                },
+            ],
+        }
+    )
+    errors, _warnings = validate_process(trace)
+    assert any("缺少逐帧状态转移" in e for e in errors), errors
 
 
 def test_process_validator_rejects_bad_bfs_distance():
@@ -573,6 +1325,40 @@ def test_process_validator_level_selection():
         raise AssertionError("未知 invariant 层级应被拒绝")
 
 
+def test_process_validator_rejects_unobservable_process_steps():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "空洞过程",
+            "input_data": {"nums": [1]},
+            "result": 1,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "nums"}],
+                    "state": {"nums": [1], "answer": 0},
+                    "reason": "初始化。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "answer"}],
+                    "state": {"nums": [1], "answer": 0},
+                    "reason": "声称写入答案，但状态没有变化，也没有 before/after/value/deps。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+    errors, warnings = validate_process(trace)
+
+    assert warnings == []
+    assert any("缺少可观测过程证据" in error for error in errors), errors
+
+
 def test_scene_compiler_outputs_cells_and_arrows():
     scene = compile_scene(house_robber_trace())
     frame = scene.frames[2]
@@ -692,6 +1478,269 @@ def test_classic_subfamilies_have_deterministic_visual_coverage():
             assert expected_object in object_ids, (variant_id, name, expected_object)
 
 
+def test_ml_primitives_cover_linear_and_logistic_regression(tmp_path: Path):
+    linear = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "线性回归单步训练",
+            "input_data": {"x": [[1.0], [2.0]], "y": [2.0, 4.0]},
+            "result": {"prediction": [1.2, 2.4], "loss": 1.8},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "training"}],
+                    "state": {
+                        "training": {
+                            "features": [[1.0], [2.0]],
+                            "batch": {"start": 0, "size": 2},
+                            "parameters": {"w": 1.2, "b": 0.0},
+                            "loss_curve": [3.2, 2.4, 1.8],
+                            "gradient": {"w": -1.1, "b": -0.6},
+                            "epoch": 1,
+                            "prediction": [1.2, 2.4],
+                        }
+                    },
+                    "reason": "展示线性回归的一次参数更新状态。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    logistic = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "逻辑回归边界",
+            "input_data": {"x": [[0, 0], [1, 1]], "y": [0, 1]},
+            "result": {"prediction": [0, 1]},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "model"}],
+                    "state": {
+                        "model": {
+                            "tensor": [[0, 0], [1, 1]],
+                            "parameters": {"w0": 1.0, "w1": 1.0, "b": -0.5},
+                            "computational_graph": {
+                                "nodes": [{"id": "x"}, {"id": "linear"}, {"id": "sigmoid"}, {"id": "loss"}],
+                                "edges": [["x", "linear"], ["linear", "sigmoid"], ["sigmoid", "loss"]],
+                            },
+                            "decision_boundary": {"w": [1.0, 1.0], "b": -0.5},
+                            "prediction": [0, 1],
+                            "loss": 0.31,
+                        }
+                    },
+                    "role": "current",
+                    "reason": "展示逻辑回归的计算图和决策边界。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+    scenes = [compile_scene(linear), compile_scene(logistic)]
+    for scene in scenes:
+        errors, warnings = validate_scene(scene)
+        assert errors == []
+        assert warnings == []
+
+    objects = [obj for scene in scenes for frame in scene.frames for obj in frame.objects]
+    object_types = {obj.type.value for obj in objects}
+    assert {
+        "tensor",
+        "batch",
+        "parameter",
+        "loss_curve",
+        "gradient_vector",
+        "decision_boundary",
+        "training_epoch",
+        "prediction",
+    } <= object_types
+    layouts = {obj.meta.get("layout") for obj in objects if obj.type.value == "container" or obj.meta}
+    assert {"ml", "matrix", "computational_graph"} <= layouts
+    assert any(obj.type.value == "edge" and obj.parent.endswith("computational_graph") for obj in objects)
+
+    artifact = fixture_artifact().model_copy(deep=True)
+    artifact.variants[0].id = "linear_ml"
+    artifact.scenes = {"linear_ml": scenes[0], "logistic_ml": scenes[1]}
+    out = save_html(artifact, tmp_path / "ml.html")
+    html = out.read_text(encoding="utf-8")
+    assert "renderML" in html
+    assert "loss_curve" in html
+    assert "decision_boundary" in html
+
+
+def test_ml_correctness_accepts_linear_regression_gradient_and_loss_curve():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "线性回归单步梯度校验",
+            "input_data": {"x": [[1.0], [2.0]], "y": [2.0, 4.0]},
+            "result": {"loss": 1.0},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "training"}],
+                    "state": {
+                        "training": {
+                            "features": [[1.0], [2.0]],
+                            "labels": [2.0, 4.0],
+                            "parameters": {"w": 1.0, "b": 0.0},
+                            "prediction": [1.0, 2.0],
+                            "gradient": {"w": -2.5, "b": -1.5},
+                            "loss": 1.25,
+                            "loss_curve": [3.0, 1.8, 1.25],
+                            "loss_should_decrease": True,
+                            "tolerance": 1e-9,
+                        }
+                    },
+                    "reason": "校验线性回归的 MSE 单步梯度、loss 和 loss curve。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+    errors, warnings = validate_process(trace)
+
+    assert errors == []
+    assert warnings == []
+
+
+def test_ml_correctness_rejects_bad_linear_regression_gradient_and_loss_curve():
+    bad_gradient = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "线性回归错误梯度",
+            "input_data": {"x": [[1.0], [2.0]], "y": [2.0, 4.0]},
+            "result": None,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "training"}],
+                    "state": {
+                        "training": {
+                            "features": [[1.0], [2.0]],
+                            "labels": [2.0, 4.0],
+                            "parameters": {"w": 1.0, "b": 0.0},
+                            "prediction": [1.0, 2.0],
+                            "gradient": {"w": -2.0, "b": -1.5},
+                            "loss": 1.25,
+                        }
+                    },
+                    "reason": "错误梯度应被 process invariant 拦截。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(bad_gradient)
+    assert any("线性回归 grad_w" in error for error in errors), errors
+
+    bad_curve = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "ML loss curve 错误",
+            "input_data": {"x": [1, 2], "y": [2, 4]},
+            "result": None,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "training"}],
+                    "state": {
+                        "training": {
+                            "features": [1.0, 2.0],
+                            "labels": [2.0, 4.0],
+                            "parameters": {"w": 1.0, "b": 0.0},
+                            "gradient": {"w": -2.5, "b": -1.5},
+                            "loss_curve": [1.0, 1.3],
+                            "loss_should_decrease": True,
+                            "tolerance": 1e-9,
+                        }
+                    },
+                    "reason": "loss curve 明显上升。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(bad_curve)
+    assert any("loss_curve[1]" in error for error in errors), errors
+
+
+def test_ml_correctness_checks_parameter_update_tolerance_and_random_seed():
+    good_update = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "梯度下降训练动态",
+            "input_data": {"x": [1.0, 2.0], "y": [2.0, 4.0]},
+            "result": None,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "training"}],
+                    "state": {
+                        "training": {
+                            "features": [1.0, 2.0],
+                            "labels": [2.0, 4.0],
+                            "parameters": {"w": 1.0, "b": 0.0},
+                            "parameters_before": {"w": 1.0, "b": 0.0},
+                            "parameters_after": {"w": 1.25, "b": 0.15},
+                            "gradient": {"w": -2.5, "b": -1.5},
+                            "learning_rate": 0.1,
+                            "prediction": [1.0, 2.0],
+                            "loss_curve": [2.0, 1.6],
+                            "shuffle": True,
+                            "seed": 42,
+                        }
+                    },
+                    "reason": "校验单步参数更新和随机 seed。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(good_update)
+    assert errors == []
+
+    bad_update_and_seed = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "随机小批量梯度下降错误",
+            "input_data": {"x": [1.0, 2.0], "y": [2.0, 4.0]},
+            "result": None,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "training"}],
+                    "state": {
+                        "training": {
+                            "features": [1.0, 2.0],
+                            "labels": [2.0, 4.0],
+                            "parameters_before": {"w": 1.0, "b": 0.0},
+                            "parameters_after": {"w": 1.2, "b": 0.15},
+                            "gradient": {"w": -2.5, "b": -1.5},
+                            "learning_rate": 0.1,
+                            "batch_sampling": "random",
+                        }
+                    },
+                    "reason": "随机训练没有 seed，参数更新也错误。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(bad_update_and_seed)
+    assert any("缺少固定 seed" in error for error in errors), errors
+    assert any("参数 w 更新" in error for error in errors), errors
+
+
 def test_sandbox_blocks_imports_and_times_out():
     assert run_function("def solve(input_data):\n    return input_data['x'] + 1", "solve", {"x": 2}) == 3
 
@@ -715,6 +1764,8 @@ def test_renderer_writes_html(tmp_path: Path):
     html = out.read_text(encoding="utf-8")
     assert "离线打家劫舍" in html
     assert "SemanticTrace" not in html
+    assert "RUNTIME_TARGET" in html
+    assert "LAYOUT_RENDERERS" in html
     assert out.with_suffix(".json").exists()
 
 
@@ -795,6 +1846,7 @@ def _good_spec(verifier_code: str = ""):
                 "step": 1,
                 "op": "set",
                 "targets": [{"id": "answer"}],
+                "after": 1,
                 "state": {"answer": 1},
                 "reason": "返回答案。",
                 "code_line": 2,
@@ -834,6 +1886,41 @@ def test_pipeline_expected_result_allows_single_solution_release():
     assert errors == []
 
 
+def test_pipeline_blocks_unobservable_process_even_with_expected_result():
+    request = ProblemInput(problem="常量题", input_data={"x": 1}, expected_result=1)
+    trace_literal = {
+        "schema_version": "semantic-trace-v1",
+        "algorithm": "常量",
+        "input_data": {"x": 1},
+        "result": 1,
+        "events": [
+            {
+                "step": 0,
+                "op": "create",
+                "targets": [{"id": "answer"}],
+                "state": {"answer": 1},
+                "reason": "初始化答案。",
+                "code_line": 1,
+            },
+            {
+                "step": 1,
+                "op": "set",
+                "targets": [{"id": "answer"}],
+                "state": {"answer": 1},
+                "reason": "声称更新答案，但状态没有变化，也没有 before/after/value/deps。",
+                "code_line": 2,
+            },
+        ],
+    }
+    spec = _good_spec()
+    spec["variants"][0]["tracker_code"] = f"def trace(input_data):\n    return {trace_literal!r}"
+
+    artifact, errors = _try_materialize(request, spec)
+
+    assert not artifact.validation.release_gate.release_ready
+    assert any("缺少可观测过程证据" in error for error in errors), errors
+
+
 def test_pipeline_bad_verifier_blocks_release():
     request = ProblemInput(problem="常量题", input_data={"x": 1}, expected_result=1)
     artifact, errors = _try_materialize(request, _good_spec("def verify(input_data):\n    return 2"))
@@ -843,6 +1930,26 @@ def test_pipeline_bad_verifier_blocks_release():
 
 def run_all():
     tests = [
+        test_correctness_contract_accepts_minimal_two_sum,
+        test_correctness_contract_rejects_invalid_contract,
+        test_visual_plan_accepts_2d_3d_hybrid_and_rejects_invalid_target,
+        test_visual_plan_prompt_and_validator_use_capabilities,
+        test_layout_registry_declares_phase6_components,
+        test_teaching_schema_rejects_unknown_fields,
+        test_build_artifact_accepts_old_payload_without_new_optional_fields,
+        test_build_artifact_dumps_optional_contract_visual_plan_and_render_report,
+        test_render_report_schema_records_target_fallback_and_browser_smoke,
+        test_contract_validator_rejects_bad_schema_and_expected_mismatch,
+        test_contract_validator_accepts_expected_only_partial_contract,
+        test_contract_validator_rejects_unusable_test_cases,
+        test_contract_validator_executes_two_sum_brute_force_oracle,
+        test_contract_validator_executes_daily_temperatures_brute_force_oracle,
+        test_contract_validator_supports_expected_user_and_generated_oracles,
+        test_contract_validator_blocks_oracle_expected_mismatch_and_timeout,
+        test_contract_prompt_states_json_expected_and_verifier_boundaries,
+        test_contract_prompt_examples_normalize_for_two_sum_dp_graph_stack,
+        test_contract_repair_loop_fixes_truncated_json,
+        test_contract_repair_loop_handles_validator_and_oracle_failures,
         test_schema_rejects_non_contiguous_steps,
         test_trace_validator_rejects_unknown_index_target,
         test_trace_validator_accepts_map_bracket_and_slice_targets,
@@ -852,6 +1959,7 @@ def run_all():
         test_process_validator_accepts_map_container_dependency,
         test_semantic_event_normalizes_null_optional_text,
         test_process_validator_rejects_bad_unique_paths_transition,
+        test_process_validator_rejects_sparse_unique_paths_trace,
         test_process_validator_rejects_bad_bfs_distance,
         test_process_validator_rejects_bad_subset_sum_transition,
         test_process_validator_rejects_binary_search_mid_outside_window,
@@ -861,6 +1969,7 @@ def run_all():
         test_process_validator_rejects_bad_kmp_complete_knapsack_interval_dp,
         test_process_validator_rejects_bad_bst_lca_tarjan_mst_geometry_backtracking,
         test_process_validator_level_selection,
+        test_process_validator_rejects_unobservable_process_steps,
         test_scene_compiler_outputs_cells_and_arrows,
         test_scene_compiler_materializes_symbol_targets_as_labels,
         test_scene_compiler_binds_pointers_to_array_cells,
@@ -868,12 +1977,16 @@ def run_all():
         test_classic_visual_layout_coverage,
         test_all_13_algorithm_families_have_fixture_and_layout,
         test_classic_subfamilies_have_deterministic_visual_coverage,
+        test_ml_correctness_accepts_linear_regression_gradient_and_loss_curve,
+        test_ml_correctness_rejects_bad_linear_regression_gradient_and_loss_curve,
+        test_ml_correctness_checks_parameter_update_tolerance_and_random_seed,
         test_sandbox_blocks_imports_and_times_out,
         test_execute_variant_requires_trace_input_data,
         test_execute_variant_normalizes_event_steps,
         test_scene_validator_rejects_empty_visual_frame,
         test_pipeline_requires_process_evidence,
         test_pipeline_expected_result_allows_single_solution_release,
+        test_pipeline_blocks_unobservable_process_even_with_expected_result,
         test_pipeline_bad_verifier_blocks_release,
     ]
     for test in tests:
@@ -881,7 +1994,10 @@ def run_all():
     import tempfile
 
     with tempfile.TemporaryDirectory() as d:
+        test_teaching_schema_compiles_explicit_fields_and_reason_fallback(Path(d))
+        test_stable_renderer_exposes_correctness_and_step_evidence(Path(d))
         test_renderer_writes_html(Path(d))
+        test_ml_primitives_cover_linear_and_logistic_regression(Path(d))
 
 
 if __name__ == "__main__":

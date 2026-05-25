@@ -9,7 +9,10 @@ from typing import Any
 from llm_client import chat_json
 
 from algolab.schemas.input import ProblemInput
+from algolab.schemas.correctness import CorrectnessContract
 from algolab.schemas.semantic_trace import SolutionVariant
+from algolab.schemas.validation import BuildArtifact
+from algolab.schemas.visual_plan import VisualPlan
 
 
 PROMPT_DIR = Path(__file__).parent / "prompts"
@@ -50,6 +53,107 @@ def generate_solution_spec(request: ProblemInput) -> dict[str, Any]:
     return normalize_solution_spec(chat_json(_prompt_text("tracker_system.txt"), _build_user_prompt(request)))
 
 
+def _build_contract_user_prompt(request: ProblemInput) -> str:
+    parts = [
+        "题目：",
+        request.problem,
+        "",
+        "具体输入 JSON：",
+        json.dumps(request.input_data, ensure_ascii=False, separators=(",", ":")),
+    ]
+    if request.expected_result is not None:
+        parts.extend(["", "用户给出的 expected：", json.dumps(request.expected_result, ensure_ascii=False)])
+    if request.strategy_hint:
+        parts.extend(["", "可选算法思路：", request.strategy_hint])
+    parts.extend(
+        [
+            "",
+            "请只返回 correctness-contract-v1 JSON。expected 优先；如果提供 oracle_code，它只能返回题目答案本身。",
+        ]
+    )
+    return "\n".join(parts)
+
+
+def generate_contract_candidate(request: ProblemInput) -> CorrectnessContract:
+    raw = chat_json(_prompt_text("contract_system.txt"), _build_contract_user_prompt(request))
+    return normalize_contract_spec(raw)
+
+
+def build_contract_with_repair(request: ProblemInput, max_rounds: int = 1) -> tuple[CorrectnessContract, list[dict[str, Any]]]:
+    repair_log: list[dict[str, Any]] = []
+    raw: Any = None
+    last_errors: list[str] = []
+    for round_idx in range(max_rounds + 1):
+        if round_idx == 0:
+            try:
+                raw = chat_json(_prompt_text("contract_system.txt"), _build_contract_user_prompt(request))
+            except Exception as exc:
+                raw = "{}"
+                last_errors = [f"{type(exc).__name__}: {exc}"]
+                repair_log.append({"round": round_idx, "status": "failed", "errors": last_errors})
+                if round_idx >= max_rounds:
+                    break
+                raw = repair_contract_candidate(request, raw, last_errors)
+                continue
+        try:
+            contract = normalize_contract_spec(raw)
+            from algolab.verification.contract_validator import validate_contract
+
+            report = validate_contract(contract, request)
+            if report.release_gate.contract_ready:
+                repair_log.append({"round": round_idx, "status": "ok", "errors": []})
+                return contract, repair_log
+            last_errors = [*report.errors, *report.release_gate.blocking_reasons]
+        except Exception as exc:
+            last_errors = [f"{type(exc).__name__}: {exc}"]
+        repair_log.append({"round": round_idx, "status": "failed", "errors": last_errors})
+        if round_idx >= max_rounds:
+            break
+        raw = repair_contract_candidate(request, raw, last_errors)
+    raise ValueError("contract repair failed: " + "; ".join(last_errors))
+
+
+def repair_contract_candidate(request: ProblemInput, previous: Any, errors: list[str]) -> dict[str, Any]:
+    prompt = "\n\n".join(
+        [
+            _build_contract_user_prompt(request),
+            "上一次 contract：",
+            previous if isinstance(previous, str) else json.dumps(previous, ensure_ascii=False, indent=2),
+            "错误信息：",
+            "\n".join(errors),
+            "请返回修复后的完整 correctness-contract-v1 JSON。",
+        ]
+    )
+    return chat_json(_prompt_text("contract_repair_system.txt"), prompt)
+
+
+def normalize_contract_spec(raw: Any) -> CorrectnessContract:
+    if not isinstance(raw, dict):
+        raise ValueError(f"Contract 顶层必须是 JSON object，实际为 {type(raw).__name__}")
+    data = dict(raw)
+    data["schema_version"] = str(data.get("schema_version") or "correctness-contract-v1")
+    data["input_schema"] = data.get("input_schema") or {}
+    data["output_schema"] = str(data.get("output_schema") or "any")
+    data["preconditions"] = _string_list(data.get("preconditions"))
+    data["postconditions"] = _string_list(data.get("postconditions"))
+    data["oracle_strategy"] = str(data.get("oracle_strategy") or "none")
+    data["oracle_code"] = str(data.get("oracle_code") or "")
+    data["test_cases"] = data.get("test_cases") or []
+    data["metamorphic_relations"] = _string_list(data.get("metamorphic_relations"))
+    data["process_invariants"] = _string_list(data.get("process_invariants"))
+    return CorrectnessContract.model_validate(data)
+
+
+def _string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    return [str(value)]
+
+
 def repair_solution_spec(request: ProblemInput, previous: dict[str, Any], errors: list[str]) -> dict[str, Any]:
     prompt = "\n\n".join(
         [
@@ -61,6 +165,55 @@ def repair_solution_spec(request: ProblemInput, previous: dict[str, Any], errors
         ]
     )
     return normalize_solution_spec(chat_json(_prompt_text("repair_system.txt"), prompt))
+
+
+def generate_visual_plan_candidate(artifact: BuildArtifact, capabilities: dict[str, Any]) -> VisualPlan:
+    raw = chat_json(_prompt_text("visual_plan_system.txt"), _build_visual_plan_user_prompt(artifact, capabilities))
+    return normalize_visual_plan_spec(raw)
+
+
+def normalize_visual_plan_spec(raw: Any) -> VisualPlan:
+    if not isinstance(raw, dict):
+        raise ValueError(f"VisualPlan 顶层必须是 JSON object，实际为 {type(raw).__name__}")
+    data = dict(raw)
+    data["schema_version"] = str(data.get("schema_version") or "visual-plan-v1")
+    data["mode"] = str(data.get("mode") or "teaching")
+    data["stage"] = str(data.get("stage") or "teaching_2d")
+    data["metaphor"] = str(data.get("metaphor") or "")
+    data["camera"] = data.get("camera") or {}
+    data["animation"] = data.get("animation") or {}
+    data["teaching"] = data.get("teaching") or {}
+    data["layout_preferences"] = data.get("layout_preferences") or {}
+    data["baseline_target"] = str(data.get("baseline_target") or "teaching_2d")
+    return VisualPlan.model_validate(data)
+
+
+def _build_visual_plan_user_prompt(artifact: BuildArtifact, capabilities: dict[str, Any]) -> str:
+    scene_summary = {
+        variant_id: {
+            "algorithm": scene.algorithm,
+            "frames": len(scene.frames),
+            "layouts": sorted(
+                {
+                    str(obj.meta.get("layout"))
+                    for frame in scene.frames
+                    for obj in frame.objects
+                    if obj.type.value == "container" and obj.meta.get("layout")
+                }
+            ),
+        }
+        for variant_id, scene in artifact.scenes.items()
+    }
+    payload = {
+        "problem_title": artifact.problem_title,
+        "input_data": artifact.input_data,
+        "release_gate": artifact.validation.release_gate.model_dump(),
+        "scene_summary": scene_summary,
+        "capabilities": capabilities,
+    }
+    return "基于以下已验证 artifact 摘要输出 visual-plan-v1 JSON：\n" + json.dumps(
+        payload, ensure_ascii=False, indent=2
+    )
 
 
 def normalize_solution_spec(raw: Any) -> dict[str, Any]:

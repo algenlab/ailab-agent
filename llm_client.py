@@ -1,10 +1,12 @@
 """LLM API client wrapping OpenAI-compatible endpoint."""
 import json, os, re
+from pathlib import Path
 from openai import OpenAI
 
 os.environ["no_proxy"] = os.environ.get("no_proxy", "") + ",baidu-int.com,baidu.com,localhost,127.0.0.1"
 
 DEFAULT_BASE_URL = "http://yy.dbh.baidu-int.com/v1"
+_LOCAL_API_SETTINGS = None
 BASE_URL = os.environ.get("ALGOLAB_LLM_BASE_URL") or DEFAULT_BASE_URL
 API_KEY = os.environ.get("ALGOLAB_LLM_API_KEY")
 
@@ -13,9 +15,10 @@ _client = None
 def get_client() -> OpenAI:
     global _client
     if _client is None:
-        if not API_KEY:
-            raise RuntimeError("缺少 ALGOLAB_LLM_API_KEY 环境变量")
-        _client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
+        settings = api_settings()
+        if not settings["api_key"]:
+            raise RuntimeError("缺少 ALGOLAB_LLM_API_KEY 环境变量，或本地 api_settings.json/yaml")
+        _client = OpenAI(base_url=settings["base_url"], api_key=settings["api_key"])
     return _client
 
 DEFAULT_MODEL = "gemini-3.1-pro-preview"
@@ -58,11 +61,94 @@ def _json_retries() -> int:
         return DEFAULT_JSON_RETRIES
 
 
+def api_settings() -> dict:
+    local = _load_local_api_settings()
+    return {
+        "base_url": os.environ.get("ALGOLAB_LLM_BASE_URL") or local.get("base_url") or DEFAULT_BASE_URL,
+        "api_key": os.environ.get("ALGOLAB_LLM_API_KEY") or local.get("api_key") or "",
+        "source": "env" if os.environ.get("ALGOLAB_LLM_API_KEY") else local.get("source", ""),
+    }
+
+
+def _load_local_api_settings() -> dict:
+    global _LOCAL_API_SETTINGS
+    if _LOCAL_API_SETTINGS is not None:
+        return _LOCAL_API_SETTINGS
+    paths = [
+        Path(os.environ["ALGOLAB_LLM_SETTINGS_FILE"])
+        if os.environ.get("ALGOLAB_LLM_SETTINGS_FILE")
+        else None,
+        Path("api_settings.json"),
+        Path("api_settings.yaml"),
+        Path("api_settings.yml"),
+        Path(".algolab_api_settings.json"),
+        Path(".algolab_api_settings.yaml"),
+        Path(".algolab_api_settings.yml"),
+    ]
+    for path in [item for item in paths if item is not None]:
+        if not path.exists():
+            continue
+        raw = path.read_text(encoding="utf-8")
+        data = _parse_api_settings(raw)
+        data["source"] = str(path)
+        _LOCAL_API_SETTINGS = data
+        return data
+    _LOCAL_API_SETTINGS = {}
+    return _LOCAL_API_SETTINGS
+
+
+def _parse_api_settings(raw: str) -> dict:
+    text = raw.strip()
+    if not text:
+        return {}
+    try:
+        data = json.loads(text)
+        return _normalize_api_settings(data)
+    except json.JSONDecodeError:
+        return _parse_simple_yaml_api_settings(text)
+
+
+def _normalize_api_settings(data: object) -> dict:
+    if not isinstance(data, dict):
+        return {}
+    section = data.get("api_settings") if isinstance(data.get("api_settings"), dict) else data
+    return {
+        "base_url": str(section.get("base_url") or "").strip(),
+        "api_key": str(section.get("api_key") or "").strip(),
+    }
+
+
+def _parse_simple_yaml_api_settings(text: str) -> dict:
+    current_section = ""
+    values: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        if not line.startswith((" ", "\t")) and line.endswith(":"):
+            current_section = line[:-1].strip()
+            continue
+        if current_section and current_section != "api_settings":
+            continue
+        key, sep, value = line.strip().partition(":")
+        if not sep:
+            continue
+        cleaned = value.strip().strip('"').strip("'")
+        if key in {"base_url", "api_key"}:
+            values[key] = cleaned
+    return {
+        "base_url": values.get("base_url", ""),
+        "api_key": values.get("api_key", ""),
+    }
+
+
 def llm_config() -> dict:
+    settings = api_settings()
     return {
         "model": _model_name(),
-        "base_url": BASE_URL,
-        "api_key_configured": bool(API_KEY),
+        "base_url": settings["base_url"],
+        "api_key_configured": bool(settings["api_key"]),
+        "api_key_source": settings["source"],
         "timeout_s": _timeout_s(),
         "max_tokens": _max_tokens(),
         "json_retries": _json_retries(),

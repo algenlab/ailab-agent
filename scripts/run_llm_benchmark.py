@@ -342,6 +342,8 @@ def drain_worker_queue(result_queue: mp.Queue, phase_log: list[dict[str, Any]]) 
 
 def classify_failure(message: str) -> str:
     text = message.lower()
+    if "algolab_llm_api_key" in text or "api_key" in text or "环境变量" in message or "api key" in text:
+        return "configuration"
     if "timeout" in text or "超时" in message or "超过" in message:
         return "timeout"
     if "严格模式拒绝 warning" in message or "warning" in text:

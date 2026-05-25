@@ -7,7 +7,13 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).parent
+GRADIO_TEMP_DIR = PROJECT_ROOT / ".gradio_cache"
+GRADIO_TEMP_DIR.mkdir(exist_ok=True)
+os.environ.setdefault("GRADIO_TEMP_DIR", str(GRADIO_TEMP_DIR))
 
 import gradio as gr
 
@@ -16,7 +22,7 @@ from algolab.renderer.export import save_html
 from algolab.schemas.input import ProblemInput
 
 
-OUTPUT_DIR = Path(__file__).parent / "output"
+OUTPUT_DIR = PROJECT_ROOT / "output"
 
 
 def generate_lab(problem: str, input_json: str, strategy: str, user_code: str, expected_json: str, solutions: int):

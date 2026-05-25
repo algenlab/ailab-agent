@@ -6,8 +6,11 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from algolab.schemas.correctness import ContractValidationReport, CorrectnessContract
+from algolab.schemas.render_report import RenderReport
 from algolab.schemas.scene_graph import SceneGraph
 from algolab.schemas.semantic_trace import SolutionVariant
+from algolab.schemas.visual_plan import VisualPlan
 
 
 class ReleaseGate(BaseModel):
@@ -28,6 +31,8 @@ class ValidationReport(BaseModel):
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     checks: list[str] = Field(default_factory=list)
+    contract_validation: ContractValidationReport | None = None
+    contract_test_results: list[dict[str, Any]] = Field(default_factory=list)
     release_gate: ReleaseGate = Field(default_factory=ReleaseGate)
 
 
@@ -43,3 +48,6 @@ class BuildArtifact(BaseModel):
     variants: list[SolutionVariant]
     scenes: dict[str, SceneGraph]
     validation: ValidationReport
+    correctness_contract: CorrectnessContract | None = None
+    visual_plan: VisualPlan | None = None
+    render_report: RenderReport | None = None

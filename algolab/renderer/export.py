@@ -6,6 +6,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from algolab.renderer.layout_registry import layout_registry_json
+from algolab.renderer.panels import workspace_markup
+from algolab.renderer.runtime_shell import document_end, document_start
+from algolab.renderer.spatial_runtime import spatial_runtime_script
+from algolab.renderer.targets import select_render_target
 from algolab.schemas.validation import BuildArtifact
 
 
@@ -20,12 +25,8 @@ def save_html(artifact: BuildArtifact, output_path: str | Path) -> Path:
 def render_html(artifact: BuildArtifact) -> str:
     lab_json = artifact.model_dump_json().replace("</", "<\\/")
     title = _escape(artifact.problem_title)
-    return f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title}</title>
+    render_target = select_render_target(artifact)
+    return f"""{document_start(title)}
 <style>
 :root {{
   --bg:#f6f7fb; --panel:#fff; --ink:#172033; --muted:#657085; --line:#d7deea;
@@ -61,6 +62,10 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .step-head p {{ margin:6px 0 0; color:var(--muted); font-size:13px; }}
 .pill {{ border-radius:999px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; padding:5px 10px; height:fit-content; font-size:12px; text-transform:uppercase; }}
 .canvas {{ padding:18px; overflow:auto; min-height:360px; }}
+.spatial-wrap {{ display:grid; gap:8px; min-height:360px; }}
+.spatial-stage {{ width:100%; min-height:330px; border:1px solid var(--line); border-radius:8px; background:#0b1220; display:block; }}
+.spatial-label {{ color:var(--muted); font-size:12px; }}
+.spatial-fallback {{ color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 10px; font-size:12px; }}
 .controls {{ border-top:1px solid var(--line); padding:12px 14px; display:grid; grid-template-columns:auto auto auto 1fr auto; gap:10px; align-items:center; }}
 .controls button {{ border:1px solid var(--line); background:#fff; border-radius:6px; padding:8px 11px; cursor:pointer; }}
 .controls .primary {{ border-color:var(--blue); background:var(--blue); color:#fff; }}
@@ -114,50 +119,44 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .interaction {{ border-left:3px solid var(--violet); background:#f5f3ff; padding:10px; border-radius:6px; }}
 .interaction button {{ display:block; width:100%; margin:6px 0; border:1px solid #ddd6fe; background:#fff; border-radius:6px; padding:8px; text-align:left; cursor:pointer; }}
 .feedback {{ margin-top:8px; color:#4c1d95; font-size:13px; }}
+.teaching {{ display:grid; gap:8px; }}
+.teach-row {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; }}
+.teach-row strong {{ display:block; margin-bottom:4px; color:#374151; font-size:12px; }}
+.teach-row p {{ margin:0; color:#172033; font-size:13px; line-height:1.45; }}
+.evidence,.step-evidence {{ display:grid; gap:8px; }}
+.evidence-block {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; min-width:0; }}
+.evidence-block strong {{ display:block; margin-bottom:5px; color:#374151; font-size:12px; }}
+.evidence-line {{ display:grid; grid-template-columns:minmax(82px,120px) minmax(0,1fr); gap:8px; align-items:start; padding:3px 0; font-size:12px; line-height:1.4; }}
+.evidence-line span:first-child {{ color:var(--muted); }}
+.evidence-line code,.diff-row code {{ overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; }}
+.evidence-list {{ margin:0; padding-left:17px; color:#172033; font-size:12px; line-height:1.45; }}
+.evidence-list li {{ margin:3px 0; }}
+.chip-row {{ display:flex; flex-wrap:wrap; gap:5px; }}
+.chip {{ border:1px solid var(--line); border-radius:999px; padding:2px 7px; color:var(--muted); background:#fff; font-size:11px; }}
+.chip.ok {{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }}
+.chip.warn {{ color:#92400e; border-color:#fde68a; background:#fffbeb; }}
+.chip.bad {{ color:#991b1b; border-color:#fecaca; background:#fef2f2; }}
+.diff-row {{ display:grid; gap:4px; padding:6px 0; border-top:1px solid #eef2f7; font-size:12px; }}
+.diff-row:first-child {{ border-top:0; padding-top:0; }}
+.diff-kind {{ width:max-content; border-radius:999px; padding:1px 6px; background:#eff6ff; color:#1d4ed8; font-size:11px; }}
+.mlgrid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }}
+.mlitem {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fbfdff; min-width:0; }}
+.mlitem strong {{ display:block; color:#374151; font-size:12px; margin-bottom:5px; }}
+.spark {{ width:100%; height:56px; border:1px solid var(--line); border-radius:5px; background:#fff; }}
 @media (max-width:1100px) {{ .workspace {{ grid-template-columns:1fr; }} .topbar {{ grid-template-columns:1fr; }} .badges {{ justify-content:flex-start; }} }}
 </style>
 </head>
-<body>
-<div class="app">
-  <header class="topbar">
-    <div><h1 id="title"></h1><p id="subtitle" class="subtitle"></p></div>
-    <div id="badges" class="badges"></div>
-  </header>
-  <main class="workspace">
-    <aside class="col">
-      <section class="panel section"><h2>解法</h2><div id="tabs" class="tabs"></div></section>
-      <section class="panel section"><h2>输入</h2><pre id="input" class="jsonbox"></pre></section>
-      <section class="panel section"><h2>输出</h2><pre id="result" class="jsonbox"></pre></section>
-    </aside>
-    <section class="col">
-      <div class="panel hero">
-        <div class="step-head">
-          <div><h2 id="step-title"></h2><p id="step-desc"></p></div>
-          <div id="op" class="pill"></div>
-        </div>
-        <div id="canvas" class="canvas"></div>
-        <div class="controls">
-          <button id="prev">上一步</button>
-          <button id="play" class="primary">播放</button>
-          <button id="next">下一步</button>
-          <input id="range" class="range" type="range" min="0" value="0">
-          <div id="counter" class="counter"></div>
-        </div>
-        <div id="timeline" class="timeline"></div>
-      </div>
-    </section>
-    <aside class="col">
-      <section class="panel section"><h2>状态</h2><div id="state" class="state-grid"></div></section>
-      <section class="panel section"><h2>交互</h2><div id="interaction"></div></section>
-      <section class="panel section"><h2>代码</h2><div id="code" class="code"></div></section>
-    </aside>
-  </main>
-</div>
+{workspace_markup(render_target)}
+{spatial_runtime_script()}
 <script>
 const ARTIFACT = {lab_json};
+const RUNTIME_TARGET = {json.dumps(render_target, ensure_ascii=False)};
+const LAYOUT_RENDERERS = {layout_registry_json()};
 let variantIndex = 0;
 let stepIndex = 0;
 let timer = null;
+const SPATIAL_STATE = {{ renderer:null, scene:null, camera:null, canvas:null, resizeBound:false, fallbackReason:'', primitives:{{}}, layouts:[] }};
+window.SPATIAL_STATE = SPATIAL_STATE;
 const $ = id => document.getElementById(id);
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
 const pretty = x => JSON.stringify(x, null, 2);
@@ -166,12 +165,14 @@ const variant = () => ARTIFACT.variants[variantIndex];
 const scene = () => ARTIFACT.scenes[variant().id];
 const frames = () => scene().frames || [];
 const frame = () => frames()[stepIndex];
+const isSpatialTarget = () => RUNTIME_TARGET === 'spatial_3d' || RUNTIME_TARGET === 'hybrid_2_5d';
 
 function boot() {{
   $('title').textContent = ARTIFACT.problem_title || '算法可视化实验';
   $('subtitle').textContent = ARTIFACT.input_contract || '由语义轨迹编译生成，页面只渲染 scene graph';
   $('input').textContent = pretty(ARTIFACT.input_data);
   renderBadges();
+  renderEvidence();
   renderTabs();
   selectVariant(0);
 }}
@@ -188,6 +189,7 @@ function selectVariant(i) {{
   renderTabs();
   $('result').textContent = pretty(variant().result);
   $('range').max = Math.max(0, frames().length - 1);
+  renderEvidence();
   renderStep();
 }}
 function go(i) {{
@@ -204,6 +206,8 @@ function renderStep() {{
   $('range').value = stepIndex;
   renderCanvas(f);
   renderState(f.state || {{}});
+  renderTeaching(f);
+  renderStepEvidence(f);
   renderInteraction(f.interaction);
   renderCode(variant().code || '', f.code_line || 1);
   renderTimeline();
@@ -226,6 +230,12 @@ function groupedObjects(f) {{
   return groups;
 }}
 function renderCanvas(f) {{
+  if (isSpatialTarget() && renderSpatialCanvas(f)) {{
+    return;
+  }}
+  renderTeachingCanvas(f);
+}}
+function renderTeachingCanvas(f) {{
   const groups = groupedObjects(f);
   const containers = (f.objects || []).filter(o => o.type === 'container');
   let html = '<div class="objects">';
@@ -239,19 +249,307 @@ function renderCanvas(f) {{
   html += '</div>';
   $('canvas').innerHTML = html;
 }}
+function renderSpatialCanvas(f) {{
+  try {{
+    if (!ensureSpatialRuntime()) return false;
+    resizeSpatialRenderer();
+    const marks = f.marks || [];
+    const objects = f.objects || [];
+    const drawable = objects.filter(o => ['node','cell','pointer','edge'].includes(o.type));
+    const nodes = drawable.filter(o => o.type === 'node' || o.type === 'cell');
+    if (!nodes.length) return false;
+
+    const step = f.step || 0;
+    const containers = spatialContainers(objects);
+    SPATIAL_STATE.primitives = {{}};
+    SPATIAL_STATE.layouts = Object.values(containers).map(c => c.layout).filter(Boolean);
+    const positions = spatialPositions(nodes, step, containers);
+    const scene = SPATIAL_STATE.scene;
+    scene.clear();
+    SPATIAL_STATE.renderer.setClearColor(spatialClearColor(step), 1);
+    updateSpatialCamera(nodes, positions, marks, step);
+    drawSpatialPlanes(scene, containers, nodes, positions, marks, step);
+    drawSpatialDocks(scene, containers, nodes, positions, marks, step);
+
+    for (const edge of drawable.filter(o => o.type === 'edge')) {{
+      const a = positions[edge.source], b = positions[edge.target];
+      if (a && b) drawSpatialEdge(scene, a, b, edge, marks, containers[edge.parent]);
+    }}
+    for (const arrow of objects.filter(o => o.type === 'arrow')) {{
+      const a = positions[arrow.source], b = positions[arrow.target];
+      if (a && b) drawSpatialPathTrail(scene, a, b, arrow, marks, step);
+    }}
+    nodes.forEach((o, i) => drawSpatialNode(scene, positions[o.id], o, marks, i, step, containers[o.parent]));
+    for (const pointer of drawable.filter(o => o.type === 'pointer')) {{
+      const target = positions[pointer.target] || positions[`${{pointer.parent}}[${{pointer.index}}]`];
+      if (target) drawSpatialPointer(scene, target, pointer, marks, step);
+    }}
+    SPATIAL_STATE.renderer.render(scene, SPATIAL_STATE.camera);
+    const label = document.getElementById('spatial-label');
+    label.textContent = `${{RUNTIME_TARGET}} · Three.js WebGL · step ${{step + 1}} · ${{f.title || f.operation || ''}}`;
+    return true;
+  }} catch (err) {{
+    SPATIAL_STATE.fallbackReason = err && err.message ? err.message : String(err);
+    return false;
+  }}
+}}
+function ensureSpatialRuntime() {{
+  if (!window.THREE || !window.THREE.WebGLRenderer) {{
+    SPATIAL_STATE.fallbackReason = 'Three.js runtime unavailable';
+    return false;
+  }}
+  const canvasHost = $('canvas');
+  if (!document.getElementById('spatial-canvas')) {{
+    canvasHost.innerHTML = '<div class="spatial-wrap"><canvas id="spatial-canvas" class="spatial-stage"></canvas><div id="spatial-label" class="spatial-label"></div></div>';
+  }}
+  const canvas = document.getElementById('spatial-canvas');
+  if (SPATIAL_STATE.renderer && SPATIAL_STATE.canvas === canvas) return true;
+  try {{
+    SPATIAL_STATE.canvas = canvas;
+    SPATIAL_STATE.scene = new THREE.Scene();
+    SPATIAL_STATE.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    SPATIAL_STATE.camera.position.set(0, 0, 7.5);
+    SPATIAL_STATE.camera.lookAt(new THREE.Vector3(0, 0, 0));
+    SPATIAL_STATE.renderer = new THREE.WebGLRenderer({{ canvas, antialias:true, preserveDrawingBuffer:true }});
+    SPATIAL_STATE.renderer.setPixelRatio(window.devicePixelRatio || 1);
+    resizeSpatialRenderer();
+    if (!SPATIAL_STATE.resizeBound) {{
+      window.addEventListener('resize', () => {{
+        if (isSpatialTarget() && document.getElementById('spatial-canvas')) renderStep();
+      }});
+      SPATIAL_STATE.resizeBound = true;
+    }}
+    return true;
+  }} catch (err) {{
+    SPATIAL_STATE.renderer = null;
+    SPATIAL_STATE.scene = null;
+    SPATIAL_STATE.camera = null;
+    SPATIAL_STATE.fallbackReason = err && err.message ? err.message : String(err);
+    return false;
+  }}
+}}
+function resizeSpatialRenderer() {{
+  const canvas = SPATIAL_STATE.canvas;
+  const renderer = SPATIAL_STATE.renderer;
+  const camera = SPATIAL_STATE.camera;
+  if (!canvas || !renderer || !camera) return;
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(360, Math.floor(rect.width || canvas.parentElement.clientWidth || 720));
+  const height = Math.max(330, Math.floor(rect.height || 330));
+  if (canvas.width !== width || canvas.height !== height) {{
+    renderer.setSize(width, height, false);
+    camera.aspect = width / Math.max(1, height);
+    camera.updateProjectionMatrix();
+  }}
+}}
+function spatialClearColor(step) {{
+  const palette = ['#0b1220', '#102033', '#111827', '#172554', '#052e2b'];
+  return palette[step % palette.length];
+}}
+function spatialContainers(objects) {{
+  const result = {{}};
+  for (const obj of objects || []) {{
+    if (obj.type !== 'container') continue;
+    result[obj.id] = {{ id: obj.id, label: obj.label || obj.id, layout: obj.meta && obj.meta.layout || 'generic' }};
+  }}
+  return result;
+}}
+function spatialPrimitive(name) {{
+  SPATIAL_STATE.primitives[name] = (SPATIAL_STATE.primitives[name] || 0) + 1;
+}}
+function spatialGroup(nodes, containers, layoutName) {{
+  return nodes.filter(node => {{
+    const layout = containers[node.parent] && containers[node.parent].layout;
+    return layout === layoutName;
+  }});
+}}
+function spatialPositions(nodes, step, containers) {{
+  const pos = {{}};
+  const byParent = new Map();
+  nodes.forEach(node => {{
+    const parent = node.parent || 'scene';
+    if (!byParent.has(parent)) byParent.set(parent, []);
+    byParent.get(parent).push(node);
+  }});
+  const parentIds = Array.from(byParent.keys());
+  parentIds.forEach((parent, groupIndex) => {{
+    const group = byParent.get(parent);
+    const layout = containers[parent] && containers[parent].layout || 'generic';
+    const offsetX = parentIds.length === 1 ? 0 : (groupIndex - (parentIds.length - 1) / 2) * 2.35;
+    if (layout === 'matrix') return positionMatrixGroup(pos, group, offsetX);
+    if (layout === 'queue') return positionLinearGroup(pos, group, offsetX, -1.9, 0.72);
+    if (layout === 'stack') return positionStackGroup(pos, group, offsetX);
+    if (layout === 'recursion_tree' || layout === 'tree' || layout === 'trie' || layout === 'union_find') return positionTreeGroup(pos, group, offsetX, layout);
+    if (layout === 'geometry') return positionGeometryGroup(pos, group, offsetX);
+    if (layout === 'array') return positionLinearGroup(pos, group, offsetX, -1.35, 0.62);
+    positionOrbitGroup(pos, group, step, offsetX);
+  }});
+  return pos;
+}}
+function positionOrbitGroup(pos, group, step, offsetX) {{
+  const n = Math.max(group.length, 1);
+  group.forEach((node, i) => {{
+    const angle = -Math.PI / 2 + 2 * Math.PI * i / n;
+    const ring = n > 14 ? 1.95 + (i % 3) * 0.24 : 1.9;
+    const wave = Math.sin(step * 0.45 + i * 0.7) * 0.18;
+    pos[node.id] = new THREE.Vector3(offsetX + Math.cos(angle) * ring, Math.sin(angle) * 1.35 + wave, Math.sin(angle) * 1.1);
+  }});
+}}
+function positionLinearGroup(pos, group, offsetX, y, spacing) {{
+  const sorted = [...group].sort((a,b)=>(a.index??0)-(b.index??0));
+  const start = -((sorted.length - 1) * spacing) / 2;
+  sorted.forEach((node, i) => {{
+    pos[node.id] = new THREE.Vector3(offsetX + start + i * spacing, y, ((i % 2) - 0.5) * 0.18);
+  }});
+}}
+function positionStackGroup(pos, group, offsetX) {{
+  const sorted = [...group].sort((a,b)=>(a.index??0)-(b.index??0));
+  sorted.forEach((node, i) => {{
+    pos[node.id] = new THREE.Vector3(offsetX, -1.75 + i * 0.48, i * 0.08);
+  }});
+}}
+function positionMatrixGroup(pos, group, offsetX) {{
+  const rows = Math.max(1, ...group.map(o => (o.row ?? 0) + 1));
+  const cols = Math.max(1, ...group.map(o => (o.col ?? 0) + 1));
+  group.forEach(node => {{
+    const row = node.row ?? 0, col = node.col ?? 0;
+    pos[node.id] = new THREE.Vector3(offsetX + (col - (cols - 1) / 2) * 0.55, 1.1 - (row - (rows - 1) / 2) * 0.45, -0.75);
+  }});
+}}
+function positionTreeGroup(pos, group, offsetX, layout) {{
+  const sorted = [...group].sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+  sorted.forEach((node, i) => {{
+    const depth = Math.max(0, String(node.id).split('_').length - 1);
+    const levelWidth = Math.max(1, sorted.filter(n => Math.max(0, String(n.id).split('_').length - 1) === depth).length);
+    const levelIndex = sorted.filter((n, j) => j <= i && Math.max(0, String(n.id).split('_').length - 1) === depth).length - 1;
+    const spread = layout === 'union_find' ? 0.82 : 0.68;
+    pos[node.id] = new THREE.Vector3(offsetX + (levelIndex - (levelWidth - 1) / 2) * spread, 1.65 - depth * 0.62, depth * 0.2);
+  }});
+}}
+function positionGeometryGroup(pos, group, offsetX) {{
+  const xs = group.map(o => Number(o.meta && o.meta.x)).filter(Number.isFinite);
+  const ys = group.map(o => Number(o.meta && o.meta.y)).filter(Number.isFinite);
+  const minX = Math.min(...xs, 0), maxX = Math.max(...xs, 1), minY = Math.min(...ys, 0), maxY = Math.max(...ys, 1);
+  group.forEach((node, i) => {{
+    const x = Number(node.meta && node.meta.x);
+    const y = Number(node.meta && node.meta.y);
+    if (Number.isFinite(x) && Number.isFinite(y)) {{
+      pos[node.id] = new THREE.Vector3(offsetX + (x - minX) / Math.max(1, maxX - minX) * 3 - 1.5, (y - minY) / Math.max(1, maxY - minY) * 2.4 - 1.2, 0.25);
+    }} else {{
+      pos[node.id] = new THREE.Vector3(offsetX + i * 0.4, 0, 0);
+    }}
+  }});
+}}
+function updateSpatialCamera(nodes, positions, marks, step) {{
+  spatialPrimitive('camera_focus');
+  const camera = SPATIAL_STATE.camera;
+  const focusObj = nodes.find(o => markClass(o.id, marks) === 'hot') || nodes.find(o => markClass(o.id, marks)) || nodes[0];
+  const focus = positions[focusObj.id] || new THREE.Vector3(0, 0, 0);
+  const orbit = step * 0.08;
+  camera.position.set(Math.sin(orbit) * 1.3, 0.35 + Math.cos(orbit) * 0.2, 7.2);
+  camera.lookAt(focus);
+}}
+function spatialColor(role, fallback) {{
+  if (role === 'answer') return '#22c55e';
+  if (role === 'dep') return '#f59e0b';
+  if (role === 'hot') return '#60a5fa';
+  if (role === 'conflict') return '#ef4444';
+  return fallback;
+}}
+function containerColor(container) {{
+  const layout = container && container.layout;
+  if (layout === 'matrix') return '#475569';
+  if (layout === 'queue') return '#0f766e';
+  if (layout === 'stack') return '#7c3aed';
+  if (layout === 'geometry') return '#0369a1';
+  if (layout === 'recursion_tree' || layout === 'tree' || layout === 'trie' || layout === 'union_find') return '#2563eb';
+  return '#334155';
+}}
+function drawSpatialPlanes(scene, containers, nodes, positions, marks, step) {{
+  const matrixCells = spatialGroup(nodes, containers, 'matrix');
+  if (matrixCells.length) {{
+    spatialPrimitive('matrix_plane');
+    const plane = new THREE.Mesh(new THREE.BoxGeometry(3.9, 2.7, 0.08), new THREE.MeshBasicMaterial({{ color:'#1e293b', opacity:0.9 }}));
+    plane.position.set(0, 0.95, -1.05);
+    scene.add(plane);
+  }}
+  const geometryPoints = spatialGroup(nodes, containers, 'geometry');
+  if (geometryPoints.length) {{
+    spatialPrimitive('matrix_plane');
+    const plane = new THREE.Mesh(new THREE.BoxGeometry(3.7, 2.7, 0.05), new THREE.MeshBasicMaterial({{ color:'#0f172a', opacity:0.92 }}));
+    plane.position.set(0, 0, -0.1);
+    scene.add(plane);
+  }}
+}}
+function drawSpatialDocks(scene, containers, nodes, positions, marks, step) {{
+  const queueNodes = spatialGroup(nodes, containers, 'queue');
+  if (queueNodes.length) {{
+    spatialPrimitive('queue_dock');
+    const dock = new THREE.Mesh(new THREE.BoxGeometry(Math.max(1.2, queueNodes.length * 0.68), 0.18, 0.28), new THREE.MeshBasicMaterial({{ color:'#0f766e', opacity:0.85 }}));
+    dock.position.set(0, -2.25, -0.28);
+    scene.add(dock);
+  }}
+  const stackNodes = spatialGroup(nodes, containers, 'stack');
+  if (stackNodes.length) {{
+    spatialPrimitive('stack_tower');
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(0.78, Math.max(0.5, stackNodes.length * 0.5), 0.2), new THREE.MeshBasicMaterial({{ color:'#7c3aed', opacity:0.82 }}));
+    tower.position.set(0, -1.52 + stackNodes.length * 0.24, -0.24);
+    scene.add(tower);
+  }}
+}}
+function drawSpatialEdge(scene, a, b, edge, marks, container) {{
+  spatialPrimitive('edge');
+  const role = markClass(edge.id, marks);
+  const geometry = new THREE.BufferGeometry().setFromPoints([a, b]);
+  const material = new THREE.LineBasicMaterial({{ color: spatialColor(role, containerColor(container) || '#94a3b8'), opacity: role ? 1 : 0.72 }});
+  scene.add(new THREE.Line(geometry, material));
+}}
+function drawSpatialPathTrail(scene, a, b, arrow, marks, step) {{
+  spatialPrimitive('path_trail');
+  const middle = new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2 + 0.14, (a.z + b.z) / 2 + 0.18);
+  const material = new THREE.LineBasicMaterial({{ color:'#f97316', opacity:0.92 }});
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, middle]), material));
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([middle, b]), material));
+}}
+function drawSpatialNode(scene, p, obj, marks, index, step, container) {{
+  if (!p) return;
+  const role = markClass(obj.id, marks);
+  const lift = Math.sin((step + index) * 0.7) * 0.12;
+  const isCell = obj.type === 'cell';
+  spatialPrimitive(isCell ? 'cell_block' : 'node');
+  const geometry = isCell ? new THREE.BoxGeometry(1.08, 0.64, 0.44) : new THREE.SphereGeometry(0.44, 24, 12);
+  const fallback = isCell ? '#cbd5e1' : containerColor(container);
+  const material = new THREE.MeshBasicMaterial({{ color: spatialColor(role, fallback), opacity: 0.96 }});
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(p.x, p.y + lift, p.z);
+  mesh.userData = {{ id: obj.id, label: obj.label || obj.value }};
+  scene.add(mesh);
+}}
+function drawSpatialPointer(scene, target, pointer, marks, step) {{
+  spatialPrimitive('pointer_beam');
+  const above = new THREE.Vector3(target.x, target.y + 0.95, target.z + 0.15);
+  const geometry = new THREE.BufferGeometry().setFromPoints([above, target]);
+  const material = new THREE.LineBasicMaterial({{ color: '#38bdf8', opacity: 1 }});
+  scene.add(new THREE.Line(geometry, material));
+  const marker = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 8), new THREE.MeshBasicMaterial({{ color: '#38bdf8' }}));
+  marker.position.set(above.x, above.y + Math.sin(step * 0.6) * 0.08, above.z);
+  scene.add(marker);
+}}
 function renderContainer(c, children, marks) {{
   const layout = c.meta && c.meta.layout;
   const cells = children.filter(o => o.type === 'cell');
-  if (layout === 'matrix') return renderMatrix(c, cells, marks);
-  if (layout === 'array') return renderArray(c, cells, marks);
-  if (layout === 'string') return renderString(c, cells, marks);
-  if (layout === 'heap') return renderHeap(c, cells, marks);
-  if (['queue','deque'].includes(layout)) return renderQueue(c, cells, marks);
-  if (layout === 'stack') return renderStack(c, cells, marks);
-  if (layout === 'graph') return renderGraph(c, children, marks);
-  if (['tree','trie','union_find','recursion_tree'].includes(layout)) return renderTree(c, children, marks, layout);
-  if (layout === 'geometry') return renderGeometry(c, children, marks);
-  if (layout === 'map') return renderMap(c, children, marks);
+  const renderer = LAYOUT_RENDERERS[layout] || LAYOUT_RENDERERS.generic || 'map';
+  if (renderer === 'matrix') return renderMatrix(c, cells, marks);
+  if (renderer === 'array') return renderArray(c, cells, marks);
+  if (renderer === 'string') return renderString(c, cells, marks);
+  if (renderer === 'heap') return renderHeap(c, cells, marks);
+  if (renderer === 'queue') return renderQueue(c, cells, marks);
+  if (renderer === 'stack') return renderStack(c, cells, marks);
+  if (renderer === 'graph') return renderGraph(c, children, marks);
+  if (renderer === 'tree') return renderTree(c, children, marks, layout);
+  if (renderer === 'geometry') return renderGeometry(c, children, marks);
+  if (renderer === 'ml') return renderML(c, children, marks);
+  if (renderer === 'map') return renderMap(c, children, marks);
   return renderMap(c, children, marks);
 }}
 function renderArray(c, cells, marks) {{
@@ -305,6 +603,31 @@ function renderQueue(c, cells, marks) {{
 function renderMap(c, children, marks) {{
   const rows = children.filter(o => o.id !== c.id && o.type !== 'arrow');
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="mapgrid">${{rows.map(o => `<div class="maprow ${{markClass(o.id, marks)}}"><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(typeof o.value === 'object' ? JSON.stringify(o.value) : o.value)}}</span></div>`).join('')}}</div></div>`;
+}}
+function renderML(c, children, marks) {{
+  const rows = children.filter(o => o.id !== c.id && o.type !== 'arrow' && o.type !== 'edge');
+  const body = rows.map(o => {{
+    if (o.type === 'loss_curve') return `<div class="mlitem ${{markClass(o.id, marks)}}"><strong>${{esc(o.label || 'loss')}}</strong>${{renderSparkline(o.value)}}</div>`;
+    const shape = o.meta && Array.isArray(o.meta.shape) && o.meta.shape.length ? `shape ${{o.meta.shape.join('×')}} · ` : '';
+    return `<div class="mlitem ${{markClass(o.id, marks)}}"><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(shape + compactValue(o.value))}}</span></div>`;
+  }}).join('');
+  return `<div><h3 class="view-title">${{esc(c.label || 'ML state')}}</h3><div class="mlgrid">${{body}}</div></div>`;
+}}
+function compactValue(value) {{
+  if (value === null || value === undefined) return '';
+  const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  return text.length > 80 ? text.slice(0, 77) + '...' : text;
+}}
+function renderSparkline(value) {{
+  const values = Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : [];
+  if (!values.length) return `<span>${{esc(compactValue(value))}}</span>`;
+  const w=140,h=48,p=5,min=Math.min(...values),max=Math.max(...values);
+  const pts = values.map((v,i) => {{
+    const x = p + i * (w - 2*p) / Math.max(1, values.length - 1);
+    const y = h - p - (v - min) * (h - 2*p) / Math.max(1e-9, max - min);
+    return `${{x}},${{y}}`;
+  }}).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${{w}} ${{h}}"><polyline points="${{pts}}" fill="none" stroke="#2563eb" stroke-width="2"></polyline></svg>`;
 }}
 function renderGraph(c, children, marks) {{
   const nodes = children.filter(o => o.type === 'node');
@@ -419,12 +742,149 @@ function renderState(state) {{
   const entries = Object.entries(state || {{}});
   $('state').innerHTML = entries.length ? entries.map(([k,v]) => `<div class="state-row"><strong>${{esc(k)}}</strong><pre>${{esc(pretty(v))}}</pre></div>`).join('') : '<p style="color:var(--muted);margin:0;">当前步骤没有状态快照。</p>';
 }}
+function renderEvidence() {{
+  const v = variant() || {{}};
+  const validation = ARTIFACT.validation || {{}};
+  const gate = validation.release_gate || {{}};
+  const contract = ARTIFACT.correctness_contract || null;
+  const contractGate = validation.contract_validation && validation.contract_validation.release_gate || null;
+  const tests = validation.contract_test_results || [];
+  const checks = validation.checks || [];
+  const warnings = validation.warnings || [];
+  const errors = validation.errors || [];
+  const renderReport = ARTIFACT.render_report || {{}};
+  const testPassed = tests.filter(t => t.ok).length;
+  const answerRows = [
+    ['expected', ARTIFACT.expected_result],
+    ['verifier', ARTIFACT.verifier_result],
+    ['actual', v.result],
+  ].filter(([,value]) => value !== undefined && value !== null);
+  let html = '';
+  html += `<div class="evidence-block"><strong>答案交叉检查</strong>${{answerRows.length ? answerRows.map(([k,val]) => evidenceLine(k, valueCode(val))).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">无 expected/verifier 证据。</p>'}}</div>`;
+  html += `<div class="evidence-block"><strong>Release gate</strong><div class="chip-row">${{gateChips(gate).join('')}}</div>${{(gate.blocking_reasons || []).length ? `<ul class="evidence-list">${{gate.blocking_reasons.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : ''}}</div>`;
+  if (contract) {{
+    html += `<div class="evidence-block"><strong>CorrectnessContract</strong>${{evidenceLine('schema', esc(contract.schema_version || ''))}}${{evidenceLine('oracle', esc(contract.oracle_strategy || ''))}}${{contractGate ? `<div class="chip-row">${{gateChips(contractGate).join('')}}</div>` : ''}}${{contract.process_invariants && contract.process_invariants.length ? `<ul class="evidence-list">${{contract.process_invariants.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : ''}}</div>`;
+  }}
+  html += `<div class="evidence-block"><strong>Contract tests</strong>${{tests.length ? evidenceLine('passed', `${{testPassed}}/${{tests.length}}`) + `<ul class="evidence-list">${{tests.slice(0, 6).map(renderContractTest).join('')}}${{tests.length > 6 ? `<li>还有 ${{tests.length - 6}} 条已省略</li>` : ''}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">当前 artifact 没有 contract 多输入测试。</p>'}}</div>`;
+  html += `<div class="evidence-block"><strong>Pipeline checks</strong>${{checks.length ? `<ul class="evidence-list">${{checks.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">无 checks。</p>'}}</div>`;
+  if (warnings.length || errors.length) {{
+    html += `<div class="evidence-block"><strong>Warnings / errors</strong><ul class="evidence-list">${{errors.map(x => `<li>错误：${{esc(x)}}</li>`).join('')}}${{warnings.map(x => `<li>警告：${{esc(x)}}</li>`).join('')}}</ul></div>`;
+  }}
+  if (renderReport.requested_target || renderReport.actual_target) {{
+    html += `<div class="evidence-block"><strong>Render target</strong>${{evidenceLine('requested', esc(renderReport.requested_target || ''))}}${{evidenceLine('actual', esc(renderReport.actual_target || RUNTIME_TARGET))}}${{renderReport.used_baseline_renderer ? evidenceLine('baseline', 'true') : ''}}</div>`;
+  }}
+  $('evidence').innerHTML = html;
+}}
+function gateChips(gate) {{
+  const keys = ['schema_ready','oracle_ready','expected_consistent','generated_tests_pass','contract_ready','artifact_ready','process_ready','trace_ready','visual_ready','multi_solution_ready','release_ready'];
+  return keys.filter(k => gate[k] !== undefined).map(k => `<span class="chip ${{gate[k] ? 'ok' : 'warn'}}">${{esc(k)}}：${{gate[k] ? 'PASS' : 'NO'}}</span>`);
+}}
+function renderContractTest(item) {{
+  const cls = item.ok ? 'ok' : 'bad';
+  const actual = item.solve_result !== undefined ? item.solve_result : item.actual;
+  const reference = item.oracle_result !== null && item.oracle_result !== undefined ? item.oracle_result : item.expected;
+  const bits = [`case ${{item.case_index ?? '?'}}`, item.variant_id || '', item.ok ? 'PASS' : 'FAIL'].filter(Boolean).join(' · ');
+  return `<li><span class="chip ${{cls}}">${{esc(bits)}}</span><br><code>actual=${{esc(compactValue(actual))}} · reference=${{esc(compactValue(reference))}}</code>${{item.error ? `<br><code>${{esc(item.error)}}</code>` : ''}}</li>`;
+}}
+function evidenceLine(label, value) {{
+  return `<div class="evidence-line"><span>${{esc(label)}}</span><code>${{value}}</code></div>`;
+}}
+function valueCode(value) {{
+  return esc(compactValue(value));
+}}
+function renderStepEvidence(f) {{
+  const evidence = f.evidence || {{}};
+  const previous = stepIndex > 0 ? frames()[stepIndex - 1] : null;
+  const diffs = stateDiff(previous && previous.state || {{}}, f.state || {{}});
+  const marks = f.marks || [];
+  const targets = evidence.targets || marks.filter(m => m.role !== 'dependency').map(m => m.target);
+  const deps = evidence.deps || marks.filter(m => m.role === 'dependency').map(m => m.target);
+  const changedTargetIds = targetChanges(targets, previous && previous.state || {{}}, f.state || {{}});
+  let html = '';
+  html += `<div class="evidence-block"><strong>本步语义</strong>${{evidenceLine('operation', esc(evidence.operation || f.operation || ''))}}${{evidenceLine('code_line', esc(evidence.code_line || f.code_line || ''))}}${{evidenceLine('targets', esc((targets || []).join(', ') || '无'))}}${{evidenceLine('deps', esc((deps || []).join(', ') || '无'))}}${{evidence.role ? evidenceLine('role', esc(evidence.role)) : ''}}</div>`;
+  if (evidence.value !== undefined || evidence.before !== undefined || evidence.after !== undefined) {{
+    html += `<div class="evidence-block"><strong>事件值</strong>${{evidence.value !== undefined ? evidenceLine('value', valueCode(evidence.value)) : ''}}${{evidence.before !== undefined ? evidenceLine('before', valueCode(evidence.before)) : ''}}${{evidence.after !== undefined ? evidenceLine('after', valueCode(evidence.after)) : ''}}</div>`;
+  }}
+  html += `<div class="evidence-block"><strong>状态变化</strong>${{diffs.length ? diffs.slice(0, 8).map(renderDiff).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">与上一帧相比没有关键变量变化。</p>'}}${{diffs.length > 8 ? `<p style="color:var(--muted);margin:6px 0 0;font-size:12px;">还有 ${{diffs.length - 8}} 项变化已省略。</p>` : ''}}</div>`;
+  html += `<div class="evidence-block"><strong>目标写入核对</strong>${{changedTargetIds.length ? `<ul class="evidence-list">${{changedTargetIds.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">本步目标没有可解析的状态写入，或属于指针/节点移动。</p>'}}</div>`;
+  $('step-evidence').innerHTML = html;
+}}
+function stateDiff(prev, next) {{
+  const keys = Array.from(new Set([...Object.keys(prev || {{}}), ...Object.keys(next || {{}})])).sort();
+  const result = [];
+  for (const key of keys) {{
+    const before = prev ? prev[key] : undefined;
+    const after = next ? next[key] : undefined;
+    if (stableJson(before) === stableJson(after)) continue;
+    result.push({{ key, before, after, kind: before === undefined ? '新增' : after === undefined ? '删除' : '更新' }});
+  }}
+  return result;
+}}
+function renderDiff(diff) {{
+  return `<div class="diff-row"><span class="diff-kind">${{esc(diff.kind)}} · ${{esc(diff.key)}}</span><code>${{esc(compactValue(diff.before))}} → ${{esc(compactValue(diff.after))}}</code></div>`;
+}}
+function targetChanges(targets, prev, next) {{
+  return (targets || []).map(id => {{
+    const before = resolveStateTarget(prev, id);
+    const after = resolveStateTarget(next, id);
+    if (!before.exists && !after.exists) return '';
+    if (stableJson(before.value) === stableJson(after.value)) return '';
+    return `${{id}}: ${{compactValue(before.value)}} → ${{compactValue(after.value)}}`;
+  }}).filter(Boolean);
+}}
+function resolveStateTarget(state, id) {{
+  if (!state || !id) return {{ exists:false }};
+  if (Object.prototype.hasOwnProperty.call(state, id)) return {{ exists:true, value:state[id] }};
+  const parsed = parseIndexedTarget(id);
+  if (!parsed) return {{ exists:false }};
+  let value = state[parsed.name];
+  if (value === undefined) return {{ exists:false }};
+  for (const idx of parsed.indices) {{
+    if (value === undefined || value === null) return {{ exists:false }};
+    value = value[idx];
+  }}
+  return {{ exists:true, value }};
+}}
+function parseIndexedTarget(id) {{
+  const match = String(id).match(/^([A-Za-z_][\\w]*)((?:\\[[^\\]]+\\])+)$/
+  );
+  if (!match) return null;
+  const indices = Array.from(match[2].matchAll(/\\[([^\\]]+)\\]/g)).map(item => /^-?\\d+$/.test(item[1]) ? Number(item[1]) : item[1]);
+  return {{ name:match[1], indices }};
+}}
+function stableJson(value) {{
+  if (value === undefined) return '__undefined__';
+  try {{ return JSON.stringify(sortJson(value)); }} catch (_) {{ return String(value); }}
+}}
+function sortJson(value) {{
+  if (Array.isArray(value)) return value.map(sortJson);
+  if (value && typeof value === 'object') {{
+    return Object.fromEntries(Object.keys(value).sort().map(k => [k, sortJson(value[k])]));
+  }}
+  return value;
+}}
+function teachingRows(f) {{
+  const teaching = f.teaching || {{}};
+  const rows = [
+    ['当前步骤', teaching.what || f.title || f.operation],
+    ['为什么', teaching.why || f.description || '根据当前状态推进算法步骤。'],
+    ['公式', teaching.formula || ''],
+    ['不变量', teaching.invariant || ''],
+    ['常见错误', teaching.common_mistake || ''],
+    ['提示', teaching.hint || ''],
+  ].filter(([,value]) => String(value || '').trim());
+  return rows.length ? rows : [['当前步骤', f.description || f.title || '继续执行算法步骤。']];
+}}
+function renderTeaching(f) {{
+  $('teaching').innerHTML = `<div class="teaching">${{teachingRows(f).map(([label,value]) => `<div class="teach-row"><strong>${{esc(label)}}</strong><p>${{esc(value)}}</p></div>`).join('')}}</div>`;
+}}
 function renderInteraction(interaction) {{
   if (!interaction) {{ $('interaction').innerHTML = '<p style="color:var(--muted);margin:0;">当前步骤没有交互题。</p>'; return; }}
   const opts = Array.isArray(interaction.options) ? interaction.options : [];
-  const optHtml = opts.map(o => `<button onclick="checkChoice('${{encodeURIComponent(String(o))}}')">${{esc(o)}}</button>`).join('');
+  const choiceHtml = interaction.type === 'choice' ? opts.map(o => `<button onclick="checkChoice('${{encodeURIComponent(String(o))}}')">${{esc(o)}}</button>`).join('') : '';
   const inputHtml = interaction.type === 'input' ? '<input id="free-answer" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"><button onclick="checkInput()">检查</button>' : '';
-  $('interaction').innerHTML = `<div class="interaction"><strong>${{esc(interaction.prompt || '思考题')}}</strong>${{optHtml}}${{inputHtml}}<div id="feedback" class="feedback"></div></div>`;
+  const judgeHtml = interaction.type === 'judge' ? '<button onclick="checkJudge(true)">正确</button><button onclick="checkJudge(false)">错误</button>' : '';
+  $('interaction').innerHTML = `<div class="interaction"><strong>${{esc(interaction.prompt || '思考题')}}</strong>${{choiceHtml}}${{inputHtml}}${{judgeHtml}}<div id="feedback" class="feedback"></div></div>`;
 }}
 function checkChoice(encoded) {{
   const value = decodeURIComponent(encoded);
@@ -436,6 +896,11 @@ function checkInput() {{
   const value = $('free-answer').value.trim();
   const ans = String(frame().interaction.answer ?? '').trim();
   $('feedback').textContent = (value === ans ? '正确。' : `参考答案：${{ans}}。`) + (frame().interaction.explanation || '');
+}}
+function checkJudge(value) {{
+  const ans = frame().interaction.answer;
+  const expected = ans === true || String(ans).toLowerCase() === 'true' || String(ans) === '正确';
+  $('feedback').textContent = (value === expected ? '正确。' : '再想想。') + (frame().interaction.explanation || '');
 }}
 function renderCode(code, active) {{
   const lines = String(code || '').split('\\n');
@@ -454,8 +919,7 @@ $('range').oninput = e => go(parseInt(e.target.value,10));
 window.addEventListener('keydown', e => {{ if(e.key==='ArrowLeft') go(stepIndex-1); if(e.key==='ArrowRight') go(stepIndex+1); if(e.key===' ') {{ e.preventDefault(); play(); }} }});
 boot();
 </script>
-</body>
-</html>
+{document_end()}
 """
 
 

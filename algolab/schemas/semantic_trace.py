@@ -63,6 +63,29 @@ class Interaction(BaseModel):
     explanation: str = ""
 
 
+class TeachingStep(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    what: str = ""
+    why: str = ""
+    formula: str = ""
+    invariant: str = ""
+    common_mistake: str = ""
+    hint: str = ""
+
+    @field_validator("what", "why", "formula", "invariant", "common_mistake", "hint", mode="before")
+    @classmethod
+    def none_text_to_empty(cls, value: Any) -> Any:
+        if value is None:
+            return ""
+        return value
+
+    @field_validator("what", "why", "formula", "invariant", "common_mistake", "hint")
+    @classmethod
+    def strip_text(cls, value: str) -> str:
+        return value.strip()
+
+
 class SemanticEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -78,6 +101,7 @@ class SemanticEvent(BaseModel):
     state: dict[str, Any] = Field(default_factory=dict, description="关键变量快照")
     code_line: int = Field(default=1, ge=1)
     interaction: Interaction | None = None
+    teaching: TeachingStep | None = None
 
     @field_validator("role", "reason", mode="before")
     @classmethod

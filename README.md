@@ -121,9 +121,12 @@ python scripts/run_quality_checks.py
 - 复杂图、递归树、线段树、几何类问题还需要扩展 scene compiler 的视觉形态。
 - 页面美学还需要 Playwright 截图回归和布局阈值检查。
 
-## 经典算法覆盖
+## 系统说明
 
-覆盖矩阵见：[docs/coverage_matrix.md](docs/coverage_matrix.md)
+完整架构、流程、门禁、覆盖范围和排查方式见：
+
+- [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md)
+- [SYSTEM_FLOW.html](SYSTEM_FLOW.html)
 
 ## 主要目录
 

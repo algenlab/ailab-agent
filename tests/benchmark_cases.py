@@ -418,7 +418,7 @@ def trace(input_data):
     for i in range(1, len(arr)):
         key = arr[i]
         j = i - 1
-        events.append({"step": len(events), "op": "compare", "targets": [{"id": f"nums[{i}]"}], "state": {"nums": arr[:], "i": i, "key": key}, "role": "candidate", "reason": "取出当前位置元素，向左寻找插入位置。", "code_line": 3})
+        events.append({"step": len(events), "op": "compare", "targets": [{"id": f"nums[{i}]"}], "value": key, "state": {"nums": arr[:], "i": i, "key": key}, "role": "candidate", "reason": "取出当前位置元素，向左寻找插入位置。", "code_line": 3})
         while j >= 0 and arr[j] > key:
             arr[j + 1] = arr[j]
             events.append({"step": len(events), "op": "set", "targets": [{"id": f"nums[{j + 1}]"}], "deps": [{"id": f"nums[{j}]"}], "after": arr[j + 1], "state": {"nums": arr[:], "i": i, "j": j}, "role": "current", "reason": "左侧元素更大，向右移动一格。", "code_line": 5})

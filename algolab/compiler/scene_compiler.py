@@ -57,6 +57,8 @@ def compile_frame(trace: SemanticTrace, event: SemanticEvent) -> SceneFrame:
         marks=marks,
         state=state,
         interaction=event.interaction.model_dump() if event.interaction else None,
+        teaching=_teaching_for_event(event),
+        evidence=_evidence_for_event(event),
     )
 
 
@@ -81,11 +83,50 @@ def _title_for_event(event: SemanticEvent) -> str:
     return op_name
 
 
+def _teaching_for_event(event: SemanticEvent) -> dict[str, str]:
+    if event.teaching is not None:
+        return event.teaching.model_dump()
+
+    target_text = ", ".join(target.id for target in event.targets[:3])
+    dep_text = ", ".join(dep.id for dep in event.deps[:3])
+    what = _title_for_event(event)
+    why = event.reason or "根据当前状态推进算法步骤。"
+    hint_parts = []
+    if target_text:
+        hint_parts.append(f"关注 {target_text}")
+    if dep_text:
+        hint_parts.append(f"依赖 {dep_text}")
+    return {
+        "what": what,
+        "why": why,
+        "formula": "",
+        "invariant": "",
+        "common_mistake": "",
+        "hint": "；".join(hint_parts),
+    }
+
+
+def _evidence_for_event(event: SemanticEvent) -> dict[str, Any]:
+    return {
+        "operation": event.op.value,
+        "targets": [target.id for target in event.targets],
+        "deps": [dep.id for dep in event.deps],
+        "role": event.role,
+        "value": event.value,
+        "before": event.before,
+        "after": event.after,
+        "reason": event.reason,
+        "code_line": event.code_line,
+    }
+
+
 def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObject]:
     objects: list[SceneObject] = []
 
     for key, value in state.items():
-        if _is_recursion_tree_like(key, value):
+        if _is_ml_state_like(key, value):
+            objects.extend(_ml_objects(key, value))
+        elif _is_recursion_tree_like(key, value):
             objects.extend(_tree_objects(key, value, layout="recursion_tree"))
         elif _is_tree_like(key, value):
             objects.extend(_tree_objects(key, value))
@@ -289,6 +330,10 @@ def _dedupe_objects(objects: list[SceneObject]) -> list[SceneObject]:
 
 def _object_score(obj: SceneObject) -> int:
     score = 0
+    if obj.type == SceneObjectType.CONTAINER:
+        score += 2
+    elif obj.type != SceneObjectType.LABEL:
+        score += 1
     for field in ("value", "label", "parent", "row", "col", "index", "source", "target", "role"):
         if getattr(obj, field) not in ("", None):
             score += 1
@@ -469,6 +514,151 @@ def _string_objects(key: str, value: str) -> list[SceneObject]:
     return objects
 
 
+def _ml_objects(key: str, value: dict[str, Any]) -> list[SceneObject]:
+    objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "ml"})]
+    if "tensor" in value:
+        objects.extend(_ml_tensor_objects("tensor", value.get("tensor"), parent=key, label="tensor"))
+    for tensor_key in ("features", "weights", "matrix", "activations"):
+        if tensor_key in value:
+            objects.extend(_ml_tensor_objects(tensor_key, value.get(tensor_key), parent=key, label=tensor_key))
+    if "batch" in value:
+        objects.append(
+            SceneObject(
+                id=f"{key}:batch",
+                type=SceneObjectType.BATCH,
+                label="batch",
+                value=value.get("batch"),
+                parent=key,
+                meta={"layout": "batch"},
+            )
+        )
+    for name, val in (value.get("parameters") or {}).items() if isinstance(value.get("parameters"), dict) else []:
+        objects.append(
+            SceneObject(
+                id=f"parameter:{name}",
+                type=SceneObjectType.PARAMETER,
+                label=str(name),
+                value=val,
+                parent=key,
+                meta={"layout": "parameter"},
+            )
+        )
+    if "loss" in value or "loss_curve" in value:
+        history = value.get("loss_curve") or value.get("loss_history") or [value.get("loss")]
+        objects.append(
+            SceneObject(
+                id=f"{key}:loss_curve",
+                type=SceneObjectType.LOSS_CURVE,
+                label="loss",
+                value=history,
+                parent=key,
+                meta={"layout": "loss_curve"},
+            )
+        )
+    gradient = value.get("gradient") or value.get("gradients")
+    if gradient is not None:
+        objects.append(
+            SceneObject(
+                id=f"{key}:gradient",
+                type=SceneObjectType.GRADIENT_VECTOR,
+                label="gradient",
+                value=gradient,
+                parent=key,
+                meta={"layout": "gradient_vector"},
+            )
+        )
+    graph = value.get("computational_graph")
+    if isinstance(graph, dict):
+        objects.extend(_ml_graph_objects(key, graph))
+    boundary = value.get("decision_boundary")
+    if boundary is not None:
+        objects.append(
+            SceneObject(
+                id=f"{key}:decision_boundary",
+                type=SceneObjectType.DECISION_BOUNDARY,
+                label="decision boundary",
+                value=boundary,
+                parent=key,
+                meta={"layout": "decision_boundary"},
+            )
+        )
+    if "epoch" in value:
+        objects.append(
+            SceneObject(
+                id=f"{key}:epoch",
+                type=SceneObjectType.TRAINING_EPOCH,
+                label="epoch",
+                value=value.get("epoch"),
+                parent=key,
+                meta={"layout": "training_epoch"},
+            )
+        )
+    if "prediction" in value:
+        objects.append(
+            SceneObject(
+                id=f"{key}:prediction",
+                type=SceneObjectType.PREDICTION,
+                label="prediction",
+                value=value.get("prediction"),
+                parent=key,
+                meta={"layout": "prediction"},
+            )
+        )
+    return objects
+
+
+def _ml_tensor_objects(name: str, value: Any, *, parent: str, label: str) -> list[SceneObject]:
+    if value is None:
+        return []
+    shape = _shape_of(value)
+    objects = [
+        SceneObject(
+            id=f"{parent}:{name}",
+            type=SceneObjectType.TENSOR,
+            label=label,
+            value=value,
+            parent=parent,
+            meta={"layout": "tensor", "shape": shape},
+        )
+    ]
+    if _is_matrix(value):
+        matrix_parent = f"{parent}:{name}"
+        objects.append(SceneObject(id=f"{matrix_parent}:matrix", type=SceneObjectType.CONTAINER, label=label, parent=parent, meta={"layout": "matrix"}))
+        for r, row in enumerate(value):
+            for c, cell in enumerate(row):
+                objects.append(SceneObject(id=f"{matrix_parent}[{r}][{c}]", type=SceneObjectType.CELL, value=cell, parent=f"{matrix_parent}:matrix", row=r, col=c))
+    return objects
+
+
+def _ml_graph_objects(parent: str, graph: dict[str, Any]) -> list[SceneObject]:
+    nodes = graph.get("nodes") or []
+    edges = graph.get("edges") or []
+    container_id = f"{parent}:computational_graph"
+    objects = [SceneObject(id=container_id, type=SceneObjectType.CONTAINER, label="computational graph", parent=parent, meta={"layout": "computational_graph"})]
+    for node in nodes:
+        node_id = str(node.get("id") if isinstance(node, dict) else node)
+        label = str(node.get("label", node_id) if isinstance(node, dict) else node_id)
+        objects.append(SceneObject(id=f"ml_node:{node_id}", type=SceneObjectType.NODE, label=label, parent=container_id, meta={"layout": "computational_graph"}))
+    for edge in edges:
+        if isinstance(edge, dict):
+            src = str(edge.get("from") or edge.get("source"))
+            dst = str(edge.get("to") or edge.get("target"))
+        elif isinstance(edge, (list, tuple)) and len(edge) >= 2:
+            src, dst = str(edge[0]), str(edge[1])
+        else:
+            continue
+        objects.append(SceneObject(id=f"ml_edge:{src}->{dst}", type=SceneObjectType.EDGE, source=f"ml_node:{src}", target=f"ml_node:{dst}", parent=container_id))
+    return objects
+
+
+def _shape_of(value: Any) -> list[int]:
+    if isinstance(value, list):
+        if value and all(isinstance(row, list) for row in value):
+            return [len(value), max((len(row) for row in value), default=0)]
+        return [len(value)]
+    return []
+
+
 def _is_scalar_list(value: Any) -> bool:
     return isinstance(value, list) and all(not isinstance(x, (list, dict)) for x in value)
 
@@ -520,3 +710,27 @@ def _is_points_like(key: str, value: Any) -> bool:
 
 def _is_string_view_key(key: str) -> bool:
     return key in {"s", "t", "pattern", "text", "string"}
+
+
+def _is_ml_state_like(key: str, value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if key in {"ml", "model", "training", "linear_regression", "logistic_regression"}:
+        return True
+    ml_keys = {
+        "tensor",
+        "features",
+        "weights",
+        "batch",
+        "parameters",
+        "loss",
+        "loss_curve",
+        "loss_history",
+        "gradient",
+        "gradients",
+        "computational_graph",
+        "decision_boundary",
+        "epoch",
+        "prediction",
+    }
+    return bool(set(value) & ml_keys)

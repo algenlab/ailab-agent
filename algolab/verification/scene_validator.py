@@ -5,7 +5,22 @@ from __future__ import annotations
 from algolab.schemas.scene_graph import SceneGraph
 
 
-VISIBLE_TYPES = {"cell", "node", "edge", "label", "pointer", "callout"}
+VISIBLE_TYPES = {
+    "cell",
+    "node",
+    "edge",
+    "label",
+    "pointer",
+    "callout",
+    "tensor",
+    "batch",
+    "parameter",
+    "loss_curve",
+    "gradient_vector",
+    "decision_boundary",
+    "training_epoch",
+    "prediction",
+}
 
 
 def validate_scene(scene: SceneGraph) -> tuple[list[str], list[str]]:

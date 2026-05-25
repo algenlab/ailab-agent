@@ -8,6 +8,7 @@ violations for a small set of well-understood visual forms.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Iterable
 from typing import Any, Literal
 
@@ -22,6 +23,7 @@ STRUCTURE_LEVEL: ProcessInvariantLevel = "structure"
 ALGORITHM_LEVEL: ProcessInvariantLevel = "algorithm"
 ALL_LEVEL: ProcessInvariantLevel = "all"
 DEFAULT_PROCESS_LEVELS: tuple[ProcessInvariantLevel, ...] = (CORE_LEVEL, STRUCTURE_LEVEL, ALGORITHM_LEVEL)
+FULL_DP_TRACE_CELL_LIMIT = 80
 
 
 def validate_process(
@@ -64,12 +66,54 @@ def _normalize_levels(levels: ProcessInvariantLevel | Iterable[ProcessInvariantL
 def _validate_core_invariants(trace: SemanticTrace) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
+    errors.extend(_validate_observable_process_evidence(trace))
     replay_errors, replay_warnings = _validate_set_replay(trace)
     errors.extend(replay_errors)
     warnings.extend(replay_warnings)
     warnings.extend(_validate_dependency_presence(trace))
     warnings.extend(_validate_reason_grounding(trace))
     return errors, warnings
+
+
+def _validate_observable_process_evidence(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    previous_state: dict[str, Any] | None = None
+    for event in trace.events:
+        state = event.state or {}
+        if event.op in {SemanticOp.SET, SemanticOp.MOVE, SemanticOp.PUSH, SemanticOp.POP, SemanticOp.MARK, SemanticOp.LINK, SemanticOp.UNLINK}:
+            if not event.targets:
+                errors.append(f"第 {event.step} 步 {event.op.value} 缺少 targets，无法核对过程动作")
+            if not _event_has_observable_evidence(event, previous_state, state):
+                errors.append(f"第 {event.step} 步 {event.op.value} 缺少可观测过程证据：需要 deps、before/after/value 或可解析的状态变化")
+        if event.op == SemanticOp.COMPARE and len(event.targets) < 2 and not event.deps and not _has_explicit_aux_value(event.value):
+            errors.append(f"第 {event.step} 步 compare 缺少 deps/value，无法说明比较依据")
+        previous_state = state
+    return errors
+
+
+def _event_has_observable_evidence(event, previous_state: dict[str, Any] | None, state: dict[str, Any]) -> bool:
+    if event.op in {SemanticOp.MARK, SemanticOp.UNMARK} and event.role:
+        return True
+    if event.deps or _has_explicit_aux_value(event.value) or _has_explicit_aux_value(event.before) or _has_explicit_aux_value(event.after):
+        return True
+    if previous_state is None:
+        return bool(state)
+    if _state_changed(previous_state, state):
+        return True
+    return any(_target_changed(target.id, previous_state, state) for target in event.targets)
+
+
+def _state_changed(previous_state: dict[str, Any], state: dict[str, Any]) -> bool:
+    keys = set(previous_state) | set(state)
+    return any(not _same_value(previous_state.get(key), state.get(key)) for key in keys)
+
+
+def _target_changed(target_id: str, previous_state: dict[str, Any], state: dict[str, Any]) -> bool:
+    before = _resolve_target(previous_state, target_id)
+    after = _resolve_target(state, target_id)
+    if not before.exists and not after.exists:
+        return False
+    return not _same_value(before.value, after.value)
 
 
 def _validate_structure_invariants(trace: SemanticTrace) -> tuple[list[str], list[str]]:
@@ -101,6 +145,8 @@ def _validate_algorithm_invariants(trace: SemanticTrace) -> tuple[list[str], lis
         errors.extend(_validate_bfs_distances(trace))
     if _looks_like_binary_search(trace):
         errors.extend(_validate_binary_search_window(trace))
+    if _looks_like_ml_training(trace):
+        errors.extend(_validate_ml_correctness(trace))
     family_errors, family_warnings = _run_error_only_checks(
         trace,
         [
@@ -263,6 +309,7 @@ def _validate_unique_paths_dp(trace: SemanticTrace) -> list[str]:
     m, n = trace.input_data.get("m"), trace.input_data.get("n")
     if not isinstance(m, int) or not isinstance(n, int) or m <= 0 or n <= 0:
         return errors
+    observed_set_cells: set[tuple[int, int]] = set()
     for event in trace.events:
         dp = (event.state or {}).get("dp")
         if not _is_matrix(dp):
@@ -279,10 +326,18 @@ def _validate_unique_paths_dp(trace: SemanticTrace) -> list[str]:
             i, j = parsed.indices
             if not (0 <= i < m and 0 <= j < n):
                 continue
+            observed_set_cells.add((i, j))
             expected = 1 if i == 0 or j == 0 else dp[i - 1][j] + dp[i][j - 1]
             value = dp[i][j]
             if isinstance(value, int) and value != expected:
                 errors.append(f"第 {event.step} 步 dp[{i}][{j}] 不满足不同路径转移")
+    interior_cells = {(i, j) for i in range(1, m) for j in range(1, n)}
+    if 0 < len(interior_cells) <= FULL_DP_TRACE_CELL_LIMIT:
+        missing = sorted(interior_cells - observed_set_cells)
+        if missing:
+            preview = ", ".join(f"dp[{i}][{j}]" for i, j in missing[:6])
+            suffix = "..." if len(missing) > 6 else ""
+            errors.append(f"不同路径小 DP 表缺少逐帧状态转移：{preview}{suffix}")
     return errors
 
 
@@ -445,6 +500,313 @@ def _validate_binary_search_window(trace: SemanticTrace) -> list[str]:
             if not (left <= mid <= right):
                 errors.append(f"第 {event.step} 步 mid 不在 [left,right] 内")
     return errors
+
+
+def _looks_like_ml_training(trace: SemanticTrace) -> bool:
+    algorithm = (trace.algorithm or "").lower()
+    if any(token in algorithm for token in ("regression", "linear", "logistic", "gradient", "loss", "机器学习", "回归", "梯度", "训练")):
+        return True
+    for event in trace.events:
+        if _extract_ml_state(event.state or {}) is not None:
+            return True
+    return False
+
+
+def _validate_ml_correctness(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        ml_state = _extract_ml_state(event.state or {})
+        if ml_state is None:
+            continue
+        tolerance = _ml_tolerance(ml_state)
+        errors.extend(_validate_ml_random_seed(event.step, ml_state))
+        errors.extend(_validate_ml_loss_curve(event.step, ml_state, tolerance))
+        errors.extend(_validate_ml_linear_regression_step(event.step, ml_state, tolerance))
+        errors.extend(_validate_ml_parameter_update(event.step, ml_state, tolerance))
+    return errors
+
+
+def _extract_ml_state(state: dict[str, Any]) -> dict[str, Any] | None:
+    for key in ("training", "model", "ml", "linear_regression", "logistic_regression"):
+        value = state.get(key)
+        if isinstance(value, dict) and _dict_has_ml_signal(value):
+            return value
+    if _dict_has_ml_signal(state):
+        return state
+    return None
+
+
+def _dict_has_ml_signal(value: dict[str, Any]) -> bool:
+    return any(
+        key in value
+        for key in (
+            "features",
+            "x",
+            "X",
+            "labels",
+            "y",
+            "parameters",
+            "parameters_before",
+            "parameters_after",
+            "weights",
+            "gradient",
+            "gradients",
+            "loss",
+            "loss_curve",
+            "epoch",
+            "learning_rate",
+            "prediction",
+            "predictions",
+            "decision_boundary",
+            "batch",
+        )
+    )
+
+
+def _ml_tolerance(state: dict[str, Any]) -> float:
+    raw = state.get("tolerance")
+    if raw is None:
+        meta = state.get("ml") if isinstance(state.get("ml"), dict) else state.get("meta")
+        raw = meta.get("tolerance") if isinstance(meta, dict) else None
+    if isinstance(raw, (int, float)) and math.isfinite(float(raw)) and raw >= 0:
+        return float(raw)
+    return 1e-6
+
+
+def _validate_ml_random_seed(step: int, state: dict[str, Any]) -> list[str]:
+    if not _ml_uses_randomness(state):
+        return []
+    if _has_seed(state):
+        return []
+    return [f"第 {step} 步 ML 随机训练声明缺少固定 seed"]
+
+
+def _ml_uses_randomness(state: dict[str, Any]) -> bool:
+    random_flags = (
+        state.get("randomized"),
+        state.get("shuffle"),
+        state.get("sample_randomly"),
+        state.get("random_sampling"),
+        state.get("stochastic"),
+    )
+    if any(flag is True for flag in random_flags):
+        return True
+    batch_sampling = state.get("batch_sampling") or state.get("sampling")
+    if isinstance(batch_sampling, str) and batch_sampling.lower() in {"random", "shuffle", "stochastic"}:
+        return True
+    batch = state.get("batch")
+    if isinstance(batch, dict):
+        mode = batch.get("mode") or batch.get("sampling")
+        if isinstance(mode, str) and mode.lower() in {"random", "shuffle", "stochastic"}:
+            return True
+    return False
+
+
+def _has_seed(state: dict[str, Any]) -> bool:
+    if state.get("seed") is not None or state.get("random_seed") is not None:
+        return True
+    batch = state.get("batch")
+    return isinstance(batch, dict) and (batch.get("seed") is not None or batch.get("random_seed") is not None)
+
+
+def _validate_ml_loss_curve(step: int, state: dict[str, Any], tolerance: float) -> list[str]:
+    errors: list[str] = []
+    curve = state.get("loss_curve") or state.get("loss_history")
+    if curve is None:
+        return errors
+    if not isinstance(curve, list) or not curve:
+        return [f"第 {step} 步 loss_curve 必须是非空数值序列"]
+    losses: list[float] = []
+    for index, value in enumerate(curve):
+        if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            errors.append(f"第 {step} 步 loss_curve[{index}] 不是有限数值")
+            continue
+        loss = float(value)
+        losses.append(loss)
+        if loss < -tolerance:
+            errors.append(f"第 {step} 步 loss_curve[{index}] 为负数")
+    should_decrease = state.get("loss_should_decrease")
+    if should_decrease is not False and len(losses) == len(curve):
+        for index, (left, right) in enumerate(zip(losses, losses[1:]), start=1):
+            if right > left + tolerance:
+                errors.append(f"第 {step} 步 loss_curve[{index}] 未按容差下降")
+    return errors
+
+
+def _validate_ml_linear_regression_step(step: int, state: dict[str, Any], tolerance: float) -> list[str]:
+    features = state.get("features", state.get("x", state.get("X")))
+    labels = state.get("labels", state.get("y"))
+    if not _is_numeric_vector(labels):
+        return []
+    rows = _as_feature_rows(features)
+    if rows is None or len(rows) != len(labels):
+        return []
+    params = _ml_parameters(state)
+    gradient = _ml_gradient(state)
+    if params is None or gradient is None:
+        return []
+    weights = _parameter_weights(params)
+    if weights is None:
+        return []
+    bias = _parameter_bias(params)
+    predictions = _numeric_list(state.get("prediction") or state.get("predictions"))
+    if predictions is None:
+        predictions = [sum(weight * x for weight, x in zip(weights, row)) + bias for row in rows]
+    if len(predictions) != len(labels):
+        return [f"第 {step} 步 prediction 长度与标签不一致"]
+    expected_weights = _linear_gradient_weights(rows, [float(y) for y in labels], predictions)
+    actual_weights = _gradient_weights(gradient, len(expected_weights))
+    if actual_weights is not None:
+        for index, expected in enumerate(expected_weights):
+            if not _close(actual_weights[index], expected, tolerance):
+                errors = [f"第 {step} 步 线性回归 grad_w[{index}] 应为 {expected:.6g}，实际为 {actual_weights[index]:.6g}"]
+                return errors
+    expected_bias = _linear_gradient_bias([float(y) for y in labels], predictions)
+    actual_bias = _gradient_bias(gradient)
+    if actual_bias is not None and not _close(actual_bias, expected_bias, tolerance):
+        return [f"第 {step} 步 线性回归 grad_b 应为 {expected_bias:.6g}，实际为 {actual_bias:.6g}"]
+    loss = state.get("loss")
+    if isinstance(loss, (int, float)) and math.isfinite(float(loss)):
+        expected_loss = sum((pred - float(label)) ** 2 for pred, label in zip(predictions, labels)) / (2 * len(labels))
+        if not _close(float(loss), expected_loss, tolerance):
+            return [f"第 {step} 步 线性回归 loss 应为 {expected_loss:.6g}，实际为 {float(loss):.6g}"]
+    return []
+
+
+def _validate_ml_parameter_update(step: int, state: dict[str, Any], tolerance: float) -> list[str]:
+    before = state.get("parameters_before") or state.get("before_parameters")
+    after = state.get("parameters_after") or state.get("after_parameters")
+    gradient = _ml_gradient(state)
+    learning_rate = state.get("learning_rate") or state.get("lr")
+    if not isinstance(before, dict) or not isinstance(after, dict) or gradient is None or not isinstance(learning_rate, (int, float)):
+        return []
+    lr = float(learning_rate)
+    errors: list[str] = []
+    for name, before_value in before.items():
+        if name not in after:
+            continue
+        grad = _gradient_value_for_name(gradient, str(name))
+        if grad is None:
+            continue
+        actual = after[name]
+        if isinstance(before_value, (int, float)) and isinstance(actual, (int, float)) and isinstance(grad, (int, float)):
+            expected = float(before_value) - lr * float(grad)
+            if not _close(float(actual), expected, tolerance):
+                errors.append(f"第 {step} 步 参数 {name} 更新不满足 after = before - lr * gradient")
+    return errors
+
+
+def _as_feature_rows(value: Any) -> list[list[float]] | None:
+    if not isinstance(value, list) or not value:
+        return None
+    if all(isinstance(item, (int, float)) for item in value):
+        return [[float(item)] for item in value]
+    rows: list[list[float]] = []
+    for row in value:
+        if not isinstance(row, list) or not row or not all(isinstance(item, (int, float)) for item in row):
+            return None
+        rows.append([float(item) for item in row])
+    width = len(rows[0])
+    if any(len(row) != width for row in rows):
+        return None
+    return rows
+
+
+def _is_numeric_vector(value: Any) -> bool:
+    return isinstance(value, list) and bool(value) and all(isinstance(item, (int, float)) for item in value)
+
+
+def _numeric_list(value: Any) -> list[float] | None:
+    if not _is_numeric_vector(value):
+        return None
+    return [float(item) for item in value]
+
+
+def _ml_parameters(state: dict[str, Any]) -> dict[str, Any] | None:
+    params = state.get("parameters") or state.get("params")
+    if isinstance(params, dict):
+        return params
+    weights = state.get("weights") or state.get("w")
+    if weights is None:
+        return None
+    params = {"w": weights}
+    if "b" in state:
+        params["b"] = state["b"]
+    return params
+
+
+def _ml_gradient(state: dict[str, Any]) -> Any:
+    return state.get("gradient") or state.get("gradients") or state.get("grad")
+
+
+def _parameter_weights(params: dict[str, Any]) -> list[float] | None:
+    for key in ("w", "weights", "theta"):
+        value = params.get(key)
+        if isinstance(value, (int, float)):
+            return [float(value)]
+        if _is_numeric_vector(value):
+            return [float(item) for item in value]
+    numeric_named = [(name, value) for name, value in params.items() if str(name).startswith("w") and isinstance(value, (int, float))]
+    if numeric_named:
+        return [float(value) for _name, value in sorted(numeric_named)]
+    return None
+
+
+def _parameter_bias(params: dict[str, Any]) -> float:
+    value = params.get("b", params.get("bias", 0.0))
+    return float(value) if isinstance(value, (int, float)) else 0.0
+
+
+def _linear_gradient_weights(rows: list[list[float]], labels: list[float], predictions: list[float]) -> list[float]:
+    n = len(labels)
+    width = len(rows[0])
+    return [
+        sum((predictions[i] - labels[i]) * rows[i][j] for i in range(n)) / n
+        for j in range(width)
+    ]
+
+
+def _linear_gradient_bias(labels: list[float], predictions: list[float]) -> float:
+    return sum(pred - label for pred, label in zip(predictions, labels)) / len(labels)
+
+
+def _gradient_weights(gradient: Any, expected_len: int) -> list[float] | None:
+    if isinstance(gradient, (int, float)) and expected_len == 1:
+        return [float(gradient)]
+    if _is_numeric_vector(gradient) and len(gradient) == expected_len:
+        return [float(item) for item in gradient]
+    if not isinstance(gradient, dict):
+        return None
+    for key in ("w", "weights", "theta"):
+        value = gradient.get(key)
+        if isinstance(value, (int, float)) and expected_len == 1:
+            return [float(value)]
+        if _is_numeric_vector(value) and len(value) == expected_len:
+            return [float(item) for item in value]
+    named = [(name, value) for name, value in gradient.items() if str(name).startswith("w") and isinstance(value, (int, float))]
+    if len(named) == expected_len:
+        return [float(value) for _name, value in sorted(named)]
+    return None
+
+
+def _gradient_bias(gradient: Any) -> float | None:
+    if not isinstance(gradient, dict):
+        return None
+    value = gradient.get("b", gradient.get("bias"))
+    return float(value) if isinstance(value, (int, float)) else None
+
+
+def _gradient_value_for_name(gradient: Any, name: str) -> Any:
+    if isinstance(gradient, dict):
+        if name in gradient:
+            return gradient[name]
+        if name == "b":
+            return gradient.get("bias")
+    return None
+
+
+def _close(left: float, right: float, tolerance: float) -> bool:
+    return math.isclose(left, right, rel_tol=tolerance, abs_tol=tolerance)
 
 
 def _is_matrix(value: Any) -> bool:

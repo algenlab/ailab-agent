@@ -11,6 +11,7 @@ from pathlib import Path
 
 from algolab.pipeline import _try_materialize
 from algolab.generation.solution_generator import normalize_solution_spec
+from algolab.renderer.capabilities import capabilities_prompt_context, runtime_capabilities
 from algolab.renderer.creative import render_creative_html
 from algolab.renderer.export import save_html
 from algolab.schemas.input import ProblemInput
@@ -28,10 +29,14 @@ from scripts.run_llm_benchmark import (
     summarize_phase_timings,
     write_report,
 )
+from scripts.build_demo_dashboard import CUSTOM_SUBSET_SUM_ID, build_dashboard, selected_demo_definitions
 from scripts.check_benchmark_html import html_paths_from_report
+from scripts.build_evaluation_manifest import build_manifest, write_manifest
+from scripts.build_evaluation_report import build_evaluation_report, comparison_protocols, compute_metrics
 from llm_client import parse_json_content
 import argparse
 import json
+import os
 import tempfile
 
 
@@ -39,6 +44,7 @@ def spec_for_case(case: BenchmarkCase) -> dict:
     return {
         "problem_title": case.title,
         "input_contract": case.input_contract,
+        "correctness_contract": contract_for_case(case) if case.id in contract_enabled_case_ids() else None,
         "variants": [
             {
                 "id": case.id,
@@ -52,6 +58,51 @@ def spec_for_case(case: BenchmarkCase) -> dict:
         ],
         "verifier_code": case.verifier_code,
     }
+
+
+def contract_enabled_case_ids() -> set[str]:
+    return {"house_robber", "binary_search", "unique_paths", "graph_bfs", "two_sum"}
+
+
+def contract_for_case(case: BenchmarkCase) -> dict:
+    first = case.samples[0]
+    return {
+        "schema_version": "correctness-contract-v1",
+        "input_schema": {key: _type_expr(value) for key, value in first.input_data.items()},
+        "output_schema": _type_expr(first.expected),
+        "postconditions": [f"{case.title} solve output must satisfy deterministic verifier"],
+        "oracle_strategy": "generated_verifier",
+        "oracle_code": case.verifier_code,
+        "test_cases": [
+            {
+                "name": f"{case.id}_sample_{index}",
+                "input": sample.input_data,
+                "expected": sample.expected,
+            }
+            for index, sample in enumerate(case.samples)
+        ],
+        "process_invariants": [f"expected layout: {layout}" for layout in case.expected_layouts],
+    }
+
+
+def _type_expr(value) -> str:
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "float"
+    if isinstance(value, str):
+        return "str"
+    if isinstance(value, list):
+        if not value:
+            return "any[]"
+        return f"{_type_expr(value[0])}[]"
+    if isinstance(value, dict):
+        return "object"
+    if value is None:
+        return "null"
+    return "any"
 
 
 def materialize_case(case: BenchmarkCase, sample_index: int = 0):
@@ -75,6 +126,12 @@ def test_benchmark_cases_are_multi_input_release_ready():
             assert artifact.verifier_result == sample.expected
             assert artifact.variants[0].trace is not None
             assert len(artifact.variants[0].trace.events) >= 1
+            if case.id in contract_enabled_case_ids():
+                assert artifact.correctness_contract is not None
+                assert artifact.validation.contract_validation is not None
+                assert artifact.validation.contract_validation.release_gate.contract_ready
+                assert artifact.validation.contract_test_results
+                assert all(item["ok"] for item in artifact.validation.contract_test_results)
             if index == 0:
                 scene = artifact.scenes[case.id]
                 layouts = {
@@ -85,6 +142,22 @@ def test_benchmark_cases_are_multi_input_release_ready():
                 }
                 for expected_layout in case.expected_layouts:
                     assert expected_layout in layouts, (case.id, index, expected_layout, layouts)
+
+
+def test_contract_tests_block_bad_solve():
+    case = next(item for item in benchmark_cases() if item.id == "two_sum")
+    spec = spec_for_case(case)
+    spec["variants"][0]["code"] = "def solve(input_data):\n    return [0, 1]"
+    sample = case.samples[0]
+    request = ProblemInput(problem=case.title, input_data=sample.input_data, expected_result=sample.expected)
+
+    artifact, errors = _try_materialize(request, spec)
+
+    assert errors
+    assert not artifact.validation.release_gate.release_ready
+    assert artifact.validation.contract_test_results
+    assert any(not item["ok"] for item in artifact.validation.contract_test_results)
+    assert any("contract test_cases" in error for error in errors)
 
 
 def test_benchmark_aggregate_artifact(tmp_path: Path):
@@ -118,12 +191,53 @@ def test_llm_benchmark_request_uses_problem_and_expected():
     assert request.solution_count == 2
 
 
+def test_llm_client_reads_local_api_settings_without_committing_key(tmp_path: Path):
+    settings_path = tmp_path / "api_settings.yaml"
+    settings_path.write_text(
+        "\n".join(
+            [
+                "api_settings:",
+                '  base_url: "http://example.test/v1"',
+                '  api_key: "sk-test-local-only"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    import llm_client
+
+    old_env = {
+        key: os.environ.get(key)
+        for key in ("ALGOLAB_LLM_API_KEY", "ALGOLAB_LLM_BASE_URL", "ALGOLAB_LLM_SETTINGS_FILE")
+    }
+    old_cache = llm_client._LOCAL_API_SETTINGS
+    try:
+        os.environ.pop("ALGOLAB_LLM_API_KEY", None)
+        os.environ.pop("ALGOLAB_LLM_BASE_URL", None)
+        os.environ["ALGOLAB_LLM_SETTINGS_FILE"] = str(settings_path)
+        llm_client._LOCAL_API_SETTINGS = None
+        config = llm_client.llm_config()
+    finally:
+        for key, value in old_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        llm_client._LOCAL_API_SETTINGS = old_cache
+
+    assert config["base_url"] == "http://example.test/v1"
+    assert config["api_key_configured"] is True
+    assert config["api_key_source"] == str(settings_path)
+    assert "sk-test-local-only" not in json.dumps(config)
+
+
 def test_llm_benchmark_sample_selection_and_failure_classification(tmp_path: Path):
     case = benchmark_cases()[0]
     args = argparse.Namespace(sample=1, all_samples=False)
     selected = selected_samples(case, args)
     assert len(selected) == 1
     assert selected[0][0] == 1
+    assert classify_failure("RuntimeError: 缺少 ALGOLAB_LLM_API_KEY 环境变量") == "configuration"
     assert classify_failure("TimeoutError: LLM benchmark 超过 1 秒") == "timeout"
     assert classify_failure("严格模式拒绝 warning：x") == "visual_warning"
     assert classify_failure("第 3 步 dp[2] 不满足 0-1 背包可达性") == "process_invariant"
@@ -272,6 +386,245 @@ def test_existing_benchmark_html_report_helper(tmp_path: Path):
     assert html_paths_from_report(report_path) == [Path("output/a.html"), Path("output/c.html")]
 
 
+def test_demo_dashboard_selection_defaults_to_curated_showcase():
+    definitions = selected_demo_definitions()
+    ids = [definition.id for definition in definitions]
+    assert ids[0] == CUSTOM_SUBSET_SUM_ID
+    assert len(ids) == 8
+    assert "binary_search" in ids
+    assert "graph_bfs" in ids
+    assert "daily_temperatures" in ids
+    assert "trie_prefix" in ids
+    assert "provinces" in ids
+    assert "permutations" in ids
+    assert "convex_hull" in ids
+
+
+def test_demo_dashboard_writes_bundle_and_index(tmp_path: Path):
+    index = build_dashboard(
+        tmp_path / "dashboard",
+        demo_ids=[CUSTOM_SUBSET_SUM_ID, "binary_search"],
+        style="both",
+    )
+    assert index.exists()
+    report_path = index.with_name("dashboard.json")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["kind"] == "algolab_demo_dashboard"
+    assert report["total"] == 2
+    assert report["passed"] == 2
+    assert report["failed"] == 0
+    for demo in report["demos"]:
+        bundle = index.parent / demo["bundle_dir"]
+        assert (bundle / "request.json").exists()
+        assert (bundle / "generated_spec.json").exists()
+        assert (bundle / "correctness_contract.json").exists()
+        assert (bundle / "visual_plan.json").exists()
+        assert (bundle / "render_report.json").exists()
+        assert (bundle / "capabilities.json").exists()
+        assert (bundle / "artifact.json").exists()
+        assert (bundle / "validation_report.json").exists()
+        assert (bundle / "repair_log.json").exists()
+        assert (bundle / "stable.html").exists()
+        assert (bundle / "creative.html").exists()
+        assert demo["ok"] is True
+        assert demo["contract_gate_ready"] is True
+        assert demo["oracle_strategy"] in {"generated_verifier", "expected_only"}
+        assert "interaction_coverage" in demo
+        interaction_count, frame_count = [int(part) for part in demo["interaction_coverage"].split("/", 1)]
+        assert interaction_count >= 2
+        assert frame_count >= interaction_count
+        assert set(demo["interaction_types"]) <= {"choice", "input", "judge"}
+        assert demo["interaction_types"]
+        assert demo["visual_plan_stage"] in {"teaching_2d", "spatial_3d", "hybrid_2_5d", "creative"}
+        assert demo["requested_render_target"] == demo["visual_plan_stage"]
+        assert demo["actual_render_target"] in {"teaching_2d", "spatial_3d", "creative"}
+        assert isinstance(demo["used_baseline_renderer"], bool)
+        assert demo["correctness_contract_json"].endswith("correctness_contract.json")
+        assert demo["visual_plan_json"].endswith("visual_plan.json")
+        assert demo["render_report_json"].endswith("render_report.json")
+        assert demo["capabilities_json"].endswith("capabilities.json")
+        contract = json.loads((bundle / "correctness_contract.json").read_text(encoding="utf-8"))
+        visual_plan = json.loads((bundle / "visual_plan.json").read_text(encoding="utf-8"))
+        render_report = json.loads((bundle / "render_report.json").read_text(encoding="utf-8"))
+        capabilities = json.loads((bundle / "capabilities.json").read_text(encoding="utf-8"))
+        artifact = json.loads((bundle / "artifact.json").read_text(encoding="utf-8"))
+        interactions = [
+            frame["interaction"]
+            for scene in artifact["scenes"].values()
+            for frame in scene["frames"]
+            if frame.get("interaction")
+        ]
+        assert len(interactions) >= 2
+        assert contract["schema_version"] == "correctness-contract-v1"
+        assert visual_plan["schema_version"] == "visual-plan-v1"
+        assert render_report["schema_version"] == "render-report-v1"
+        assert capabilities["schema_version"] == "runtime-capabilities-v1"
+        assert {"teaching_2d", "spatial_3d", "hybrid_2_5d", "creative"} <= set(capabilities["render_targets"])
+        assert "array" in capabilities["supported_layouts"]
+        assert "node" in capabilities["primitive_3d_support"]
+        assert capabilities["device_constraints"]["mobile_prefer_2d"] is True
+        assert artifact["correctness_contract"]["schema_version"] == "correctness-contract-v1"
+        assert artifact["visual_plan"]["schema_version"] == "visual-plan-v1"
+        assert artifact["render_report"]["requested_target"] == demo["requested_render_target"]
+        assert "contract_test_pass_rate" in demo
+        assert demo["contract_test_pass_rate"] in {"", "0/0"} or "/" in demo["contract_test_pass_rate"]
+        assert demo["stable_html"].endswith("stable.html")
+        assert demo["creative_html"].endswith("creative.html")
+    html = index.read_text(encoding="utf-8")
+    core_table = index.with_name("dashboard_core_table.csv")
+    assert core_table.exists()
+    core_table_text = core_table.read_text(encoding="utf-8")
+    assert "contract_test_pass_rate" in core_table_text
+    assert "interaction_coverage" in core_table_text
+    assert "actual_render_target" in core_table_text
+    assert "AlgoLab Demo Dashboard" in html
+    assert "contract" in html
+    assert "VisualPlan" in html
+    assert "render report" in html
+    assert "capabilities" in html
+    assert "oracle=" in html
+    assert "交互题" in html
+    assert "target" in html
+    assert "稳定版" in html
+    assert "创意版" in html
+
+
+def test_runtime_capabilities_prompt_context_is_json():
+    capabilities = runtime_capabilities()
+    assert capabilities["schema_version"] == "runtime-capabilities-v1"
+    assert "teaching_2d" in capabilities["render_targets"]
+    assert "graph" in capabilities["supported_layouts"]
+    assert "camera_focus" in capabilities["primitive_3d_support"]
+    assert capabilities["device_constraints"]["max_nodes_3d"] == 120
+    prompt_context = capabilities_prompt_context()
+    parsed = json.loads(prompt_context)
+    assert parsed == capabilities
+
+
+def test_evaluation_manifest_covers_phase10_datasets(tmp_path: Path):
+    manifest = build_manifest()
+    assert manifest["schema_version"] == "evaluation-manifest-v1"
+    assert manifest["summary"]["benchmark_case_count"] == len(benchmark_cases())
+    assert manifest["summary"]["ml_demo_count"] >= 2
+    assert manifest["summary"]["sample_count"] >= 35
+    strata = manifest["strata"]
+    assert "LeetCode 基础算法集" in strata
+    assert "数据结构算法集" in strata
+    assert "DP / graph / stack / tree / geometry 分层" in strata
+    assert "ML demo 集" in strata
+    assert {"linear_regression_single_step", "logistic_regression_boundary"} <= set(strata["ML demo 集"]["case_ids"])
+    case_ids = {case["id"] for case in manifest["cases"]}
+    assert {"two_sum", "daily_temperatures", "unique_paths", "graph_bfs"} <= case_ids
+
+    path = write_manifest(tmp_path)
+    assert path.exists()
+    csv_path = tmp_path / "evaluation_cases.csv"
+    assert csv_path.exists()
+    written = json.loads(path.read_text(encoding="utf-8"))
+    assert written == manifest
+    assert "linear_regression_single_step" in csv_path.read_text(encoding="utf-8")
+
+
+def test_evaluation_report_exports_phase10_metrics_and_core_tables(tmp_path: Path):
+    manifest = build_manifest()
+    dashboard = {
+        "kind": "algolab_demo_dashboard",
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "demos": [
+            {
+                "id": "binary_search",
+                "ok": True,
+                "contract_gate_ready": True,
+                "contract_test_pass_rate": "3/3",
+                "interaction_coverage": "2/5",
+                "actual_render_target": "teaching_2d",
+            },
+            {
+                "id": "graph_bfs",
+                "ok": True,
+                "contract_gate_ready": True,
+                "contract_test_pass_rate": "2/2",
+                "interaction_coverage": "3/6",
+                "actual_render_target": "spatial_3d",
+            },
+        ],
+    }
+    llm_report = {
+        "kind": "llm_benchmark_report",
+        "total": 2,
+        "passed": 1,
+        "failed": 1,
+        "browser_smoke": [{"ok": True}, {"ok": False}],
+        "results": [
+            {
+                "ok": True,
+                "phase_timings": [
+                    {"phase": "generate", "status": "ok"},
+                    {"phase": "materialize_round_0", "status": "error"},
+                    {"phase": "repair_round_0", "status": "ok"},
+                    {"phase": "materialize_round_1", "status": "ok"},
+                ],
+            },
+            {
+                "ok": False,
+                "phase_timings": [
+                    {"phase": "generate", "status": "ok"},
+                    {"phase": "materialize_round_0", "status": "error"},
+                ],
+            },
+        ],
+    }
+    metrics = compute_metrics(manifest=manifest, dashboard=dashboard, llm_report=llm_report)
+    by_name = {metric["name"]: metric for metric in metrics}
+    assert by_name["generation_success_rate"]["value"] == 1.0
+    assert by_name["contract_pass_rate"]["value"] == 1.0
+    assert by_name["correctness_gate_pass_rate"]["value"] == 0.5
+    assert by_name["repair_success_rate"]["value"] == 1.0
+    assert by_name["visual_smoke_pass_rate"]["value"] == 0.5
+    assert by_name["interaction_coverage"]["value"] == round(5 / 11, 6)
+    assert by_name["human_teaching_quality_score"]["status"] == "missing"
+    comparisons = comparison_protocols()
+    assert {item["baseline"] for item in comparisons} == {
+        "pure_llm_judge",
+        "code2video_manim",
+        "no_correctness_gate_renderer",
+    }
+
+    manifest_path = tmp_path / "evaluation_manifest.json"
+    dashboard_path = tmp_path / "dashboard.json"
+    llm_path = tmp_path / "llm_benchmark_report.json"
+    human_path = tmp_path / "human.csv"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    dashboard_path.write_text(json.dumps(dashboard, ensure_ascii=False), encoding="utf-8")
+    llm_path.write_text(json.dumps(llm_report, ensure_ascii=False), encoding="utf-8")
+    human_path.write_text("case_id,score\nbinary_search,4\ngraph_bfs,5\n", encoding="utf-8")
+
+    report_path = build_evaluation_report(
+        output_dir=tmp_path,
+        manifest_path=manifest_path,
+        dashboard_path=dashboard_path,
+        llm_report_path=llm_path,
+        human_ratings_path=human_path,
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report_metrics = {metric["name"]: metric for metric in report["metrics"]}
+    assert report_metrics["human_teaching_quality_score"]["value"] == 4.5
+    assert {item["baseline"] for item in report["comparisons"]} == {
+        "pure_llm_judge",
+        "code2video_manim",
+        "no_correctness_gate_renderer",
+    }
+    assert (tmp_path / "evaluation_metrics.csv").exists()
+    assert (tmp_path / "evaluation_comparisons.csv").exists()
+    assert (tmp_path / "evaluation_core_cases.csv").exists()
+    assert (tmp_path / "evaluation_report.md").exists()
+    assert "generation_success_rate" in (tmp_path / "evaluation_metrics.csv").read_text(encoding="utf-8")
+    assert "纯 LLM judge" in (tmp_path / "evaluation_comparisons.csv").read_text(encoding="utf-8")
+    assert "## Comparisons" in (tmp_path / "evaluation_report.md").read_text(encoding="utf-8")
+
+
 def benchmark_coverage_artifact() -> BuildArtifact:
     variants = []
     scenes = {}
@@ -306,14 +659,21 @@ def benchmark_coverage_artifact() -> BuildArtifact:
 
 def run_all():
     test_benchmark_cases_are_multi_input_release_ready()
+    test_contract_tests_block_bad_solve()
     test_llm_benchmark_request_uses_problem_and_expected()
     test_llm_benchmark_sample_selection_and_failure_classification(Path(tempfile.gettempdir()))
     test_llm_benchmark_phase_timing_helpers()
     test_llm_json_and_spec_normalization_helpers()
     test_existing_benchmark_html_report_helper(Path(tempfile.gettempdir()))
+    test_demo_dashboard_selection_defaults_to_curated_showcase()
+    test_runtime_capabilities_prompt_context_is_json()
 
     with tempfile.TemporaryDirectory() as d:
+        test_llm_client_reads_local_api_settings_without_committing_key(Path(d))
         test_benchmark_aggregate_artifact(Path(d))
+        test_demo_dashboard_writes_bundle_and_index(Path(d))
+        test_evaluation_manifest_covers_phase10_datasets(Path(d))
+        test_evaluation_report_exports_phase10_metrics_and_core_tables(Path(d))
     test_creative_renderer_contains_theme_controls_and_stage()
 
 

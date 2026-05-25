@@ -20,6 +20,14 @@ class SceneObjectType(str, Enum):
     HIGHLIGHT = "highlight"
     CALLOUT = "callout"
     CODE_LINE = "code_line"
+    TENSOR = "tensor"
+    BATCH = "batch"
+    PARAMETER = "parameter"
+    LOSS_CURVE = "loss_curve"
+    GRADIENT_VECTOR = "gradient_vector"
+    DECISION_BOUNDARY = "decision_boundary"
+    TRAINING_EPOCH = "training_epoch"
+    PREDICTION = "prediction"
 
 
 class SceneObject(BaseModel):
@@ -59,6 +67,8 @@ class SceneFrame(BaseModel):
     marks: list[VisualMark] = Field(default_factory=list)
     state: dict[str, Any] = Field(default_factory=dict)
     interaction: dict[str, Any] | None = None
+    teaching: dict[str, Any] | None = None
+    evidence: dict[str, Any] = Field(default_factory=dict)
 
 
 class SceneGraph(BaseModel):
