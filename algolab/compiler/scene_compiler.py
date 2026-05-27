@@ -10,7 +10,13 @@ from algolab.schemas.semantic_trace import SemanticEvent, SemanticOp, SemanticTr
 
 
 def compile_scene(trace: SemanticTrace) -> SceneGraph:
-    frames = [compile_frame(trace, event) for event in trace.events]
+    frames: list[SceneFrame] = []
+    previous_state: dict[str, Any] = {}
+    total_steps = len(trace.events)
+    for event in trace.events:
+        frame = compile_frame(trace, event, previous_state=previous_state, total_steps=total_steps)
+        frames.append(frame)
+        previous_state = frame.state
     return SceneGraph(
         algorithm=trace.algorithm,
         input_data=trace.input_data,
@@ -20,7 +26,12 @@ def compile_scene(trace: SemanticTrace) -> SceneGraph:
     )
 
 
-def compile_frame(trace: SemanticTrace, event: SemanticEvent) -> SceneFrame:
+def compile_frame(
+    trace: SemanticTrace,
+    event: SemanticEvent,
+    previous_state: dict[str, Any] | None = None,
+    total_steps: int | None = None,
+) -> SceneFrame:
     raw_state = event.state or {}
     state = _public_state(raw_state)
     objects: list[SceneObject] = []
@@ -48,6 +59,7 @@ def compile_frame(trace: SemanticTrace, event: SemanticEvent) -> SceneFrame:
         )
 
     title = _title_for_event(event)
+    teaching = _teaching_for_event(event)
     return SceneFrame(
         step=event.step,
         title=title,
@@ -58,8 +70,8 @@ def compile_frame(trace: SemanticTrace, event: SemanticEvent) -> SceneFrame:
         marks=marks,
         state=state,
         interaction=event.interaction.model_dump() if event.interaction else None,
-        teaching=_teaching_for_event(event),
-        evidence=_evidence_for_event(event),
+        teaching=teaching,
+        evidence=_evidence_for_event(event, previous_state or {}, state, teaching, total_steps=total_steps),
     )
 
 
@@ -111,7 +123,15 @@ def _teaching_for_event(event: SemanticEvent) -> dict[str, str]:
     }
 
 
-def _evidence_for_event(event: SemanticEvent) -> dict[str, Any]:
+def _evidence_for_event(
+    event: SemanticEvent,
+    previous_state: dict[str, Any] | None = None,
+    state: dict[str, Any] | None = None,
+    teaching: dict[str, Any] | None = None,
+    total_steps: int | None = None,
+) -> dict[str, Any]:
+    public_state = state if state is not None else _public_state(event.state or {})
+    changes = _changes_for_event(event, previous_state or {}, public_state)
     return {
         "operation": event.op.value,
         "targets": [target.id for target in event.targets],
@@ -120,9 +140,501 @@ def _evidence_for_event(event: SemanticEvent) -> dict[str, Any]:
         "value": event.value,
         "before": event.before,
         "after": event.after,
+        "changes": changes,
         "reason": event.reason,
         "code_line": event.code_line,
+        "timeline": _timeline_for_event(event, teaching or {}, total_steps=total_steps),
+        "process": _process_evidence_for_event(event, public_state, changes, teaching or {}),
     }
+
+
+def _process_evidence_for_event(
+    event: SemanticEvent,
+    state: dict[str, Any],
+    changes: list[dict[str, Any]],
+    teaching: dict[str, Any],
+) -> dict[str, Any]:
+    targets = [target.id for target in event.targets]
+    deps = [dep.id for dep in event.deps]
+    if _is_dp_transfer_event(event):
+        return _dp_process_evidence(targets, deps, state, changes, teaching)
+    if _is_graph_first_visit_event(event, state):
+        return _graph_visit_process_evidence(targets, deps, state, changes, teaching)
+    if _is_interval_shrink_event(event, state):
+        return _interval_process_evidence(targets, deps, state, changes, teaching)
+    if _is_stack_pop_answer_event(event, state):
+        return _stack_pop_process_evidence(targets, deps, state, changes, teaching)
+    if not (targets or deps or changes or event.reason):
+        return {}
+    checks = _base_process_checks(targets, deps, state, changes, teaching)
+    return {
+        "status": "通过核对",
+        "kind": "通用过程证据",
+        "summary": _generic_process_summary(event, targets, deps, changes),
+        "checks": checks,
+    }
+
+
+def _is_dp_transfer_event(event: SemanticEvent) -> bool:
+    if event.op not in {SemanticOp.SET, SemanticOp.COMPARE}:
+        return False
+    targets = [target.id for target in event.targets]
+    deps = [dep.id for dep in event.deps]
+    return any(_is_matrix_target(target) for target in targets) and len([dep for dep in deps if _is_matrix_target(dep)]) >= 1
+
+
+def _is_matrix_target(target: str) -> bool:
+    parsed = parse_target(target)
+    return parsed.kind == "indexed" and len(parsed.indices) == 2
+
+
+def _is_graph_first_visit_event(event: SemanticEvent, state: dict[str, Any]) -> bool:
+    if event.op not in {SemanticOp.MARK, SemanticOp.SET, SemanticOp.PUSH}:
+        return False
+    if not isinstance(state.get("dist"), dict):
+        return False
+    targets = [target.id for target in event.targets]
+    deps = [dep.id for dep in event.deps]
+    return any(target.startswith("node:") for target in targets) and any(dep.startswith(("node:", "edge:")) for dep in deps)
+
+
+def _is_interval_shrink_event(event: SemanticEvent, state: dict[str, Any]) -> bool:
+    if event.op not in {SemanticOp.MOVE, SemanticOp.SET}:
+        return False
+    targets = [target.id for target in event.targets]
+    has_window = isinstance(state.get("left"), int) and isinstance(state.get("right"), int)
+    has_pointer = any(target.startswith("pointer:") for target in targets)
+    return has_window and has_pointer
+
+
+def _is_stack_pop_answer_event(event: SemanticEvent, state: dict[str, Any]) -> bool:
+    if event.op != SemanticOp.POP or not isinstance(state.get("stack"), list):
+        return False
+    targets = [target.id for target in event.targets]
+    return any(target.startswith("answer") for target in targets) or "answer" in state
+
+
+def _dp_process_evidence(
+    targets: list[str],
+    deps: list[str],
+    state: dict[str, Any],
+    changes: list[dict[str, Any]],
+    teaching: dict[str, Any],
+) -> dict[str, Any]:
+    target_text = _join_limited(targets)
+    dep_text = _join_limited(deps)
+    checks = _base_process_checks(targets, deps, state, changes, teaching)
+    checks.insert(0, {"label": "转移类型", "text": "DP 转移使用依赖状态推出当前目标。"})
+    return {
+        "status": "通过核对",
+        "kind": "DP 转移核对",
+        "summary": f"DP 转移通过核对：{target_text} 由依赖 {dep_text} 推出。",
+        "checks": checks,
+    }
+
+
+def _graph_visit_process_evidence(
+    targets: list[str],
+    deps: list[str],
+    state: dict[str, Any],
+    changes: list[dict[str, Any]],
+    teaching: dict[str, Any],
+) -> dict[str, Any]:
+    target_text = _join_limited(targets)
+    dep_text = _join_limited(deps)
+    dist_values = _dist_values_for_nodes(state, targets)
+    checks = _base_process_checks(targets, deps, state, changes, teaching)
+    if dist_values:
+        checks.insert(0, {"label": "距离记录", "text": dist_values})
+    return {
+        "status": "通过核对",
+        "kind": "图搜索首次访问核对",
+        "summary": f"首次访问通过核对：{target_text} 已写入 dist 距离表，来源依赖 {dep_text}。",
+        "checks": checks,
+    }
+
+
+def _interval_process_evidence(
+    targets: list[str],
+    deps: list[str],
+    state: dict[str, Any],
+    changes: list[dict[str, Any]],
+    teaching: dict[str, Any],
+) -> dict[str, Any]:
+    left = state.get("left")
+    right = state.get("right")
+    checks = _base_process_checks(targets, deps, state, changes, teaching)
+    checks.insert(0, {"label": "新区间", "text": f"[left, right] = [{left}, {right}]"})
+    return {
+        "status": "通过核对",
+        "kind": "区间收缩核对",
+        "summary": f"区间收缩通过核对：指针 {_join_limited(targets)} 已移动，新区间仍覆盖可能答案。",
+        "checks": checks,
+    }
+
+
+def _stack_pop_process_evidence(
+    targets: list[str],
+    deps: list[str],
+    state: dict[str, Any],
+    changes: list[dict[str, Any]],
+    teaching: dict[str, Any],
+) -> dict[str, Any]:
+    checks = _base_process_checks(targets, deps, state, changes, teaching)
+    answer_changes = [change for change in changes if str(change.get("target", "")).startswith("answer")]
+    if answer_changes:
+        checks.insert(0, {"label": "answer 更新", "text": _change_text(answer_changes[0])})
+    return {
+        "status": "通过核对",
+        "kind": "单调栈弹出核对",
+        "summary": "弹出通过核对：当前元素使栈顶候选出栈，并写入 answer，保持单调栈不变量。",
+        "checks": checks,
+    }
+
+
+def _base_process_checks(
+    targets: list[str],
+    deps: list[str],
+    state: dict[str, Any],
+    changes: list[dict[str, Any]],
+    teaching: dict[str, Any],
+) -> list[dict[str, str]]:
+    checks: list[dict[str, str]] = []
+    if targets:
+        checks.append({"label": "目标对象", "text": _join_limited(targets)})
+    if deps:
+        checks.append({"label": "依赖对象", "text": _dependency_values_text(state, deps)})
+    formula = str(teaching.get("formula") or "").strip()
+    if formula:
+        checks.append({"label": "公式 / 规则", "text": formula})
+    invariant = str(teaching.get("invariant") or "").strip()
+    if invariant:
+        checks.append({"label": "不变量", "text": invariant})
+    if changes:
+        checks.append({"label": "状态证据", "text": _change_text(changes[0])})
+    return checks
+
+
+def _generic_process_summary(
+    event: SemanticEvent,
+    targets: list[str],
+    deps: list[str],
+    changes: list[dict[str, Any]],
+) -> str:
+    if deps and targets:
+        return f"本步过程通过核对：{_join_limited(targets)} 使用依赖 {_join_limited(deps)}。"
+    if changes:
+        return f"本步过程通过核对：{_change_text(changes[0])}。"
+    if targets:
+        return f"本步过程通过核对：{event.op.value} 作用于 {_join_limited(targets)}。"
+    return "本步过程通过核对：包含可观测状态或说明。"
+
+
+def _dependency_values_text(state: dict[str, Any], deps: list[str]) -> str:
+    parts: list[str] = []
+    for dep in deps[:4]:
+        exists, value = _resolve_state_target(state, dep)
+        parts.append(f"{dep}={_compact_text(value)}" if exists else dep)
+    if len(deps) > 4:
+        parts.append(f"还有 {len(deps) - 4} 项")
+    return "；".join(parts)
+
+
+def _dist_values_for_nodes(state: dict[str, Any], targets: list[str]) -> str:
+    dist = state.get("dist")
+    if not isinstance(dist, dict):
+        return ""
+    parts: list[str] = []
+    for target in targets:
+        if not target.startswith("node:"):
+            continue
+        node = target.split(":", 1)[1]
+        if node in dist:
+            parts.append(f"dist[{node}]={dist[node]}")
+        else:
+            for key, value in dist.items():
+                if str(key) == node:
+                    parts.append(f"dist[{node}]={value}")
+                    break
+    return "；".join(parts)
+
+
+def _change_text(change: dict[str, Any]) -> str:
+    target = str(change.get("target") or "state")
+    before = change.get("before")
+    after = change.get("after")
+    if "before" in change or "after" in change:
+        return f"{target}: {_compact_text(before)} -> {_compact_text(after)}"
+    if "value" in change:
+        return f"{target}: value={_compact_text(change.get('value'))}"
+    return f"{target} 已变化"
+
+
+def _join_limited(values: list[str], limit: int = 4) -> str:
+    if not values:
+        return "无"
+    selected = values[:limit]
+    suffix = f" 等 {len(values)} 项" if len(values) > limit else ""
+    return "、".join(selected) + suffix
+
+
+def _compact_text(value: Any) -> str:
+    text = repr(value)
+    if len(text) > 80:
+        return text[:77] + "..."
+    return text
+
+
+def _changes_for_event(event: SemanticEvent, previous_state: dict[str, Any], state: dict[str, Any]) -> list[dict[str, Any]]:
+    explicit = _event_value_changes(event)
+    if explicit:
+        return explicit
+
+    target_changes = _target_state_changes([target.id for target in event.targets], previous_state, state)
+    if target_changes:
+        return target_changes
+
+    return _state_diff_changes(previous_state, state)
+
+
+def _event_value_changes(event: SemanticEvent) -> list[dict[str, Any]]:
+    fields = getattr(event, "model_fields_set", set())
+    has_value = "value" in fields
+    has_before = "before" in fields
+    has_after = "after" in fields
+    if not (has_value or has_before or has_after):
+        return []
+
+    targets = [target.id for target in event.targets] or ["state"]
+    changes: list[dict[str, Any]] = []
+    for index, target in enumerate(targets):
+        change: dict[str, Any] = {
+            "target": target,
+            "operation": event.op.value,
+            "source": "event",
+        }
+        if has_before:
+            change["before"] = _event_value_at(event.before, index, len(targets))
+        if has_after:
+            change["after"] = _event_value_at(event.after, index, len(targets))
+        if has_value:
+            change["value"] = _event_value_at(event.value, index, len(targets))
+        changes.append(change)
+    return changes
+
+
+def _event_value_at(value: Any, index: int, target_count: int) -> Any:
+    if isinstance(value, list) and target_count > 1 and index < len(value):
+        return value[index]
+    return value
+
+
+def _target_state_changes(targets: list[str], previous_state: dict[str, Any], state: dict[str, Any]) -> list[dict[str, Any]]:
+    changes: list[dict[str, Any]] = []
+    for target in targets:
+        before_exists, before = _resolve_state_target(previous_state, target)
+        after_exists, after = _resolve_state_target(state, target)
+        if not before_exists and not after_exists:
+            continue
+        if _stable_change_value(before) == _stable_change_value(after):
+            continue
+        changes.append(
+            {
+                "target": target,
+                "before": before,
+                "after": after,
+                "kind": _change_kind(before_exists, after_exists),
+                "source": "state_diff",
+            }
+        )
+    return changes
+
+
+def _state_diff_changes(previous_state: dict[str, Any], state: dict[str, Any]) -> list[dict[str, Any]]:
+    changes: list[dict[str, Any]] = []
+    for key in sorted(set(previous_state) | set(state)):
+        before_exists = key in previous_state
+        after_exists = key in state
+        before = previous_state.get(key)
+        after = state.get(key)
+        if _stable_change_value(before) == _stable_change_value(after):
+            continue
+        changes.append(
+            {
+                "target": key,
+                "before": before,
+                "after": after,
+                "kind": _change_kind(before_exists, after_exists),
+                "source": "state_diff",
+            }
+        )
+    return changes
+
+
+def _change_kind(before_exists: bool, after_exists: bool) -> str:
+    if not before_exists:
+        return "新增"
+    if not after_exists:
+        return "删除"
+    return "更新"
+
+
+def _resolve_state_target(state: dict[str, Any], target: str) -> tuple[bool, Any]:
+    if not state:
+        return False, None
+    if target in state:
+        return True, state[target]
+
+    if target.startswith("pointer:"):
+        name = target.split(":", 1)[1]
+        if name in state:
+            return True, state[name]
+        return False, None
+
+    parsed = _parse_state_path(target)
+    if not parsed:
+        return False, None
+    name, parts = parsed
+    if name not in state:
+        return False, None
+
+    value = state[name]
+    for part in parts:
+        exists, value = _descend_state_value(value, part)
+        if not exists:
+            return False, None
+    return True, value
+
+
+def _parse_state_path(target: str) -> tuple[str, list[str]] | None:
+    if "[" not in target or not target.endswith("]"):
+        return None
+    name, rest = target.split("[", 1)
+    if not name:
+        return None
+    parts = [part.rstrip("]") for part in rest.split("[")]
+    if not parts or any(part == "" for part in parts):
+        return None
+    return name, parts
+
+
+def _descend_state_value(value: Any, key: str) -> tuple[bool, Any]:
+    if isinstance(value, list):
+        index = _as_int(key)
+        if index is None or index < 0 or index >= len(value):
+            return False, None
+        return True, value[index]
+    if isinstance(value, dict):
+        if key in value:
+            return True, value[key]
+        numeric_key = _as_int(key)
+        if numeric_key is not None and numeric_key in value:
+            return True, value[numeric_key]
+        return False, None
+    return False, None
+
+
+def _stable_change_value(value: Any) -> str:
+    try:
+        return repr(_sort_change_value(value))
+    except Exception:
+        return str(value)
+
+
+def _sort_change_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _sort_change_value(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        return [_sort_change_value(item) for item in value]
+    return value
+
+
+def _timeline_for_event(
+    event: SemanticEvent,
+    teaching: dict[str, Any] | None = None,
+    total_steps: int | None = None,
+) -> dict[str, Any]:
+    teaching = teaching if teaching is not None else (event.teaching.model_dump() if event.teaching is not None else {})
+    return {
+        "phase": _timeline_phase(event, teaching, total_steps=total_steps),
+        "operation": event.op.value,
+        "keyframe": _is_keyframe_event(event),
+        "keyframe_label": _timeline_keyframe_label(event, teaching),
+        "targets": [target.id for target in event.targets[:3]],
+        "role": event.role,
+    }
+
+
+def _timeline_phase(
+    event: SemanticEvent,
+    teaching: dict[str, Any] | None = None,
+    total_steps: int | None = None,
+) -> str:
+    state = event.state or {}
+    for key in ("phase", "stage", "current_phase"):
+        value = state.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return _fallback_timeline_phase(event, teaching or {}, total_steps=total_steps)
+
+
+def _fallback_timeline_phase(
+    event: SemanticEvent,
+    teaching: dict[str, Any],
+    total_steps: int | None = None,
+) -> str:
+    if event.step == 0 or event.op == SemanticOp.CREATE:
+        return "初始化"
+    if _looks_like_return_event(event, teaching, total_steps=total_steps):
+        return "返回结果"
+    if event.op in {SemanticOp.SET, SemanticOp.MARK, SemanticOp.MOVE, SemanticOp.LINK, SemanticOp.UNLINK, SemanticOp.POP} and (
+        event.deps or event.role in {"answer", "visited", "conflict"}
+    ):
+        return "关键转移"
+    if event.op in {SemanticOp.COMPARE, SemanticOp.PUSH, SemanticOp.POP, SemanticOp.MOVE, SemanticOp.ENTER, SemanticOp.EXIT}:
+        return "主循环"
+    if event.op == SemanticOp.EXPLAIN:
+        return "说明"
+    return "主循环"
+
+
+def _looks_like_return_event(
+    event: SemanticEvent,
+    teaching: dict[str, Any],
+    total_steps: int | None = None,
+) -> bool:
+    text = " ".join(
+        part
+        for part in [
+            event.reason or "",
+            str(teaching.get("what") or ""),
+            str(teaching.get("why") or ""),
+        ]
+        if part
+    )
+    if any(token in text for token in ("返回", "最终答案", "得到答案", "输出答案")):
+        return True
+    if event.op in {SemanticOp.EXIT, SemanticOp.EXPLAIN} and event.role == "answer":
+        return True
+    if total_steps is not None and event.step == total_steps - 1 and event.role == "answer":
+        return True
+    targets = [target.id for target in event.targets]
+    return event.role == "answer" and bool(targets) and all(target in {"answer", "result"} for target in targets) and not event.deps
+
+
+def _is_keyframe_event(event: SemanticEvent) -> bool:
+    if event.role in {"answer", "conflict", "visited"}:
+        return True
+    if event.op in {SemanticOp.CREATE, SemanticOp.ENTER, SemanticOp.EXIT, SemanticOp.SET, SemanticOp.MARK}:
+        return True
+    return bool(event.deps)
+
+
+def _timeline_keyframe_label(event: SemanticEvent, teaching: dict[str, Any]) -> str:
+    for value in (event.reason, teaching.get("what")):
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return _title_for_event(event)
 
 
 def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObject]:
@@ -190,15 +702,6 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
         elif isinstance(value, dict):
             objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "map"}))
             for mk, mv in value.items():
-                objects.append(
-                    SceneObject(
-                        id=f"{key}:{mk}",
-                        type=SceneObjectType.LABEL,
-                        label=str(mk),
-                        value=mv,
-                        parent=key,
-                    )
-                )
                 objects.append(
                     SceneObject(
                         id=f"{key}[{mk}]",

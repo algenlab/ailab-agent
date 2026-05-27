@@ -46,6 +46,9 @@ def build_evaluation_report(
         human_scores=human_scores,
     )
     case_rows = core_case_rows(manifest=manifest, dashboard=dashboard)
+    family_rows = family_summary(manifest=manifest, dashboard=dashboard, llm_report=llm_report)
+    condition_rows = condition_summary(llm_report)
+    failure_rows = failure_type_summary(llm_report)
     comparisons = comparison_protocols()
     report = {
         "schema_version": "evaluation-report-v1",
@@ -55,8 +58,13 @@ def build_evaluation_report(
             "llm_report": str(llm_report_path) if llm_report_path else "",
             "human_ratings": str(human_ratings_path) if human_ratings_path else "",
         },
+        "model_config": model_config_from_llm_report(llm_report),
+        "repair_summary": repair_summary(llm_report),
         "dataset_summary": manifest["summary"],
         "metrics": metrics,
+        "family_summary": family_rows,
+        "condition_summary": condition_rows,
+        "failure_type_summary": failure_rows,
         "comparisons": comparisons,
         "core_case_rows": case_rows,
     }
@@ -66,6 +74,9 @@ def build_evaluation_report(
     _write_metrics_csv(output_dir / "evaluation_metrics.csv", metrics)
     _write_comparisons_csv(output_dir / "evaluation_comparisons.csv", comparisons)
     _write_core_cases_csv(output_dir / "evaluation_core_cases.csv", case_rows)
+    _write_family_summary_csv(output_dir / "evaluation_family_summary.csv", family_rows)
+    _write_condition_summary_csv(output_dir / "evaluation_condition_summary.csv", condition_rows)
+    _write_failure_type_summary_csv(output_dir / "evaluation_failure_types.csv", failure_rows)
     (output_dir / "evaluation_report.md").write_text(_render_markdown(report), encoding="utf-8")
     return json_path
 
@@ -121,8 +132,272 @@ def core_case_rows(*, manifest: dict[str, Any], dashboard: dict[str, Any] | None
     return rows
 
 
+def family_summary(
+    *,
+    manifest: dict[str, Any],
+    dashboard: dict[str, Any] | None = None,
+    llm_report: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    case_family = {case["id"]: case["family"] for case in manifest.get("cases", [])}
+    rows: dict[str, dict[str, Any]] = {}
+    for case in manifest.get("cases", []):
+        row = _family_row(rows, str(case["family"]))
+        row["manifest_cases"] += 1
+
+    if llm_report and llm_report.get("results"):
+        for item in llm_report.get("results") or []:
+            family = str(item.get("family") or case_family.get(item.get("case_id"), "unknown"))
+            row = _family_row(rows, family)
+            row["total"] += 1
+            if item.get("ok"):
+                row["passed"] += 1
+            else:
+                failure_type = _failure_type_for_result(item)
+                row["failed"] += 1
+                row["failure_types"][failure_type] = row["failure_types"].get(failure_type, 0) + 1
+    elif dashboard and dashboard.get("demos"):
+        for demo in dashboard.get("demos") or []:
+            family = str(demo.get("family") or case_family.get(demo.get("id"), "unknown"))
+            row = _family_row(rows, family)
+            row["total"] += 1
+            if demo.get("ok"):
+                row["passed"] += 1
+            else:
+                row["failed"] += 1
+                failure_type = "dashboard_error"
+                row["failure_types"][failure_type] = row["failure_types"].get(failure_type, 0) + 1
+
+    result = []
+    for family, row in sorted(rows.items()):
+        total = row["total"]
+        result.append(
+            {
+                "family": family,
+                "total": total,
+                "passed": row["passed"],
+                "failed": row["failed"],
+                "pass_rate": round(row["passed"] / total, 6) if total else None,
+                "failure_types": dict(sorted(row["failure_types"].items())),
+                "manifest_cases": row["manifest_cases"],
+            }
+        )
+    return result
+
+
+def condition_summary(llm_report: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not llm_report:
+        return []
+
+    rows: dict[str, dict[str, Any]] = {}
+    default_condition = _condition_from_config(llm_report)
+    for item in llm_report.get("results") or []:
+        condition = _condition_for_result(item, default_condition)
+        row = rows.setdefault(
+            condition,
+            {
+                "condition": condition,
+                "kind": _condition_kind(condition),
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "pass_rate": None,
+                "failure_types": {},
+            },
+        )
+        row["total"] += 1
+        if item.get("ok"):
+            row["passed"] += 1
+        else:
+            row["failed"] += 1
+            failure_type = _failure_type_for_result(item)
+            row["failure_types"][failure_type] = row["failure_types"].get(failure_type, 0) + 1
+
+    result = []
+    for condition, row in sorted(rows.items()):
+        total = row["total"]
+        result.append(
+            {
+                "condition": condition,
+                "kind": row["kind"],
+                "total": total,
+                "passed": row["passed"],
+                "failed": row["failed"],
+                "pass_rate": round(row["passed"] / total, 6) if total else None,
+                "failure_types": dict(sorted(row["failure_types"].items())),
+            }
+        )
+    return result
+
+
+def failure_type_summary(llm_report: dict[str, Any] | None) -> dict[str, int]:
+    if not llm_report:
+        return {}
+    summary: dict[str, int] = {}
+    for item in llm_report.get("results") or []:
+        if item.get("ok"):
+            continue
+        failure_type = _failure_type_for_result(item)
+        summary[failure_type] = summary.get(failure_type, 0) + 1
+    return dict(sorted(summary.items()))
+
+
+def _condition_from_config(llm_report: dict[str, Any]) -> str:
+    config = llm_report.get("config") if isinstance(llm_report.get("config"), dict) else {}
+    for key in ("benchmark_condition", "condition", "experiment_condition"):
+        value = config.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return "algolab_full"
+
+
+def _condition_for_result(item: dict[str, Any], default_condition: str) -> str:
+    for key in ("condition", "experiment_condition", "benchmark_condition"):
+        value = item.get(key)
+        if isinstance(value, str) and value:
+            return value
+    for key in ("baseline", "ablation"):
+        value = item.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return default_condition
+
+
+def _condition_kind(condition: str) -> str:
+    if condition == "algolab_full":
+        return "full"
+    if "baseline" in condition or condition == "direct_html":
+        return "baseline"
+    if condition.startswith("no_") or "ablation" in condition:
+        return "ablation"
+    return "experiment"
+
+
+def _family_row(rows: dict[str, dict[str, Any]], family: str) -> dict[str, Any]:
+    return rows.setdefault(
+        family,
+        {
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "failure_types": {},
+            "manifest_cases": 0,
+        },
+    )
+
+
+def _failure_type_for_result(item: dict[str, Any]) -> str:
+    failure_type = item.get("failure_type")
+    if isinstance(failure_type, str) and failure_type:
+        return failure_type
+    errors = item.get("errors")
+    if isinstance(errors, list) and errors:
+        text = "; ".join(str(error) for error in errors)
+    else:
+        text = str(item.get("error") or "")
+    if "failure_type=" in text:
+        marker = text.split("failure_type=", 1)[1]
+        return marker.split(":", 1)[0].split(";", 1)[0].strip() or "unknown"
+    if "timeout" in text.lower():
+        return "timeout"
+    if "schema" in text.lower():
+        return "schema_error"
+    if "scene" in text.lower() or "visual" in text.lower():
+        return "scene_error"
+    if "process" in text.lower() or "不变量" in text:
+        return "process_invariant"
+    return "unknown"
+
+
+def model_config_from_llm_report(llm_report: dict[str, Any] | None) -> dict[str, Any]:
+    if not llm_report:
+        return {
+            "status": "missing",
+            "reason": "未提供 LLM benchmark report；deterministic report 不包含模型配置。",
+        }
+    config = llm_report.get("config")
+    return dict(config) if isinstance(config, dict) else {"status": "missing", "reason": "LLM report 缺少 config。"}
+
+
+def repair_summary(llm_report: dict[str, Any] | None) -> dict[str, Any]:
+    if not llm_report:
+        return {
+            "status": "missing",
+            "max_rounds_configured": None,
+            "cases_with_repair": 0,
+            "repair_rounds_attempted": 0,
+            "repair_successes": 0,
+            "repair_failure_summary": {},
+        }
+    config = llm_report.get("config") if isinstance(llm_report.get("config"), dict) else {}
+    cases_with_repair = 0
+    repair_rounds_attempted = 0
+    repair_successes = 0
+    for item in llm_report.get("results") or []:
+        repair_phases = [
+            phase
+            for phase in item.get("phase_timings") or []
+            if str(phase.get("phase", "")).startswith("repair_round_")
+        ]
+        if not repair_phases:
+            continue
+        cases_with_repair += 1
+        repair_rounds_attempted += len(repair_phases)
+        if item.get("ok"):
+            repair_successes += 1
+    return {
+        "status": "ok",
+        "max_rounds_configured": config.get("max_rounds"),
+        "cases_with_repair": cases_with_repair,
+        "repair_rounds_attempted": repair_rounds_attempted,
+        "repair_successes": repair_successes,
+        "repair_failure_summary": llm_report.get("repair_failure_summary") or {},
+    }
+
+
 def comparison_protocols() -> list[dict[str, Any]]:
     return [
+        {
+            "baseline": "direct_html_baseline",
+            "label": "LLM 直接生成 HTML",
+            "comparison_question": "跳过 SemanticTrace、process validator 和 SceneGraph compiler 后，HTML 可运行率和教学正确性如何变化。",
+            "ours_condition": "algolab_full：solve/trace/verifier/contract/process/scene 全链路机器校验后发布。",
+            "baseline_condition": "direct_html_baseline：同题目、输入、模型和 prompt 预算下，LLM 直接输出 HTML；作为外部实验结果进入 report，不进入主发布 pipeline。",
+            "primary_metrics": ["condition_summary.pass_rate", "failure_type_summary", "visual_smoke_pass_rate"],
+            "fairness_constraints": [
+                "固定题目、输入、模型版本和采样配置。",
+                "直接 HTML 产物必须经过浏览器 smoke 或等价 HTML 可运行检查。",
+                "不得把直接 HTML baseline 的成功路径接入 AlgoLab 主 pipeline 发布。",
+            ],
+            "expected_evidence": "llm_benchmark_report results 中 condition=direct_html_baseline，并记录 html_error、teaching_error 或 correctness 失败类型。",
+        },
+        {
+            "baseline": "no_process_validator_ablation",
+            "label": "无 process validator 消融",
+            "comparison_question": "去掉族级过程不变量后，错误发布风险和失败可定位性如何变化。",
+            "ours_condition": "algolab_full：保留 process validator、coverage rule 和 failure_type 分类。",
+            "baseline_condition": "no_process_validator：同一 trace/schema/renderer 条件下不执行 process invariant，只统计最终答案、schema 和可渲染性。",
+            "primary_metrics": ["condition_summary.pass_rate", "failure_type_summary", "correctness_gate_pass_rate"],
+            "fairness_constraints": [
+                "renderer、题目输入和模型输出保持一致。",
+                "报告必须单独统计被过程校验拦截的 process_invariant、coverage_error 和 process_uncovered。",
+                "不得把消融策略设为主 pipeline 默认行为。",
+            ],
+            "expected_evidence": "condition_summary 中包含 no_process_validator，并按 failure_types 输出过程错误分类。",
+        },
+        {
+            "baseline": "no_scenegraph_compiler_ablation",
+            "label": "无 SceneGraph compiler 消融",
+            "comparison_question": "不通过 SceneGraph 编译约束时，视觉可运行性、交互覆盖和失败定位如何变化。",
+            "ours_condition": "algolab_full：Renderer 只消费 SceneGraph / BuildArtifact。",
+            "baseline_condition": "no_scenegraph_compiler：保留题目和 trace，但不经过 SceneGraph compiler 结构化约束，按外部实验结果统计。",
+            "primary_metrics": ["condition_summary.pass_rate", "failure_type_summary", "interaction_coverage"],
+            "fairness_constraints": [
+                "不能让 renderer 直接消费 LLM HTML 或自由结构作为主链路。",
+                "必须记录 scene_error、html_error、target_error 等视觉失败类型。",
+                "同一题目集合必须与 algolab_full 对齐。",
+            ],
+            "expected_evidence": "condition_summary 中包含 no_scenegraph_compiler，并输出 scene/html/target 失败分类。",
+        },
         {
             "baseline": "pure_llm_judge",
             "label": "纯 LLM judge",
@@ -379,6 +654,37 @@ def _write_core_cases_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def _write_family_summary_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    fields = ["family", "total", "passed", "failed", "pass_rate", "failure_types", "manifest_cases"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            item = dict(row)
+            item["failure_types"] = json.dumps(item["failure_types"], ensure_ascii=False, sort_keys=True)
+            writer.writerow(item)
+
+
+def _write_condition_summary_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    fields = ["condition", "kind", "total", "passed", "failed", "pass_rate", "failure_types"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            item = dict(row)
+            item["failure_types"] = json.dumps(item["failure_types"], ensure_ascii=False, sort_keys=True)
+            writer.writerow(item)
+
+
+def _write_failure_type_summary_csv(path: Path, rows: dict[str, int]) -> None:
+    fields = ["failure_type", "count"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for failure_type, count in rows.items():
+            writer.writerow({"failure_type": failure_type, "count": count})
+
+
 def _render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# AlgoLab Evaluation Report",
@@ -399,6 +705,40 @@ def _render_markdown(report: dict[str, Any]) -> str:
         lines.append(
             f"| {metric['name']} | {value} | {metric['numerator']} | {metric['denominator']} | {metric['status']} | {metric['source']} |"
         )
+    lines.extend(["", "## Model And Repair", ""])
+    model_config = report.get("model_config") or {}
+    repair = report.get("repair_summary") or {}
+    lines.extend(
+        [
+            f"- Model: {model_config.get('model') or model_config.get('llm', {}).get('model') or 'N/A'}",
+            f"- Max repair rounds: {repair.get('max_rounds_configured') if repair.get('max_rounds_configured') is not None else 'N/A'}",
+            f"- Cases with repair: {repair.get('cases_with_repair', 0)}",
+            f"- Repair rounds attempted: {repair.get('repair_rounds_attempted', 0)}",
+            f"- Repair successes: {repair.get('repair_successes', 0)}",
+        ]
+    )
+    lines.extend(["", "## Family Summary", "", "| Family | Pass Rate | Passed | Failed | Failure Types |", "|---|---:|---:|---:|---|"])
+    for row in report.get("family_summary", []):
+        pass_rate = "N/A" if row["pass_rate"] is None else row["pass_rate"]
+        failures = json.dumps(row["failure_types"], ensure_ascii=False, sort_keys=True)
+        lines.append(f"| {row['family']} | {pass_rate} | {row['passed']} | {row['failed']} | {failures} |")
+    lines.extend(
+        [
+            "",
+            "## Baseline And Ablation Summary",
+            "",
+            "| Condition | Kind | Pass Rate | Passed | Failed | Failure Types |",
+            "|---|---|---:|---:|---:|---|",
+        ]
+    )
+    for row in report.get("condition_summary", []):
+        pass_rate = "N/A" if row["pass_rate"] is None else row["pass_rate"]
+        failures = json.dumps(row["failure_types"], ensure_ascii=False, sort_keys=True)
+        lines.append(f"| {row['condition']} | {row['kind']} | {pass_rate} | {row['passed']} | {row['failed']} | {failures} |")
+    if report.get("failure_type_summary"):
+        lines.extend(["", "## Failure Types", "", "| Failure Type | Count |", "|---|---:|"])
+        for failure_type, count in report["failure_type_summary"].items():
+            lines.append(f"| {failure_type} | {count} |")
     lines.extend(["", "## Comparisons", "", "| Baseline | Primary Metrics | Evidence |", "|---|---|---|"])
     for row in report["comparisons"]:
         metrics = ", ".join(row["primary_metrics"])
@@ -412,6 +752,10 @@ def _load_json_or_manifest(path: Path | None) -> dict[str, Any]:
     return build_manifest()
 
 
+def _existing_or_none(path: Path | None) -> Path | None:
+    return path if path and path.exists() else None
+
+
 def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -421,7 +765,7 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=Path("output/evaluation"), help="输出目录")
     parser.add_argument("--manifest", type=Path, default=Path("output/evaluation/evaluation_manifest.json"), help="evaluation manifest JSON")
     parser.add_argument("--dashboard", type=Path, default=Path("output/dashboard/dashboard.json"), help="dashboard JSON")
-    parser.add_argument("--llm-report", type=Path, default=None, help="可选 llm_benchmark_report.json")
+    parser.add_argument("--llm-report", type=Path, default=Path("output/llm_benchmark/llm_benchmark_report.json"), help="可选 llm_benchmark_report.json")
     parser.add_argument("--human-ratings", type=Path, default=None, help="可选人工教学质量评分 CSV")
     args = parser.parse_args()
 
@@ -429,7 +773,7 @@ def main() -> int:
         output_dir=args.output_dir,
         manifest_path=args.manifest,
         dashboard_path=args.dashboard,
-        llm_report_path=args.llm_report,
+        llm_report_path=_existing_or_none(args.llm_report),
         human_ratings_path=args.human_ratings,
     )
     print(path)

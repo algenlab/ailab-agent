@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from algolab.compiler.target_parser import parse_target
@@ -24,6 +25,292 @@ ALGORITHM_LEVEL: ProcessInvariantLevel = "algorithm"
 ALL_LEVEL: ProcessInvariantLevel = "all"
 DEFAULT_PROCESS_LEVELS: tuple[ProcessInvariantLevel, ...] = (CORE_LEVEL, STRUCTURE_LEVEL, ALGORITHM_LEVEL)
 FULL_DP_TRACE_CELL_LIMIT = 80
+SMALL_BFS_NODE_LIMIT = 20
+SMALL_BFS_EDGE_LIMIT = 80
+SMALL_BINARY_SEARCH_INPUT_LIMIT = 64
+SMALL_MONOTONIC_STACK_INPUT_LIMIT = 64
+ProcessValidationStatus = Literal["strong", "fallback"]
+
+
+@dataclass(frozen=True)
+class ProcessFamilyRegistration:
+    family: str
+    label: str
+    status: ProcessValidationStatus
+    level: ProcessInvariantLevel
+    coverage_rule: str
+    failure_type: str
+    checks: tuple[str, ...] = ()
+    aliases: tuple[str, ...] = ()
+
+
+PROCESS_VALIDATION_REGISTRY: tuple[ProcessFamilyRegistration, ...] = (
+    ProcessFamilyRegistration(
+        family="dp",
+        label="动态规划",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="Tracer _trace_meta 覆盖率 + matcher-gated DP 转移；小 unique_paths 表要求逐格转移",
+        failure_type="process_invariant",
+        checks=(
+            "_validate_unique_paths_dp",
+            "_validate_house_robber_dp",
+            "_validate_subset_sum_dp",
+            "_validate_lcs_dp",
+            "_validate_edit_distance_dp",
+            "_validate_complete_knapsack",
+            "_validate_interval_dp",
+        ),
+        aliases=("dp", "动态规划", "一维 dp", "二维 dp", "背包", "lcs", "编辑距离", "区间 dp"),
+    ),
+    ProcessFamilyRegistration(
+        family="bfs",
+        label="BFS 图遍历",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="无权图 start + graph 输入触发 BFS 距离不变量；小图要求出队、检查边、首次访问",
+        failure_type="process_invariant",
+        checks=("_validate_bfs_distances",),
+        aliases=("bfs", "宽度优先", "基础图", "图 bfs"),
+    ),
+    ProcessFamilyRegistration(
+        family="binary_search",
+        label="二分",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="二分算法信号触发闭区间窗口边界检查；小输入要求比较 mid 和必要区间收缩",
+        failure_type="process_invariant",
+        checks=("_validate_binary_search_window",),
+        aliases=("binary search", "binary_search", "二分", "二分查找", "二分答案"),
+    ),
+    ProcessFamilyRegistration(
+        family="monotonic_stack",
+        label="单调栈",
+        status="strong",
+        level=STRUCTURE_LEVEL,
+        coverage_rule="state 声明 stack_order/monotonic 后检查栈值单调性；小输入要求 push / pop / answer_write",
+        failure_type="process_invariant",
+        checks=("_validate_monotonic_stack",),
+        aliases=("monotonic stack", "monotonic_stack", "单调栈", "栈 / 队列 / 单调栈"),
+    ),
+    ProcessFamilyRegistration(
+        family="hash",
+        label="哈希表 / map",
+        status="fallback",
+        level=CORE_LEVEL,
+        coverage_rule="基础 schema / scene / answer gate + 可观测过程证据；暂不声明哈希族强过程不变量",
+        failure_type="process_fallback",
+        aliases=("hash", "哈希", "哈希表", "map", "集合"),
+    ),
+    ProcessFamilyRegistration(
+        family="string",
+        label="字符串算法",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="KMP 前缀表、Rabin-Karp 滚动哈希、Z 数组和 Manacher 半径表按输入字符串复核",
+        failure_type="process_invariant",
+        checks=(
+            "_validate_kmp_prefix",
+            "_validate_rabin_karp_hashes",
+            "_validate_z_algorithm",
+            "_validate_manacher_radius",
+        ),
+        aliases=("string", "字符串", "字符串高级算法", "kmp", "rabin-karp", "rabin karp", "z algorithm", "manacher"),
+    ),
+    ProcessFamilyRegistration(
+        family="tree",
+        label="树 / BST / LCA",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="BST/LCA/树直径/树形 DP 等有明确 state 信号的子族触发强校验；普通树遍历仍依赖基础门禁",
+        failure_type="process_invariant",
+        checks=("_validate_bst_order", "_validate_lca_node", "_validate_tree_diameter", "_validate_tree_max_independent_set"),
+        aliases=("tree", "树", "bst", "lca", "二叉树", "树直径", "树形 dp", "tree dp"),
+    ),
+    ProcessFamilyRegistration(
+        family="range_structure",
+        label="区间结构",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="线段树节点 meta、树状数组 bit 和稀疏表 st 按输入数组复核；query/update 路径由现有 target/deps 绑定",
+        failure_type="process_invariant",
+        checks=("_validate_segment_tree_sums", "_validate_fenwick_tree", "_validate_sparse_table"),
+        aliases=("range structure", "range_structure", "区间结构", "线段树", "segment tree", "树状数组", "fenwick", "binary indexed tree", "稀疏表", "sparse table"),
+    ),
+    ProcessFamilyRegistration(
+        family="math_bit",
+        label="数学与位运算",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="Euclid 余数、快速幂平方表、筛法布尔表、组合数 DP 表、mask 位图和 lowbit 项按输入复核",
+        failure_type="process_invariant",
+        checks=(
+            "_validate_gcd_remainders",
+            "_validate_fast_power_table",
+            "_validate_sieve_primes",
+            "_validate_pascal_combinations",
+            "_validate_bitmask_subset",
+            "_validate_lowbit_decomposition",
+        ),
+        aliases=("math", "bit", "math_bit", "数学", "数学与位运算", "位运算", "gcd", "最大公约数", "快速幂", "筛法", "组合数", "位掩码", "lowbit"),
+    ),
+    ProcessFamilyRegistration(
+        family="advanced_graph",
+        label="图高级",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="Tarjan dfn/low、桥/割点、二分图匹配和 Edmonds-Karp flow/capacity 按 state 复核",
+        failure_type="process_invariant",
+        checks=(
+            "_validate_tarjan_lowlink",
+            "_validate_articulation_bridges",
+            "_validate_bipartite_matching",
+            "_validate_flow_capacity",
+        ),
+        aliases=(
+            "advanced graph",
+            "advanced_graph",
+            "图高级",
+            "tarjan",
+            "scc",
+            "强连通分量",
+            "割点",
+            "桥",
+            "二分图匹配",
+            "matching",
+            "edmonds-karp",
+            "edmonds karp",
+            "最大流",
+            "网络流",
+        ),
+    ),
+    ProcessFamilyRegistration(
+        family="union_find",
+        label="并查集",
+        status="strong",
+        level=STRUCTURE_LEVEL,
+        coverage_rule="state.union_find/dsu.parent 触发 forest 指向与环检查；覆盖率仍由 Tracer _trace_meta 约束",
+        failure_type="process_invariant",
+        checks=("_validate_union_find_forest",),
+        aliases=("union find", "union_find", "并查集", "dsu"),
+    ),
+)
+
+_UNCOVERED_PROCESS_PROFILE = ProcessFamilyRegistration(
+    family="uncovered",
+    label="未覆盖算法族",
+    status="fallback",
+    level=CORE_LEVEL,
+    coverage_rule="基础 schema / scene / answer gate；不声明算法族强过程不变量",
+    failure_type="process_uncovered",
+)
+_EXPLICIT_PROCESS_FAILURE_TYPES = {
+    "process_invariant",
+    "coverage_error",
+    "process_fallback",
+    "process_uncovered",
+}
+_EXPLICIT_PROCESS_FAILURE_TYPES.update(profile.failure_type for profile in PROCESS_VALIDATION_REGISTRY)
+
+
+def process_validation_registry() -> tuple[ProcessFamilyRegistration, ...]:
+    return PROCESS_VALIDATION_REGISTRY
+
+
+def process_validation_profile_for_family(family: str | None) -> ProcessFamilyRegistration:
+    key = _normalize_family_name(family or "")
+    if not key:
+        return _UNCOVERED_PROCESS_PROFILE
+    for profile in PROCESS_VALIDATION_REGISTRY:
+        candidates = (profile.family, profile.label, *profile.aliases)
+        if any(_family_alias_matches(key, candidate) for candidate in candidates):
+            return profile
+    return _UNCOVERED_PROCESS_PROFILE
+
+
+def process_failure_type_for_message(message: str) -> str | None:
+    text = message.lower()
+    explicit = _explicit_failure_type(text)
+    if explicit in _EXPLICIT_PROCESS_FAILURE_TYPES:
+        return explicit
+    if "trace coverage" in text or "coverage" in text or "覆盖率" in message or "缺少逐帧状态转移" in message:
+        return "coverage_error"
+    if "process_uncovered" in text or "未注册算法族" in message:
+        return "process_uncovered"
+    invariant_tokens = (
+        "process",
+        "invariant",
+        "dp[",
+        "背包",
+        "bfs",
+        "dijkstra",
+        "kmp",
+        "rabin",
+        "z algorithm",
+        "manacher",
+        "lca",
+        "segment tree",
+        "fenwick",
+        "sparse table",
+        "gcd",
+        "lowbit",
+        "快速幂",
+        "筛法",
+        "组合数",
+        "位掩码",
+        "线段树",
+        "树状数组",
+        "稀疏表",
+        "tarjan",
+        "union_find",
+        "window_hashes",
+        "回文半径",
+        "monotonic",
+        "单调",
+        "并查集",
+        "非根环",
+        "二分",
+        "收缩方向",
+        "首次发现",
+        "answer[",
+        "bst",
+        "low[",
+        "bridge",
+        "桥",
+        "割点",
+        "match[",
+        "匹配",
+        "flow[",
+        "容量",
+        "edmonds",
+        "topo_order",
+    )
+    if any(token in text or token in message for token in invariant_tokens):
+        return "process_invariant"
+    return None
+
+
+def _normalize_family_name(value: str) -> str:
+    return " ".join(value.strip().lower().replace("_", " ").split())
+
+
+def _family_alias_matches(key: str, alias: str) -> bool:
+    normalized = _normalize_family_name(alias)
+    return bool(normalized) and (key == normalized or normalized in key)
+
+
+def _explicit_failure_type(text: str) -> str | None:
+    marker = "failure_type="
+    if marker not in text:
+        return None
+    tail = text.split(marker, 1)[1]
+    value = []
+    for char in tail:
+        if char.islower() or char == "_":
+            value.append(char)
+        else:
+            break
+    return "".join(value) or None
 
 
 def validate_process(
@@ -152,6 +439,10 @@ def _event_has_observable_evidence(event, previous_state: dict[str, Any] | None,
     return any(_target_changed(target.id, previous_state, state) for target in event.targets)
 
 
+def _event_ref_ids(refs: Iterable[Any]) -> set[str]:
+    return {ref.id for ref in refs if getattr(ref, "id", "")}
+
+
 def _state_changed(previous_state: dict[str, Any], state: dict[str, Any]) -> bool:
     keys = set(previous_state) | set(state)
     return any(not _same_value(previous_state.get(key), state.get(key)) for key in keys)
@@ -166,11 +457,12 @@ def _target_changed(target_id: str, previous_state: dict[str, Any], state: dict[
 
 
 def _validate_structure_invariants(trace: SemanticTrace) -> tuple[list[str], list[str]]:
-    return _run_error_only_checks(
+    errors, warnings = _run_error_only_checks(
         trace,
         [
             _validate_heap_property,
             _validate_monotonic_stack,
+            _validate_monotonic_stack_key_step_coverage,
             _validate_union_find_forest,
             _validate_topological_order,
             _validate_bst_order,
@@ -179,6 +471,7 @@ def _validate_structure_invariants(trace: SemanticTrace) -> tuple[list[str], lis
             _validate_backtracking_tree,
         ],
     )
+    return errors, warnings
 
 
 def _validate_algorithm_invariants(trace: SemanticTrace) -> tuple[list[str], list[str]]:
@@ -192,8 +485,10 @@ def _validate_algorithm_invariants(trace: SemanticTrace) -> tuple[list[str], lis
         errors.extend(_validate_subset_sum_dp(trace))
     if _looks_like_bfs(trace):
         errors.extend(_validate_bfs_distances(trace))
+        errors.extend(_validate_bfs_key_step_coverage(trace))
     if _looks_like_binary_search(trace):
         errors.extend(_validate_binary_search_window(trace))
+        errors.extend(_validate_binary_search_key_step_coverage(trace))
     if _looks_like_ml_training(trace):
         errors.extend(_validate_ml_correctness(trace))
     family_errors, family_warnings = _run_error_only_checks(
@@ -203,10 +498,27 @@ def _validate_algorithm_invariants(trace: SemanticTrace) -> tuple[list[str], lis
             _validate_lcs_dp,
             _validate_edit_distance_dp,
             _validate_kmp_prefix,
+            _validate_rabin_karp_hashes,
+            _validate_z_algorithm,
+            _validate_manacher_radius,
             _validate_complete_knapsack,
             _validate_interval_dp,
             _validate_lca_node,
+            _validate_tree_diameter,
+            _validate_tree_max_independent_set,
+            _validate_segment_tree_sums,
+            _validate_fenwick_tree,
+            _validate_sparse_table,
+            _validate_gcd_remainders,
+            _validate_fast_power_table,
+            _validate_sieve_primes,
+            _validate_pascal_combinations,
+            _validate_bitmask_subset,
+            _validate_lowbit_decomposition,
             _validate_tarjan_lowlink,
+            _validate_articulation_bridges,
+            _validate_bipartite_matching,
+            _validate_flow_capacity,
         ],
     )
     errors.extend(family_errors)
@@ -302,7 +614,7 @@ def _validate_reason_grounding(trace: SemanticTrace) -> list[str]:
         refs = {ref.id for ref in [*event.targets, *event.deps]}
         refs.update((event.state or {}).keys())
         for key in ("dp", "nums", "queue", "stack", "graph", "text", "pattern", "heap"):
-            if key in reason and not any(ref == key or ref.startswith(f"{key}[") or ref.startswith(f"{key}:") for ref in refs):
+            if key in reason and not any(ref == key or ref.startswith(f"{key}[") for ref in refs):
                 warnings.append(f"第 {event.step} 步 reason 提到 {key}，但 targets/deps/state 缺少对应依据")
     return warnings
 
@@ -347,6 +659,24 @@ def _resolve_target(state: dict[str, Any], target_id: str) -> Resolved:
     return Resolved(False)
 
 
+def _dict_lookup(data: dict[Any, Any], key: Any) -> Any:
+    if key in data:
+        return data[key]
+    key_text = str(key)
+    for existing_key, value in data.items():
+        if str(existing_key) == key_text:
+            return value
+    return None
+
+
+def _same_node(left: Any, right: Any) -> bool:
+    return str(left) == str(right)
+
+
+def _node_display(node: Any) -> str:
+    return str(node)
+
+
 def _looks_like_unique_paths(trace: SemanticTrace) -> bool:
     if not isinstance(trace.input_data, dict):
         return False
@@ -380,6 +710,11 @@ def _validate_unique_paths_dp(trace: SemanticTrace) -> list[str]:
             value = dp[i][j]
             if isinstance(value, int) and value != expected:
                 errors.append(f"第 {event.step} 步 dp[{i}][{j}] 不满足不同路径转移")
+            if i > 0 and j > 0:
+                expected_deps = {f"dp[{i - 1}][{j}]", f"dp[{i}][{j - 1}]"}
+                actual_deps = _event_ref_ids(event.deps)
+                if not expected_deps <= actual_deps:
+                    errors.append(f"第 {event.step} 步 dp[{i}][{j}] 依赖应为 {', '.join(sorted(expected_deps))}")
     interior_cells = {(i, j) for i in range(1, m) for j in range(1, n)}
     if 0 < len(interior_cells) <= FULL_DP_TRACE_CELL_LIMIT:
         missing = sorted(interior_cells - observed_set_cells)
@@ -510,7 +845,92 @@ def _validate_bfs_distances(trace: SemanticTrace) -> list[str]:
                 errors.append(f"第 {event.step} 步 dist 包含不可达节点：{node}")
             elif expected[node] != value:
                 errors.append(f"第 {event.step} 步 dist[{node}] 应为 {expected[node]}，实际为 {value}")
+        errors.extend(_validate_bfs_discovery_source(event, graph, expected, start))
     return errors
+
+
+def _validate_bfs_key_step_coverage(trace: SemanticTrace) -> list[str]:
+    graph = trace.input_data.get("graph")
+    start = trace.input_data.get("start")
+    if not isinstance(graph, dict) or not _is_small_bfs_graph(graph):
+        return []
+    expected = _bfs_dist(graph, start)
+    if not expected:
+        return []
+    missing: list[str] = []
+    if not _trace_has_bfs_pop(trace):
+        missing.append("pop_queue")
+    if _reachable_edge_count(graph, expected) > 0 and not _trace_has_bfs_edge_check(trace):
+        missing.append("check_edge")
+    discovered = {str(node) for node in expected if not _same_node(node, start)}
+    if discovered and not _trace_has_bfs_first_visit(trace, discovered):
+        missing.append("first_visit")
+    if missing:
+        return [f"failure_type=coverage_error: BFS 小图缺少关键步骤覆盖：{', '.join(missing)}"]
+    return []
+
+
+def _is_small_bfs_graph(graph: dict[Any, Any]) -> bool:
+    edge_count = sum(len(neighbors) for neighbors in graph.values() if isinstance(neighbors, list))
+    return len(graph) <= SMALL_BFS_NODE_LIMIT and edge_count <= SMALL_BFS_EDGE_LIMIT
+
+
+def _trace_has_bfs_pop(trace: SemanticTrace) -> bool:
+    for event in trace.events:
+        if event.op != SemanticOp.POP:
+            continue
+        target_ids = _event_target_ids(event)
+        if "queue" in target_ids or any(target.startswith("node:") for target in target_ids):
+            return True
+    return False
+
+
+def _trace_has_bfs_edge_check(trace: SemanticTrace) -> bool:
+    for event in trace.events:
+        if event.op not in {SemanticOp.COMPARE, SemanticOp.MARK, SemanticOp.EXPLAIN}:
+            continue
+        refs = _event_target_ids(event) | _event_dep_ids(event)
+        if any(ref.startswith("edge:") for ref in refs):
+            return True
+    return False
+
+
+def _trace_has_bfs_first_visit(trace: SemanticTrace, discovered: set[str]) -> bool:
+    for event in trace.events:
+        if event.op not in {SemanticOp.MARK, SemanticOp.SET, SemanticOp.PUSH}:
+            continue
+        refs = _event_target_ids(event)
+        if any(_bfs_refers_to_discovered_node(ref, discovered) for ref in refs):
+            return True
+    return False
+
+
+def _bfs_refers_to_discovered_node(ref: str, discovered: set[str]) -> bool:
+    parsed = parse_target(ref)
+    if parsed.kind == "node":
+        return str(parsed.name) in discovered
+    if parsed.kind == "map":
+        key, _, item = parsed.name.partition(":")
+        return key in {"dist", "parent", "parents", "prev"} and item in discovered
+    return False
+
+
+def _reachable_edge_count(graph: dict[Any, Any], expected: dict[Any, int]) -> int:
+    reachable = {str(node) for node in expected}
+    count = 0
+    for node, neighbors in graph.items():
+        if str(node) not in reachable or not isinstance(neighbors, list):
+            continue
+        count += len(neighbors)
+    return count
+
+
+def _event_target_ids(event) -> set[str]:
+    return _event_ref_ids(event.targets)
+
+
+def _event_dep_ids(event) -> set[str]:
+    return _event_ref_ids(event.deps)
 
 
 def _bfs_dist(graph: dict[str, Any], start: Any) -> dict[Any, int]:
@@ -527,17 +947,113 @@ def _bfs_dist(graph: dict[str, Any], start: Any) -> dict[Any, int]:
     return dist
 
 
+def _validate_bfs_discovery_source(event, graph: dict[Any, Any], expected: dict[Any, int], start: Any) -> list[str]:
+    errors: list[str] = []
+    state = event.state or {}
+    dist = state.get("dist")
+    if not isinstance(dist, dict):
+        return errors
+    discovered_nodes = _bfs_event_discovered_nodes(event)
+    parent_map = state.get("parent") or state.get("parents") or state.get("prev")
+    for node in discovered_nodes:
+        if _same_node(node, start):
+            continue
+        value = _dict_lookup(dist, node)
+        if not isinstance(value, int):
+            continue
+        if node in expected and value != expected[node]:
+            continue
+        sources = _bfs_declared_sources(event, parent_map, node)
+        if not sources:
+            continue
+        if not any(_is_valid_bfs_parent(graph, dist, source, node, value) for source in sources):
+            display = _node_display(node)
+            source_text = ", ".join(_node_display(source) for source in sources)
+            errors.append(f"第 {event.step} 步 BFS 首次发现 node:{display} 来源应为上一层相邻节点，实际为 {source_text}")
+    return errors
+
+
+def _bfs_event_discovered_nodes(event) -> list[Any]:
+    nodes: list[Any] = []
+    for target in event.targets:
+        parsed = parse_target(target.id)
+        if parsed.kind == "node":
+            nodes.append(parsed.name)
+        elif parsed.kind == "map":
+            key, _, item = parsed.name.partition(":")
+            if key in {"dist", "parent", "parents", "prev"} and item:
+                nodes.append(item)
+    return nodes
+
+
+def _bfs_declared_sources(event, parent_map: Any, node: Any) -> list[Any]:
+    sources: list[Any] = []
+    if isinstance(parent_map, dict):
+        parent = _dict_lookup(parent_map, node)
+        if parent is not None:
+            sources.append(parent)
+    for dep in event.deps:
+        parsed = parse_target(dep.id)
+        if parsed.kind == "node":
+            sources.append(parsed.name)
+        elif parsed.kind == "map":
+            key, _, item = parsed.name.partition(":")
+            if key in {"dist", "parent", "parents", "prev"} and item:
+                sources.append(item)
+    return _dedupe_nodes(sources)
+
+
+def _is_valid_bfs_parent(graph: dict[Any, Any], dist: dict[Any, Any], source: Any, node: Any, node_dist: int) -> bool:
+    source_dist = _dict_lookup(dist, source)
+    if source_dist != node_dist - 1:
+        return False
+    return any(_same_node(nei, node) for nei in _graph_neighbors(graph, source))
+
+
+def _graph_neighbors(graph: dict[Any, Any], node: Any) -> list[Any]:
+    for graph_node, neighbors in graph.items():
+        if _same_node(graph_node, node):
+            return neighbors if isinstance(neighbors, list) else []
+    return []
+
+
+def _dedupe_nodes(nodes: list[Any]) -> list[Any]:
+    result: list[Any] = []
+    seen: set[str] = set()
+    for node in nodes:
+        key = str(node)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(node)
+    return result
+
+
 def _looks_like_binary_search(trace: SemanticTrace) -> bool:
     if not isinstance(trace.input_data, dict):
         return False
-    return isinstance(trace.input_data.get("nums"), list) and "target" in trace.input_data
+    if not isinstance(trace.input_data.get("nums"), list) or "target" not in trace.input_data:
+        return False
+    algorithm = (trace.algorithm or "").lower()
+    if "二分" in trace.algorithm or "binary" in algorithm or "bisect" in algorithm:
+        return True
+    for event in trace.events:
+        state = event.state or {}
+        if {"left", "right", "mid"} <= set(state):
+            return True
+        refs = _event_target_ids(event) | _event_dep_ids(event)
+        if refs & {"pointer:left", "pointer:right", "pointer:mid"}:
+            return True
+    return False
 
 
 def _validate_binary_search_window(trace: SemanticTrace) -> list[str]:
     errors: list[str] = []
     nums = trace.input_data.get("nums")
+    target = trace.input_data.get("target")
     if not isinstance(nums, list):
         return errors
+    last_compare: dict[str, Any] | None = None
     for event in trace.events:
         state = event.state or {}
         left, right, mid = state.get("left"), state.get("right"), state.get("mid")
@@ -548,7 +1064,89 @@ def _validate_binary_search_window(trace: SemanticTrace) -> list[str]:
         if isinstance(left, int) and isinstance(right, int) and left <= right and isinstance(mid, int):
             if not (left <= mid <= right):
                 errors.append(f"第 {event.step} 步 mid 不在 [left,right] 内")
+        if event.op == SemanticOp.COMPARE and isinstance(left, int) and isinstance(right, int) and isinstance(mid, int) and 0 <= mid < len(nums):
+            last_compare = {"left": left, "right": right, "mid": mid, "mid_value": nums[mid]}
+            continue
+        if event.op == SemanticOp.MOVE and last_compare is not None:
+            errors.extend(_validate_binary_search_shrink(event.step, state, target, last_compare))
+            last_compare = None
     return errors
+
+
+def _validate_binary_search_key_step_coverage(trace: SemanticTrace) -> list[str]:
+    nums = trace.input_data.get("nums")
+    target = trace.input_data.get("target")
+    if not isinstance(nums, list) or len(nums) > SMALL_BINARY_SEARCH_INPUT_LIMIT:
+        return []
+    if not nums:
+        return []
+    compare_events = [_binary_search_compare_event(event, nums) for event in trace.events]
+    compare_events = [event for event in compare_events if event is not None]
+    missing: list[str] = []
+    if not compare_events:
+        missing.append("compare_mid")
+    if _binary_search_requires_shrink(nums, target) and not _trace_has_binary_search_shrink(trace):
+        missing.append("shrink_interval")
+    if missing:
+        return [f"failure_type=coverage_error: 二分缺少关键步骤覆盖：{', '.join(missing)}"]
+    return []
+
+
+def _binary_search_compare_event(event, nums: list[Any]) -> Any | None:
+    if event.op != SemanticOp.COMPARE:
+        return None
+    state = event.state or {}
+    mid = state.get("mid")
+    if not isinstance(mid, int) or not (0 <= mid < len(nums)):
+        return None
+    refs = _event_target_ids(event) | _event_dep_ids(event)
+    if f"nums[{mid}]" in refs or "pointer:mid" in refs:
+        return event
+    return None
+
+
+def _binary_search_requires_shrink(nums: list[Any], target: Any) -> bool:
+    left, right = 0, len(nums) - 1
+    if left > right:
+        return False
+    mid = (left + right) // 2
+    if nums[mid] == target:
+        return False
+    return left < right
+
+
+def _trace_has_binary_search_shrink(trace: SemanticTrace) -> bool:
+    for event in trace.events:
+        if event.op != SemanticOp.MOVE:
+            continue
+        refs = _event_target_ids(event) | _event_dep_ids(event)
+        state = event.state or {}
+        if ("pointer:left" in refs or "pointer:right" in refs) and (
+            isinstance(state.get("left"), int) or isinstance(state.get("right"), int)
+        ):
+            return True
+    return False
+
+
+def _validate_binary_search_shrink(step: int, state: dict[str, Any], target: Any, last_compare: dict[str, Any]) -> list[str]:
+    if not isinstance(target, (int, float)):
+        return []
+    new_left, new_right = state.get("left"), state.get("right")
+    if not isinstance(new_left, int) or not isinstance(new_right, int):
+        return []
+    old_left = last_compare["left"]
+    old_right = last_compare["right"]
+    mid = last_compare["mid"]
+    mid_value = last_compare["mid_value"]
+    if not isinstance(mid_value, (int, float)) or mid_value == target:
+        return []
+    if mid_value < target:
+        if new_left <= mid or new_right != old_right:
+            return [f"第 {step} 步 二分收缩方向错误：nums[{mid}] < target 时应移动 left 到 {mid + 1}"]
+    if mid_value > target:
+        if new_right >= mid or new_left != old_left:
+            return [f"第 {step} 步 二分收缩方向错误：nums[{mid}] > target 时应移动 right 到 {mid - 1}"]
+    return []
 
 
 def _looks_like_ml_training(trace: SemanticTrace) -> bool:
@@ -897,7 +1495,78 @@ def _validate_monotonic_stack(trace: SemanticTrace) -> list[str]:
             errors.append(f"第 {event.step} 步 stack 不满足单调递增")
         if mode == "decreasing" and any(a < b for a, b in pairs):
             errors.append(f"第 {event.step} 步 stack 不满足单调递减")
+        errors.extend(_validate_monotonic_stack_answer_write(event))
     return errors
+
+
+def _validate_monotonic_stack_key_step_coverage(trace: SemanticTrace) -> list[str]:
+    sequence = _monotonic_stack_input_sequence(trace)
+    if sequence is None or len(sequence) > SMALL_MONOTONIC_STACK_INPUT_LIMIT:
+        return []
+    if not _trace_has_monotonic_stack_signal(trace):
+        return []
+    missing: list[str] = []
+    if not _trace_has_stack_push(trace):
+        missing.append("push")
+    requires_pop, requires_answer_write = _monotonic_stack_requires_pop_and_answer(sequence)
+    if requires_pop and not _trace_has_stack_pop(trace):
+        missing.append("pop")
+    if requires_answer_write and not _trace_has_answer_write(trace):
+        missing.append("answer_write")
+    if missing:
+        return [f"failure_type=coverage_error: 单调栈缺少关键步骤覆盖：{', '.join(missing)}"]
+    return []
+
+
+def _monotonic_stack_input_sequence(trace: SemanticTrace) -> list[Any] | None:
+    if not isinstance(trace.input_data, dict):
+        return None
+    for key in ("temperatures", "nums", "heights"):
+        value = trace.input_data.get(key)
+        if isinstance(value, list):
+            return value
+    return None
+
+
+def _trace_has_monotonic_stack_signal(trace: SemanticTrace) -> bool:
+    algorithm = (trace.algorithm or "").lower()
+    if "单调栈" in trace.algorithm or "monotonic stack" in algorithm:
+        return True
+    for event in trace.events:
+        state = event.state or {}
+        if state.get("stack_order") in {"increasing", "decreasing"} or state.get("monotonic") in {"increasing", "decreasing"}:
+            return True
+    return False
+
+
+def _monotonic_stack_requires_pop_and_answer(sequence: list[Any]) -> tuple[bool, bool]:
+    stack: list[int] = []
+    requires = False
+    for i, value in enumerate(sequence):
+        while stack and isinstance(sequence[stack[-1]], (int, float)) and isinstance(value, (int, float)) and sequence[stack[-1]] < value:
+            requires = True
+            stack.pop()
+        stack.append(i)
+    return requires, requires
+
+
+def _trace_has_stack_push(trace: SemanticTrace) -> bool:
+    return any(event.op == SemanticOp.PUSH and "stack" in _event_target_ids(event) for event in trace.events)
+
+
+def _trace_has_stack_pop(trace: SemanticTrace) -> bool:
+    return any(event.op == SemanticOp.POP and "stack" in _event_target_ids(event) for event in trace.events)
+
+
+def _trace_has_answer_write(trace: SemanticTrace) -> bool:
+    for event in trace.events:
+        if event.op != SemanticOp.SET:
+            continue
+        for ref in _event_target_ids(event):
+            parsed = parse_target(ref)
+            if parsed.kind == "indexed" and parsed.name in {"answer", "answers", "ans"}:
+                return True
+    return False
 
 
 def _stack_values(state: dict[str, Any], stack: list[Any]) -> list[Any] | None:
@@ -912,6 +1581,46 @@ def _stack_values(state: dict[str, Any], stack: list[Any]) -> list[Any] | None:
     if all(isinstance(x, (int, float)) for x in stack):
         return stack
     return None
+
+
+def _validate_monotonic_stack_answer_write(event) -> list[str]:
+    if event.op != SemanticOp.SET:
+        return []
+    state = event.state or {}
+    temperatures = state.get("temperatures") or state.get("nums") or state.get("heights")
+    answer = state.get("answer") or state.get("answers") or state.get("ans")
+    i = state.get("i")
+    if not isinstance(temperatures, list) or not isinstance(answer, list) or not isinstance(i, int):
+        return []
+    errors: list[str] = []
+    for target in event.targets:
+        parsed = parse_target(target.id)
+        if parsed.kind != "indexed" or parsed.name not in {"answer", "answers", "ans"} or len(parsed.indices) != 1:
+            continue
+        j = parsed.indices[0]
+        if not (0 <= j < len(answer) and 0 <= i < len(temperatures)):
+            continue
+        current = temperatures[i]
+        previous = temperatures[j]
+        actual = answer[j]
+        expected = i - j
+        if isinstance(current, (int, float)) and isinstance(previous, (int, float)) and current <= previous:
+            errors.append(f"第 {event.step} 步 answer[{j}] 写入时当前值未打破单调栈条件")
+        if actual != expected:
+            errors.append(f"第 {event.step} 步 answer[{j}] 应为 {expected}，实际为 {actual}")
+        expected_deps = {f"{_sequence_name_for_answer_state(state)}[{j}]", f"{_sequence_name_for_answer_state(state)}[{i}]"}
+        actual_deps = _event_ref_ids(event.deps)
+        if event.deps and not expected_deps <= actual_deps:
+            errors.append(f"第 {event.step} 步 answer[{j}] 依赖应包含 {', '.join(sorted(expected_deps))}")
+    return errors
+
+
+def _sequence_name_for_answer_state(state: dict[str, Any]) -> str:
+    if isinstance(state.get("temperatures"), list):
+        return "temperatures"
+    if isinstance(state.get("heights"), list):
+        return "heights"
+    return "nums"
 
 
 def _validate_union_find_forest(trace: SemanticTrace) -> list[str]:
@@ -933,7 +1642,67 @@ def _validate_union_find_forest(trace: SemanticTrace) -> list[str]:
                 cur = parent[cur]
             if cur in seen and parent.get(cur) != cur:
                 errors.append(f"第 {event.step} 步 union_find 存在非根环：{node}")
+        errors.extend(_validate_union_find_link_event(event, parent))
     return errors
+
+
+def _validate_union_find_link_event(event, parent: dict[Any, Any] | None) -> list[str]:
+    if event.op not in {SemanticOp.LINK, SemanticOp.SET, SemanticOp.MARK} or not isinstance(parent, dict):
+        return []
+    state = event.state or {}
+    pairs = _union_find_pairs(event, state)
+    errors: list[str] = []
+    for left, right in pairs:
+        if _uf_find(parent, left) != _uf_find(parent, right):
+            errors.append(f"第 {event.step} 步 union 后 {left} 和 {right} 应连通")
+    return errors
+
+
+def _union_find_pairs(event, state: dict[str, Any]) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    i, j = state.get("i"), state.get("j")
+    is_connected = state.get("isConnected") or state.get("connected")
+    if isinstance(i, int) and isinstance(j, int) and _matrix_has_connection(is_connected, i, j):
+        pairs.append((str(i), str(j)))
+    target_nodes = [_target_node_name(target.id) for target in event.targets]
+    dep_nodes = [_target_node_name(dep.id) for dep in event.deps]
+    for left in target_nodes:
+        for right in dep_nodes:
+            if left is not None and right is not None:
+                pairs.append((left, right))
+    return list(dict.fromkeys(pairs))
+
+
+def _matrix_has_connection(matrix: Any, i: int, j: int) -> bool:
+    try:
+        return bool(matrix[i][j])
+    except Exception:
+        return False
+
+
+def _target_node_name(target_id: str) -> str | None:
+    parsed = parse_target(target_id)
+    if parsed.kind == "node":
+        return str(parsed.name)
+    if parsed.kind == "map":
+        key, _, item = parsed.name.partition(":")
+        if key == "parent" and item:
+            return item
+    return None
+
+
+def _uf_find(parent: dict[Any, Any], node: Any) -> str | None:
+    keys = {str(key): key for key in parent}
+    cur_key = str(node)
+    seen: set[str] = set()
+    while cur_key in keys and cur_key not in seen:
+        seen.add(cur_key)
+        raw_key = keys[cur_key]
+        next_key = str(parent[raw_key])
+        if next_key == cur_key:
+            return cur_key
+        cur_key = next_key
+    return None
 
 
 def _validate_topological_order(trace: SemanticTrace) -> list[str]:
@@ -1106,6 +1875,175 @@ def _kmp_prefix(pattern: str) -> list[int]:
             j += 1
         pi[i] = j
     return pi
+
+
+def _validate_rabin_karp_hashes(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    text = input_data.get("text") or input_data.get("haystack")
+    pattern = input_data.get("pattern") or input_data.get("needle")
+    if not isinstance(text, str) or not isinstance(pattern, str):
+        return errors
+    algorithm = (trace.algorithm or "").lower()
+    if "rabin" not in algorithm and "karp" not in algorithm and "rolling" not in algorithm and "滚动哈希" not in trace.algorithm:
+        return errors
+    expected_pattern_hash = _string_hash(pattern)
+    expected_windows = [_string_hash(text[i : i + len(pattern)]) for i in range(0, max(0, len(text) - len(pattern) + 1))]
+    for event in trace.events:
+        state = event.state or {}
+        pattern_hash = state.get("pattern_hash")
+        if isinstance(pattern_hash, int) and pattern_hash != expected_pattern_hash:
+            errors.append(f"第 {event.step} 步 Rabin-Karp pattern_hash 应为 {expected_pattern_hash}")
+        hashes = state.get("window_hashes") or state.get("hashes")
+        if isinstance(hashes, list):
+            for index, expected in enumerate(expected_windows[: len(hashes)]):
+                value = hashes[index]
+                if isinstance(value, int) and value != expected:
+                    errors.append(f"第 {event.step} 步 Rabin-Karp window_hashes[{index}] 应为 {expected}")
+            if event.op == SemanticOp.SET:
+                for target in event.targets:
+                    parsed = parse_target(target.id)
+                    if parsed.kind == "indexed" and parsed.name in {"window_hashes", "hashes"} and len(parsed.indices) == 1:
+                        i = parsed.indices[0]
+                        if 0 <= i < len(expected_windows) and i < len(hashes) and isinstance(hashes[i], int) and hashes[i] != expected_windows[i]:
+                            errors.append(f"第 {event.step} 步 Rabin-Karp {parsed.name}[{i}] 不满足滚动哈希")
+        window_hash = state.get("window_hash")
+        window_start = state.get("window_start", state.get("i"))
+        if isinstance(window_hash, int) and isinstance(window_start, int) and 0 <= window_start < len(expected_windows):
+            expected = expected_windows[window_start]
+            if window_hash != expected:
+                errors.append(f"第 {event.step} 步 Rabin-Karp window_hash 应为 {expected}")
+    return errors
+
+
+def _string_hash(value: str, *, base: int = 257, mod: int = 1_000_000_007) -> int:
+    h = 0
+    for ch in value:
+        h = (h * base + ord(ch)) % mod
+    return h
+
+
+def _validate_z_algorithm(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    text = _string_input_for_algorithm(trace, state_key="text")
+    if not isinstance(text, str):
+        return errors
+    algorithm = (trace.algorithm or "").lower()
+    has_z_signal = "z algorithm" in algorithm or "z 算法" in trace.algorithm or any("z" in (event.state or {}) for event in trace.events)
+    if not has_z_signal:
+        return errors
+    expected = _z_values(text)
+    for event in trace.events:
+        z = (event.state or {}).get("z")
+        if not isinstance(z, list) or len(z) != len(text) or not all(isinstance(x, int) for x in z):
+            continue
+        if event.op != SemanticOp.SET:
+            continue
+        for target in event.targets:
+            parsed = parse_target(target.id)
+            if parsed.kind == "indexed" and parsed.name == "z" and len(parsed.indices) == 1:
+                i = parsed.indices[0]
+                if 0 <= i < len(expected) and z[i] != expected[i]:
+                    errors.append(f"第 {event.step} 步 Z Algorithm z[{i}] 应为 {expected[i]}")
+    return errors
+
+
+def _string_input_for_algorithm(trace: SemanticTrace, *, state_key: str) -> str | None:
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    value = input_data.get(state_key) or input_data.get("s") or input_data.get("string")
+    if isinstance(value, str):
+        return value
+    for event in trace.events:
+        state_value = (event.state or {}).get(state_key)
+        if isinstance(state_value, str):
+            return state_value
+    return None
+
+
+def _z_values(text: str) -> list[int]:
+    n = len(text)
+    z = [0] * n
+    left = right = 0
+    for i in range(1, n):
+        if i <= right:
+            z[i] = min(right - i + 1, z[i - left])
+        while i + z[i] < n and text[z[i]] == text[i + z[i]]:
+            z[i] += 1
+        if i + z[i] - 1 > right:
+            left, right = i, i + z[i] - 1
+    return z
+
+
+def _validate_manacher_radius(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    algorithm = (trace.algorithm or "").lower()
+    has_signal = "manacher" in algorithm or "回文半径" in trace.algorithm or any("radius" in (event.state or {}) for event in trace.events)
+    if not has_signal:
+        return errors
+    raw_text = _string_input_for_algorithm(trace, state_key="text")
+    if not isinstance(raw_text, str):
+        return errors
+    expected_by_text = {
+        raw_text: _manacher_radius(raw_text) if _looks_transformed_manacher_text(raw_text) else _odd_palindrome_radius(raw_text),
+    }
+    transformed = _manacher_transform(raw_text)
+    expected_by_text.setdefault(transformed, _manacher_radius(transformed))
+    for event in trace.events:
+        state = event.state or {}
+        state_text = state.get("text")
+        radius = state.get("radius") or state.get("p")
+        if not isinstance(state_text, str) or not isinstance(radius, list) or not all(isinstance(x, int) for x in radius):
+            continue
+        expected = expected_by_text.get(state_text)
+        if expected is None and _looks_transformed_manacher_text(state_text):
+            expected = _manacher_radius(state_text)
+        if expected is None or len(radius) != len(expected):
+            continue
+        if event.op != SemanticOp.SET:
+            continue
+        for target in event.targets:
+            parsed = parse_target(target.id)
+            if parsed.kind == "indexed" and parsed.name in {"radius", "p"} and len(parsed.indices) == 1:
+                i = parsed.indices[0]
+                if 0 <= i < len(expected) and radius[i] != expected[i]:
+                    errors.append(f"第 {event.step} 步 Manacher {parsed.name}[{i}] 应为 {expected[i]}")
+    return errors
+
+
+def _looks_transformed_manacher_text(text: str) -> bool:
+    return len(text) % 2 == 1 and all((i % 2 == 0) == (ch == "#") for i, ch in enumerate(text))
+
+
+def _manacher_transform(text: str) -> str:
+    return "#" + "#".join(text) + "#"
+
+
+def _manacher_radius(text: str) -> list[int]:
+    radius = [0] * len(text)
+    center = right = 0
+    for i in range(len(text)):
+        mirror = 2 * center - i
+        if i < right and 0 <= mirror < len(text):
+            radius[i] = min(right - i, radius[mirror])
+        while i - radius[i] - 1 >= 0 and i + radius[i] + 1 < len(text) and text[i - radius[i] - 1] == text[i + radius[i] + 1]:
+            radius[i] += 1
+        if i + radius[i] > right:
+            center, right = i, i + radius[i]
+    return radius
+
+
+def _odd_palindrome_radius(text: str) -> list[int]:
+    radius = [0] * len(text)
+    left = 0
+    right = -1
+    for i in range(len(text)):
+        k = 1 if i > right else min(radius[left + right - i], right - i + 1)
+        while i - k >= 0 and i + k < len(text) and text[i - k] == text[i + k]:
+            k += 1
+        radius[i] = k
+        if i + k - 1 > right:
+            left, right = i - k + 1, i + k - 1
+    return radius
 
 
 def _validate_complete_knapsack(trace: SemanticTrace) -> list[str]:
@@ -1314,6 +2252,418 @@ def _lca(root: str, p: str, q: str, children: dict[str, list[str]]) -> str | Non
     return hits[0] if hits else None
 
 
+def _validate_tree_diameter(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    algorithm = trace.algorithm or ""
+    has_signal = "树直径" in algorithm or "diameter" in algorithm.lower() or any(
+        "diameter" in (event.state or {}) for event in trace.events
+    )
+    if not has_signal:
+        return errors
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    for event in trace.events:
+        state = event.state or {}
+        tree = state.get("tree") or input_data.get("tree")
+        if not isinstance(tree, dict):
+            continue
+        current = state.get("current")
+        height = state.get("height")
+        diameter = state.get("diameter")
+        if current is None or not isinstance(height, dict) or not isinstance(diameter, dict):
+            continue
+        node = str(current)
+        nodes, edges = _tree_nodes_edges(tree)
+        children = _children_map(edges)
+        expected_height = _tree_height(node, children)
+        child_diameters = [_dict_int(diameter, child, default=0) for child in children.get(node, [])]
+        child_heights = [_tree_height(child, children) for child in children.get(node, [])]
+        through = sum(sorted(child_heights, reverse=True)[:2])
+        expected_diameter = max([through, *child_diameters], default=0)
+        actual_height = _dict_int(height, node)
+        actual_diameter = _dict_int(diameter, node)
+        if node in nodes and actual_height is not None and actual_height != expected_height:
+            errors.append(f"第 {event.step} 步树直径 height[{node}] 应为 {expected_height}")
+        if node in nodes and actual_diameter is not None and actual_diameter != expected_diameter:
+            errors.append(f"第 {event.step} 步树直径 diameter[{node}] 应为 {expected_diameter}")
+    return errors
+
+
+def _validate_tree_max_independent_set(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    algorithm = trace.algorithm or ""
+    has_signal = "树形 dp" in algorithm.lower() or "树形 DP" in algorithm or any(
+        "dp_take" in (event.state or {}) or "dp_skip" in (event.state or {}) for event in trace.events
+    )
+    if not has_signal:
+        return errors
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    for event in trace.events:
+        state = event.state or {}
+        tree = state.get("tree") or input_data.get("tree")
+        dp_take = state.get("dp_take")
+        dp_skip = state.get("dp_skip")
+        current = state.get("current")
+        if not isinstance(tree, dict) or not isinstance(dp_take, dict) or not isinstance(dp_skip, dict) or current is None:
+            continue
+        node = str(current)
+        nodes, edges = _tree_nodes_edges(tree)
+        children = _children_map(edges)
+        if node not in nodes:
+            continue
+        expected_take = _node_weight(tree, node) + sum(_dict_int(dp_skip, child, default=0) for child in children.get(node, []))
+        expected_skip = sum(
+            max(_dict_int(dp_take, child, default=0), _dict_int(dp_skip, child, default=0)) for child in children.get(node, [])
+        )
+        actual_take = _dict_int(dp_take, node)
+        actual_skip = _dict_int(dp_skip, node)
+        if actual_take is not None and actual_take != expected_take:
+            errors.append(f"第 {event.step} 步树形 DP dp_take[{node}] 应为 {expected_take}")
+        if actual_skip is not None and actual_skip != expected_skip:
+            errors.append(f"第 {event.step} 步树形 DP dp_skip[{node}] 应为 {expected_skip}")
+    return errors
+
+
+def _validate_segment_tree_sums(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        state = event.state or {}
+        nums = state.get("nums")
+        tree = state.get("segment_tree")
+        if not _is_numeric_sequence(nums) or not isinstance(tree, dict):
+            continue
+        for node in tree.get("nodes") or []:
+            if not isinstance(node, dict):
+                continue
+            meta = node.get("meta") if isinstance(node.get("meta"), dict) else {}
+            left = _int_or_none(meta.get("l", meta.get("left")))
+            right = _int_or_none(meta.get("r", meta.get("right")))
+            actual = _int_or_none(meta.get("sum", meta.get("value", node.get("value"))))
+            if left is None or right is None or actual is None:
+                continue
+            if not (0 <= left <= right < len(nums)):
+                errors.append(f"第 {event.step} 步线段树节点 {node.get('id')} 覆盖区间越界")
+                continue
+            expected = sum(nums[left : right + 1])
+            if actual != expected:
+                errors.append(f"第 {event.step} 步线段树节点 {node.get('id')} 区间和应为 {expected}")
+    return errors
+
+
+def _validate_fenwick_tree(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        state = event.state or {}
+        nums = state.get("nums")
+        bit = state.get("bit") or state.get("fenwick")
+        if not _is_numeric_sequence(nums) or not _is_numeric_sequence(bit):
+            continue
+        if len(bit) != len(nums) + 1:
+            errors.append(f"第 {event.step} 步树状数组 bit 长度应为 nums 长度 + 1")
+            continue
+        expected = _fenwick_expected(nums)
+        for i in range(1, len(expected)):
+            if bit[i] != expected[i]:
+                errors.append(f"第 {event.step} 步树状数组 bit[{i}] 应为 {expected[i]}")
+    return errors
+
+
+def _validate_sparse_table(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    for event in trace.events:
+        state = event.state or {}
+        nums = state.get("nums") or input_data.get("nums")
+        st = state.get("st") or state.get("sparse_table")
+        if not _is_numeric_sequence(nums) or not _is_matrix(st):
+            continue
+        for k, row in enumerate(st):
+            if not isinstance(row, list):
+                continue
+            span = 1 << k
+            if span > len(nums):
+                continue
+            for i, value in enumerate(row):
+                if value is None:
+                    continue
+                if not isinstance(value, (int, float)):
+                    continue
+                if i + span > len(nums):
+                    continue
+                expected = min(nums[i : i + span])
+                if value != expected:
+                    errors.append(f"第 {event.step} 步稀疏表 st[{k}][{i}] 应为 {expected}")
+    return errors
+
+
+def _validate_gcd_remainders(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    a = _int_or_none(input_data.get("a"))
+    b = _int_or_none(input_data.get("b"))
+    if a is None or b is None:
+        return errors
+    expected = _gcd_remainders(abs(a), abs(b))
+    for event in trace.events:
+        remainders = (event.state or {}).get("remainders")
+        if not isinstance(remainders, list):
+            continue
+        for i, value in enumerate(remainders):
+            if i >= len(expected) or not isinstance(value, int):
+                continue
+            if value != expected[i]:
+                errors.append(f"第 {event.step} 步最大公约数 remainders[{i}] 应为 {expected[i]}")
+    return errors
+
+
+def _validate_fast_power_table(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    base = _int_or_none(input_data.get("base"))
+    exponent = _int_or_none(input_data.get("exponent"))
+    mod = _int_or_none(input_data.get("mod"))
+    if base is None or exponent is None or mod is None or exponent < 0 or mod <= 0:
+        return errors
+    expected_bits = _bits_lsb_first(exponent)
+    expected_powers = _fast_power_powers(base, exponent, mod)
+    for event in trace.events:
+        state = event.state or {}
+        bits = state.get("bits")
+        powers = state.get("powers")
+        if isinstance(bits, list):
+            for i, value in enumerate(bits):
+                if i < len(expected_bits) and isinstance(value, int) and value != expected_bits[i]:
+                    errors.append(f"第 {event.step} 步快速幂 bits[{i}] 应为 {expected_bits[i]}")
+        if isinstance(powers, list):
+            for i, value in enumerate(powers):
+                if i < len(expected_powers) and isinstance(value, int) and value != expected_powers[i]:
+                    errors.append(f"第 {event.step} 步快速幂 powers[{i}] 应为 {expected_powers[i]}")
+    return errors
+
+
+def _validate_sieve_primes(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    n = _int_or_none(input_data.get("n"))
+    if n is None or n < 0:
+        return errors
+    expected = _sieve_flags(n)
+    for event in trace.events:
+        flags = (event.state or {}).get("is_prime")
+        if not isinstance(flags, list) or len(flags) != len(expected):
+            continue
+        for target in event.targets:
+            parsed = parse_target(target.id)
+            if parsed.kind != "indexed" or parsed.name != "is_prime" or len(parsed.indices) != 1:
+                continue
+            i = parsed.indices[0]
+            if 0 <= i < len(expected) and isinstance(flags[i], bool) and flags[i] != expected[i]:
+                errors.append(f"第 {event.step} 步筛法 is_prime[{i}] 应为 {expected[i]}")
+    return errors
+
+
+def _validate_pascal_combinations(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    n = _int_or_none(input_data.get("n"))
+    k = _int_or_none(input_data.get("k"))
+    if n is None or k is None or n < 0 or k < 0:
+        return errors
+    for event in trace.events:
+        table = (event.state or {}).get("table")
+        if not _is_matrix(table):
+            continue
+        for target in event.targets:
+            parsed = parse_target(target.id)
+            if parsed.kind != "indexed" or parsed.name != "table" or len(parsed.indices) != 2:
+                continue
+            i, j = parsed.indices
+            if not (0 <= i <= n and 0 <= j <= min(i, k) and i < len(table) and j < len(table[i])):
+                continue
+            value = table[i][j]
+            if not isinstance(value, int):
+                continue
+            expected = _comb(i, j)
+            if value != expected:
+                errors.append(f"第 {event.step} 步组合数 table[{i}][{j}] 应为 {expected}")
+    return errors
+
+
+def _validate_bitmask_subset(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    nums = input_data.get("nums")
+    if not isinstance(nums, list):
+        return errors
+    for event in trace.events:
+        state = event.state or {}
+        mask = _int_or_none(state.get("mask"))
+        bits = state.get("bits")
+        subset = state.get("subset")
+        if mask is None or not isinstance(bits, list):
+            continue
+        expected_bits = [((mask >> i) & 1) for i in range(len(nums))]
+        for target in event.targets:
+            parsed = parse_target(target.id)
+            if parsed.kind != "indexed" or parsed.name != "bits" or len(parsed.indices) != 1:
+                continue
+            i = parsed.indices[0]
+            if i < len(expected_bits) and i < len(bits) and isinstance(bits[i], int) and bits[i] != expected_bits[i]:
+                errors.append(f"第 {event.step} 步位掩码 bits[{i}] 应为 {expected_bits[i]}")
+        expected_subset = [nums[i] for i, bit in enumerate(expected_bits) if bit]
+        if event.role == "answer" and isinstance(subset, list) and subset != expected_subset:
+            errors.append(f"第 {event.step} 步位掩码 subset 应为 {expected_subset}")
+    return errors
+
+
+def _validate_lowbit_decomposition(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    n = _int_or_none(input_data.get("n"))
+    if n is None or n < 0:
+        return errors
+    expected = _lowbit_parts(n)
+    for event in trace.events:
+        state = event.state or {}
+        lowbit = _int_or_none(state.get("lowbit"))
+        remaining = _int_or_none(state.get("remaining"))
+        if lowbit is not None and remaining is not None and remaining > 0:
+            expected_low = remaining & -remaining
+            if lowbit != expected_low:
+                errors.append(f"第 {event.step} 步 lowbit 应为 {expected_low}")
+        lowbits = state.get("lowbits")
+        if isinstance(lowbits, list):
+            for i, value in enumerate(lowbits):
+                if i < len(expected) and isinstance(value, int) and value != expected[i]:
+                    errors.append(f"第 {event.step} 步 lowbit lowbits[{i}] 应为 {expected[i]}")
+    return errors
+
+
+def _is_numeric_sequence(value: Any) -> bool:
+    return isinstance(value, list) and all(isinstance(item, (int, float)) and not isinstance(item, bool) for item in value)
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str) and value.lstrip("-").isdigit():
+        return int(value)
+    return None
+
+
+def _fenwick_expected(nums: list[int | float]) -> list[int | float]:
+    bit: list[int | float] = [0] * (len(nums) + 1)
+    for i, value in enumerate(nums):
+        j = i + 1
+        while j <= len(nums):
+            bit[j] += value
+            j += j & -j
+    return bit
+
+
+def _gcd_remainders(a: int, b: int) -> list[int]:
+    values: list[int] = []
+    while b:
+        r = a % b
+        values.append(r)
+        a, b = b, r
+    return values
+
+
+def _bits_lsb_first(value: int) -> list[int]:
+    if value == 0:
+        return [0]
+    bits: list[int] = []
+    while value:
+        bits.append(value & 1)
+        value >>= 1
+    return bits
+
+
+def _fast_power_powers(base: int, exponent: int, mod: int) -> list[int]:
+    count = len(_bits_lsb_first(exponent))
+    powers: list[int] = []
+    cur = base % mod
+    for _ in range(count):
+        powers.append(cur)
+        cur = (cur * cur) % mod
+    return powers
+
+
+def _sieve_flags(n: int) -> list[bool]:
+    if n < 0:
+        return []
+    flags = [True] * (n + 1)
+    if n >= 0:
+        flags[0] = False
+    if n >= 1:
+        flags[1] = False
+    p = 2
+    while p * p <= n:
+        if flags[p]:
+            m = p * p
+            while m <= n:
+                flags[m] = False
+                m += p
+        p += 1
+    return flags
+
+
+def _comb(n: int, k: int) -> int:
+    if k < 0 or k > n:
+        return 0
+    k = min(k, n - k)
+    result = 1
+    for i in range(1, k + 1):
+        result = result * (n - k + i) // i
+    return result
+
+
+def _lowbit_parts(value: int) -> list[int]:
+    parts: list[int] = []
+    while value:
+        low = value & -value
+        parts.append(low)
+        value -= low
+    return parts
+
+
+def _tree_height(node: str, children: dict[str, list[str]]) -> int:
+    kids = children.get(node, [])
+    if not kids:
+        return 1
+    return 1 + max(_tree_height(child, children) for child in kids)
+
+
+def _dict_int(data: dict[Any, Any], key: Any, *, default: int | None = None) -> int | None:
+    value = _dict_lookup(data, key)
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.lstrip("-").isdigit():
+        return int(value)
+    return default
+
+
+def _node_weight(tree: dict[str, Any], node_id: str) -> int:
+    for node in tree.get("nodes") or []:
+        if not isinstance(node, dict) or str(node.get("id")) != node_id:
+            continue
+        value = node.get("weight", node.get("value", node.get("label", 1)))
+        if isinstance(value, bool):
+            return 1
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str) and value.lstrip("-").isdigit():
+            return int(value)
+        return 1
+    return 1
+
+
 def _validate_tarjan_lowlink(trace: SemanticTrace) -> list[str]:
     errors: list[str] = []
     for event in trace.events:
@@ -1323,9 +2673,204 @@ def _validate_tarjan_lowlink(trace: SemanticTrace) -> list[str]:
         if not isinstance(dfn, dict) or not isinstance(low, dict):
             continue
         for node, value in low.items():
-            if node in dfn and isinstance(value, int) and isinstance(dfn[node], int) and value > dfn[node]:
+            if _dict_lookup(dfn, node) is not None and isinstance(value, int) and isinstance(_dict_lookup(dfn, node), int) and value > _dict_lookup(dfn, node):
                 errors.append(f"第 {event.step} 步 low[{node}] 大于 dfn[{node}]")
+        stack = state.get("stack")
+        on_stack = state.get("on_stack")
+        if isinstance(stack, list) and isinstance(on_stack, dict):
+            stack_nodes = {str(node) for node in stack}
+            for node, flagged in on_stack.items():
+                if flagged is True and str(node) not in stack_nodes:
+                    errors.append(f"第 {event.step} 步 Tarjan on_stack[{node}] 为 True 但节点不在 stack 中")
+        component = state.get("component")
+        if isinstance(component, list) and isinstance(stack, list):
+            stack_nodes = {str(node) for node in stack}
+            overlap = [node for node in component if str(node) in stack_nodes]
+            if overlap:
+                errors.append(f"第 {event.step} 步 Tarjan component 节点仍在 stack 中：{overlap[0]}")
     return errors
+
+
+def _validate_articulation_bridges(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        state = event.state or {}
+        dfn = state.get("dfn") or state.get("disc")
+        low = state.get("low") or state.get("lowlink")
+        parent = state.get("parent")
+        if not isinstance(dfn, dict) or not isinstance(low, dict) or not isinstance(parent, dict):
+            continue
+        bridges = state.get("bridges")
+        if isinstance(bridges, list):
+            for edge in bridges:
+                u, v = _edge_uv(edge)
+                if u is None or v is None:
+                    continue
+                parent_u = _dict_lookup(parent, u)
+                parent_v = _dict_lookup(parent, v)
+                if _same_node(parent_v, u):
+                    ancestor, child = u, v
+                elif _same_node(parent_u, v):
+                    ancestor, child = v, u
+                else:
+                    errors.append(f"第 {event.step} 步 桥 {u}-{v} 不是 DFS 树边")
+                    continue
+                child_low = _dict_int(low, child)
+                ancestor_dfn = _dict_int(dfn, ancestor)
+                if child_low is not None and ancestor_dfn is not None and child_low <= ancestor_dfn:
+                    errors.append(f"第 {event.step} 步 桥 {ancestor}-{child} 不满足 low[{child}] > dfn[{ancestor}]")
+        articulation = state.get("articulation")
+        if isinstance(articulation, list):
+            children = _children_by_parent(parent)
+            for node in articulation:
+                node_dfn = _dict_int(dfn, node)
+                if node_dfn is None:
+                    continue
+                kids = children.get(str(node), [])
+                root = _dict_lookup(parent, node) in {None, ""}
+                if root:
+                    if len(kids) <= 1:
+                        errors.append(f"第 {event.step} 步 割点 {node} 是根节点但 DFS 子节点不足两个")
+                    continue
+                if not any((_dict_int(low, child) is not None and _dict_int(low, child) >= node_dfn) for child in kids):
+                    errors.append(f"第 {event.step} 步 割点 {node} 缺少满足 low[child] >= dfn[{node}] 的子节点")
+    return errors
+
+
+def _children_by_parent(parent: dict[Any, Any]) -> dict[str, list[Any]]:
+    children: dict[str, list[Any]] = {}
+    for node, raw_parent in parent.items():
+        if raw_parent in {None, ""}:
+            continue
+        children.setdefault(str(raw_parent), []).append(node)
+    return children
+
+
+def _validate_bipartite_matching(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        state = event.state or {}
+        match = state.get("match")
+        if not isinstance(match, dict):
+            continue
+        graph = state.get("graph") if isinstance(state.get("graph"), dict) else {}
+        left_nodes = {str(node) for node in state.get("left_nodes", []) if node is not None}
+        right_nodes = {str(node) for node in state.get("right_nodes", []) if node is not None}
+        if not left_nodes and not right_nodes:
+            left_nodes, right_nodes = _infer_bipartite_sides(graph, match)
+        right_owner: dict[str, Any] = {}
+        for left in left_nodes:
+            mate = _dict_lookup(match, left)
+            if mate in {None, ""}:
+                continue
+            if str(mate) not in right_nodes:
+                errors.append(f"第 {event.step} 步 匹配 match[{left}] 指向非右侧点 {mate}")
+            if graph and not _graph_has_edge(graph, left, mate):
+                errors.append(f"第 {event.step} 步 匹配边 {left}-{mate} 不存在于 graph")
+            previous = right_owner.get(str(mate))
+            if previous is not None and not _same_node(previous, left):
+                errors.append(f"第 {event.step} 步 匹配冲突：右侧点 {mate} 同时匹配 {previous} 和 {left}")
+            right_owner[str(mate)] = left
+            reverse = _dict_lookup(match, mate)
+            if reverse not in {None, ""} and not _same_node(reverse, left):
+                errors.append(f"第 {event.step} 步 匹配不一致：match[{left}]={mate} 但 match[{mate}]={reverse}")
+        for right in right_nodes:
+            mate = _dict_lookup(match, right)
+            if mate in {None, ""}:
+                continue
+            if str(mate) not in left_nodes:
+                errors.append(f"第 {event.step} 步 匹配 match[{right}] 指向非左侧点 {mate}")
+            reverse = _dict_lookup(match, mate)
+            if reverse not in {None, ""} and not _same_node(reverse, right):
+                errors.append(f"第 {event.step} 步 匹配不一致：match[{right}]={mate} 但 match[{mate}]={reverse}")
+    return errors
+
+
+def _infer_bipartite_sides(graph: dict[Any, Any], match: dict[Any, Any]) -> tuple[set[str], set[str]]:
+    left_nodes = {str(node) for node in graph}
+    right_nodes = {str(nei) for neighbors in graph.values() if isinstance(neighbors, list) for nei in neighbors}
+    if not left_nodes:
+        for node, mate in match.items():
+            if str(node).startswith("L"):
+                left_nodes.add(str(node))
+            if str(node).startswith("R"):
+                right_nodes.add(str(node))
+            if str(mate).startswith("L"):
+                left_nodes.add(str(mate))
+            if str(mate).startswith("R"):
+                right_nodes.add(str(mate))
+    return left_nodes, right_nodes
+
+
+def _graph_has_edge(graph: dict[Any, Any], left: Any, right: Any) -> bool:
+    neighbors = _dict_lookup(graph, left)
+    return isinstance(neighbors, list) and any(_same_node(nei, right) for nei in neighbors)
+
+
+def _validate_flow_capacity(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        state = event.state or {}
+        capacity = state.get("capacity") or state.get("cap")
+        flow = state.get("flow")
+        if not isinstance(capacity, dict) or not isinstance(flow, dict):
+            continue
+        graph = state.get("graph") if isinstance(state.get("graph"), dict) else {}
+        source = _dict_lookup(trace.input_data, "source") if isinstance(trace.input_data, dict) else state.get("source")
+        sink = _dict_lookup(trace.input_data, "sink") if isinstance(trace.input_data, dict) else state.get("sink")
+        for edge, raw_value in flow.items():
+            value = _as_int(raw_value)
+            cap = _as_int(_dict_lookup(capacity, edge))
+            if value is None:
+                continue
+            if value < 0:
+                errors.append(f"第 {event.step} 步 flow[{edge}] 为负数")
+            if cap is not None and value > cap:
+                errors.append(f"第 {event.step} 步 flow[{edge}] 超过容量 {cap}")
+            if cap is None and graph:
+                u, v = _flow_edge_uv(edge)
+                if u is not None and v is not None and not _graph_has_edge(graph, u, v):
+                    errors.append(f"第 {event.step} 步 flow[{edge}] 不在容量图中")
+        balance = _flow_balance(flow)
+        for node, value in balance.items():
+            if _same_node(node, source) or _same_node(node, sink):
+                continue
+            if value != 0:
+                errors.append(f"第 {event.step} 步 flow 在中间节点 {node} 不守恒：净流 {value}")
+        bottleneck = state.get("bottleneck")
+        if isinstance(bottleneck, int) and bottleneck < 0:
+            errors.append(f"第 {event.step} 步 Edmonds-Karp bottleneck 不能为负数")
+    return errors
+
+
+def _as_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.lstrip("-").isdigit():
+        return int(value)
+    return None
+
+
+def _flow_edge_uv(edge: Any) -> tuple[Any, Any]:
+    if isinstance(edge, str) and "->" in edge:
+        return tuple(edge.split("->", 1))
+    return _edge_uv(edge)
+
+
+def _flow_balance(flow: dict[Any, Any]) -> dict[str, int]:
+    balance: dict[str, int] = {}
+    for edge, raw_value in flow.items():
+        value = _as_int(raw_value)
+        if value is None:
+            continue
+        u, v = _flow_edge_uv(edge)
+        if u is None or v is None:
+            continue
+        balance[str(u)] = balance.get(str(u), 0) - value
+        balance[str(v)] = balance.get(str(v), 0) + value
+    return balance
 
 
 def _validate_mst_edges(trace: SemanticTrace) -> list[str]:

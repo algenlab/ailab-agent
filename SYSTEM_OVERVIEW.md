@@ -31,6 +31,42 @@ AlgoLab 是一个可验证的算法可视化生成系统。
 - 系统执行和校验 LLM 输出，错误产物不能发布。
 - Renderer 只消费 `SceneGraph`，不理解具体算法题。
 - 新增算法优先复用通用视觉形态和固定语义 op。
+- 当前版本使用严格 `SemanticTrace` 协议，不再兼容旧式 trace 字段和旧式 map target。
+
+### 1.1 当前系统功能状态
+
+当前系统已经从“让 LLM 自由手写事件列表”升级为“LLM 生成算法代码，系统用统一语义协议执行、校验、编译和渲染”。
+
+主要能力：
+
+- Web UI 和 CLI 都走同一条 `ProblemInput -> BuildArtifact -> HTML` 管线。
+- LLM 负责生成 `solve(input_data)`、`trace(input_data)`、`verify(input_data)` 和多解法 variants。
+- `tracker_code` 推荐使用系统注入的 `Tracer` API 生成 trace，系统统一管理 step、targets/deps、抽样、coverage 和 `_trace_meta`。
+- `trace(input_data)` 必须返回 `semantic-trace-v1` 格式，且必须显式包含与本次请求完全一致的 `input_data`。
+- 系统会真实执行 `solve`、`trace`、`verify`，再经过 schema、trace、process、scene、release gate 多层校验。
+- 通过校验后输出单文件 HTML 和对应 artifact JSON，renderer 只读取 `SceneGraph`，不读取 LLM 代码。
+- 确定性 benchmark 覆盖 DP、图、栈队列、哈希表、树、堆、Trie、并查集、递归、字符串、几何和 ML primitive 等视觉形态。
+
+最近移除的旧兼容：
+
+- 不再把事件字段 `type` 自动转换成 `op`。
+- 不再把事件字段 `target` 自动转换成 `targets`。
+- 不再给 trace 自动补缺失的 `input_data`。
+- 不再自动规范化 quoted map target，例如 `seen['2']`。
+- 不再接受旧式 map target，例如 `seen:2`、`dist:A`、`map:seen`。
+
+当前推荐 target 写法：
+
+```text
+数组/表格：nums[0]、dp[1][2]
+切片：text[2:5]
+哈希表：seen[2]、dist[B]、count[x]
+图节点/边：node:A、edge:A->B
+指针：pointer:left、pointer:mid
+递归帧：frame:dfs(2)
+几何点：point:3
+字符串字符：text[3]、pattern[2]
+```
 
 ## 2. 主入口
 
@@ -66,13 +102,13 @@ docker run -p 7861:7861 ...
 默认样例：
 
 ```bash
-python cli.py --strategy "动态规划" --solutions 2 --output output/algolab.html
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py --strategy "动态规划" --solutions 2 --output output/algolab.html
 ```
 
 不同路径样例：
 
 ```bash
-python cli.py \
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py \
   --problem "LeetCode 62. 不同路径。机器人每次只能向下或向右移动，返回路径数。" \
   --input '{"m":3,"n":7}' \
   --expected '28' \
@@ -86,7 +122,7 @@ python cli.py \
 生成：
 
 ```bash
-python scripts/build_demo_dashboard.py --output-dir output/dashboard --style both
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both
 ```
 
 直接打开：
@@ -98,7 +134,7 @@ output/dashboard/index.html
 或用本地静态服务：
 
 ```bash
-python -m http.server 8000 --directory output/dashboard
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m http.server 8000 --directory output/dashboard
 ```
 
 访问：
@@ -126,6 +162,74 @@ cli.py                  # CLI 入口
 llm_client.py           # OpenAI-compatible LLM 客户端
 SYSTEM_FLOW.html        # 系统流程可视化说明
 SYSTEM_OVERVIEW.md      # 当前文档
+```
+
+## 3.1 文件级调用顺序
+
+主路径从用户输入到 HTML 产物，文件级调用链如下：
+
+```text
+app.py / cli.py
+  -> algolab/schemas/input.py
+  -> algolab/pipeline.py
+  -> algolab/generation/solution_generator.py
+  -> llm_client.py
+  -> algolab/generation/prompts/tracker_system.txt
+  -> algolab/schemas/semantic_trace.py
+  -> algolab/runtime/executor.py
+  -> algolab/runtime/sandbox.py
+  -> algolab/runtime/tracer.py
+  -> algolab/verification/contract_validator.py
+  -> algolab/verification/trace_validator.py
+  -> algolab/verification/process_validator.py
+  -> algolab/compiler/target_parser.py
+  -> algolab/compiler/scene_compiler.py
+  -> algolab/schemas/scene_graph.py
+  -> algolab/verification/scene_validator.py
+  -> algolab/verification/release_gate.py
+  -> algolab/schemas/validation.py
+  -> algolab/renderer/export.py
+  -> algolab/renderer/targets.py
+  -> algolab/renderer/panels.py
+  -> algolab/renderer/runtime_shell.py
+  -> algolab/renderer/spatial_runtime.py
+  -> algolab/renderer/layout_registry.py
+  -> output/*.html + output/*.json
+```
+
+展开说明：
+
+1. `app.py` / `cli.py` 读取题目、输入、期望输出和解法数量。
+2. `algolab/schemas/input.py` 用 `ProblemInput` 统一封装请求。
+3. `algolab/pipeline.py` 的 `build_artifact()` 负责总调度。
+4. `algolab/generation/solution_generator.py` 组织 prompt，并通过 `llm_client.py` 请求模型。
+5. `tracker_system.txt` 约束 LLM 输出 `solve`、`tracker_code`、`verifier_code` 和 variants。
+6. `solution_generator.py` 将 LLM JSON 规范化为 `SolutionVariant`。
+7. `algolab/runtime/executor.py` 调用 sandbox 分别执行 `solve(input_data)` 和 `trace(input_data)`。
+8. `algolab/runtime/sandbox.py` 在子进程中执行生成代码，并注入 `Tracer`。
+9. `algolab/runtime/tracer.py` 在新 tracker 路径下统一生成 `SemanticTrace`、coverage meta 和抽样信息。
+10. `executor.py` 只做必要的 step 重编号、budget 和 result 一致性检查；不再兼容旧字段或旧 target 格式。
+11. `contract_validator.py`、`trace_validator.py`、`process_validator.py` 分别检查 contract、trace 引用和算法过程。
+12. `target_parser.py` 解析 `dp[1][2]`、`node:A`、`edge:A->B`、`pointer:left` 等 target id。
+13. `scene_compiler.py` 将 `SemanticTrace` 编译为 `SceneGraph`，把 state、targets、deps 转成可渲染对象、标记和箭头。
+14. `scene_validator.py` 检查 scene graph 是否可渲染。
+15. `release_gate.py` 汇总 artifact、trace、process、visual 等发布门禁。
+16. `validation.py` 定义最终 `BuildArtifact`、`ValidationReport` 和 `ReleaseGate`。
+17. `renderer/export.py` 将 `BuildArtifact` 打包为单文件 HTML，并写出 JSON 副本。
+18. `renderer/targets.py`、`panels.py`、`runtime_shell.py`、`spatial_runtime.py`、`layout_registry.py` 提供页面外壳、面板结构、渲染目标和前端运行时。
+
+一句话版本：
+
+```text
+入口 app/cli
+  -> pipeline
+  -> LLM generator
+  -> executor / sandbox / Tracer
+  -> validators
+  -> scene compiler
+  -> release gate
+  -> renderer / export
+  -> HTML
 ```
 
 ## 4. 核心数据结构
@@ -192,6 +296,25 @@ push / pop / enter / exit / explain
 ```
 
 事件必须包含可核对的状态快照，不能只写自然语言。
+
+当前版本的 trace 是严格格式：
+
+- 事件字段必须使用 `op`，不能使用旧字段 `type`。
+- 事件目标必须使用 `targets: [{"id": "..."}]`，不能使用旧字段 `target`。
+- `trace` 顶层必须显式包含 `input_data`，并且与本次请求输入完全一致。
+- `state` 是当前帧可视化和过程校验的主要证据，内部字段如果以下划线开头会在编译 `SceneGraph` 时隐藏。
+- 哈希表 / map target 使用方括号格式，例如 `seen[2]`、`dist[B]`、`count[x]`。
+- 结构化前缀继续保留，例如 `node:`、`edge:`、`pointer:`、`frame:`、`point:`、`char:`。
+
+已废弃写法：
+
+```text
+type / target       -> 改为 op / targets
+seen:2              -> seen[2]
+dist:A              -> dist[A]
+map:seen            -> seen
+seen['2']           -> seen[2]
+```
 
 ## Tracer API
 
@@ -275,6 +398,22 @@ ProblemInput
 
 默认最多修复 2 轮。
 
+`execute_variant()` 的 trace materialization 边界：
+
+```text
+run solve(input_data)
+  -> run trace(input_data)
+  -> trace 必须是 dict
+  -> trace 必须显式包含 input_data
+  -> 重编号 events.step
+  -> 检查 event budget
+  -> SemanticTrace.model_validate()
+  -> trace.input_data 必须等于本次 input_data
+  -> solve_result 必须等于 trace.result
+```
+
+这里已经没有旧格式兼容层。也就是说，旧式 `type/target` 事件、缺失 `input_data` 的 trace、旧式 map target 都会在 Pydantic schema、trace validator 或 process validator 阶段失败，并触发 repair。
+
 ## 6. 正确性门禁
 
 ### 6.1 执行一致性
@@ -318,9 +457,29 @@ Contract 不是页面渲染规则，它用于增强答案正确性证据。
 - op 是否在固定集合内。
 - step 是否连续。
 - target id 是否可解析。
+- 是否使用了已废弃的旧式 map target。
 - target 是否明显越界。
 - trace input 是否等于当前 input。
 - trace result 是否等于 solve result。
+
+接受示例：
+
+```text
+seen[2]
+dist[A]
+count[word]
+node:A
+edge:A->B
+pointer:mid
+```
+
+拒绝示例：
+
+```text
+seen:2
+dist:A
+map:seen
+```
 
 ### 6.4 Process Invariant 校验
 
@@ -458,25 +617,25 @@ Dashboard：
 快速离线回归：
 
 ```bash
-python -m tests.offline_regression
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
 ```
 
 Benchmark 回归：
 
 ```bash
-python -m tests.benchmark_regression
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
 ```
 
 浏览器 smoke：
 
 ```bash
-python -m tests.browser_smoke
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
 ```
 
 全部本地检查：
 
 ```bash
-python scripts/run_quality_checks.py
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
 这些检查验证系统边界，不等价于证明任意未知题的 LLM 输出永远正确。
@@ -488,7 +647,7 @@ python scripts/run_quality_checks.py
 通常不是播放器问题，而是 `trace(input_data)` 只生成了少数 events。检查：
 
 ```bash
-python - <<'PY'
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
 import json
 from pathlib import Path
 data = json.loads(Path("output/algolab.json").read_text())
@@ -534,6 +693,7 @@ Gradio 页面是动态生成入口，会调用 LLM。
 
 - LLM 不直接生成页面。
 - 生成代码在 sandbox 中执行。
+- trace 使用当前严格 `SemanticTrace` 协议；旧字段和旧 map target 不再走兼容路径。
 - 已覆盖算法族的关键状态转移会被 process invariant 校验。
 - 通过 release gate 的 artifact 才进入 HTML。
 

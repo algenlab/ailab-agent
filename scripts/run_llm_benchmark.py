@@ -26,6 +26,8 @@ from algolab.pipeline import BuildError, _try_materialize
 from algolab.renderer.export import save_html
 from algolab.schemas.input import ProblemInput
 from algolab.schemas.validation import BuildArtifact
+from algolab.verification.process_validator import process_failure_type_for_message
+from algolab.verification.repair_context import repair_failure_types, summarize_repair_failure_types
 from llm_client import _model_name, llm_config
 from tests.benchmark_cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 
@@ -60,6 +62,10 @@ def make_request(case: BenchmarkCase, sample: BenchmarkInput, *, solutions: int)
     )
 
 
+def benchmark_condition(args: argparse.Namespace) -> str:
+    return getattr(args, "condition", "algolab_full")
+
+
 ProgressCallback = Callable[[dict[str, Any]], None]
 
 
@@ -75,6 +81,7 @@ def run_one(
     output_stem = f"llm_{case.id}_{sample_index}"
     output_html = args.output_dir / f"{output_stem}.html"
     phase_log: list[dict[str, Any]] = []
+    repair_types: list[str] = []
 
     def record_progress(event: dict[str, Any]) -> None:
         phase_log.append(event)
@@ -87,6 +94,7 @@ def run_one(
             max_rounds=args.max_rounds,
             progress=record_progress,
             strict_warnings=args.strict_warnings,
+            repair_failure_types_out=repair_types,
         )
         strict_warning_errors: list[str] = []
         if args.strict_warnings and artifact.validation.warnings:
@@ -109,6 +117,7 @@ def run_one(
             "input_data": sample.input_data,
             "expected": sample.expected,
             "model": _model_name(),
+            "condition": benchmark_condition(args),
             "ok": artifact.validation.release_gate.release_ready and not strict_warning_errors,
             "release_gate": artifact.validation.release_gate.model_dump(),
             "checks": artifact.validation.checks,
@@ -121,6 +130,7 @@ def run_one(
             "last_phase": last_phase(phase_log) or "done",
             "duration_s": round(time.time() - started, 3),
             "failure_type": "",
+            "repair_failure_types": repair_types,
         }
     except Exception as exc:
         return {
@@ -131,12 +141,14 @@ def run_one(
             "input_data": sample.input_data,
             "expected": sample.expected,
             "model": _model_name(),
+            "condition": benchmark_condition(args),
             "ok": False,
             "error": f"{type(exc).__name__}: {exc}",
             "failure_type": classify_failure(f"{type(exc).__name__}: {exc}"),
             "phase_timings": completed_phase_timings(phase_log),
             "last_phase": last_phase(phase_log),
             "duration_s": round(time.time() - started, 3),
+            "repair_failure_types": repair_types,
         }
 
 
@@ -145,6 +157,7 @@ def build_artifact_timed(
     max_rounds: int = 2,
     progress: ProgressCallback | None = None,
     strict_warnings: bool = False,
+    repair_failure_types_out: list[str] | None = None,
 ) -> BuildArtifact:
     spec = timed_phase("generate", progress, lambda: generate_solution_spec(request))
     last_errors: list[str] = []
@@ -161,6 +174,10 @@ def build_artifact_timed(
         if artifact.validation.release_gate.release_ready and strict_warnings and artifact.validation.warnings:
             last_errors = [f"严格模式拒绝 warning：{warning}" for warning in artifact.validation.warnings]
         if round_idx < max_rounds:
+            if repair_failure_types_out is not None:
+                for failure_type in repair_failure_types(last_errors):
+                    if failure_type not in repair_failure_types_out:
+                        repair_failure_types_out.append(failure_type)
             spec = timed_phase(
                 f"repair_round_{round_idx}",
                 progress,
@@ -298,6 +315,7 @@ def run_one_with_timeout(case: BenchmarkCase, sample: BenchmarkInput, sample_ind
             "input_data": sample.input_data,
             "expected": sample.expected,
             "model": _model_name(),
+            "condition": benchmark_condition(args),
             "ok": False,
             "error": f"TimeoutError: LLM benchmark 超过 {args.timeout_s} 秒",
             "failure_type": "timeout",
@@ -314,6 +332,7 @@ def run_one_with_timeout(case: BenchmarkCase, sample: BenchmarkInput, sample_ind
         "input_data": sample.input_data,
         "expected": sample.expected,
         "model": _model_name(),
+        "condition": benchmark_condition(args),
         "ok": False,
         "error": "RuntimeError: LLM benchmark 子进程无返回",
         "failure_type": "runner_error",
@@ -346,10 +365,11 @@ def classify_failure(message: str) -> str:
         return "configuration"
     if "timeout" in text or "超时" in message or "超过" in message:
         return "timeout"
+    process_failure_type = process_failure_type_for_message(message)
+    if process_failure_type:
+        return process_failure_type
     if "严格模式拒绝 warning" in message or "warning" in text:
         return "visual_warning"
-    if "process" in text or "invariant" in text or "背包" in message or "dp[" in message or "bfs" in text or "dijkstra" in text or "kmp" in text or "lca" in text or "tarjan" in text:
-        return "process_invariant"
     if "scene" in text or "layout" in text or "渲染" in message or "视觉" in message:
         return "visual_scene"
     if "verifier" in text or "expected" in text or "结果" in message:
@@ -426,9 +446,13 @@ def write_report(
     ended_at: str,
     browser_checks: list[dict[str, Any]] | None = None,
 ) -> Path:
+    condition = benchmark_condition(args)
+    for item in results:
+        item.setdefault("condition", condition)
     passed = sum(1 for item in results if item.get("ok"))
     total = len(results)
     failure_summary = summarize_failures(results)
+    repair_failure_summary = summarize_repair_failure_types(results)
     phase_summary = summarize_phase_timings(results)
     report = {
         "kind": "llm_benchmark_report",
@@ -446,6 +470,7 @@ def write_report(
             "browser_smoke": args.browser_smoke,
             "write_each": args.write_each,
             "concurrency": getattr(args, "concurrency", 1),
+            "benchmark_condition": benchmark_condition(args),
             "llm": llm_config(),
             "model": _model_name(),
         },
@@ -455,6 +480,7 @@ def write_report(
         "pass_rate": passed / total if total else 0,
         "avg_duration_s": average_duration(results),
         "failure_summary": failure_summary,
+        "repair_failure_summary": repair_failure_summary,
         "phase_summary": phase_summary,
         "browser_smoke": browser_checks or [],
         "results": results,
@@ -515,6 +541,12 @@ def main() -> int:
     parser.add_argument("--fail-fast", action="store_true", help="遇到第一个失败立即退出")
     parser.add_argument("--write-each", action=argparse.BooleanOptionalAction, default=True, help="每个样例结束后立即写入当前 report")
     parser.add_argument("--concurrency", type=int, default=1, help="并发运行的样例数；每个样例仍有独立 timeout")
+    parser.add_argument(
+        "--condition",
+        default="algolab_full",
+        choices=["algolab_full", "direct_html_baseline", "no_process_validator", "no_scenegraph_compiler"],
+        help="写入 report 的实验条件标签；不改变主 pipeline 行为。",
+    )
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

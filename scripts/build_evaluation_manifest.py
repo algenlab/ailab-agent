@@ -28,12 +28,17 @@ from tests.benchmark_cases import BenchmarkCase, benchmark_cases
 class EvaluationCase:
     id: str
     title: str
+    problem: str
+    input_contract: str
     source: str
     suite: str
     family: str
     strata: list[str]
     sample_count: int
     expected_layouts: list[str]
+    visual_forms: list[str]
+    samples: list[dict[str, Any]]
+    artifact_paths: dict[str, str]
     has_verifier: bool
     has_contract_seed: bool
     is_ml_demo: bool = False
@@ -43,12 +48,30 @@ ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         id="linear_regression_single_step",
         title="线性回归单步梯度",
+        problem="线性回归单步梯度下降演示。",
+        input_contract="输入一组二维样本、当前参数和学习率。",
         source="phase9_ml_fixture",
         suite="ml_demo",
         family="ML / regression",
         strata=["ML demo 集"],
         sample_count=1,
         expected_layouts=["ml", "matrix", "loss_curve"],
+        visual_forms=["ml", "matrix", "loss_curve"],
+        samples=[
+            {
+                "index": 0,
+                "input_data": {"fixture": "linear_regression_single_step"},
+                "expected": {"loss_decreases": True},
+                "artifact_paths": {
+                    "json": "output/evaluation/ml_demo/linear_regression_single_step.json",
+                    "html": "output/evaluation/ml_demo/linear_regression_single_step.html",
+                },
+            }
+        ],
+        artifact_paths={
+            "artifact_json": "output/evaluation/ml_demo/linear_regression_single_step.json",
+            "html": "output/evaluation/ml_demo/linear_regression_single_step.html",
+        },
         has_verifier=True,
         has_contract_seed=False,
         is_ml_demo=True,
@@ -56,12 +79,30 @@ ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         id="logistic_regression_boundary",
         title="逻辑回归决策边界",
+        problem="逻辑回归决策边界教学演示。",
+        input_contract="输入二维分类样本、当前参数和阈值。",
         source="phase9_ml_fixture",
         suite="ml_demo",
         family="ML / classification",
         strata=["ML demo 集"],
         sample_count=1,
         expected_layouts=["ml", "computational_graph", "decision_boundary"],
+        visual_forms=["ml", "computational_graph", "decision_boundary"],
+        samples=[
+            {
+                "index": 0,
+                "input_data": {"fixture": "logistic_regression_boundary"},
+                "expected": {"boundary_visible": True},
+                "artifact_paths": {
+                    "json": "output/evaluation/ml_demo/logistic_regression_boundary.json",
+                    "html": "output/evaluation/ml_demo/logistic_regression_boundary.html",
+                },
+            }
+        ],
+        artifact_paths={
+            "artifact_json": "output/evaluation/ml_demo/logistic_regression_boundary.json",
+            "html": "output/evaluation/ml_demo/logistic_regression_boundary.html",
+        },
         has_verifier=True,
         has_contract_seed=False,
         is_ml_demo=True,
@@ -89,15 +130,21 @@ def build_manifest() -> dict[str, Any]:
 
 
 def _evaluation_case_from_benchmark(case: BenchmarkCase, default_demo_ids: set[str]) -> EvaluationCase:
+    suite = "default_dashboard" if case.id in default_demo_ids else "benchmark"
     return EvaluationCase(
         id=case.id,
         title=case.title,
+        problem=case.problem,
+        input_contract=case.input_contract,
         source="tests.benchmark_cases",
-        suite="default_dashboard" if case.id in default_demo_ids else "benchmark",
+        suite=suite,
         family=case.family,
         strata=_strata_for_case(case),
         sample_count=len(case.samples),
         expected_layouts=list(case.expected_layouts),
+        visual_forms=list(case.expected_layouts),
+        samples=_samples_for_case(case),
+        artifact_paths=_artifact_paths_for_case(case.id, suite),
         has_verifier=bool(case.verifier_code.strip()),
         has_contract_seed=case.id in _contract_seed_case_ids() or case.id in default_demo_ids,
     )
@@ -120,6 +167,42 @@ def _strata_for_case(case: BenchmarkCase) -> list[str]:
 
 def _contract_seed_case_ids() -> set[str]:
     return {"house_robber", "binary_search", "unique_paths", "graph_bfs", "two_sum"}
+
+
+def _artifact_paths_for_case(case_id: str, suite: str) -> dict[str, str]:
+    if suite == "default_dashboard":
+        base = f"output/dashboard/demos/{case_id}"
+        return {
+            "artifact_json": f"{base}/artifact.json",
+            "validation_report_json": f"{base}/validation_report.json",
+            "repair_log_json": f"{base}/repair_log.json",
+            "html": f"{base}/stable.html",
+        }
+    stem = f"output/llm_benchmark/llm_{case_id}_0"
+    return {
+        "artifact_json": f"{stem}.json",
+        "html": f"{stem}.html",
+    }
+
+
+def _sample_artifact_paths(case_id: str, sample_index: int) -> dict[str, str]:
+    stem = f"output/llm_benchmark/llm_{case_id}_{sample_index}"
+    return {
+        "json": f"{stem}.json",
+        "html": f"{stem}.html",
+    }
+
+
+def _samples_for_case(case: BenchmarkCase) -> list[dict[str, Any]]:
+    return [
+        {
+            "index": index,
+            "input_data": sample.input_data,
+            "expected": sample.expected,
+            "artifact_paths": _sample_artifact_paths(case.id, index),
+        }
+        for index, sample in enumerate(case.samples)
+    ]
 
 
 def _summary(cases: list[EvaluationCase]) -> dict[str, Any]:
@@ -151,6 +234,7 @@ def write_manifest(output_dir: Path) -> Path:
     json_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     csv_path = output_dir / "evaluation_cases.csv"
     _write_cases_csv(csv_path, manifest["cases"])
+    _write_samples_csv(output_dir / "evaluation_samples.csv", manifest["cases"])
     return json_path
 
 
@@ -158,12 +242,17 @@ def _write_cases_csv(path: Path, cases: list[dict[str, Any]]) -> None:
     fields = [
         "id",
         "title",
+        "problem",
+        "input_contract",
         "source",
         "suite",
         "family",
         "strata",
         "sample_count",
         "expected_layouts",
+        "visual_forms",
+        "artifact_json",
+        "html",
         "has_verifier",
         "has_contract_seed",
         "is_ml_demo",
@@ -175,7 +264,32 @@ def _write_cases_csv(path: Path, cases: list[dict[str, Any]]) -> None:
             row = dict(case)
             row["strata"] = ";".join(row["strata"])
             row["expected_layouts"] = ";".join(row["expected_layouts"])
+            row["visual_forms"] = ";".join(row["visual_forms"])
+            row["artifact_json"] = row["artifact_paths"].get("artifact_json", "")
+            row["html"] = row["artifact_paths"].get("html", "")
+            row.pop("samples", None)
+            row.pop("artifact_paths", None)
             writer.writerow(row)
+
+
+def _write_samples_csv(path: Path, cases: list[dict[str, Any]]) -> None:
+    fields = ["case_id", "sample_index", "input_data", "expected", "artifact_json", "html"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for case in cases:
+            for sample in case.get("samples", []):
+                paths = sample.get("artifact_paths") or {}
+                writer.writerow(
+                    {
+                        "case_id": case["id"],
+                        "sample_index": sample.get("index", ""),
+                        "input_data": json.dumps(sample.get("input_data"), ensure_ascii=False, sort_keys=True),
+                        "expected": json.dumps(sample.get("expected"), ensure_ascii=False, sort_keys=True),
+                        "artifact_json": paths.get("json", ""),
+                        "html": paths.get("html", ""),
+                    }
+                )
 
 
 def main() -> int:

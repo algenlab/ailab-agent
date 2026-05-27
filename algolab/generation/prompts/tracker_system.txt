@@ -51,6 +51,7 @@ target 使用硬约束：
 - before、after 是可选辅助字段，不是必填字段。只有能确保 before 等于上一事件 state 中该 target 的值、after 等于当前事件 state 中该 target 的值时才填写；否则省略字段或使用 null，用 reason 解释变化。
 - 一个事件包含多个 targets 时，除非 before/after 用与 targets 等长的数组逐一对应，否则不要填写 before/after。
 - 阶段说明用 op=explain 或 reason 表达，不要发明阶段 target。
+- 为了让时间线按语义组织，关键事件的 state 建议包含 state["phase"] 或 state["stage"]，使用简体中文短阶段名，例如 "初始化"、"主循环"、"关键转移"、"返回结果"。阶段名只能放在 state 字段里，不要发明阶段 target，也不要把阶段名写成 targets/deps。
 
 推荐的 state 形态：
 - 数组/双指针/排序：{"nums": [...], "left": 0, "right": 5, "mid": 2}
@@ -91,6 +92,14 @@ trace(input_data) 必须返回：
       "reason": "简体中文解释",
       "state": {"nums": [1,2,3]},
       "code_line": 1,
+      "teaching": {
+        "what": "当前做了什么",
+        "why": "为什么这一步正确",
+        "formula": "",
+        "invariant": "",
+        "common_mistake": "",
+        "hint": ""
+      },
       "interaction": null
     }
   ]
@@ -101,11 +110,34 @@ tracker_code 必须优先使用系统提供的 Tracer API，不要直接手写 e
 tracer = Tracer(input_data, algorithm="算法名称", pseudocode=[...])
 tracer.create("dp", state={...}, reason="...")
 tracer.set("dp[1][3]", value=..., deps=[...], state={...}, reason="...")
+tracer.mark("node:A", state={...}, reason="...")
+tracer.unmark("node:A", state={...}, reason="...")
+tracer.link("edge:A->B", deps=["node:A", "node:B"], state={...}, reason="...")
+tracer.unlink("edge:A->B", state={...}, reason="...")
 tracer.push("stack", value=..., state={...}, reason="...")
 tracer.move("pointer:mid", value=..., state={...}, reason="...")
+tracer.enter("frame:dfs(1)", state={...}, reason="...")
+tracer.exit("frame:dfs(1)", state={...}, reason="...")
 tracer.result(answer)
 return tracer.to_trace()
 小输入逐帧、大输入抽样、step 编号、targets/deps 格式和 coverage 由 Tracer 统一管理。
+
+teaching 字段要求：
+- 每个关键事件必须提供 teaching 字段，至少包含 what 和 why 两个非空简体中文字符串。
+- DP、二分、图搜索、单调栈、递归返回等教学关键帧应尽量补充 formula 或 invariant。
+- teaching 必须解释当前 SemanticTrace 事件，不要写页面布局、动画、HTML、CSS 或 renderer 细节。
+
+关键 set 事件要求：
+- 关键 set 事件必须提供 deps、value、state、reason、code_line。
+- DP 转移、答案写入、距离/父节点写入、哈希表写入、单调栈答案写入、递归结果写入都属于关键 set 事件。
+- deps 必须指向真实依赖对象；value 必须等于写入的新值；state 必须包含可重建当前帧的主数据结构；reason 必须说明为什么这样写；code_line 必须对应 solve 或 pseudocode 的相关逻辑行。
+
+禁止旧字段和旧 target：
+- 禁止旧字段 type 和 target；事件必须使用 op 和 targets。
+- 禁止旧式 map target，例如 seen:2、dist:A、map:seen；必须使用 seen[2]、dist[A] 这类方括号格式。
+- 禁止为了通过 schema 同时输出 type/target 和 op/targets；只允许新字段。
+
+关键事件必须提供准确 code_line，指向 solve 代码或 pseudocode 中对应当前语义动作的逻辑行。初始化、比较、关键转移、状态写入、入队/出队、递归进入/返回和最终答案事件都不要省略 code_line；如果无法做到完全精确，使用最近的相关逻辑行，但不要乱填、不要写超出 solve/pseudocode 行数的值。
 
 交互字段可选。适合预测时使用：
 {

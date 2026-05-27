@@ -212,6 +212,7 @@ def build_dashboard(
             include_all_benchmark=include_all_benchmark,
         )
     ]
+    coverage = family_coverage(records)
     report = {
         "kind": "algolab_demo_dashboard",
         "generated_at": datetime.now().isoformat(timespec="seconds"),
@@ -219,6 +220,7 @@ def build_dashboard(
         "total": len(records),
         "passed": sum(1 for item in records if item["ok"]),
         "failed": sum(1 for item in records if not item["ok"]),
+        "family_coverage": coverage,
         "default_demo_ids": list(DEFAULT_DEMO_IDS),
         "demos": records,
     }
@@ -683,6 +685,50 @@ def interaction_types(artifact: BuildArtifact | None) -> list[str]:
     )
 
 
+def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for record in records:
+        family = str(record["family"])
+        row = rows.setdefault(
+            family,
+            {
+                "family": family,
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "layouts": set(),
+                "html_links": 0,
+                "artifact_links": 0,
+            },
+        )
+        row["total"] += 1
+        if record["ok"]:
+            row["passed"] += 1
+        else:
+            row["failed"] += 1
+        row["layouts"].update(str(layout) for layout in record.get("actual_layouts", []) if layout)
+        row["html_links"] += sum(1 for key in ("stable_html", "spatial_html", "creative_html") if record.get(key))
+        if record.get("artifact_json"):
+            row["artifact_links"] += 1
+
+    result = []
+    for family, row in sorted(rows.items()):
+        total = row["total"]
+        result.append(
+            {
+                "family": family,
+                "total": total,
+                "passed": row["passed"],
+                "failed": row["failed"],
+                "pass_rate": round(row["passed"] / total, 6) if total else None,
+                "layouts": sorted(row["layouts"]),
+                "html_links": row["html_links"],
+                "artifact_links": row["artifact_links"],
+            }
+        )
+    return result
+
+
 def write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -758,6 +804,7 @@ def render_dashboard_html(report: dict[str, Any]) -> str:
     demos = report["demos"]
     families = sorted({demo["family"] for demo in demos})
     cards = "\n".join(render_demo_card(demo) for demo in demos)
+    coverage = render_family_coverage(report.get("family_coverage", []))
     family_options = "\n".join(f'<option value="{escape(family)}">{escape(family)}</option>' for family in families)
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -795,6 +842,16 @@ h1 {{ margin:0; font-size:22px; letter-spacing:0; }}
 }}
 label {{ display:grid; gap:5px; color:#374151; font-size:12px; }}
 input,select {{ width:100%; border:1px solid var(--line); border-radius:6px; padding:8px 9px; background:#fff; color:var(--ink); font:inherit; }}
+.coverage {{
+  border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow);
+  padding:14px; display:grid; gap:10px;
+}}
+.section-head {{ display:flex; justify-content:space-between; align-items:end; gap:12px; flex-wrap:wrap; }}
+.section-head h2 {{ margin:0; font-size:16px; }}
+.coverage-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+.coverage-table th,.coverage-table td {{ border-top:1px solid var(--line); padding:8px; text-align:left; vertical-align:top; }}
+.coverage-table th {{ color:var(--muted); font-size:12px; font-weight:650; background:#fbfdff; }}
+.coverage-table td.num,.coverage-table th.num {{ text-align:right; font-variant-numeric:tabular-nums; }}
 .demo-list {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:14px; align-items:start; }}
 .demo {{
   border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow);
@@ -852,6 +909,7 @@ pre {{
       <label>算法族<select id="family"><option value="">全部算法族</option>{family_options}</select></label>
       <label>状态<select id="status"><option value="">全部状态</option><option value="pass">通过</option><option value="fail">失败</option></select></label>
     </section>
+    {coverage}
     <section id="demo-list" class="demo-list">
       {cards}
     </section>
@@ -884,6 +942,38 @@ status.addEventListener('change', applyFilters);
 </body>
 </html>
 """
+
+
+def render_family_coverage(rows: list[dict[str, Any]]) -> str:
+    if not rows:
+        return """<section id="family-coverage" class="coverage">
+  <div class="section-head">
+    <h2>算法族覆盖</h2>
+    <p class="meta">当前 dashboard 没有可展示的算法族记录。</p>
+  </div>
+</section>"""
+    body = "\n".join(
+        f"""<tr>
+  <td>{escape(row["family"])}</td>
+  <td class="num">{row["total"]}</td>
+  <td class="num">{row["passed"]}</td>
+  <td class="num">{row["failed"]}</td>
+  <td>{render_chips(row["layouts"])}</td>
+  <td class="num">{row["html_links"]}</td>
+  <td class="num">{row["artifact_links"]}</td>
+</tr>"""
+        for row in rows
+    )
+    return f"""<section id="family-coverage" class="coverage">
+  <div class="section-head">
+    <h2>算法族覆盖</h2>
+    <p class="meta">按算法族汇总黄金样例、发布状态、HTML 链接和 artifact 链接。</p>
+  </div>
+  <table class="coverage-table">
+    <thead><tr><th>算法族</th><th class="num">Demo</th><th class="num">通过</th><th class="num">失败</th><th>布局</th><th class="num">HTML 链接</th><th class="num">artifact 链接</th></tr></thead>
+    <tbody>{body}</tbody>
+  </table>
+</section>"""
 
 
 def render_demo_card(demo: dict[str, Any]) -> str:

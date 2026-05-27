@@ -27,6 +27,8 @@ def validate_trace(trace: SemanticTrace) -> tuple[list[str], list[str]]:
         for target in [*event.targets, *event.deps]:
             if " " in target.id:
                 warnings.append(f"第 {i} 步 target 含空格：{target.id}")
+            if _looks_like_legacy_map_target(target.id):
+                errors.append(f"第 {i} 步旧式 map target 已废弃，请使用方括号格式：{target.id}")
             parsed = parse_target(target.id)
             if parsed.kind == "edge" and (not parsed.source or not parsed.target):
                 errors.append(f"第 {i} 步 edge target 格式非法：{target.id}")
@@ -96,7 +98,6 @@ def _known_targets_from_trace(trace: SemanticTrace) -> set[str]:
                             known.add(f"edge:{node}->{nei}")
                 else:
                     for mk in value:
-                        known.add(f"{key}:{mk}")
                         known.add(f"{key}[{mk}]")
     if isinstance(trace.input_data, dict):
         graph = trace.input_data.get("graph") or trace.input_data.get("adjacency")
@@ -131,6 +132,19 @@ def _add_tree_targets(known: set[str], tree: dict) -> None:
         known.add(f"node:{src}")
         known.add(f"node:{dst}")
         known.add(f"edge:{src}->{dst}")
+
+
+def _looks_like_legacy_map_target(target_id: str) -> bool:
+    if target_id.startswith("map:"):
+        return True
+    key, sep, item = target_id.partition(":")
+    if not sep:
+        return False
+    if target_id.startswith(("node:", "edge:", "pointer:", "frame:", "point:", "char:")):
+        return False
+    if "[" in key or "]" in key:
+        return False
+    return bool(item) and key.isidentifier() and "->" not in item
 
 
 def _is_scalar_list(value) -> bool:

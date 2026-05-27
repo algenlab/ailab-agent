@@ -59,13 +59,13 @@ SceneGraph
 默认样例：
 
 ```bash
-python cli.py --strategy "动态规划" --solutions 2 --output output/algolab.html
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py --strategy "动态规划" --solutions 2 --output output/algolab.html
 ```
 
 自定义题目：
 
 ```bash
-python cli.py \
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py \
   --problem "LeetCode 62. 不同路径。机器人每次只能向下或向右移动，返回路径数。" \
   --input '{"m":3,"n":7}' \
   --expected '28' \
@@ -77,7 +77,7 @@ python cli.py \
 ## 运行 Web UI
 
 ```bash
-python app.py
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 app.py
 ```
 
 默认端口：`7861`
@@ -87,19 +87,19 @@ python app.py
 不调用 LLM 的确定性测试：
 
 ```bash
-python -m tests.offline_regression
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
 ```
 
 浏览器烟测：
 
 ```bash
-python -m tests.browser_smoke
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
 ```
 
 全部本地检查：
 
 ```bash
-python scripts/run_quality_checks.py
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
 这些检查覆盖 schema 严格性、trace validator、scene compiler、沙箱超时、renderer HTML 输出和 Playwright 页面加载。它们不证明 LLM 对所有题目都正确，只证明系统的确定性边界和已有样例可重复通过。

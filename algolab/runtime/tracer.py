@@ -37,12 +37,24 @@ class Tracer:
         self._record_update(target)
         self._add("mark", [target], **kwargs)
 
+    def unmark(self, target: str, **kwargs: Any) -> None:
+        self._record_update(target)
+        self._add("unmark", [target], **kwargs)
+
     def move(self, target: str, **kwargs: Any) -> None:
         self._record_update(target)
         self._add("move", [target], **kwargs)
 
     def compare(self, targets: list[str], **kwargs: Any) -> None:
         self._add("compare", targets, **kwargs)
+
+    def link(self, target: str, **kwargs: Any) -> None:
+        self._record_update(target)
+        self._add("link", [target], **kwargs)
+
+    def unlink(self, target: str, **kwargs: Any) -> None:
+        self._record_update(target)
+        self._add("unlink", [target], **kwargs)
 
     def push(self, target: str, **kwargs: Any) -> None:
         self._record_update(target)
@@ -51,6 +63,14 @@ class Tracer:
     def pop(self, target: str, **kwargs: Any) -> None:
         self._record_update(target)
         self._add("pop", [target], **kwargs)
+
+    def enter(self, target: str, **kwargs: Any) -> None:
+        self._record_update(target)
+        self._add("enter", [target], **kwargs)
+
+    def exit(self, target: str, **kwargs: Any) -> None:
+        self._record_update(target)
+        self._add("exit", [target], **kwargs)
 
     def explain(self, target: str | None = None, **kwargs: Any) -> None:
         self._add("explain", [target] if target else [], **kwargs)
@@ -90,6 +110,8 @@ class Tracer:
         code_line: int = 1,
         before: Any = None,
         after: Any = None,
+        teaching: dict[str, Any] | None = None,
+        interaction: dict[str, Any] | None = None,
     ) -> None:
         self._events.append(
             {
@@ -104,6 +126,8 @@ class Tracer:
                 "reason": reason or "",
                 "state": deepcopy(state or {}),
                 "code_line": int(code_line or 1),
+                "teaching": deepcopy(teaching),
+                "interaction": deepcopy(interaction),
             }
         )
 

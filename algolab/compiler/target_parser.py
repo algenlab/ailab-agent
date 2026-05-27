@@ -19,7 +19,6 @@ class ParsedTarget:
 INDEX_RE = re.compile(r"^([A-Za-z_][\w]*)\[(\d+)\](?:\[(\d+)\])?$")
 SLICE_RE = re.compile(r"^([A-Za-z_][\w]*)\[(\d+):(\d+)\]$")
 MAP_BRACKET_RE = re.compile(r"^([A-Za-z_][\w]*)\[([^\[\]:]+)\]$")
-MAP_QUOTED_BRACKET_RE = re.compile(r"^([A-Za-z_][\w]*)\[['\"]([^'\"]+)['\"]\]$")
 
 
 def parse_target(raw: str) -> ParsedTarget:
@@ -31,9 +30,6 @@ def parse_target(raw: str) -> ParsedTarget:
     m = SLICE_RE.match(raw)
     if m:
         return ParsedTarget(raw=raw, kind="slice", name=m.group(1), indices=(int(m.group(2)), int(m.group(3))))
-    m = MAP_QUOTED_BRACKET_RE.match(raw)
-    if m:
-        return ParsedTarget(raw=raw, kind="map", name=f"{m.group(1)}:{m.group(2)}")
     m = MAP_BRACKET_RE.match(raw)
     if m and not m.group(2).isdigit():
         return ParsedTarget(raw=raw, kind="map", name=f"{m.group(1)}:{m.group(2)}")
@@ -48,8 +44,6 @@ def parse_target(raw: str) -> ParsedTarget:
         return ParsedTarget(raw=raw, kind="edge", name=edge)
     if raw.startswith("pointer:"):
         return ParsedTarget(raw=raw, kind="pointer", name=raw.split(":", 1)[1])
-    if raw.startswith("map:"):
-        return ParsedTarget(raw=raw, kind="map", name=raw.split(":", 1)[1])
     if raw.startswith("frame:"):
         return ParsedTarget(raw=raw, kind="frame", name=raw.split(":", 1)[1])
     if raw.startswith("point:"):

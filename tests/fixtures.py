@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from algolab.compiler.scene_compiler import compile_scene
-from algolab.schemas.semantic_trace import SemanticTrace
+from algolab.schemas.semantic_trace import SemanticTrace, TeachingStep
 from algolab.schemas.validation import BuildArtifact, ReleaseGate, ValidationReport
 
 
@@ -64,13 +64,13 @@ def house_robber_trace() -> SemanticTrace:
 
 
 def bfs_trace() -> SemanticTrace:
-    graph = {"A": ["B", "C"], "B": ["A"], "C": ["A"]}
+    graph = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": []}
     return SemanticTrace.model_validate(
         {
             "schema_version": "semantic-trace-v1",
             "algorithm": "BFS",
             "input_data": {"graph": graph, "start": "A"},
-            "result": {"A": 0, "B": 1, "C": 1},
+            "result": {"A": 0, "B": 1, "C": 1, "D": 2},
             "pseudocode": ["queue <- start", "pop current", "visit neighbors"],
             "events": [
                 {
@@ -81,6 +81,13 @@ def bfs_trace() -> SemanticTrace:
                     "role": "current",
                     "reason": "初始化队列和起点距离。",
                     "code_line": 1,
+                    "teaching": {
+                        "what": "起点入队",
+                        "why": "BFS 从起点按层扩展，起点距离为 0。",
+                        "formula": "dist[start] = 0",
+                        "invariant": "队列中节点按距离非递减顺序等待处理。",
+                        "hint": "观察 queue 与 dist 表。",
+                    },
                 },
                 {
                     "step": 1,
@@ -90,16 +97,54 @@ def bfs_trace() -> SemanticTrace:
                     "role": "current",
                     "reason": "弹出 A 并检查邻居。",
                     "code_line": 2,
+                    "teaching": {
+                        "what": "弹出当前节点 A",
+                        "why": "弹出队首后检查它的所有邻居。",
+                        "formula": "current = queue.pop(0)",
+                        "invariant": "弹出的节点已经拥有最短距离。",
+                        "hint": "下一步首次发现的邻居依赖 A。",
+                    },
                 },
                 {
                     "step": 2,
                     "op": "mark",
                     "targets": [{"id": "node:B"}, {"id": "node:C"}],
-                    "deps": [{"id": "node:A"}],
+                    "deps": [{"id": "node:A"}, {"id": "edge:A->B"}, {"id": "edge:A->C"}],
                     "state": {"graph": graph, "queue": ["B", "C"], "dist": {"A": 0, "B": 1, "C": 1}},
                     "role": "visited",
                     "reason": "首次发现 B 和 C。",
                     "code_line": 3,
+                    "teaching": {
+                        "what": "首次发现 B 和 C",
+                        "why": "它们由 A 扩展得到，第一次访问时距离最短。",
+                        "formula": "dist[v] = dist[A] + 1",
+                        "invariant": "未访问节点第一次入队时确定最短层数。",
+                        "hint": "依赖边从 A 指向新发现节点。",
+                    },
+                    "interaction": {
+                        "type": "choice",
+                        "prompt": "从 A 首次发现的节点距离应该是多少？",
+                        "options": ["0", "1", "2"],
+                        "answer": "1",
+                        "explanation": "B 和 C 由距离为 0 的 A 扩展得到，所以距离是 1。",
+                    },
+                },
+                {
+                    "step": 3,
+                    "op": "mark",
+                    "targets": [{"id": "node:D"}],
+                    "deps": [{"id": "node:B"}, {"id": "edge:B->D"}],
+                    "state": {"graph": graph, "queue": ["C", "D"], "dist": {"A": 0, "B": 1, "C": 1, "D": 2}},
+                    "role": "visited",
+                    "reason": "从 B 首次发现 D。",
+                    "code_line": 3,
+                    "teaching": {
+                        "what": "首次发现 D",
+                        "why": "D 由距离为 1 的 B 扩展得到，所以距离为 2。",
+                        "formula": "dist[D] = dist[B] + 1",
+                        "invariant": "节点首次访问即得到最短距离。",
+                        "hint": "队列保留后续待处理节点。",
+                    },
                 },
             ],
         }
@@ -195,36 +240,84 @@ def binary_search_trace() -> SemanticTrace:
         {
             "schema_version": "semantic-trace-v1",
             "algorithm": "二分查找",
-            "input_data": {"nums": [1, 3, 5, 7, 9, 11], "target": 9},
+            "input_data": {"nums": [-1, 0, 3, 5, 9, 12], "target": 9},
             "result": 4,
             "events": [
                 {
                     "step": 0,
                     "op": "create",
                     "targets": [{"id": "nums"}],
-                    "state": {"nums": [1, 3, 5, 7, 9, 11], "left": 0, "right": 5, "target": 9},
+                    "state": {"nums": [-1, 0, 3, 5, 9, 12], "left": 0, "right": 5, "target": 9},
                     "reason": "在有序数组上建立二分区间。",
                     "code_line": 1,
+                    "teaching": {
+                        "what": "初始化闭区间",
+                        "why": "目标如果存在，一定在当前 [left, right] 内。",
+                        "formula": "[left, right] = [0, n - 1]",
+                        "invariant": "搜索区间始终包含所有可能答案。",
+                        "hint": "观察 left 和 right 指针。",
+                    },
                 },
                 {
                     "step": 1,
                     "op": "compare",
                     "targets": [{"id": "nums[2]"}, {"id": "pointer:mid"}],
                     "value": 2,
-                    "state": {"nums": [1, 3, 5, 7, 9, 11], "left": 0, "right": 5, "mid": 2, "target": 9},
+                    "deps": [{"id": "pointer:left"}, {"id": "pointer:right"}],
+                    "state": {"nums": [-1, 0, 3, 5, 9, 12], "left": 0, "right": 5, "mid": 2, "target": 9},
                     "role": "candidate",
-                    "reason": "比较中点 5 与目标 9。",
+                    "reason": "比较中点 3 与目标 9。",
                     "code_line": 2,
+                    "teaching": {
+                        "what": "比较中点 nums[2]",
+                        "why": "中点值 3 小于目标 9，左半边都不可能是答案。",
+                        "formula": "mid = (left + right) // 2",
+                        "invariant": "数组有序使得一次比较能排除一半区间。",
+                        "hint": "mid 来自 left 与 right。",
+                    },
                 },
                 {
                     "step": 2,
                     "op": "move",
                     "targets": [{"id": "pointer:left"}, {"id": "pointer:right"}],
                     "value": [3, 5],
-                    "state": {"nums": [1, 3, 5, 7, 9, 11], "left": 3, "right": 5, "target": 9},
+                    "deps": [{"id": "nums[2]"}, {"id": "pointer:mid"}],
+                    "state": {"nums": [-1, 0, 3, 5, 9, 12], "left": 3, "right": 5, "target": 9},
                     "role": "current",
                     "reason": "目标更大，搜索区间移动到右半边。",
                     "code_line": 3,
+                    "teaching": {
+                        "what": "收缩到右半区间",
+                        "why": "nums[mid] < target，所以更新 left = mid + 1。",
+                        "formula": "left = mid + 1",
+                        "invariant": "新区间仍覆盖所有可能答案。",
+                        "hint": "左侧区间被排除。",
+                    },
+                    "interaction": {
+                        "type": "choice",
+                        "prompt": "nums[mid] < target 时下一步应该移动哪个边界？",
+                        "options": ["left = mid + 1", "right = mid - 1", "返回 mid"],
+                        "answer": "left = mid + 1",
+                        "explanation": "中点值偏小，左侧和中点都可以排除。",
+                    },
+                },
+                {
+                    "step": 3,
+                    "op": "compare",
+                    "targets": [{"id": "nums[4]"}, {"id": "pointer:mid"}],
+                    "value": 4,
+                    "deps": [{"id": "pointer:left"}, {"id": "pointer:right"}],
+                    "state": {"nums": [-1, 0, 3, 5, 9, 12], "left": 3, "right": 5, "mid": 4, "target": 9},
+                    "role": "answer",
+                    "reason": "中点值 9 命中目标。",
+                    "code_line": 2,
+                    "teaching": {
+                        "what": "命中目标",
+                        "why": "nums[4] 等于 target，返回当前下标。",
+                        "formula": "nums[mid] == target",
+                        "invariant": "返回的下标来自仍然有效的搜索区间。",
+                        "hint": "当前 mid 就是答案。",
+                    },
                 },
             ],
         }
@@ -277,36 +370,84 @@ def unique_paths_trace() -> SemanticTrace:
         {
             "schema_version": "semantic-trace-v1",
             "algorithm": "不同路径二维 DP",
-            "input_data": {"m": 3, "n": 3},
-            "result": 6,
+            "input_data": {"m": 3, "n": 7},
+            "result": 28,
             "events": [
                 {
                     "step": 0,
                     "op": "create",
                     "targets": [{"id": "dp"}],
-                    "state": {"dp": [[1, 1, 1], [1, 0, 0], [1, 0, 0]]},
+                    "state": {"dp": [[1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0, 0]]},
                     "reason": "第一行和第一列只有一种到达方式。",
                     "code_line": 1,
+                    "teaching": {
+                        "what": "初始化 DP 表",
+                        "why": "第一行和第一列只有一种走法。",
+                        "formula": "dp[0][j] = dp[i][0] = 1",
+                        "invariant": "已经初始化的边界格子是正确的。",
+                        "hint": "内部格子稍后由上方和左侧推出。",
+                    },
                 },
                 {
                     "step": 1,
                     "op": "compare",
                     "targets": [{"id": "dp[1][1]"}],
                     "deps": [{"id": "dp[0][1]"}, {"id": "dp[1][0]"}],
-                    "state": {"dp": [[1, 1, 1], [1, 0, 0], [1, 0, 0]]},
+                    "state": {"dp": [[1, 1, 1, 1, 1, 1, 1], [1, 0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0, 0]]},
                     "role": "candidate",
                     "reason": "当前位置依赖上方和左侧。",
                     "code_line": 2,
+                    "teaching": {
+                        "what": "查看 dp[1][1] 的依赖",
+                        "why": "机器人只能从上方或左方到达当前格。",
+                        "formula": "dp[i][j] = dp[i-1][j] + dp[i][j-1]",
+                        "invariant": "处理当前格时，上方和左侧已经正确。",
+                        "hint": "两个依赖格会指向当前格。",
+                    },
                 },
                 {
                     "step": 2,
                     "op": "set",
                     "targets": [{"id": "dp[1][1]"}],
                     "deps": [{"id": "dp[0][1]"}, {"id": "dp[1][0]"}],
-                    "state": {"dp": [[1, 1, 1], [1, 2, 0], [1, 0, 0]]},
+                    "before": 0,
+                    "after": 2,
+                    "state": {"dp": [[1, 1, 1, 1, 1, 1, 1], [1, 2, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0, 0]]},
                     "role": "answer",
                     "reason": "dp[1][1] = 1 + 1 = 2。",
                     "code_line": 2,
+                    "teaching": {
+                        "what": "写入 dp[1][1]",
+                        "why": "当前路径数等于上方和左方路径数之和。",
+                        "formula": "dp[1][1] = 1 + 1 = 2",
+                        "invariant": "写入后 dp[1][1] 也成为后续格子的可信依赖。",
+                        "hint": "观察状态变化摘要。",
+                    },
+                    "interaction": {
+                        "type": "input",
+                        "prompt": "请填写 dp[1][1] 的值。",
+                        "answer": "2",
+                        "explanation": "dp[1][1] = dp[0][1] + dp[1][0] = 1 + 1 = 2。",
+                    },
+                },
+                {
+                    "step": 3,
+                    "op": "set",
+                    "targets": [{"id": "dp[2][6]"}],
+                    "deps": [{"id": "dp[1][6]"}, {"id": "dp[2][5]"}],
+                    "before": 0,
+                    "after": 28,
+                    "state": {"dp": [[1, 1, 1, 1, 1, 1, 1], [1, 2, 3, 4, 5, 6, 7], [1, 3, 6, 10, 15, 21, 28]]},
+                    "role": "answer",
+                    "reason": "最后一个格子由上方 7 和左方 21 得到 28。",
+                    "code_line": 2,
+                    "teaching": {
+                        "what": "得到右下角答案",
+                        "why": "右下角路径数就是整个网格的路径总数。",
+                        "formula": "dp[2][6] = 7 + 21 = 28",
+                        "invariant": "所有内部格都按同一转移公式计算。",
+                        "hint": "答案来自右下角单元。",
+                    },
                 },
             ],
         }
@@ -332,7 +473,7 @@ def hash_map_trace() -> SemanticTrace:
                 {
                     "step": 1,
                     "op": "set",
-                    "targets": [{"id": "seen:2"}],
+                    "targets": [{"id": "seen[2]"}],
                     "state": {"nums": [2, 7, 11, 15], "seen": {"2": 0}, "target": 9},
                     "role": "current",
                     "reason": "记录数值 2 的下标。",
@@ -341,7 +482,7 @@ def hash_map_trace() -> SemanticTrace:
                 {
                     "step": 2,
                     "op": "compare",
-                    "targets": [{"id": "nums[1]"}, {"id": "seen:2"}],
+                    "targets": [{"id": "nums[1]"}, {"id": "seen[2]"}],
                     "state": {"nums": [2, 7, 11, 15], "seen": {"2": 0}, "target": 9},
                     "role": "answer",
                     "reason": "7 的补数 2 已经出现，得到答案。",
@@ -357,34 +498,82 @@ def monotonic_stack_trace() -> SemanticTrace:
         {
             "schema_version": "semantic-trace-v1",
             "algorithm": "每日温度单调栈",
-            "input_data": {"temperatures": [73, 74, 75, 71]},
-            "result": [1, 1, 0, 0],
+            "input_data": {"temperatures": [73, 74, 75, 71, 69, 72, 76, 73]},
+            "result": [1, 1, 4, 2, 1, 1, 0, 0],
             "events": [
                 {
                     "step": 0,
                     "op": "create",
-                    "targets": [{"id": "stack"}],
-                    "state": {"temperatures": [73, 74, 75, 71], "stack": []},
+                    "targets": [{"id": "temperatures"}, {"id": "stack"}, {"id": "answer"}],
+                    "state": {"temperatures": [73, 74, 75, 71, 69, 72, 76, 73], "stack": [], "answer": [0, 0, 0, 0, 0, 0, 0, 0]},
                     "reason": "栈中保存还没找到更高温度的下标。",
                     "code_line": 1,
+                    "teaching": {
+                        "what": "初始化单调栈",
+                        "why": "栈保存尚未找到更高温度的下标。",
+                        "formula": "answer[i] = 0 until resolved",
+                        "invariant": "栈内下标对应温度保持单调递减。",
+                        "hint": "数组、栈和答案会联动变化。",
+                    },
                 },
                 {
                     "step": 1,
                     "op": "push",
                     "targets": [{"id": "stack"}],
-                    "state": {"temperatures": [73, 74, 75, 71], "stack": [0]},
+                    "deps": [{"id": "temperatures[0]"}],
+                    "state": {"temperatures": [73, 74, 75, 71, 69, 72, 76, 73], "stack": [0], "answer": [0, 0, 0, 0, 0, 0, 0, 0]},
                     "role": "current",
                     "reason": "下标 0 入栈等待更高温度。",
                     "code_line": 2,
+                    "teaching": {
+                        "what": "下标 0 入栈",
+                        "why": "还没有遇到比 73 更高的温度。",
+                        "formula": "stack.push(0)",
+                        "invariant": "栈中下标仍等待答案。",
+                        "hint": "栈元素引用原数组下标。",
+                    },
                 },
                 {
                     "step": 2,
                     "op": "pop",
-                    "targets": [{"id": "stack"}, {"id": "temperatures[1]"}],
-                    "state": {"temperatures": [73, 74, 75, 71], "stack": [], "answer": [1, 0, 0, 0]},
+                    "targets": [{"id": "stack"}, {"id": "answer[0]"}, {"id": "temperatures[1]"}],
+                    "deps": [{"id": "temperatures[0]"}, {"id": "temperatures[1]"}],
+                    "before": 0,
+                    "after": 1,
+                    "state": {"temperatures": [73, 74, 75, 71, 69, 72, 76, 73], "stack": [], "answer": [1, 0, 0, 0, 0, 0, 0, 0]},
                     "role": "answer",
                     "reason": "74 高于 73，下标 0 等待 1 天。",
                     "code_line": 3,
+                    "teaching": {
+                        "what": "弹出并写 answer[0]",
+                        "why": "当前温度 74 是下标 0 之后第一个更高温度。",
+                        "formula": "answer[0] = 1 - 0 = 1",
+                        "invariant": "被弹出的下标已经找到最近更高温度。",
+                        "hint": "answer 更新依赖两个温度单元。",
+                    },
+                    "interaction": {
+                        "type": "judge",
+                        "prompt": "遇到 74 时可以弹出下标 0 吗？",
+                        "answer": True,
+                        "explanation": "74 高于 73，下标 0 已经找到第一个更高温度。",
+                    },
+                },
+                {
+                    "step": 3,
+                    "op": "push",
+                    "targets": [{"id": "stack"}],
+                    "deps": [{"id": "temperatures[1]"}],
+                    "state": {"temperatures": [73, 74, 75, 71, 69, 72, 76, 73], "stack": [1], "answer": [1, 0, 0, 0, 0, 0, 0, 0]},
+                    "role": "current",
+                    "reason": "下标 1 入栈等待更高温度。",
+                    "code_line": 4,
+                    "teaching": {
+                        "what": "下标 1 入栈",
+                        "why": "74 还需要等待后续更高温度。",
+                        "formula": "stack.push(1)",
+                        "invariant": "栈内仍保持单调递减候选。",
+                        "hint": "继续扫描右侧温度。",
+                    },
                 },
             ],
         }
@@ -1024,7 +1213,7 @@ def algorithm_subfamily_traces() -> list[tuple[str, str, SemanticTrace, tuple[st
         ("sliding_window", "滑动窗口", sliding_window_trace(), ("array",), ("pointer:left", "pointer:right")),
         ("dp_1d", "一维 DP", house_robber_trace(), ("array",), ("dp", "nums")),
         ("dp_2d", "二维 DP", unique_paths_trace(), ("matrix",), ("dp[1][1]",)),
-        ("hash_map", "哈希表/map", hash_map_trace(), ("map",), ("seen:2",)),
+        ("hash_map", "哈希表/map", hash_map_trace(), ("map",), ("seen[2]",)),
         ("bfs_graph", "BFS 基础图", bfs_trace(), ("graph", "queue"), ("node:A", "queue")),
         ("dfs_graph", "DFS 基础图", dfs_trace(), ("graph", "stack"), ("node:B", "stack")),
         ("monotonic_stack", "单调栈", monotonic_stack_trace(), ("stack",), ("stack",)),
@@ -1075,6 +1264,96 @@ def algorithm_family_coverage_artifact() -> BuildArtifact:
         scenes=scenes,
         validation=ValidationReport(
             checks=["algorithm family coverage fixture"],
+            release_gate=ReleaseGate(
+                artifact_ready=True,
+                process_ready=True,
+                trace_ready=True,
+                visual_ready=True,
+                multi_solution_ready=True,
+                release_ready=True,
+            ),
+        ),
+    )
+
+
+def golden_visual_matrix() -> list[dict[str, object]]:
+    return [
+        {
+            "id": "unique_paths",
+            "name": "不同路径二维 DP",
+            "doc": "docs/examples/unique_paths.md",
+            "trace": unique_paths_trace(),
+            "primary_primitives": ("matrix",),
+            "support_primitives": (),
+            "key_objects": ("dp", "dp[1][1]", "dp[0][1]", "dp[1][0]"),
+            "key_deps": ("dp[0][1]", "dp[1][0]", "dp[1][6]", "dp[2][5]"),
+            "key_teaching_fields": ("what", "why", "formula", "invariant"),
+        },
+        {
+            "id": "bfs",
+            "name": "BFS 最短层数",
+            "doc": "docs/examples/bfs.md",
+            "trace": bfs_trace(),
+            "primary_primitives": ("graph",),
+            "support_primitives": ("queue", "map"),
+            "key_objects": ("graph", "queue", "dist", "node:A", "node:B", "edge:A->B"),
+            "key_deps": ("node:A", "edge:A->B", "edge:A->C", "node:B", "edge:B->D"),
+            "key_teaching_fields": ("what", "why", "formula", "invariant"),
+        },
+        {
+            "id": "binary_search",
+            "name": "二分查找",
+            "doc": "docs/examples/binary_search.md",
+            "trace": binary_search_trace(),
+            "primary_primitives": ("array",),
+            "support_primitives": (),
+            "key_objects": ("nums", "nums[2]", "nums[4]", "pointer:left", "pointer:right", "pointer:mid"),
+            "key_deps": ("pointer:left", "pointer:right", "nums[2]", "pointer:mid"),
+            "key_teaching_fields": ("what", "why", "formula", "invariant"),
+        },
+        {
+            "id": "monotonic_stack",
+            "name": "每日温度单调栈",
+            "doc": "docs/examples/monotonic_stack.md",
+            "trace": monotonic_stack_trace(),
+            "primary_primitives": ("stack",),
+            "support_primitives": ("array",),
+            "key_objects": ("temperatures", "temperatures[0]", "temperatures[1]", "stack", "answer", "answer[0]"),
+            "key_deps": ("temperatures[0]", "temperatures[1]"),
+            "key_teaching_fields": ("what", "why", "formula", "invariant"),
+        },
+    ]
+
+
+def golden_visual_artifact() -> BuildArtifact:
+    variants = []
+    scenes = {}
+    for example in golden_visual_matrix():
+        trace = example["trace"]
+        assert isinstance(trace, SemanticTrace)
+        variant_id = str(example["id"])
+        variants.append(
+            {
+                "id": variant_id,
+                "name": str(example["name"]),
+                "strategy": "黄金样例视觉矩阵，验证通用 SceneGraph 编译和 renderer 展示。",
+                "time_complexity": "fixture",
+                "space_complexity": "fixture",
+                "code": "def solve(input_data):\n    return None",
+                "tracker_code": "def trace(input_data):\n    return {}",
+                "result": trace.result,
+                "trace": trace.model_dump(),
+            }
+        )
+        scenes[variant_id] = compile_scene(trace)
+    return BuildArtifact(
+        problem_title="黄金样例视觉矩阵",
+        input_contract="覆盖 unique_paths、bfs、binary_search、monotonic_stack。",
+        input_data={"fixture": "golden_visual_matrix"},
+        variants=variants,
+        scenes=scenes,
+        validation=ValidationReport(
+            checks=["golden visual matrix fixture"],
             release_gate=ReleaseGate(
                 artifact_ready=True,
                 process_ready=True,

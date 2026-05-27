@@ -104,6 +104,7 @@ def build_namespace() -> dict[str, Any]:
         "map": map,
         "max": max,
         "min": min,
+        "ord": ord,
         "pow": pow,
         "range": range,
         "reversed": reversed,

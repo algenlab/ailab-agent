@@ -35,27 +35,53 @@ def render_html(artifact: BuildArtifact) -> str:
 }}
 * {{ box-sizing:border-box; }}
 body {{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif; color:var(--ink); background:var(--bg); }}
-button,input {{ font:inherit; }}
-.app {{ min-height:100vh; display:grid; grid-template-rows:auto 1fr; }}
-.topbar {{ background:#fff; border-bottom:1px solid var(--line); padding:14px 20px; display:grid; grid-template-columns:minmax(280px,1fr) auto; gap:16px; align-items:center; }}
+button,input,textarea {{ font:inherit; }}
+.app {{ min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; }}
+.topbar {{ background:#fff; border-bottom:1px solid var(--line); padding:14px 20px; display:grid; grid-template-columns:minmax(240px,1fr) minmax(260px,420px) auto; gap:16px; align-items:center; }}
+.top-title {{ min-width:0; }}
 h1 {{ margin:0; font-size:20px; letter-spacing:0; }}
 .subtitle {{ margin:5px 0 0; color:var(--muted); font-size:13px; }}
+.top-summary {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; min-width:0; }}
+.summary-card {{ border:1px solid var(--line); border-radius:7px; background:#fbfdff; padding:7px 9px; min-width:0; }}
+.summary-card span {{ display:block; color:var(--muted); font-size:11px; line-height:1.3; }}
+.summary-card strong {{ display:block; margin-top:2px; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
 .badges {{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }}
 .badge {{ border:1px solid var(--line); border-radius:999px; padding:4px 9px; background:#fff; color:var(--muted); font-size:12px; }}
 .badge.ok {{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }}
 .badge.warn {{ color:#92400e; border-color:#fde68a; background:#fffbeb; }}
 .workspace {{ display:grid; grid-template-columns:minmax(260px,320px) minmax(440px,1fr) minmax(300px,380px); gap:14px; padding:14px; min-height:0; }}
 .col {{ display:grid; gap:14px; align-content:start; min-width:0; }}
+.task-col,.teaching-col {{ align-content:start; }}
 .panel {{ background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); min-width:0; }}
 .section {{ padding:14px; }}
 .section h2 {{ margin:0 0 10px; color:#374151; font-size:13px; letter-spacing:.04em; text-transform:uppercase; }}
+.subhead {{ margin:12px 0 7px; color:#374151; font-size:12px; font-weight:700; }}
+.problem-description {{ color:#172033; font-size:13px; line-height:1.5; }}
 .tabs {{ display:grid; gap:8px; }}
 .tab {{ border:1px solid var(--line); border-radius:7px; background:#fff; padding:10px; cursor:pointer; text-align:left; }}
 .tab.active {{ border-color:var(--blue); box-shadow:inset 3px 0 0 var(--blue); }}
 .tab strong {{ display:block; font-size:14px; }}
 .tab span {{ display:block; margin-top:4px; color:var(--muted); font-size:12px; line-height:1.25; }}
+.variant-compare {{ display:grid; gap:8px; min-width:0; max-width:100%; }}
+.variant-compare-card {{ border:1px solid var(--line); border-radius:7px; background:#fff; padding:9px; display:grid; gap:7px; min-width:0; max-width:100%; overflow-wrap:anywhere; }}
+.variant-compare-card.active {{ border-color:#86efac; background:#f0fdf4; }}
+.variant-compare-card > * {{ min-width:0; max-width:100%; }}
+.variant-compare-card strong {{ display:block; font-size:13px; color:#172033; }}
+.variant-compare-meta {{ display:grid; gap:4px; min-width:0; color:var(--muted); font-size:12px; line-height:1.35; }}
+.variant-compare-meta span {{ min-width:0; overflow-wrap:anywhere; }}
+.variant-compare-status {{ width:auto; justify-self:start; max-width:100%; min-width:0; border:1px solid #bbf7d0; border-radius:999px; padding:2px 7px; color:#166534; background:#f0fdf4; font-size:11px; overflow-wrap:anywhere; }}
+.variant-compare-status.warn {{ border-color:#fde68a; color:#92400e; background:#fffbeb; }}
+.variant-compare-card button {{ width:100%; border:1px solid #bfdbfe; border-radius:6px; background:#eff6ff; color:#1d4ed8; padding:7px 8px; cursor:pointer; text-align:center; }}
+.variant-compare-card button:focus-visible {{ outline:2px solid #2563eb; outline-offset:2px; }}
 pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-height:1.45; }}
 .jsonbox {{ max-height:260px; border:1px solid var(--line); border-radius:6px; padding:10px; background:#fbfdff; }}
+.jsonbox.compact {{ max-height:120px; }}
+.input-editor {{ width:100%; min-height:132px; resize:vertical; color:var(--ink); }}
+.secondary-action {{ width:100%; margin-top:10px; border:1px solid #bfdbfe; border-radius:6px; background:#eff6ff; color:#1d4ed8; padding:8px 10px; cursor:pointer; }}
+.secondary-action:focus-visible {{ outline:2px solid #2563eb; outline-offset:2px; }}
+.regen-note {{ margin:0 0 8px; color:var(--muted); font-size:12px; line-height:1.45; }}
+.regen-status {{ margin-top:10px; border:1px solid #fde68a; border-radius:6px; background:#fffbeb; color:#92400e; padding:8px 10px; font-size:12px; line-height:1.45; }}
+.regenerate-payload {{ margin-top:8px; max-height:180px; }}
 .hero {{ min-height:520px; display:grid; grid-template-rows:auto minmax(360px,1fr) auto auto; }}
 .step-head {{ padding:14px 16px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:12px; }}
 .step-head h2 {{ margin:0; font-size:18px; }}
@@ -71,10 +97,19 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .controls .primary {{ border-color:var(--blue); background:var(--blue); color:#fff; }}
 .range {{ width:100%; accent-color:var(--blue); }}
 .counter {{ color:var(--muted); font-size:13px; min-width:86px; text-align:right; }}
-.timeline {{ border-top:1px solid var(--line); display:flex; gap:4px; padding:12px 14px; overflow-x:auto; }}
-.tick {{ width:28px; min-width:28px; height:28px; border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--muted); cursor:pointer; font-size:11px; }}
-.tick.active {{ background:var(--blue); border-color:var(--blue); color:#fff; }}
-.objects {{ display:grid; gap:18px; }}
+.timeline {{ border-top:1px solid var(--line); display:flex; gap:8px; padding:12px 14px; overflow-x:auto; }}
+.tick {{ position:relative; width:132px; min-width:132px; min-height:52px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--muted); cursor:pointer; font-size:11px; text-align:left; padding:7px 9px 7px 14px; display:grid; gap:3px; align-content:center; }}
+.tick::before {{ content:''; position:absolute; left:5px; top:10px; bottom:10px; width:3px; border-radius:999px; background:#cbd5e1; }}
+.tick.keyframe::before {{ background:var(--amber); }}
+.tick.active {{ background:#eff6ff; border-color:var(--blue); color:#1d4ed8; }}
+.tick.active::before {{ background:var(--blue); }}
+.tick-label {{ color:#172033; font-size:12px; font-weight:700; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+.tick.active .tick-label {{ color:#1d4ed8; }}
+.tick-op {{ color:var(--muted); font-size:11px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+.objects {{ display:grid; gap:18px; max-width:100%; min-width:0; }}
+.compound-scene {{ grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); align-items:start; gap:12px; }}
+.primitive-panel {{ min-width:0; max-width:100%; overflow:auto; border:1px solid #eef2f7; border-radius:7px; background:#fbfdff; padding:10px; }}
+.primitive-panel .view-title {{ font-size:13px; margin-bottom:8px; }}
 .view-title {{ margin:0 0 10px; font-size:15px; }}
 .array {{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }}
 .array-wrap {{ display:grid; gap:8px; width:fit-content; max-width:100%; }}
@@ -107,8 +142,22 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .geo-sweep {{ stroke:#dc2626; stroke-width:2; stroke-dasharray:6 5; }}
 .heap {{ display:grid; gap:10px; justify-items:center; width:fit-content; max-width:100%; }}
 .heap-level {{ display:flex; gap:8px; justify-content:center; }}
-.arrow-note {{ color:var(--muted); font-size:12px; margin-top:8px; }}
+.dependency-flow {{ display:grid; gap:7px; margin-top:10px; max-width:100%; min-width:0; border:1px solid #fed7aa; border-radius:7px; background:#fff7ed; padding:9px 10px; }}
+.dependency-flow h3 {{ margin:0; color:#9a3412; font-size:12px; letter-spacing:0; }}
+.dependency-edge {{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; color:#7c2d12; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }}
+.dependency-node {{ min-width:0; max-width:100%; border:1px solid var(--line); border-radius:999px; padding:2px 8px; background:#fff; color:#172033; overflow-wrap:anywhere; }}
+.dependency-node.dep {{ border-color:#fcd34d; background:#fffbeb; color:#92400e; }}
+.dependency-node.target {{ border-color:#86efac; background:#f0fdf4; color:#166534; }}
+.dependency-arrow {{ color:#c2410c; font-weight:700; }}
+.dependency-detail {{ border:1px solid #c7d2fe; border-radius:7px; background:#eef2ff; color:#312e81; padding:9px 10px; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }}
+.dependency-detail strong {{ display:block; margin-bottom:5px; color:#1e1b4b; font-size:12px; }}
+.dependency-detail p {{ margin:3px 0; }}
+.clickable-object {{ cursor:pointer; }}
+.clickable-object:hover {{ outline:2px solid #60a5fa; outline-offset:1px; }}
 .code {{ max-height:370px; background:#101827; color:#dbeafe; border-radius:7px; overflow:auto; }}
+.code-sync {{ position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.25); background:#0f172a; color:#bfdbfe; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.4; }}
+.code-sync.ok {{ color:#bbf7d0; }}
+.code-sync.warn {{ color:#fde68a; background:#1f2937; }}
 .line {{ display:grid; grid-template-columns:42px 1fr; gap:10px; padding:1px 10px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.55; }}
 .lineno {{ color:#7f8ea3; text-align:right; }}
 .line.active {{ background:#1d4ed8; color:#fff; }}
@@ -121,8 +170,18 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .feedback {{ margin-top:8px; color:#4c1d95; font-size:13px; }}
 .teaching {{ display:grid; gap:8px; }}
 .teach-row {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; }}
+.teach-row.formula {{ border-color:#bfdbfe; background:#eff6ff; }}
+.teach-row.invariant {{ border-color:#bbf7d0; background:#f0fdf4; }}
+.teach-row.common_mistake {{ border-color:#fecaca; background:#fef2f2; }}
+.teach-row.hint {{ border-color:#ddd6fe; background:#f5f3ff; }}
 .teach-row strong {{ display:block; margin-bottom:4px; color:#374151; font-size:12px; }}
 .teach-row p {{ margin:0; color:#172033; font-size:13px; line-height:1.45; }}
+.teach-row code {{ display:block; color:#1e3a8a; white-space:pre-wrap; overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.45; }}
+.change-summary {{ border:1px solid #bbf7d0; border-radius:6px; padding:8px; background:#f0fdf4; }}
+.change-summary strong {{ display:block; margin-bottom:5px; color:#166534; font-size:12px; }}
+.change-row {{ display:grid; gap:3px; padding:5px 0; border-top:1px solid #dcfce7; font-size:12px; line-height:1.4; }}
+.change-row:first-of-type {{ border-top:0; padding-top:0; }}
+.change-row code {{ overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; color:#14532d; }}
 .evidence,.step-evidence {{ display:grid; gap:8px; }}
 .evidence-block {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; min-width:0; }}
 .evidence-block strong {{ display:block; margin-bottom:5px; color:#374151; font-size:12px; }}
@@ -131,6 +190,11 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .evidence-line code,.diff-row code {{ overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; }}
 .evidence-list {{ margin:0; padding-left:17px; color:#172033; font-size:12px; line-height:1.45; }}
 .evidence-list li {{ margin:3px 0; }}
+.status-line {{ display:grid; gap:6px; }}
+.status-item {{ display:flex; align-items:center; gap:7px; color:#172033; font-size:12px; line-height:1.4; }}
+.status-dot {{ width:8px; height:8px; border-radius:999px; background:#d97706; flex:0 0 auto; }}
+.status-item.ok .status-dot {{ background:#16a34a; }}
+.status-item.warn .status-dot {{ background:#d97706; }}
 .chip-row {{ display:flex; flex-wrap:wrap; gap:5px; }}
 .chip {{ border:1px solid var(--line); border-radius:999px; padding:2px 7px; color:var(--muted); background:#fff; font-size:11px; }}
 .chip.ok {{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }}
@@ -143,7 +207,32 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .mlitem {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fbfdff; min-width:0; }}
 .mlitem strong {{ display:block; color:#374151; font-size:12px; margin-bottom:5px; }}
 .spark {{ width:100%; height:56px; border:1px solid var(--line); border-radius:5px; background:#fff; }}
-@media (max-width:1100px) {{ .workspace {{ grid-template-columns:1fr; }} .topbar {{ grid-template-columns:1fr; }} .badges {{ justify-content:flex-start; }} }}
+.debug-drawer {{ border-top:1px solid var(--line); background:#eef2f7; padding:0 14px 14px; }}
+.debug-drawer summary {{ list-style:none; display:flex; gap:12px; align-items:baseline; padding:12px 4px; cursor:pointer; color:#172033; }}
+.debug-drawer summary::-webkit-details-marker {{ display:none; }}
+.debug-drawer summary span {{ font-weight:700; }}
+.debug-drawer summary small {{ color:var(--muted); }}
+.debug-grid {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }}
+.debug-json {{ max-height:360px; }}
+.debug-download {{ display:inline-block; margin:0 0 8px; color:#1d4ed8; font-size:12px; text-decoration:none; }}
+.debug-download:hover {{ text-decoration:underline; }}
+@media (max-width:1100px) {{
+  .workspace {{ grid-template-columns:1fr; }}
+  .topbar {{ grid-template-columns:1fr; }}
+  .badges {{ justify-content:flex-start; }}
+  .debug-grid {{ grid-template-columns:1fr; }}
+}}
+@media (max-width:560px) {{
+  .topbar,.workspace {{ padding:10px; }}
+  .top-summary {{ grid-template-columns:1fr; }}
+  .hero {{ min-height:0; grid-template-rows:auto minmax(300px,1fr) auto auto; }}
+  .canvas,.spatial-wrap {{ min-height:300px; }}
+  .controls {{ grid-template-columns:repeat(3,1fr); }}
+  .controls .range {{ grid-column:1 / -1; }}
+  .counter {{ grid-column:1 / -1; text-align:left; min-width:0; }}
+  .controls button {{ min-width:0; padding:8px 6px; }}
+  .maprow,.evidence-line {{ grid-template-columns:1fr; }}
+}}
 </style>
 </head>
 {workspace_markup(render_target)}
@@ -170,24 +259,122 @@ const isSpatialTarget = () => RUNTIME_TARGET === 'spatial_3d' || RUNTIME_TARGET 
 function boot() {{
   $('title').textContent = ARTIFACT.problem_title || '算法可视化实验';
   $('subtitle').textContent = ARTIFACT.input_contract || '由语义轨迹编译生成，页面只渲染 scene graph';
+  $('problem-description').textContent = ARTIFACT.problem_title || ARTIFACT.input_contract || '算法题目';
   $('input').textContent = pretty(ARTIFACT.input_data);
+  const inputEditor = $('input-editor');
+  if (inputEditor) {{
+    inputEditor.value = pretty(ARTIFACT.input_data);
+    inputEditor.addEventListener('input', updateRegeneratePayload);
+  }}
+  $('expected').textContent = ARTIFACT.expected_result === null || ARTIFACT.expected_result === undefined ? '未提供' : pretty(ARTIFACT.expected_result);
+  $('debug-artifact').textContent = pretty(ARTIFACT);
+  const artifactDownload = $('debug-artifact-download');
+  if (artifactDownload) artifactDownload.href = `data:application/json;charset=utf-8,${{encodeURIComponent(pretty(ARTIFACT))}}`;
+  const regenerateButton = $('regenerate');
+  if (regenerateButton) regenerateButton.onclick = requestRegenerate;
+  updateRegeneratePayload();
   renderBadges();
   renderEvidence();
   renderTabs();
+  renderVariantCompare();
   selectVariant(0);
 }}
 function renderBadges() {{
   const g = ARTIFACT.validation.release_gate || {{}};
-  const items = [['过程', g.process_ready], ['轨迹', g.trace_ready], ['视觉', g.visual_ready], ['发布', g.release_ready]];
+  const items = [
+    ['代码执行通过', g.artifact_ready],
+    ['轨迹覆盖完整', g.trace_ready],
+    ['过程转移通过校验', g.process_ready],
+    ['可视化对象绑定正确', g.visual_ready],
+  ];
   $('badges').innerHTML = items.map(([k,v]) => `<span class="badge ${{v?'ok':'warn'}}">${{k}}：${{v?'通过':'待检查'}}</span>`).join('');
 }}
 function renderTabs() {{
   $('tabs').innerHTML = ARTIFACT.variants.map((v,i) => `<button class="tab ${{i===variantIndex?'active':''}}" onclick="selectVariant(${{i}})"><strong>${{esc(v.name)}}</strong><span>${{esc(v.time_complexity)}} · ${{esc(v.space_complexity)}}<br>${{esc(v.strategy)}}</span></button>`).join('');
 }}
+function renderVariantCompare() {{
+  const node = $('variant-compare');
+  if (!node) return;
+  const variants = ARTIFACT.variants || [];
+  if (variants.length < 2) {{
+    node.innerHTML = '<p style="color:var(--muted);margin:0;font-size:12px;">当前 artifact 只有一个解法，无需对比。</p>';
+    return;
+  }}
+  const baseline = variants[0] || {{}};
+  node.innerHTML = variants.map((v, i) => {{
+    const sceneForVariant = ARTIFACT.scenes && ARTIFACT.scenes[v.id] || {{}};
+    const sceneFrames = sceneForVariant.frames || [];
+    const stepCount = sceneFrames.length;
+    const keyStepCount = sceneFrames.filter(isKeyCompareFrame).length || stepCount;
+    const consistent = stableJson(v.result) === stableJson(baseline.result);
+    return `<article class="variant-compare-card ${{i === variantIndex ? 'active' : ''}}" data-variant-id="${{esc(v.id)}}" data-scene-id="${{esc(v.id)}}" data-step-count="${{stepCount}}" data-key-step-count="${{keyStepCount}}"><strong>${{esc(v.name || v.id)}}</strong><div class="variant-compare-meta"><span>复杂度：${{esc(v.time_complexity || '未标注')}} / ${{esc(v.space_complexity || '未标注')}}</span><span>关键步骤数：${{keyStepCount}} / ${{stepCount}}</span><span>SceneGraph：${{esc(v.id)}}</span></div><span class="variant-compare-status ${{consistent ? '' : 'warn'}}">结果一致性：${{consistent ? '一致' : '不一致'}} · ${{esc(compactValue(v.result))}}</span><button type="button" onclick="selectVariant(${{i}})">查看这个解法</button></article>`;
+  }}).join('');
+}}
+function isKeyCompareFrame(f) {{
+  const evidence = f && f.evidence || {{}};
+  const timeline = evidence.timeline || {{}};
+  if (timeline.keyframe) return true;
+  const op = textOrEmpty(evidence.operation || f && f.operation);
+  return ['set','mark','move','compare','push','pop','enter','exit'].includes(op);
+}}
+function buildProblemInputPayload() {{
+  let inputData = ARTIFACT.input_data;
+  let parseError = '';
+  const editor = $('input-editor');
+  if (editor) {{
+    try {{
+      inputData = JSON.parse(editor.value || 'null');
+    }} catch (err) {{
+      parseError = err && err.message ? err.message : String(err);
+    }}
+  }}
+  const problemInput = {{
+    problem: ARTIFACT.problem_title || ARTIFACT.input_contract || '算法可视化实验',
+    input_data: inputData,
+    strategy_hint: (ARTIFACT.variants || []).map(v => v.name || v.id).filter(Boolean).join(' / '),
+    user_code: '',
+    expected_result: ARTIFACT.expected_result === undefined ? null : ARTIFACT.expected_result,
+    solution_count: Math.min(4, Math.max(1, (ARTIFACT.variants || []).length || 1)),
+  }};
+  return {{
+    pipeline: 'ProblemInput -> BuildArtifact -> HTML',
+    static_html_note: '静态 HTML 无法在线调用后端；请把 artifact_input.problem_input 交给主 pipeline 重新生成。',
+    artifact_input: {{
+      problem_input: problemInput,
+      current_variant_ids: (ARTIFACT.variants || []).map(v => v.id).filter(Boolean),
+      source_artifact_schema: ARTIFACT.schema_version || 'algolab-build-v1',
+    }},
+    parse_error: parseError,
+  }};
+}}
+function updateRegeneratePayload() {{
+  const payload = buildProblemInputPayload();
+  const payloadNode = $('regenerate-payload');
+  if (payloadNode) payloadNode.textContent = pretty(payload);
+  const status = $('regenerate-status');
+  if (!status) return;
+  status.textContent = payload.parse_error
+    ? `JSON 解析失败：${{payload.parse_error}}。静态 HTML 不会修改当前 trace。`
+    : 'artifact 输入已准备；点击按钮会显示静态降级说明，但真正重新生成必须回到主 pipeline。';
+}}
+function requestRegenerate() {{
+  const payload = buildProblemInputPayload();
+  const payloadNode = $('regenerate-payload');
+  if (payloadNode) payloadNode.textContent = pretty(payload);
+  const status = $('regenerate-status');
+  if (!status) return;
+  if (payload.parse_error) {{
+    status.textContent = `JSON 解析失败：${{payload.parse_error}}。请修正输入后通过 ProblemInput -> BuildArtifact -> HTML 重新生成。`;
+    return;
+  }}
+  status.textContent = '静态 HTML 无法在线调用后端；当前 trace、SceneGraph 和 ARTIFACT 保持不变。请使用这份 artifact 输入重新走 pipeline。';
+}}
 function selectVariant(i) {{
   variantIndex = i; stepIndex = 0; stop();
   renderTabs();
-  $('result').textContent = pretty(variant().result);
+  renderVariantCompare();
+  $('top-result').textContent = compactValue(variant().result);
+  $('top-solution').textContent = `${{variant().name || variant().id}} · ${{variant().time_complexity || '复杂度未标注'}}`;
   $('range').max = Math.max(0, frames().length - 1);
   renderEvidence();
   renderStep();
@@ -199,18 +386,46 @@ function go(i) {{
 function renderStep() {{
   const f = frame();
   if (!f) return;
-  $('step-title').textContent = f.title;
-  $('step-desc').textContent = f.description || '';
-  $('op').textContent = f.operation;
+  $('step-title').textContent = frameTitle(f);
+  $('step-desc').textContent = frameDescription(f);
+  $('op').textContent = frameOperation(f);
   $('counter').textContent = `${{stepIndex + 1}} / ${{frames().length}}`;
   $('range').value = stepIndex;
   renderCanvas(f);
   renderState(f.state || {{}});
+  renderDebugState(f.state || {{}});
   renderTeaching(f);
   renderStepEvidence(f);
   renderInteraction(f.interaction);
-  renderCode(variant().code || '', f.code_line || 1);
+  const code = variant().code || '';
+  renderCode(code, codeLineInfo(f, code));
   renderTimeline();
+}}
+function frameTitle(f) {{
+  return textOrEmpty(f && f.title) || frameOperation(f) || `步骤 ${{stepIndex + 1}}`;
+}}
+function frameDescription(f) {{
+  return textOrEmpty(f && f.description);
+}}
+function frameOperation(f) {{
+  return textOrEmpty(f && f.operation) || 'explain';
+}}
+function frameCodeLine(f) {{
+  const value = Number(f && f.code_line);
+  return Number.isInteger(value) && value > 0 ? value : 1;
+}}
+function codeLineInfo(f, code) {{
+  const lines = String(code || '').split('\\n');
+  const lineCount = Math.max(1, lines.length);
+  const raw = Number(f && f.code_line);
+  if (Number.isInteger(raw) && raw > 0 && raw <= lineCount) {{
+    return {{ active: raw, label: `当前代码行：第 ${{raw}} 行`, status: 'ok', raw }};
+  }}
+  if (Number.isInteger(raw) && raw > 0) {{
+    const active = Math.min(Math.max(raw, 1), lineCount);
+    return {{ active, label: `当前代码行：code_line 越界（${{raw}}），已降级到第 ${{active}} 行`, status: 'warn', raw }};
+  }}
+  return {{ active: 1, label: '当前代码行：缺失或无效 code_line，已降级到第 1 行', status: 'warn', raw: null }};
 }}
 function markClass(id, marks) {{
   const found = (marks || []).find(m => m.target === id);
@@ -238,16 +453,74 @@ function renderCanvas(f) {{
 function renderTeachingCanvas(f) {{
   const groups = groupedObjects(f);
   const containers = (f.objects || []).filter(o => o.type === 'container');
-  let html = '<div class="objects">';
+  let html = `<div class="objects ${{containers.length > 1 ? 'compound-scene' : ''}}" data-primitive-count="${{containers.length}}">`;
   if (containers.length) {{
-    for (const c of containers) html += renderContainer(c, groups[c.id] || [], f.marks || []);
+    for (const c of containers) html += renderPrimitivePanel(c, groups[c.id] || [], f.marks || []);
   }} else {{
     html += renderLooseObjects(f.objects || [], f.marks || []);
   }}
-  const arrows = (f.objects || []).filter(o => o.type === 'arrow');
-  if (arrows.length) html += `<div class="arrow-note">依赖关系：${{arrows.map(a => esc(a.source + ' → ' + a.target)).join('，')}}</div>`;
+  html += renderDependencyFlow(f);
+  html += '<div id="dependency-detail" class="dependency-detail">点击当前对象或依赖对象，查看它依赖谁、影响谁。</div>';
   html += '</div>';
   $('canvas').innerHTML = html;
+}}
+function renderPrimitivePanel(c, children, marks) {{
+  const layout = c.meta && c.meta.layout || 'generic';
+  return `<section class="primitive-panel ${{primitivePanelClass(c)}}" data-layout="${{esc(layout)}}">${{renderContainer(c, children, marks)}}</section>`;
+}}
+function primitivePanelClass(c) {{
+  const layout = c && c.meta && c.meta.layout || 'generic';
+  return `primitive-${{String(layout).replace(/[^a-zA-Z0-9_-]/g, '-')}}`;
+}}
+function renderDependencyFlow(f) {{
+  const edges = dependencyEdges(f);
+  if (!edges.length) return '';
+  return `<div class="dependency-flow" aria-label="依赖关系"><h3>依赖关系</h3>${{edges.map(edge => `<div class="dependency-edge" data-source="${{esc(edge.source)}}" data-target="${{esc(edge.target)}}"><span class="dependency-node dep clickable-object" ${{clickableAttrs(edge.source)}}>${{dependencyLabel(f, edge.source)}}</span><span class="dependency-arrow">→</span><span class="dependency-node target clickable-object" ${{clickableAttrs(edge.target)}}>${{dependencyLabel(f, edge.target)}}</span></div>`).join('')}}</div>`;
+}}
+function dependencyEdges(f) {{
+  const arrows = (f.objects || []).filter(o => o.type === 'arrow' && o.source && o.target);
+  if (arrows.length) return arrows.map(o => ({{ source:String(o.source), target:String(o.target) }}));
+  const evidence = f.evidence || {{}};
+  const deps = Array.isArray(evidence.deps) ? evidence.deps.filter(Boolean) : [];
+  const targets = Array.isArray(evidence.targets) ? evidence.targets.filter(Boolean) : [];
+  const edges = [];
+  for (const dep of deps) for (const target of targets) edges.push({{ source:String(dep), target:String(target) }});
+  return edges;
+}}
+function objectById(f) {{
+  return new Map((f.objects || []).map(o => [o.id, o]));
+}}
+function dependencyLabel(f, id) {{
+  const object = objectById(f).get(id);
+  if (!object) return esc(id);
+  const base = object.label || object.id || id;
+  if (object.value === undefined || object.value === null || object.value === '') return esc(base);
+  return esc(`${{base}} = ${{compactValue(object.value)}}`);
+}}
+function clickableAttrs(id) {{
+  if (!id) return '';
+  return `data-object-id="${{esc(id)}}" onclick="showDependencyDetail('${{encodeURIComponent(id)}}')"`;
+}}
+function roleForObject(f, id) {{
+  const mark = (f.marks || []).find(m => m.target === id);
+  return mark && mark.role ? mark.role : '';
+}}
+function showDependencyDetail(encodedId) {{
+  const id = decodeURIComponent(encodedId);
+  const f = frame();
+  const edges = dependencyEdges(f);
+  const deps = unique(edges.filter(edge => edge.target === id).map(edge => edge.source));
+  const impacts = unique(edges.filter(edge => edge.source === id).map(edge => edge.target));
+  const role = roleForObject(f, id);
+  const detail = $('dependency-detail');
+  if (!detail) return;
+  const depText = deps.length ? deps.map(x => `${{dependencyLabel(f, x)}} <code>${{esc(x)}}</code>`).join('，') : '无';
+  const impactText = impacts.length ? impacts.map(x => `${{dependencyLabel(f, x)}} <code>${{esc(x)}}</code>`).join('，') : '无';
+  const roleText = role ? `<p>角色：${{esc(role)}}</p>` : '';
+  detail.innerHTML = `<strong>${{dependencyLabel(f, id)}} <code>${{esc(id)}}</code></strong>${{roleText}}<p>依赖对象：${{depText}}</p><p>影响对象：${{impactText}}</p><p>来源：SceneGraph marks、dependency arrows 和 evidence.deps / evidence.targets。</p>`;
+}}
+function unique(items) {{
+  return [...new Set((items || []).filter(Boolean).map(String))];
 }}
 function renderSpatialCanvas(f) {{
   try {{
@@ -276,7 +549,7 @@ function renderSpatialCanvas(f) {{
       if (a && b) drawSpatialEdge(scene, a, b, edge, marks, containers[edge.parent]);
     }}
     for (const arrow of objects.filter(o => o.type === 'arrow')) {{
-      const a = positions[arrow.source], b = positions[arrow.target];
+      const a = spatialEndpoint(arrow.source, positions), b = spatialEndpoint(arrow.target, positions);
       if (a && b) drawSpatialPathTrail(scene, a, b, arrow, marks, step);
     }}
     nodes.forEach((o, i) => drawSpatialNode(scene, positions[o.id], o, marks, i, step, containers[o.parent]));
@@ -287,6 +560,8 @@ function renderSpatialCanvas(f) {{
     SPATIAL_STATE.renderer.render(scene, SPATIAL_STATE.camera);
     const label = document.getElementById('spatial-label');
     label.textContent = `${{RUNTIME_TARGET}} · Three.js WebGL · step ${{step + 1}} · ${{f.title || f.operation || ''}}`;
+    const flow = document.getElementById('spatial-dependency-flow');
+    if (flow) flow.innerHTML = renderDependencyFlow(f);
     return true;
   }} catch (err) {{
     SPATIAL_STATE.fallbackReason = err && err.message ? err.message : String(err);
@@ -300,7 +575,7 @@ function ensureSpatialRuntime() {{
   }}
   const canvasHost = $('canvas');
   if (!document.getElementById('spatial-canvas')) {{
-    canvasHost.innerHTML = '<div class="spatial-wrap"><canvas id="spatial-canvas" class="spatial-stage"></canvas><div id="spatial-label" class="spatial-label"></div></div>';
+    canvasHost.innerHTML = '<div class="spatial-wrap"><canvas id="spatial-canvas" class="spatial-stage"></canvas><div id="spatial-label" class="spatial-label"></div><div id="spatial-dependency-flow"></div></div>';
   }}
   const canvas = document.getElementById('spatial-canvas');
   if (SPATIAL_STATE.renderer && SPATIAL_STATE.canvas === canvas) return true;
@@ -385,6 +660,18 @@ function spatialPositions(nodes, step, containers) {{
     positionOrbitGroup(pos, group, step, offsetX);
   }});
   return pos;
+}}
+function spatialEndpoint(id, positions) {{
+  if (!id) return null;
+  if (positions[id]) return positions[id];
+  const raw = String(id);
+  if (raw.startsWith('frame:')) {{
+    const match = raw.match(/\(([^()]*)\)/);
+    const key = match && match[1] ? match[1] : raw.replace(/^frame:[^(]+/, '').replace(/[()]/g, '');
+    if (positions[`node:${{key}}`]) return positions[`node:${{key}}`];
+    if (positions[key]) return positions[key];
+  }}
+  return null;
 }}
 function positionOrbitGroup(pos, group, step, offsetX) {{
   const n = Math.max(group.length, 1);
@@ -560,8 +847,8 @@ function renderArray(c, cells, marks) {{
     if (!pointerByIndex.has(p.index)) pointerByIndex.set(p.index, []);
     pointerByIndex.get(p.index).push(p);
   }}
-  const cellHtml = cells.map(o => `<div class="cell ${{markClass(o.id, marks)}}"><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('');
-  const pointerHtml = cells.map(o => `<div class="pointer-slot">${{(pointerByIndex.get(o.index) || []).map(p => `<span class="pointer-tag">${{esc(p.label || p.id.replace('pointer:',''))}}</span>`).join('')}}</div>`).join('');
+  const cellHtml = cells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('');
+  const pointerHtml = cells.map(o => `<div class="pointer-slot">${{(pointerByIndex.get(o.index) || []).map(p => `<span class="pointer-tag clickable-object" ${{clickableAttrs(p.id)}}>${{esc(p.label || p.id.replace('pointer:',''))}}</span>`).join('')}}</div>`).join('');
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="array-wrap"><div class="array">${{cellHtml}}</div><div class="pointer-row" style="grid-template-columns:repeat(${{Math.max(cells.length,1)}},42px)">${{pointerHtml}}</div></div></div>`;
 }}
 function renderMatrix(c, cells, marks) {{
@@ -571,7 +858,7 @@ function renderMatrix(c, cells, marks) {{
   let body = '';
   for (let r=0; r<rows; r++) for (let col=0; col<cols; col++) {{
     const o = by.get(`${{r}},${{col}}`) || {{id:'', value:''}};
-    body += `<div class="mcell ${{markClass(o.id, marks)}}">${{esc(o.value)}}</div>`;
+    body += `<div class="mcell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}>${{esc(o.value)}}</div>`;
   }}
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="matrix" style="grid-template-columns:repeat(${{Math.max(cols,1)}},44px)">${{body}}</div></div>`;
 }}
@@ -585,7 +872,7 @@ function renderHeap(c, cells, marks) {{
   while (idx < cells.length) {{
     const count = Math.pow(2, level);
     const levelCells = cells.slice(idx, idx + count);
-    html += `<div class="heap-level">${{levelCells.map(o => `<div class="cell ${{markClass(o.id, marks)}}"><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('')}}</div>`;
+    html += `<div class="heap-level">${{levelCells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('')}}</div>`;
     idx += count; level += 1;
   }}
   html += '</div></div>';
@@ -593,23 +880,23 @@ function renderHeap(c, cells, marks) {{
 }}
 function renderStack(c, cells, marks) {{
   cells.sort((a,b)=>(a.index??0)-(b.index??0));
-  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="stack">${{cells.map(o => `<div class="stack-item ${{markClass(o.id, marks)}}">${{esc(o.value)}}</div>`).join('')}}</div></div>`;
+  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="stack">${{cells.map(o => `<div class="stack-item clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}>${{esc(o.value)}}</div>`).join('')}}</div></div>`;
 }}
 function renderQueue(c, cells, marks) {{
   cells.sort((a,b)=>(a.index??0)-(b.index??0));
-  const body = cells.map((o,i) => `<div class="cell ${{markClass(o.id, marks)}}"><span class="idx">${{i===0?'头':i===cells.length-1?'尾':o.index}}</span>${{esc(o.value)}}</div>`).join('');
+  const body = cells.map((o,i) => `<div class="cell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{i===0?'头':i===cells.length-1?'尾':o.index}}</span>${{esc(o.value)}}</div>`).join('');
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="queue">${{body}}</div></div>`;
 }}
 function renderMap(c, children, marks) {{
   const rows = children.filter(o => o.id !== c.id && o.type !== 'arrow');
-  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="mapgrid">${{rows.map(o => `<div class="maprow ${{markClass(o.id, marks)}}"><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(typeof o.value === 'object' ? JSON.stringify(o.value) : o.value)}}</span></div>`).join('')}}</div></div>`;
+  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="mapgrid">${{rows.map(o => `<div class="maprow clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(typeof o.value === 'object' ? JSON.stringify(o.value) : o.value)}}</span></div>`).join('')}}</div></div>`;
 }}
 function renderML(c, children, marks) {{
   const rows = children.filter(o => o.id !== c.id && o.type !== 'arrow' && o.type !== 'edge');
   const body = rows.map(o => {{
-    if (o.type === 'loss_curve') return `<div class="mlitem ${{markClass(o.id, marks)}}"><strong>${{esc(o.label || 'loss')}}</strong>${{renderSparkline(o.value)}}</div>`;
+    if (o.type === 'loss_curve') return `<div class="mlitem clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || 'loss')}}</strong>${{renderSparkline(o.value)}}</div>`;
     const shape = o.meta && Array.isArray(o.meta.shape) && o.meta.shape.length ? `shape ${{o.meta.shape.join('×')}} · ` : '';
-    return `<div class="mlitem ${{markClass(o.id, marks)}}"><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(shape + compactValue(o.value))}}</span></div>`;
+    return `<div class="mlitem clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(shape + compactValue(o.value))}}</span></div>`;
   }}).join('');
   return `<div><h3 class="view-title">${{esc(c.label || 'ML state')}}</h3><div class="mlgrid">${{body}}</div></div>`;
 }}
@@ -637,11 +924,11 @@ function renderGraph(c, children, marks) {{
   nodes.forEach((n,i)=>{{ const a=-Math.PI/2 + 2*Math.PI*i/Math.max(1,nodes.length); pos[n.id]=[cx+r*Math.cos(a),cy+r*Math.sin(a)]; }});
   const edgeSvg = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
-    return `<line class="edge" x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+    return `<line class="edge clickable-object" ${{clickableAttrs(e.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
   }}).join('');
   const nodeSvg = nodes.map(n => {{
     const p=pos[n.id]; const cls=markClass(n.id, marks);
-    return `<g class="node ${{cls}}" transform="translate(${{p[0]}},${{p[1]}})"><circle r="23"></circle><text text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text></g>`;
+    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="23"></circle><text text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text></g>`;
   }}).join('');
   return `<div><h3 class="view-title">${{esc(c.label || '图')}}</h3><svg class="graph-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{nodeSvg}}</svg></div>`;
 }}
@@ -662,11 +949,11 @@ function renderTree(c, children, marks, layout) {{
   nodes.forEach((n, i) => {{ if (!pos[n.id]) pos[n.id]=[(i+1)*w/(nodes.length+1), h-45]; }});
   const edgeSvg = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
-    return `<line class="edge" x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+    return `<line class="edge clickable-object" ${{clickableAttrs(e.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
   }}).join('');
   const nodeSvg = nodes.map(n => {{
     const p=pos[n.id]; const cls=markClass(n.id, marks);
-    return `<g class="node ${{cls}}" transform="translate(${{p[0]}},${{p[1]}})"><circle r="22"></circle><text text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text></g>`;
+    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="22"></circle><text text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text></g>`;
   }}).join('');
   const label = layout === 'trie' ? 'Trie' : layout === 'union_find' ? '并查集' : layout === 'recursion_tree' ? '递归树' : '树';
   return `<div><h3 class="view-title">${{esc(c.label || label)}}</h3><svg class="tree-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{nodeSvg}}</svg></div>`;
@@ -711,7 +998,7 @@ function renderGeometry(c, children, marks) {{
   const edgeSvg = edges.map(e => {{
     const a=byId.get(e.source), b=byId.get(e.target); if(!a||!b) return '';
     const cls = e.meta && e.meta.shape === 'hull' ? 'geo-hull' : 'geo-segment';
-    return `<line class="${{cls}}" x1="${{sx(a.meta.x)}}" y1="${{sy(a.meta.y)}}" x2="${{sx(b.meta.x)}}" y2="${{sy(b.meta.y)}}"></line>`;
+    return `<line class="${{cls}} clickable-object" ${{clickableAttrs(e.id)}} x1="${{sx(a.meta.x)}}" y1="${{sy(a.meta.y)}}" x2="${{sx(b.meta.x)}}" y2="${{sy(b.meta.y)}}"></line>`;
   }}).join('');
   const sweepSvg = sweeps.map(s => {{
     if (s.meta.axis === 'x') {{
@@ -723,7 +1010,7 @@ function renderGeometry(c, children, marks) {{
   }}).join('');
   const pointSvg = points.map(p => {{
     const cls=markClass(p.id, marks); const x=sx(p.meta.x), y=sy(p.meta.y);
-    return `<g class="node ${{cls}}" transform="translate(${{x}},${{y}})"><circle r="7"></circle><text x="10" y="-8" font-size="12">${{esc(p.label)}}</text></g>`;
+    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(p.id)}} transform="translate(${{x}},${{y}})"><circle r="7"></circle><text x="10" y="-8" font-size="12">${{esc(p.label)}}</text></g>`;
   }}).join('');
   return `<div><h3 class="view-title">${{esc(c.label || '几何平面')}}</h3><svg class="geometry-svg" viewBox="0 0 ${{w}} ${{h}}"><line class="geo-axis" x1="${{pad}}" y1="${{h-pad}}" x2="${{w-pad}}" y2="${{h-pad}}"></line><line class="geo-axis" x1="${{pad}}" y1="${{pad}}" x2="${{pad}}" y2="${{h-pad}}"></line>${{edgeSvg}}${{sweepSvg}}${{pointSvg}}</svg></div>`;
 }}
@@ -736,11 +1023,40 @@ function currentPointersFor(containerId) {{
   return (f.objects || []).filter(o => o.type === 'pointer' && (o.parent === containerId || (o.meta && o.meta.array === containerId)) && Number.isInteger(o.index));
 }}
 function renderTimeline() {{
-  $('timeline').innerHTML = frames().map((f,i)=>`<button class="tick ${{i===stepIndex?'active':''}}" onclick="go(${{i}})">${{i+1}}</button>`).join('');
+  $('timeline').innerHTML = frames().map((f,i) => {{
+    const meta = timelineMeta(f);
+    const label = timelineLabel(f, i, meta);
+    const op = timelineOperation(f, meta);
+    const title = `${{i + 1}} / ${{frames().length}} · ${{label}} · ${{op}}`;
+    return `<button class="tick ${{i===stepIndex?'active':''}} ${{meta.keyframe ? 'keyframe' : 'ordinary'}}" data-step="${{i}}" data-phase="${{esc(textOrEmpty(meta.phase) || label)}}" title="${{esc(title)}}" aria-label="${{esc(title)}}" onclick="go(${{i}})"><span class="tick-label">${{esc(label)}}</span><span class="tick-op">${{esc(op)}}</span></button>`;
+  }}).join('');
+}}
+function timelineMeta(f) {{
+  const evidence = f && f.evidence || {{}};
+  return evidence.timeline || {{}};
+}}
+function timelineLabel(f, i, meta) {{
+  return textOrEmpty(meta.phase) || textOrEmpty(meta.keyframe_label) || fallbackTimelineLabel(f, i);
+}}
+function timelineOperation(f, meta) {{
+  const op = textOrEmpty(meta.operation) || textOrEmpty(f && f.operation);
+  const targets = Array.isArray(meta.targets) ? meta.targets.filter(Boolean).slice(0, 2).join(', ') : '';
+  return targets ? `${{op || 'step'}} · ${{targets}}` : (op || 'step');
+}}
+function fallbackTimelineLabel(f, i) {{
+  return `${{i + 1}} · ${{frameTitle(f)}}`;
+}}
+function textOrEmpty(value) {{
+  return typeof value === 'string' ? value.trim() : '';
 }}
 function renderState(state) {{
   const entries = Object.entries(state || {{}});
   $('state').innerHTML = entries.length ? entries.map(([k,v]) => `<div class="state-row"><strong>${{esc(k)}}</strong><pre>${{esc(pretty(v))}}</pre></div>`).join('') : '<p style="color:var(--muted);margin:0;">当前步骤没有状态快照。</p>';
+}}
+function renderDebugState(state) {{
+  const node = $('debug-state');
+  if (!node) return;
+  node.innerHTML = `<div class="state-row"><strong>frame ${{stepIndex + 1}}</strong><pre>${{esc(pretty(state || {{}}))}}</pre></div>`;
 }}
 function renderEvidence() {{
   const v = variant() || {{}};
@@ -759,21 +1075,32 @@ function renderEvidence() {{
     ['verifier', ARTIFACT.verifier_result],
     ['actual', v.result],
   ].filter(([,value]) => value !== undefined && value !== null);
+  const statusItems = [
+    ['代码执行通过', gate.artifact_ready],
+    ['轨迹覆盖完整', gate.trace_ready],
+    ['过程转移通过校验', gate.process_ready],
+    ['可视化对象绑定正确', gate.visual_ready],
+  ];
   let html = '';
+  html += `<div class="evidence-block"><strong>可信度摘要</strong><div class="status-line">${{statusItems.map(([label,ok]) => `<div class="status-item ${{ok ? 'ok' : 'warn'}}"><span class="status-dot"></span><span>${{esc(label)}}：${{ok ? '通过' : '待检查'}}</span></div>`).join('')}}</div></div>`;
   html += `<div class="evidence-block"><strong>答案交叉检查</strong>${{answerRows.length ? answerRows.map(([k,val]) => evidenceLine(k, valueCode(val))).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">无 expected/verifier 证据。</p>'}}</div>`;
-  html += `<div class="evidence-block"><strong>Release gate</strong><div class="chip-row">${{gateChips(gate).join('')}}</div>${{(gate.blocking_reasons || []).length ? `<ul class="evidence-list">${{gate.blocking_reasons.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : ''}}</div>`;
+  let debugHtml = '';
+  debugHtml += `<div class="evidence-block"><strong>Release gate</strong><div class="chip-row">${{gateChips(gate).join('')}}</div>${{(gate.blocking_reasons || []).length ? `<ul class="evidence-list">${{gate.blocking_reasons.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : ''}}</div>`;
   if (contract) {{
-    html += `<div class="evidence-block"><strong>CorrectnessContract</strong>${{evidenceLine('schema', esc(contract.schema_version || ''))}}${{evidenceLine('oracle', esc(contract.oracle_strategy || ''))}}${{contractGate ? `<div class="chip-row">${{gateChips(contractGate).join('')}}</div>` : ''}}${{contract.process_invariants && contract.process_invariants.length ? `<ul class="evidence-list">${{contract.process_invariants.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : ''}}</div>`;
+    debugHtml += `<div class="evidence-block"><strong>CorrectnessContract</strong>${{evidenceLine('schema', esc(contract.schema_version || ''))}}${{evidenceLine('oracle', esc(contract.oracle_strategy || ''))}}${{contractGate ? `<div class="chip-row">${{gateChips(contractGate).join('')}}</div>` : ''}}${{contract.process_invariants && contract.process_invariants.length ? `<ul class="evidence-list">${{contract.process_invariants.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : ''}}</div>`;
   }}
-  html += `<div class="evidence-block"><strong>Contract tests</strong>${{tests.length ? evidenceLine('passed', `${{testPassed}}/${{tests.length}}`) + `<ul class="evidence-list">${{tests.slice(0, 6).map(renderContractTest).join('')}}${{tests.length > 6 ? `<li>还有 ${{tests.length - 6}} 条已省略</li>` : ''}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">当前 artifact 没有 contract 多输入测试。</p>'}}</div>`;
-  html += `<div class="evidence-block"><strong>Pipeline checks</strong>${{checks.length ? `<ul class="evidence-list">${{checks.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">无 checks。</p>'}}</div>`;
+  debugHtml += `<div class="evidence-block"><strong>Contract tests</strong>${{tests.length ? evidenceLine('passed', `${{testPassed}}/${{tests.length}}`) + `<ul class="evidence-list">${{tests.slice(0, 6).map(renderContractTest).join('')}}${{tests.length > 6 ? `<li>还有 ${{tests.length - 6}} 条已省略</li>` : ''}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">当前 artifact 没有 contract 多输入测试。</p>'}}</div>`;
+  debugHtml += `<div class="evidence-block"><strong>Pipeline checks</strong>${{checks.length ? `<ul class="evidence-list">${{checks.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">无 checks。</p>'}}</div>`;
   if (warnings.length || errors.length) {{
-    html += `<div class="evidence-block"><strong>Warnings / errors</strong><ul class="evidence-list">${{errors.map(x => `<li>错误：${{esc(x)}}</li>`).join('')}}${{warnings.map(x => `<li>警告：${{esc(x)}}</li>`).join('')}}</ul></div>`;
+    debugHtml += `<div class="evidence-block"><strong>Warnings / errors</strong><ul class="evidence-list">${{errors.map(x => `<li>错误：${{esc(x)}}</li>`).join('')}}${{warnings.map(x => `<li>警告：${{esc(x)}}</li>`).join('')}}</ul></div>`;
   }}
   if (renderReport.requested_target || renderReport.actual_target) {{
-    html += `<div class="evidence-block"><strong>Render target</strong>${{evidenceLine('requested', esc(renderReport.requested_target || ''))}}${{evidenceLine('actual', esc(renderReport.actual_target || RUNTIME_TARGET))}}${{renderReport.used_baseline_renderer ? evidenceLine('baseline', 'true') : ''}}</div>`;
+    debugHtml += `<div class="evidence-block"><strong>Render target</strong>${{evidenceLine('requested', esc(renderReport.requested_target || ''))}}${{evidenceLine('actual', esc(renderReport.actual_target || RUNTIME_TARGET))}}${{renderReport.used_baseline_renderer ? evidenceLine('baseline', 'true') : ''}}</div>`;
   }}
   $('evidence').innerHTML = html;
+  $('debug-evidence').innerHTML = debugHtml;
+  $('debug-validation-json').textContent = pretty(validation);
+  $('debug-release').innerHTML = `<div class="evidence-block"><strong>release gate raw</strong><pre>${{esc(pretty(gate))}}</pre></div>`;
 }}
 function gateChips(gate) {{
   const keys = ['schema_ready','oracle_ready','expected_consistent','generated_tests_pass','contract_ready','artifact_ready','process_ready','trace_ready','visual_ready','multi_solution_ready','release_ready'];
@@ -792,6 +1119,15 @@ function evidenceLine(label, value) {{
 function valueCode(value) {{
   return esc(compactValue(value));
 }}
+function renderProcessEvidence(f) {{
+  const process = f && f.evidence && f.evidence.process || null;
+  if (!process || !process.summary) return '';
+  const checks = Array.isArray(process.checks) ? process.checks : [];
+  const checkRows = checks.length ? `<ul class="evidence-list">${{checks.map(item => `<li><strong>${{esc(item.label || '核对')}}</strong>：${{esc(item.text || '')}}</li>`).join('')}}</ul>` : '';
+  const status = process.status ? evidenceLine('status', esc(process.status)) : '';
+  const kind = process.kind ? evidenceLine('kind', esc(process.kind)) : '';
+  return `<div class="evidence-block"><strong>过程校验证据</strong><p style="color:var(--muted);margin:0 0 6px;font-size:12px;">本步过程核对</p>${{status}}${{kind}}${{evidenceLine('summary', esc(process.summary))}}${{checkRows}}</div>`;
+}}
 function renderStepEvidence(f) {{
   const evidence = f.evidence || {{}};
   const previous = stepIndex > 0 ? frames()[stepIndex - 1] : null;
@@ -801,13 +1137,63 @@ function renderStepEvidence(f) {{
   const deps = evidence.deps || marks.filter(m => m.role === 'dependency').map(m => m.target);
   const changedTargetIds = targetChanges(targets, previous && previous.state || {{}}, f.state || {{}});
   let html = '';
-  html += `<div class="evidence-block"><strong>本步语义</strong>${{evidenceLine('operation', esc(evidence.operation || f.operation || ''))}}${{evidenceLine('code_line', esc(evidence.code_line || f.code_line || ''))}}${{evidenceLine('targets', esc((targets || []).join(', ') || '无'))}}${{evidenceLine('deps', esc((deps || []).join(', ') || '无'))}}${{evidence.role ? evidenceLine('role', esc(evidence.role)) : ''}}</div>`;
+  html += `<div class="evidence-block"><strong>本步语义</strong>${{evidenceLine('operation', esc(evidence.operation || frameOperation(f)))}}${{evidenceLine('code_line', esc(evidence.code_line || frameCodeLine(f)))}}${{evidenceLine('targets', esc((targets || []).join(', ') || '无'))}}${{evidenceLine('deps', esc((deps || []).join(', ') || '无'))}}${{evidence.role ? evidenceLine('role', esc(evidence.role)) : ''}}</div>`;
+  html += renderProcessEvidence(f);
   if (evidence.value !== undefined || evidence.before !== undefined || evidence.after !== undefined) {{
     html += `<div class="evidence-block"><strong>事件值</strong>${{evidence.value !== undefined ? evidenceLine('value', valueCode(evidence.value)) : ''}}${{evidence.before !== undefined ? evidenceLine('before', valueCode(evidence.before)) : ''}}${{evidence.after !== undefined ? evidenceLine('after', valueCode(evidence.after)) : ''}}</div>`;
   }}
+  html += `<div class="evidence-block"><strong>状态变化摘要</strong>${{eventChangeRows(f).length ? eventChangeRows(f).map(renderChangeRow).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">本步没有可观测状态变化。</p>'}}</div>`;
   html += `<div class="evidence-block"><strong>状态变化</strong>${{diffs.length ? diffs.slice(0, 8).map(renderDiff).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">与上一帧相比没有关键变量变化。</p>'}}${{diffs.length > 8 ? `<p style="color:var(--muted);margin:6px 0 0;font-size:12px;">还有 ${{diffs.length - 8}} 项变化已省略。</p>` : ''}}</div>`;
   html += `<div class="evidence-block"><strong>目标写入核对</strong>${{changedTargetIds.length ? `<ul class="evidence-list">${{changedTargetIds.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">本步目标没有可解析的状态写入，或属于指针/节点移动。</p>'}}</div>`;
   $('step-evidence').innerHTML = html;
+}}
+function renderChangeSummary(f) {{
+  const rows = eventChangeRows(f);
+  if (!rows.length) return '';
+  return `<div class="change-summary"><strong>状态变化摘要</strong>${{rows.slice(0, 6).map(renderChangeRow).join('')}}${{rows.length > 6 ? `<p style="color:#166534;margin:6px 0 0;font-size:12px;">还有 ${{rows.length - 6}} 项变化已省略。</p>` : ''}}</div>`;
+}}
+function eventChangeRows(f) {{
+  const evidence = f.evidence || {{}};
+  if (Array.isArray(evidence.changes) && evidence.changes.length) return evidence.changes.map(normalizeChangeRow);
+  const fields = [];
+  if (evidence.before !== undefined) fields.push(['before', evidence.before]);
+  if (evidence.after !== undefined) fields.push(['after', evidence.after]);
+  if (evidence.value !== undefined) fields.push(['value', evidence.value]);
+  if (fields.length) {{
+    const targets = Array.isArray(evidence.targets) && evidence.targets.length ? evidence.targets : ['state'];
+    return targets.map((target, index) => normalizeChangeRow({{
+      target,
+      before: pickIndexedValue(evidence.before, index, targets.length),
+      after: pickIndexedValue(evidence.after, index, targets.length),
+      value: pickIndexedValue(evidence.value, index, targets.length),
+      source:'event',
+    }}));
+  }}
+  const previous = stepIndex > 0 ? frames()[stepIndex - 1] : null;
+  return stateDiff(previous && previous.state || {{}}, f.state || {{}}).map(diff => normalizeChangeRow({{
+    target:diff.key, before:diff.before, after:diff.after, kind:diff.kind, source:'state_diff',
+  }}));
+}}
+function normalizeChangeRow(row) {{
+  return {{
+    target:String(row && row.target !== undefined ? row.target : 'state'),
+    before:row && row.before,
+    after:row && row.after,
+    value:row && row.value,
+    kind:row && row.kind || '',
+    source:row && row.source || '',
+  }};
+}}
+function pickIndexedValue(value, index, total) {{
+  if (Array.isArray(value) && total > 1 && index < value.length) return value[index];
+  return value;
+}}
+function renderChangeRow(row) {{
+  const parts = [];
+  if (row.before !== undefined || row.after !== undefined) parts.push(`${{compactValue(row.before)}} → ${{compactValue(row.after)}}`);
+  if (row.value !== undefined) parts.push(`value=${{compactValue(row.value)}}`);
+  const suffix = [row.kind, row.source === 'state_diff' ? 'state diff' : 'event'].filter(Boolean).join(' · ');
+  return `<div class="change-row" data-source="${{esc(row.source || '')}}"><span>${{esc(row.target)}}${{suffix ? ` · ${{esc(suffix)}}` : ''}}</span><code>${{esc(parts.join(' · ') || '已变化')}}</code></div>`;
 }}
 function stateDiff(prev, next) {{
   const keys = Array.from(new Set([...Object.keys(prev || {{}}), ...Object.keys(next || {{}})])).sort();
@@ -863,20 +1249,28 @@ function sortJson(value) {{
   }}
   return value;
 }}
-function teachingRows(f) {{
+function teachingFieldRows(f) {{
   const teaching = f.teaching || {{}};
-  const rows = [
-    ['当前步骤', teaching.what || f.title || f.operation],
-    ['为什么', teaching.why || f.description || '根据当前状态推进算法步骤。'],
-    ['公式', teaching.formula || ''],
-    ['不变量', teaching.invariant || ''],
-    ['常见错误', teaching.common_mistake || ''],
-    ['提示', teaching.hint || ''],
-  ].filter(([,value]) => String(value || '').trim());
-  return rows.length ? rows : [['当前步骤', f.description || f.title || '继续执行算法步骤。']];
+  return [
+    {{ key:'what', label:'当前步骤', value:teaching.what || frameTitle(f), code:false }},
+    {{ key:'why', label:'为什么', value:teaching.why || frameDescription(f) || '根据当前状态推进算法步骤。', code:false }},
+    {{ key:'formula', label:'公式 / 规则', value:teaching.formula || '', code:true }},
+    {{ key:'invariant', label:'不变量', value:teaching.invariant || '', code:false }},
+    {{ key:'common_mistake', label:'常见错误', value:teaching.common_mistake || '', code:false }},
+    {{ key:'hint', label:'提示', value:teaching.hint || '', code:false }},
+  ].filter(row => String(row.value || '').trim());
+}}
+function renderTeachingField(row) {{
+  const value = esc(row.value);
+  const body = row.code ? `<code>${{value}}</code>` : `<p>${{value}}</p>`;
+  return `<div class="teach-row ${{esc(row.key)}}"><strong>${{esc(row.label)}}</strong>${{body}}</div>`;
+}}
+function teachingRows(f) {{
+  const rows = teachingFieldRows(f);
+  return rows.length ? rows : [{{ key:'what', label:'当前步骤', value:frameDescription(f) || frameTitle(f) || '继续执行算法步骤。', code:false }}];
 }}
 function renderTeaching(f) {{
-  $('teaching').innerHTML = `<div class="teaching">${{teachingRows(f).map(([label,value]) => `<div class="teach-row"><strong>${{esc(label)}}</strong><p>${{esc(value)}}</p></div>`).join('')}}</div>`;
+  $('teaching').innerHTML = `<div class="teaching">${{teachingRows(f).map(renderTeachingField).join('')}}${{renderChangeSummary(f)}}</div>`;
 }}
 function renderInteraction(interaction) {{
   if (!interaction) {{ $('interaction').innerHTML = '<p style="color:var(--muted);margin:0;">当前步骤没有交互题。</p>'; return; }}
@@ -884,7 +1278,7 @@ function renderInteraction(interaction) {{
   const choiceHtml = interaction.type === 'choice' ? opts.map(o => `<button onclick="checkChoice('${{encodeURIComponent(String(o))}}')">${{esc(o)}}</button>`).join('') : '';
   const inputHtml = interaction.type === 'input' ? '<input id="free-answer" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"><button onclick="checkInput()">检查</button>' : '';
   const judgeHtml = interaction.type === 'judge' ? '<button onclick="checkJudge(true)">正确</button><button onclick="checkJudge(false)">错误</button>' : '';
-  $('interaction').innerHTML = `<div class="interaction"><strong>${{esc(interaction.prompt || '思考题')}}</strong>${{choiceHtml}}${{inputHtml}}${{judgeHtml}}<div id="feedback" class="feedback"></div></div>`;
+  $('interaction').innerHTML = `<div class="interaction" data-interaction-type="${{esc(interaction.type || '')}}" data-trace-step="${{frame().step}}"><strong>${{esc(interaction.prompt || '思考题')}}</strong>${{choiceHtml}}${{inputHtml}}${{judgeHtml}}<div id="feedback" class="feedback"></div></div>`;
 }}
 function checkChoice(encoded) {{
   const value = decodeURIComponent(encoded);
@@ -902,9 +1296,13 @@ function checkJudge(value) {{
   const expected = ans === true || String(ans).toLowerCase() === 'true' || String(ans) === '正确';
   $('feedback').textContent = (value === expected ? '正确。' : '再想想。') + (frame().interaction.explanation || '');
 }}
-function renderCode(code, active) {{
+function renderCode(code, info) {{
   const lines = String(code || '').split('\\n');
-  $('code').innerHTML = lines.map((line,i)=>`<div class="line ${{i+1===active?'active':''}}"><span class="lineno">${{i+1}}</span><span>${{esc(line) || ' '}}</span></div>`).join('');
+  const active = Number(info && info.active) || 1;
+  const status = info && info.status === 'ok' ? 'ok' : 'warn';
+  const label = info && info.label ? info.label : `当前代码行：第 ${{active}} 行`;
+  const sync = `<div class="code-sync ${{status}}" data-active-line="${{active}}"><span>${{esc(label)}}</span></div>`;
+  $('code').innerHTML = sync + lines.map((line,i)=>`<div class="line ${{i+1===active?'active':''}}"><span class="lineno">${{i+1}}</span><span>${{esc(line) || ' '}}</span></div>`).join('');
 }}
 function play() {{
   if (timer) return stop();

@@ -7,6 +7,7 @@ schema -> validator -> scene compiler -> renderer -> sandbox.
 from __future__ import annotations
 
 import json
+import argparse
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -14,6 +15,7 @@ from pydantic import ValidationError
 from algolab.compiler.scene_compiler import compile_scene
 from app import benchmark_preset_choices, load_benchmark_preset
 import algolab.generation.solution_generator as solution_generator
+import scripts.run_llm_benchmark as llm_benchmark
 from algolab.generation.solution_generator import (
     build_contract_with_repair,
     normalize_contract_spec,
@@ -35,7 +37,11 @@ from algolab.schemas.validation import BuildArtifact
 from algolab.schemas.visual_plan import RenderTarget, VisualPlan
 from algolab.verification.scene_validator import validate_scene
 from algolab.verification.contract_validator import validate_contract
-from algolab.verification.process_validator import validate_process
+from algolab.verification.process_validator import (
+    process_validation_profile_for_family,
+    process_validation_registry,
+    validate_process,
+)
 from algolab.verification.trace_validator import validate_trace
 from algolab.verification.visual_plan_validator import validate_visual_plan
 from tests.fixtures import (
@@ -43,14 +49,22 @@ from tests.fixtures import (
     algorithm_family_traces,
     bfs_trace,
     fixture_artifact,
+    golden_visual_artifact,
+    golden_visual_matrix,
     geometry_trace,
+    hash_map_trace,
     heap_trace,
     house_robber_trace,
+    monotonic_stack_trace,
     recursion_trace,
+    recursion_tree_trace,
     string_trace,
     tree_trace,
     trie_trace,
+    topk_heap_trace,
+    two_pointer_trace,
     union_find_trace,
+    unique_paths_trace,
 )
 from tests.benchmark_cases import benchmark_cases
 
@@ -320,6 +334,75 @@ def test_teaching_schema_compiles_explicit_fields_and_reason_fallback(tmp_path: 
     assert "common_mistake" in html
 
 
+def test_teaching_step_renders_structured_fields_without_algorithm_branches(tmp_path: Path):
+    out = save_html(golden_visual_artifact(), tmp_path / "teaching_step.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function renderTeachingField" in html
+    assert "function teachingFieldRows" in html
+    assert ".teach-row.formula" in html
+    assert ".teach-row.invariant" in html
+    assert ".teach-row.common_mistake" in html
+    assert ".teach-row.hint" in html
+
+    renderer = html.split("function teachingRows", 1)[1].split("function renderInteraction", 1)[0]
+    assert "algorithm" not in renderer
+    assert "problem_title" not in renderer
+    assert "teaching.formula || ''" not in renderer
+    assert "renderTeachingField" in renderer
+
+    field_renderer = html.split("function renderTeachingField", 1)[1].split("function teachingRows", 1)[0]
+    assert "row.key" in field_renderer
+
+
+def test_teaching_step_covers_generic_algorithm_families_and_formula_fallback():
+    artifact = golden_visual_artifact()
+    expectations = {
+        "unique_paths": ("dp[1][1] = 1 + 1 = 2", "处理当前格时"),
+        "bfs": ("dist[v] = dist[A] + 1", "未访问节点第一次入队"),
+        "binary_search": ("left = mid + 1", "新区间仍覆盖"),
+        "monotonic_stack": ("answer[0] = 1 - 0 = 1", "被弹出的下标"),
+    }
+
+    for variant_id, (formula_part, invariant_part) in expectations.items():
+        scene = artifact.scenes[variant_id]
+        teaching_values = [frame.teaching or {} for frame in scene.frames]
+        assert any(formula_part in str(teaching.get("formula", "")) for teaching in teaching_values), variant_id
+        assert any(invariant_part in str(teaching.get("invariant", "")) for teaching in teaching_values), variant_id
+        assert all(str(teaching.get("what", "")).strip() for teaching in teaching_values), variant_id
+        assert all(str(teaching.get("why", "")).strip() for teaching in teaching_values), variant_id
+
+    no_formula_trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "无公式教学",
+            "input_data": {"items": ["A"]},
+            "result": ["A"],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "push",
+                    "targets": [{"id": "queue"}],
+                    "state": {"queue": ["A"]},
+                    "reason": "元素入队。",
+                    "code_line": 1,
+                    "teaching": {
+                        "what": "元素入队",
+                        "why": "按到达顺序处理。",
+                        "formula": "",
+                        "invariant": "队列保持先进先出。",
+                        "hint": "观察队尾变化。",
+                    },
+                }
+            ],
+        }
+    )
+    teaching = compile_scene(no_formula_trace).frames[0].teaching
+    assert teaching is not None
+    assert teaching["formula"] == ""
+    assert teaching["invariant"] == "队列保持先进先出。"
+
+
 def test_stable_renderer_exposes_correctness_and_step_evidence(tmp_path: Path):
     artifact = fixture_artifact().model_copy(deep=True)
     artifact.correctness_contract = CorrectnessContract.model_validate(_two_sum_contract_payload())
@@ -355,6 +438,380 @@ def test_stable_renderer_exposes_correctness_and_step_evidence(tmp_path: Path):
     assert "Contract tests" in html
     assert "目标写入核对" in html
     assert "seen only contains values from previous indices" in html
+
+
+def test_renderer_uses_p1_information_architecture(tmp_path: Path):
+    out = save_html(fixture_artifact(), tmp_path / "p1_layout.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert 'id="top-result"' in html
+    assert 'id="top-solution"' in html
+    assert 'id="problem-description"' in html
+    assert 'id="teaching-panel"' in html
+    assert 'id="debug-drawer"' in html
+    assert 'id="debug-drawer" open' not in html
+    assert html.index('id="teaching-panel"') < html.index('id="debug-drawer"')
+
+    badge_renderer = html.split("function renderBadges()", 1)[1].split("function renderTabs()", 1)[0]
+    assert "代码执行通过" in badge_renderer
+    assert "轨迹覆盖完整" in badge_renderer
+    assert "过程转移通过校验" in badge_renderer
+    assert "可视化对象绑定正确" in badge_renderer
+    assert "${k}：${v?'通过':'待检查'}" in badge_renderer
+    assert "${k}：${v?'PASS':'NO'}" not in badge_renderer
+
+
+def test_scene_compiler_emits_generic_timeline_evidence():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "通用阶段样例",
+            "input_data": {"x": 1},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "dp"}],
+                    "state": {"dp": [1, 0], "phase": "初始化"},
+                    "reason": "创建 DP 容器。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "dp[1]"}],
+                    "deps": [{"id": "dp[0]"}],
+                    "state": {"dp": [1, 2]},
+                    "role": "answer",
+                    "reason": "写入最终答案。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+    scene = compile_scene(trace)
+
+    first_timeline = scene.frames[0].evidence["timeline"]
+    second_timeline = scene.frames[1].evidence["timeline"]
+    assert first_timeline["phase"] == "初始化"
+    assert first_timeline["operation"] == "create"
+    assert first_timeline["keyframe"] is True
+    assert second_timeline["phase"] == "返回结果"
+    assert second_timeline["operation"] == "set"
+    assert second_timeline["keyframe"] is True
+    assert second_timeline["keyframe_label"] == "写入最终答案。"
+
+
+def test_scene_compiler_infers_timeline_phase_without_explicit_state_field():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "通用阶段降级",
+            "input_data": {"nums": [1, 2]},
+            "result": 3,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "nums"}, {"id": "answer"}],
+                    "state": {"nums": [1, 2], "answer": 0},
+                    "reason": "准备输入和答案容器。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "compare",
+                    "targets": [{"id": "nums[0]"}],
+                    "state": {"nums": [1, 2], "answer": 0, "i": 0},
+                    "role": "candidate",
+                    "reason": "进入循环检查当前元素。",
+                    "code_line": 2,
+                },
+                {
+                    "step": 2,
+                    "op": "set",
+                    "targets": [{"id": "answer"}],
+                    "deps": [{"id": "nums[0]"}, {"id": "nums[1]"}],
+                    "after": 3,
+                    "state": {"nums": [1, 2], "answer": 3, "i": 1},
+                    "role": "answer",
+                    "reason": "由两个数组元素推出答案。",
+                    "code_line": 3,
+                },
+                {
+                    "step": 3,
+                    "op": "explain",
+                    "targets": [{"id": "answer"}],
+                    "state": {"nums": [1, 2], "answer": 3},
+                    "role": "answer",
+                    "reason": "返回最终答案。",
+                    "code_line": 4,
+                },
+            ],
+        }
+    )
+
+    phases = [frame.evidence["timeline"]["phase"] for frame in compile_scene(trace).frames]
+
+    assert phases == ["初始化", "主循环", "关键转移", "返回结果"]
+
+
+def test_renderer_uses_semantic_timeline_with_generic_fallback(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "通用时间线",
+            "input_data": {"x": 1},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "dp"}],
+                    "state": {"dp": [1, 0], "phase": "初始化"},
+                    "reason": "创建 DP 容器。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "compare",
+                    "targets": [{"id": "dp[0]"}],
+                    "state": {"dp": [1, 0]},
+                    "reason": "",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+    artifact = fixture_artifact().model_copy(deep=True)
+    artifact.problem_title = "通用时间线测试"
+    artifact.input_data = trace.input_data
+    artifact.expected_result = trace.result
+    artifact.verifier_result = trace.result
+    artifact.variants[0].trace = trace
+    artifact.variants[0].result = trace.result
+    artifact.scenes = {"dp": compile_scene(trace)}
+
+    out = save_html(artifact, tmp_path / "semantic_timeline.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert 'id="timeline" class="timeline" aria-label="语义时间线"' in html
+    assert "function timelineMeta" in html
+    assert "function fallbackTimelineLabel" in html
+    assert "tick-label" in html
+    assert "tick-op" in html
+    assert "data-step" in html
+    assert "data-phase" in html
+    assert "aria-label=" in html
+    assert "keyframe" in html
+
+    timeline_renderer = html.split("function renderTimeline()", 1)[1].split("function renderState", 1)[0]
+    assert "problem_title" not in timeline_renderer
+    assert "algorithm" not in timeline_renderer
+    assert "meta.phase" in timeline_renderer
+    assert "fallbackTimelineLabel(f, i)" in timeline_renderer
+
+
+def test_tracker_prompt_requests_phase_labels_without_stage_targets():
+    prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
+
+    assert 'state["phase"]' in prompt or '"phase"' in prompt
+    assert "初始化" in prompt
+    assert "主循环" in prompt
+    assert "关键转移" in prompt
+    assert "返回结果" in prompt
+    assert "不要发明阶段 target" in prompt
+
+
+def test_tracker_prompt_requires_accurate_code_lines_for_key_events():
+    prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
+
+    assert "关键事件" in prompt
+    assert "准确 code_line" in prompt
+    assert "solve" in prompt
+    assert "pseudocode" in prompt
+    assert "不要省略 code_line" in prompt
+    assert "不要乱填" in prompt
+
+
+def test_scene_frame_payload_flows_across_core_layouts():
+    cases = [
+        ("matrix", unique_paths_trace()),
+        ("graph", bfs_trace()),
+        ("array", two_pointer_trace()),
+        ("stack", monotonic_stack_trace()),
+        ("map", hash_map_trace()),
+    ]
+
+    for expected_layout, trace in cases:
+        scene = compile_scene(trace)
+        assert scene.frames, expected_layout
+        assert any(
+            obj.type.value == "container" and obj.meta.get("layout") == expected_layout
+            for frame in scene.frames
+            for obj in frame.objects
+        ), (expected_layout, trace.algorithm)
+
+        for event, frame in zip(trace.events, scene.frames, strict=True):
+            assert frame.operation == event.op.value, (expected_layout, event.step)
+            assert frame.code_line == event.code_line, (expected_layout, event.step)
+            assert frame.description == event.reason, (expected_layout, event.step)
+            assert frame.title.strip(), (expected_layout, event.step)
+            assert frame.teaching is not None, (expected_layout, event.step)
+            assert frame.teaching["what"].strip(), (expected_layout, event.step)
+            assert frame.teaching["why"].strip(), (expected_layout, event.step)
+            assert frame.evidence["operation"] == event.op.value, (expected_layout, event.step)
+            assert frame.evidence["targets"] == [target.id for target in event.targets], (
+                expected_layout,
+                event.step,
+            )
+            assert frame.evidence["deps"] == [dep.id for dep in event.deps], (expected_layout, event.step)
+            assert frame.evidence["code_line"] == event.code_line, (expected_layout, event.step)
+            if event.interaction is not None:
+                assert frame.interaction == event.interaction.model_dump(), (expected_layout, event.step)
+
+
+def test_renderer_declares_scene_frame_payload_fallbacks(tmp_path: Path):
+    out = save_html(fixture_artifact(), tmp_path / "payload_fallbacks.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function frameTitle" in html
+    assert "function frameDescription" in html
+    assert "function frameOperation" in html
+    assert "function frameCodeLine" in html
+
+    render_step = html.split("function renderStep()", 1)[1].split("function markClass", 1)[0]
+    assert "frameTitle(f)" in render_step
+    assert "frameDescription(f)" in render_step
+    assert "frameOperation(f)" in render_step
+    assert "codeLineInfo(f, code)" in render_step
+
+    render_step_evidence = html.split("function renderStepEvidence", 1)[1].split("function stateDiff", 1)[0]
+    assert "frameOperation(f)" in render_step_evidence
+    assert "frameCodeLine(f)" in render_step_evidence
+
+
+def test_renderer_declares_code_sync_and_line_fallbacks(tmp_path: Path):
+    artifact = fixture_artifact().model_copy(deep=True)
+    artifact.variants[0].code = "def solve(input_data):\n    return 12"
+    scene_id = artifact.variants[0].id
+    artifact.scenes[scene_id].frames[0].code_line = 99
+
+    out = save_html(artifact, tmp_path / "code_sync.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert ".code-sync" in html
+    assert "function codeLineInfo" in html
+    assert "当前代码行" in html
+    assert "code_line 越界" in html
+    assert "data-active-line" in html
+
+    render_step = html.split("function renderStep()", 1)[1].split("function markClass", 1)[0]
+    assert "const code = variant().code || '';" in render_step
+    assert "renderCode(code, codeLineInfo(f, code));" in render_step
+
+    code_info = html.split("function codeLineInfo", 1)[1].split("function markClass", 1)[0]
+    assert "f && f.code_line" in code_info
+    assert "algorithm" not in code_info
+    assert "problem_title" not in code_info
+    assert "Math.min(Math.max" in code_info
+
+    render_code = html.split("function renderCode", 1)[1].split("function play", 1)[0]
+    assert "info.label" in render_code
+    assert "info.active" in render_code
+    assert "data-active-line" in render_code
+
+
+def _single_dependency_trace(layout: str) -> SemanticTrace:
+    states = {
+        "matrix": {
+            "state": {"dp": [[1, 1], [1, 2]]},
+            "targets": [{"id": "dp[1][1]"}],
+            "deps": [{"id": "dp[0][1]"}, {"id": "dp[1][0]"}],
+        },
+        "graph": {
+            "state": {"graph": {"A": ["B"], "B": []}, "dist": {"A": 0, "B": 1}},
+            "targets": [{"id": "node:B"}],
+            "deps": [{"id": "node:A"}, {"id": "edge:A->B"}],
+        },
+        "array": {
+            "state": {"nums": [1, 3, 5], "answer": [1, 2]},
+            "targets": [{"id": "answer[1]"}],
+            "deps": [{"id": "nums[1]"}, {"id": "nums[2]"}],
+        },
+        "stack": {
+            "state": {"temperatures": [73, 74], "stack": [0], "answer": [1, 0]},
+            "targets": [{"id": "answer[0]"}],
+            "deps": [{"id": "stack"}, {"id": "temperatures[1]"}],
+        },
+        "map": {
+            "state": {"nums": [2, 7], "seen": {"2": 0}, "answer": [0, 1]},
+            "targets": [{"id": "answer[1]"}],
+            "deps": [{"id": "seen[2]"}, {"id": "nums[1]"}],
+        },
+    }
+    case = states[layout]
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": f"{layout} 依赖测试",
+            "input_data": {"layout": layout},
+            "result": True,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": case["targets"],
+                    "deps": case["deps"],
+                    "state": case["state"],
+                    "role": "answer",
+                    "reason": "当前对象由依赖对象推出。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+
+def test_scene_compiler_compiles_deps_as_dependency_edges_across_core_layouts():
+    for layout in ("matrix", "graph", "array", "stack", "map"):
+        trace = _single_dependency_trace(layout)
+        frame = compile_scene(trace).frames[0]
+        deps = [dep.id for dep in trace.events[0].deps]
+        targets = [target.id for target in trace.events[0].targets]
+        arrows = [obj for obj in frame.objects if obj.type.value == "arrow"]
+
+        assert arrows, layout
+        assert {arrow.source for arrow in arrows} == set(deps), layout
+        assert {arrow.target for arrow in arrows} == set(targets), layout
+        assert all(arrow.role == "dependency" for arrow in arrows), layout
+        assert all(any(mark.target == dep and mark.role == "dependency" for mark in frame.marks) for dep in deps), layout
+        assert frame.evidence["deps"] == deps, layout
+        assert frame.evidence["targets"] == targets, layout
+
+
+def test_renderer_declares_structured_dependency_flow(tmp_path: Path):
+    out = save_html(fixture_artifact(), tmp_path / "dependency_flow.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function renderDependencyFlow" in html
+    assert "function dependencyEdges" in html
+    assert "function dependencyLabel" in html
+    assert "function objectById" in html
+    assert "dependency-flow" in html
+    assert "dependency-edge" in html
+    assert "data-source" in html
+    assert "data-target" in html
+
+    renderer = html.split("function renderDependencyFlow", 1)[1].split("function renderSpatialCanvas", 1)[0]
+    assert "ARTIFACT" not in renderer
+    assert "algorithm" not in renderer
+    assert "problem_title" not in renderer
+    assert "o.type === 'arrow'" in renderer
+    assert "f.evidence" in renderer
+    assert "→" in renderer
 
 
 def test_scene_compiler_hides_internal_trace_meta_from_rendered_state(tmp_path: Path):
@@ -666,6 +1123,21 @@ def test_tracker_prompt_requires_tracer_api():
     assert "不要直接手写 events.append" in prompt
 
 
+def test_tracker_prompt_requires_teaching_and_complete_key_set_events():
+    prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
+
+    assert "teaching" in prompt
+    assert "每个关键事件" in prompt
+    assert "what" in prompt and "why" in prompt
+    assert "关键 set 事件" in prompt
+    for field in ("deps", "value", "state", "reason", "code_line"):
+        assert field in prompt
+    assert "禁止旧字段" in prompt
+    assert "type" in prompt and "target" in prompt
+    assert "旧式 map target" in prompt
+    assert "seen:2" in prompt and "dist:A" in prompt
+
+
 def test_repair_prompt_converts_sparse_trace_to_tracer_api():
     prompt = Path("algolab/generation/prompts/repair_system.txt").read_text(encoding="utf-8")
     assert "Tracer API" in prompt
@@ -838,6 +1310,125 @@ def test_contract_repair_loop_handles_validator_and_oracle_failures():
     assert repair_log[-1]["status"] == "ok"
 
 
+def test_solution_repair_context_classifies_failure_types_and_step_targets():
+    request = ProblemInput(problem="不同路径", input_data={"m": 2, "n": 2}, expected_result=2)
+    previous = {"variants": [{"id": "dp", "name": "DP", "code": "", "tracker_code": ""}]}
+    captured: dict[str, str] = {}
+
+    def fake_chat_json(_system_prompt, user_prompt):
+        captured["prompt"] = user_prompt
+        return {
+            "problem_title": "x",
+            "input_contract": "",
+            "variants": [{"id": "x", "name": "x", "code": "", "tracker_code": ""}],
+            "verifier_code": "",
+        }
+
+    original = solution_generator.chat_json
+    solution_generator.chat_json = fake_chat_json
+    try:
+        solution_generator.repair_solution_spec(
+            request,
+            previous,
+            [
+                "ValidationError: events[0].targets Field required",
+                "第 3 步旧式 map target 已废弃，请使用方括号格式：seen:2",
+                "第 4 步 dp[1][1] 不满足不同路径转移",
+                "failure_type=coverage_error: BFS 小图缺少关键步骤覆盖：check_edge",
+                "第 2 帧没有可见对象",
+            ],
+        )
+    finally:
+        solution_generator.chat_json = original
+
+    prompt = captured["prompt"]
+    assert "结构化错误上下文" in prompt
+    assert "schema_error" in prompt
+    assert "target_error" in prompt
+    assert "process_error" in prompt
+    assert "coverage_error" in prompt
+    assert "scene_error" in prompt
+    assert '"step": 3' in prompt
+    assert '"target": "seen:2"' in prompt
+    assert '"target": "dp[1][1]"' in prompt
+
+
+def test_llm_benchmark_report_summarizes_repair_failure_type_transitions():
+    import tempfile
+
+    args = argparse.Namespace(
+        case=["unique_paths"],
+        sample=0,
+        all_samples=False,
+        solutions=1,
+        max_rounds=2,
+        timeout_s=1,
+        strict_warnings=True,
+        browser_smoke=False,
+        write_each=True,
+        concurrency=1,
+    )
+    with tempfile.TemporaryDirectory() as d:
+        report_path = llm_benchmark.write_report(
+            [
+                {
+                    "case_id": "unique_paths",
+                    "title": "不同路径",
+                    "family": "二维 DP",
+                    "sample_index": 0,
+                    "ok": True,
+                    "errors": [],
+                    "repair_failure_types": ["schema_error", "coverage_error"],
+                    "duration_s": 1.0,
+                },
+                {
+                    "case_id": "graph_bfs",
+                    "title": "图 BFS",
+                    "family": "BFS",
+                    "sample_index": 0,
+                    "ok": False,
+                    "errors": ["第 2 帧没有可见对象"],
+                    "repair_failure_types": ["target_error"],
+                    "duration_s": 2.0,
+                },
+            ],
+            Path(d),
+            args=args,
+            started_at="2026-01-01T00:00:00",
+            ended_at="2026-01-01T00:00:03",
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert report["repair_failure_summary"] == {"schema_error": 1, "coverage_error": 1, "target_error": 1}
+    assert report["results"][0]["repair_failure_types"] == ["schema_error", "coverage_error"]
+
+
+def test_llm_benchmark_failed_run_preserves_repair_failure_types():
+    args = argparse.Namespace(
+        solutions=1,
+        max_rounds=1,
+        output_dir=Path("output/offline_regression"),
+        strict_warnings=True,
+    )
+    case = benchmark_cases()[0]
+    sample = case.samples[0]
+    original = llm_benchmark.build_artifact_timed
+
+    def fake_build_artifact_timed(_request, **kwargs):
+        repair_types = kwargs["repair_failure_types_out"]
+        repair_types.extend(["schema_error", "target_error"])
+        raise RuntimeError("repair failed")
+
+    llm_benchmark.build_artifact_timed = fake_build_artifact_timed
+    try:
+        result = llm_benchmark.run_one(case, sample, 0, args)
+    finally:
+        llm_benchmark.build_artifact_timed = original
+
+    assert result["ok"] is False
+    assert result["repair_failure_types"] == ["schema_error", "target_error"]
+
+
 def test_schema_rejects_non_contiguous_steps():
     bad = house_robber_trace().model_dump()
     bad["events"][1]["step"] = 7
@@ -860,7 +1451,7 @@ def test_trace_validator_accepts_map_bracket_and_slice_targets():
     trace = SemanticTrace.model_validate(
         {
             "schema_version": "semantic-trace-v1",
-            "algorithm": "target 兼容",
+            "algorithm": "bracket target",
             "input_data": {"text": "ababc"},
             "result": 2,
             "events": [
@@ -891,7 +1482,33 @@ def test_trace_validator_accepts_map_bracket_and_slice_targets():
     ids = {obj.id for frame in scene.frames for obj in frame.objects}
     assert "text[2:5]" in ids
     assert "dist[B]" in ids
-    assert "dist:B" in ids
+    assert "dist:B" not in ids
+
+
+def test_trace_validator_rejects_legacy_map_colon_targets():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "legacy map target",
+            "input_data": {},
+            "result": None,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "seen:2"}],
+                    "deps": [{"id": "map:seen"}],
+                    "state": {"seen": {"2": 0}},
+                    "reason": "旧式 map target。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+    errors, _warnings = validate_trace(trace)
+
+    assert any("旧式 map target" in error for error in errors), errors
 
 
 def test_trace_validator_accepts_input_tree_and_points_targets():
@@ -921,7 +1538,7 @@ def test_trace_validator_accepts_input_tree_and_points_targets():
     assert not [w for w in warnings if "未在状态或输入图中出现" in w], warnings
 
 
-def test_execute_variant_normalizes_quoted_map_targets():
+def test_execute_variant_rejects_quoted_map_targets():
     variant = SolutionVariant(
         id="quoted_map",
         name="quoted map",
@@ -941,12 +1558,14 @@ def test_execute_variant_normalizes_quoted_map_targets():
             "    }\n"
         ),
     )
-    materialized = execute_variant(variant, {})
-    assert materialized.trace is not None
-    assert materialized.trace.events[1].targets[0].id == "seen[2]"
-    errors, warnings = validate_trace(materialized.trace)
-    assert errors == []
-    assert warnings == []
+    try:
+        materialized = execute_variant(variant, {})
+        assert materialized.trace is not None
+        errors, _warnings = validate_trace(materialized.trace)
+    except Exception as exc:
+        assert "seen['2']" in str(exc) or "map target" in str(exc)
+    else:
+        assert any("map target" in error for error in errors), errors
 
 
 def test_execute_variant_rejects_excessive_trace_events():
@@ -986,7 +1605,7 @@ def test_process_validator_accepts_map_container_dependency():
                     "step": 0,
                     "op": "mark",
                     "targets": [{"id": "seen"}],
-                    "deps": [{"id": "map:seen"}],
+                    "deps": [{"id": "seen"}],
                     "state": {"seen": {"2": 0}},
                     "reason": "引用哈希表容器。",
                     "code_line": 1,
@@ -997,6 +1616,67 @@ def test_process_validator_accepts_map_container_dependency():
     errors, warnings = validate_process(trace)
     assert errors == []
     assert not [w for w in warnings if "deps 未出现在 state" in w], warnings
+
+
+def test_process_validation_registry_declares_core_families():
+    registry = {profile.family: profile for profile in process_validation_registry()}
+    required = {"dp", "bfs", "binary_search", "monotonic_stack", "hash", "tree", "union_find"}
+
+    assert required <= set(registry)
+    for family in required:
+        profile = registry[family]
+        assert profile.coverage_rule
+        assert profile.failure_type
+        assert profile.status in {"strong", "fallback"}
+        if profile.status == "strong":
+            assert profile.checks, family
+        else:
+            assert profile.checks == ()
+            assert profile.failure_type in {"process_fallback", "process_uncovered"}
+
+    assert process_validation_profile_for_family("二维 DP").family == "dp"
+    assert process_validation_profile_for_family("BFS/DFS 基础图").family == "bfs"
+    assert process_validation_profile_for_family("栈 / 队列 / 单调栈").family == "monotonic_stack"
+    assert process_validation_profile_for_family("哈希表 / map").status == "fallback"
+    assert process_validation_profile_for_family("树 / BST / LCA").family == "tree"
+    assert process_validation_profile_for_family("并查集").family == "union_find"
+
+
+def test_process_validation_unknown_family_uses_fallback_not_strong_validation():
+    profile = process_validation_profile_for_family("未注册算法族")
+
+    assert profile.family == "uncovered"
+    assert profile.status == "fallback"
+    assert profile.checks == ()
+    assert profile.coverage_rule == "基础 schema / scene / answer gate；不声明算法族强过程不变量"
+    assert profile.failure_type == "process_uncovered"
+
+
+def test_process_registry_does_not_replace_blocking_errors():
+    profile = process_validation_profile_for_family("二维 DP")
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "不同路径",
+            "input_data": {"m": 2, "n": 2},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "dp[1][1]"}],
+                    "state": {"dp": [[1, 1], [1, 3]]},
+                    "reason": "错误的 DP 表。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+    errors, _warnings = validate_process(trace)
+
+    assert profile.status == "strong"
+    assert any("不同路径转移" in e for e in errors), errors
 
 
 def test_semantic_event_normalizes_null_optional_text():
@@ -1044,6 +1724,30 @@ def test_process_validator_rejects_bad_unique_paths_transition():
     )
     errors, _warnings = validate_process(trace)
     assert any("不同路径转移" in e for e in errors), errors
+
+
+def test_process_validator_rejects_bad_unique_paths_dependencies():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "不同路径",
+            "input_data": {"m": 2, "n": 2},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "dp[1][1]"}],
+                    "deps": [{"id": "dp[0][0]"}, {"id": "dp[1][0]"}],
+                    "state": {"dp": [[1, 1], [1, 2]]},
+                    "reason": "值正确但依赖来源写错。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(trace)
+    assert any("dp[1][1] 依赖应为" in e for e in errors), errors
 
 
 def test_process_validator_rejects_sparse_unique_paths_trace():
@@ -1184,6 +1888,31 @@ def test_process_validator_rejects_bad_bfs_distance():
     assert any("dist[B]" in e for e in errors), errors
 
 
+def test_process_validator_rejects_bad_bfs_discovery_parent():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "BFS",
+            "input_data": {"graph": {"A": ["B"], "B": []}, "start": "A"},
+            "result": {"A": 0, "B": 1},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "node:B"}],
+                    "deps": [{"id": "node:C"}],
+                    "state": {"graph": {"A": ["B"], "B": []}, "queue": ["B"], "dist": {"A": 0, "B": 1}, "parent": {"B": "C"}},
+                    "role": "visited",
+                    "reason": "距离正确但首次发现来源错误。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(trace)
+    assert any("BFS 首次发现 node:B 来源" in e for e in errors), errors
+
+
 def test_process_validator_rejects_bad_subset_sum_transition():
     trace = SemanticTrace.model_validate(
         {
@@ -1230,6 +1959,39 @@ def test_process_validator_rejects_binary_search_mid_outside_window():
     assert any("mid 不在" in e for e in errors), errors
 
 
+def test_process_validator_rejects_binary_search_wrong_shrink_direction():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "二分",
+            "input_data": {"nums": [1, 3, 5], "target": 5},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "compare",
+                    "targets": [{"id": "nums[1]"}, {"id": "pointer:mid"}],
+                    "state": {"nums": [1, 3, 5], "left": 0, "right": 2, "mid": 1, "target": 5},
+                    "value": 1,
+                    "reason": "mid 值小于 target。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "move",
+                    "targets": [{"id": "pointer:left"}, {"id": "pointer:right"}],
+                    "state": {"nums": [1, 3, 5], "left": 0, "right": 0, "target": 5},
+                    "value": [0, 0],
+                    "reason": "错误地向左收缩，丢掉目标所在半区。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+    errors, _warnings = validate_process(trace)
+    assert any("二分收缩方向错误" in e for e in errors), errors
+
+
 def test_process_validator_rejects_bad_heap_and_union_find():
     heap_trace_bad = SemanticTrace.model_validate(
         {
@@ -1256,6 +2018,30 @@ def test_process_validator_rejects_bad_heap_and_union_find():
     assert any("非根环" in e for e in errors), errors
 
 
+def test_process_validator_rejects_union_find_link_without_connected_roots():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "省份数量",
+            "input_data": {"isConnected": [[1, 1], [1, 1]]},
+            "result": 1,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "link",
+                    "targets": [{"id": "node:0"}],
+                    "deps": [{"id": "node:1"}],
+                    "state": {"isConnected": [[1, 1], [1, 1]], "union_find": {"parent": {"0": "0", "1": "1"}}, "i": 0, "j": 1},
+                    "reason": "声称 union，但 parent 没有把两个连通城市合并。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(trace)
+    assert any("union 后 0 和 1 应连通" in e for e in errors), errors
+
+
 def test_process_validator_rejects_bad_monotonic_stack_and_topo():
     mono_trace_bad = SemanticTrace.model_validate(
         {
@@ -1268,6 +2054,30 @@ def test_process_validator_rejects_bad_monotonic_stack_and_topo():
     )
     errors, _warnings = validate_process(mono_trace_bad)
     assert any("单调递增" in e for e in errors), errors
+
+    answer_trace_bad = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "每日温度",
+            "input_data": {"temperatures": [73, 74]},
+            "result": [1, 0],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "answer[0]"}],
+                    "deps": [{"id": "temperatures[0]"}, {"id": "temperatures[0]"}],
+                    "after": 0,
+                    "state": {"temperatures": [73, 74], "stack": [], "answer": [0, 0], "stack_order": "decreasing", "i": 1},
+                    "role": "answer",
+                    "reason": "弹出后写入了错误等待天数。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    errors, _warnings = validate_process(answer_trace_bad)
+    assert any("answer[0] 应为 1" in e for e in errors), errors
 
     topo_trace_bad = SemanticTrace.model_validate(
         {
@@ -1641,6 +2451,400 @@ def test_classic_subfamilies_have_deterministic_visual_coverage():
             assert expected_object in object_ids, (variant_id, name, expected_object)
 
 
+def _tree_with_recursion_trace() -> SemanticTrace:
+    tree = {
+        "nodes": [{"id": "4"}, {"id": "2"}, {"id": "7"}],
+        "edges": [["4", "2"], ["4", "7"]],
+    }
+    search_tree = {
+        "nodes": [{"id": "dfs4", "label": "dfs(4)"}, {"id": "dfs2", "label": "dfs(2)"}],
+        "edges": [["dfs4", "dfs2"]],
+    }
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "树递归复合视图",
+            "input_data": {"root": 4},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "enter",
+                    "targets": [{"id": "node:2"}],
+                    "deps": [{"id": "node:4"}],
+                    "state": {
+                        "tree": tree,
+                        "recursion_tree": search_tree,
+                        "stack": ["dfs(4)", "dfs(2)"],
+                    },
+                    "role": "current",
+                    "reason": "在原树上进入左子节点，同时展示递归搜索树和调用栈。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+
+def test_scene_compiler_preserves_compound_visual_primitives_for_core_examples():
+    cases = [
+        ("bfs", bfs_trace(), ("graph", "queue", "map")),
+        ("monotonic_stack", monotonic_stack_trace(), ("array", "stack")),
+        ("tree_recursion", _tree_with_recursion_trace(), ("tree", "recursion_tree", "stack")),
+        ("heap_array", topk_heap_trace(), ("array", "heap")),
+    ]
+    for case_id, trace, expected_layouts in cases:
+        scene = compile_scene(trace)
+        frame_layouts = [
+            {
+                obj.meta.get("layout")
+                for obj in frame.objects
+                if obj.type.value == "container"
+            }
+            for frame in scene.frames
+        ]
+        assert any(set(expected_layouts).issubset(layouts) for layouts in frame_layouts), (
+            case_id,
+            expected_layouts,
+            frame_layouts,
+        )
+
+
+def test_renderer_declares_compound_primitive_layout(tmp_path: Path):
+    out = save_html(fixture_artifact(), tmp_path / "compound_primitives.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function renderPrimitivePanel" in html
+    assert "function primitivePanelClass" in html
+    assert "compound-scene" in html
+    assert "primitive-panel" in html
+    assert "data-layout" in html
+
+    renderer = html.split("function renderTeachingCanvas", 1)[1].split("function renderDependencyFlow", 1)[0]
+    assert "algorithm" not in renderer
+    assert "problem_title" not in renderer
+    assert "renderPrimitivePanel(c, groups[c.id] || [], f.marks || [])" in renderer
+
+
+def _generic_state_change_trace() -> SemanticTrace:
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "通用状态变化",
+            "input_data": {"nums": [1, 2]},
+            "result": {"nums": [1, 5]},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "nums"}, {"id": "seen"}, {"id": "queue"}, {"id": "stack"}],
+                    "state": {"nums": [1, 2], "seen": {}, "left": 0, "queue": ["A"], "stack": [1, 2]},
+                    "reason": "初始化多个通用容器。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "nums[1]"}],
+                    "value": 5,
+                    "before": 2,
+                    "after": 5,
+                    "state": {"nums": [1, 5], "seen": {}, "left": 0, "queue": ["A"], "stack": [1, 2]},
+                    "reason": "数组写入。",
+                    "code_line": 2,
+                },
+                {
+                    "step": 2,
+                    "op": "set",
+                    "targets": [{"id": "seen[5]"}],
+                    "value": 1,
+                    "before": None,
+                    "after": 1,
+                    "state": {"nums": [1, 5], "seen": {"5": 1}, "left": 0, "queue": ["A"], "stack": [1, 2]},
+                    "reason": "map 更新。",
+                    "code_line": 3,
+                },
+                {
+                    "step": 3,
+                    "op": "move",
+                    "targets": [{"id": "pointer:left"}],
+                    "before": 0,
+                    "after": 1,
+                    "state": {"nums": [1, 5], "seen": {"5": 1}, "left": 1, "queue": ["A"], "stack": [1, 2]},
+                    "reason": "指针移动。",
+                    "code_line": 4,
+                },
+                {
+                    "step": 4,
+                    "op": "push",
+                    "targets": [{"id": "queue"}],
+                    "state": {"nums": [1, 5], "seen": {"5": 1}, "left": 1, "queue": ["A", "B"], "stack": [1, 2]},
+                    "reason": "queue 变化没有显式 before/after，应退化为 state diff。",
+                    "code_line": 5,
+                },
+                {
+                    "step": 5,
+                    "op": "pop",
+                    "targets": [{"id": "stack"}],
+                    "state": {"nums": [1, 5], "seen": {"5": 1}, "left": 1, "queue": ["A", "B"], "stack": [1]},
+                    "reason": "stack 变化没有显式 before/after，应退化为 state diff。",
+                    "code_line": 6,
+                },
+            ],
+        }
+    )
+
+
+def test_scene_compiler_emits_generic_change_evidence_for_core_state_transitions():
+    scene = compile_scene(_generic_state_change_trace())
+
+    array_change = scene.frames[1].evidence.get("changes", [])
+    map_change = scene.frames[2].evidence.get("changes", [])
+    pointer_change = scene.frames[3].evidence.get("changes", [])
+    queue_change = scene.frames[4].evidence.get("changes", [])
+    stack_change = scene.frames[5].evidence.get("changes", [])
+
+    assert any(change["target"] == "nums[1]" and change["before"] == 2 and change["after"] == 5 for change in array_change)
+    assert any(change["target"] == "seen[5]" and change["after"] == 1 for change in map_change)
+    assert any(change["target"] == "pointer:left" and change["before"] == 0 and change["after"] == 1 for change in pointer_change)
+    assert any(change["target"] == "queue" and change["source"] == "state_diff" for change in queue_change)
+    assert any(change["target"] == "stack" and change["source"] == "state_diff" for change in stack_change)
+
+
+def test_renderer_declares_generic_change_summary_in_teaching_panel(tmp_path: Path):
+    out = save_html(fixture_artifact(), tmp_path / "change_summary.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function renderChangeSummary" in html
+    assert "function eventChangeRows" in html
+    assert "function stateDiff" in html
+    assert "change-summary" in html
+    assert "状态变化摘要" in html
+
+    teaching_renderer = html.split("function renderTeaching(f)", 1)[1].split("function renderInteraction", 1)[0]
+    assert "renderChangeSummary(f)" in teaching_renderer
+    assert "algorithm" not in teaching_renderer
+    assert "problem_title" not in teaching_renderer
+
+
+def test_golden_visual_matrix_declares_core_examples_and_contracts():
+    examples = golden_visual_matrix()
+    by_id = {example["id"]: example for example in examples}
+    required = {"unique_paths", "bfs", "binary_search", "monotonic_stack"}
+
+    assert required.issubset(by_id), by_id.keys()
+    for example_id in required:
+        example = by_id[example_id]
+        doc_path = Path(example["doc"])
+        assert doc_path.exists(), example_id
+        assert example["primary_primitives"], example_id
+        assert "key_deps" in example and example["key_deps"], example_id
+        assert {"what", "why"}.issubset(set(example["key_teaching_fields"])), example_id
+        assert example["key_objects"], example_id
+
+
+def test_golden_visual_matrix_compiles_core_examples_without_renderer_branches():
+    artifact = golden_visual_artifact()
+    examples = golden_visual_matrix()
+
+    assert {variant.id for variant in artifact.variants} == {example["id"] for example in examples}
+    for example in examples:
+        scene = artifact.scenes[example["id"]]
+        layouts = {
+            obj.meta.get("layout")
+            for frame in scene.frames
+            for obj in frame.objects
+            if obj.type.value == "container"
+        }
+        object_ids = {obj.id for frame in scene.frames for obj in frame.objects}
+        evidence_deps = {
+            dep
+            for frame in scene.frames
+            for dep in (frame.evidence.get("deps") or [])
+        }
+        teaching_fields = {
+            key
+            for frame in scene.frames
+            for key, value in (frame.teaching or {}).items()
+            if str(value or "").strip()
+        }
+
+        assert set(example["primary_primitives"]).issubset(layouts), example["id"]
+        assert set(example["support_primitives"]).issubset(layouts), example["id"]
+        assert set(example["key_objects"]).issubset(object_ids), example["id"]
+        assert set(example["key_deps"]).issubset(evidence_deps), example["id"]
+        assert set(example["key_teaching_fields"]).issubset(teaching_fields), example["id"]
+
+
+def test_golden_visual_matrix_declares_prediction_interactions_for_core_examples():
+    artifact = golden_visual_artifact()
+    expected_types = {
+        "unique_paths": "input",
+        "bfs": "choice",
+        "binary_search": "choice",
+        "monotonic_stack": "judge",
+    }
+
+    for variant_id, expected_type in expected_types.items():
+        scene = artifact.scenes[variant_id]
+        interactions = [frame.interaction for frame in scene.frames if frame.interaction]
+        assert interactions, variant_id
+        assert any(interaction["type"] == expected_type for interaction in interactions), (variant_id, interactions)
+        for interaction in interactions:
+            assert interaction["prompt"].strip(), (variant_id, interaction)
+            assert interaction["answer"] is not None, (variant_id, interaction)
+            assert interaction["explanation"].strip(), (variant_id, interaction)
+            if interaction["type"] == "choice":
+                assert interaction["options"], (variant_id, interaction)
+                assert str(interaction["answer"]) in {str(option) for option in interaction["options"]}, (
+                    variant_id,
+                    interaction,
+                )
+
+
+def test_renderer_declares_readonly_prediction_interactions(tmp_path: Path):
+    out = save_html(golden_visual_artifact(), tmp_path / "prediction_interactions.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function renderInteraction" in html
+    assert "function checkChoice" in html
+    assert "function checkInput" in html
+    assert "function checkJudge" in html
+    assert "data-interaction-type" in html
+    assert "data-trace-step" in html
+
+    render_interaction = html.split("function renderInteraction", 1)[1].split("function checkChoice", 1)[0]
+    assert "interaction.type" in render_interaction
+    assert "interaction.answer" not in render_interaction
+    assert "algorithm" not in render_interaction
+    assert "problem_title" not in render_interaction
+
+    checker_block = html.split("function checkChoice", 1)[1].split("function renderCode", 1)[0]
+    assert "frame().interaction.answer" in checker_block
+    assert "ARTIFACT" not in checker_block
+    assert "frames()[" not in checker_block
+    assert "scene().frames" not in checker_block
+    assert "stepIndex =" not in checker_block
+
+
+def test_renderer_declares_regeneration_entry_without_trace_mutation(tmp_path: Path):
+    out = save_html(golden_visual_artifact(), tmp_path / "regeneration_entry.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert 'id="input-editor"' in html
+    assert 'id="regeneration-panel"' in html
+    assert "ProblemInput -> BuildArtifact -> HTML" in html
+    assert "静态 HTML 无法在线调用后端" in html
+    assert "artifact 输入" in html
+    assert "function buildProblemInputPayload" in html
+    assert "function requestRegenerate" in html
+
+    payload_block = html.split("function buildProblemInputPayload", 1)[1].split("function updateRegeneratePayload", 1)[0]
+    assert "problem_input" in payload_block
+    assert "input_data" in payload_block
+    assert "solution_count" in payload_block
+    assert "pipeline" in payload_block
+
+    request_block = html.split("function requestRegenerate", 1)[1].split("function selectVariant", 1)[0]
+    assert "JSON.parse" not in request_block
+    assert "ARTIFACT =" not in request_block
+    assert "ARTIFACT.scenes" not in request_block
+    assert "frames()[" not in request_block
+    assert "scene().frames" not in request_block
+    assert "stepIndex =" not in request_block
+
+    select_block = html.split("function selectVariant", 1)[1].split("function go", 1)[0]
+    assert "variantIndex = i" in select_block
+    assert "stepIndex = 0" in select_block
+    assert "ARTIFACT.scenes[variant().id]" in html
+
+
+def test_renderer_declares_variant_comparison_without_scene_mixing(tmp_path: Path):
+    out = save_html(golden_visual_artifact(), tmp_path / "variant_compare.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert 'id="variant-compare-panel"' in html
+    assert 'id="variant-compare"' in html
+    assert "function renderVariantCompare" in html
+    assert "function isKeyCompareFrame" in html
+    assert "variant-compare-card" in html
+    assert "复杂度" in html
+    assert "关键步骤数" in html
+    assert "结果一致" in html
+
+    compare_block = html.split("function renderVariantCompare", 1)[1].split("function isKeyCompareFrame", 1)[0]
+    assert "ARTIFACT.variants" in compare_block
+    assert "ARTIFACT.scenes && ARTIFACT.scenes[v.id]" in compare_block
+    assert "data-variant-id" in compare_block
+    assert "data-scene-id" in compare_block
+    assert "data-step-count" in compare_block
+    assert "selectVariant(" in compare_block
+    assert "algorithm" not in compare_block
+    assert "unique_paths" not in compare_block
+    assert "bfs" not in compare_block
+    assert "ARTIFACT =" not in compare_block
+    assert "scene().frames" not in compare_block
+    assert "frames()[" not in compare_block
+
+    keyframe_block = html.split("function isKeyCompareFrame", 1)[1].split("function buildProblemInputPayload", 1)[0]
+    assert "timeline.keyframe" in keyframe_block
+    assert "evidence.operation" in keyframe_block
+    assert "algorithm" not in keyframe_block
+    assert "problem_title" not in keyframe_block
+
+    select_block = html.split("function selectVariant", 1)[1].split("function go", 1)[0]
+    assert "renderVariantCompare();" in select_block
+    assert "stepIndex = 0" in select_block
+
+
+def _process_evidence_text(scene_id: str) -> str:
+    scene = golden_visual_artifact().scenes[scene_id]
+    process_blocks = [frame.evidence.get("process") for frame in scene.frames]
+    assert any(process_blocks), scene_id
+    return json.dumps(process_blocks, ensure_ascii=False, sort_keys=True)
+
+
+def test_scene_compiler_emits_user_readable_process_evidence_for_golden_examples():
+    expectations = {
+        "unique_paths": ("DP 转移", "依赖", "通过核对"),
+        "bfs": ("首次访问", "距离", "dist"),
+        "binary_search": ("区间收缩", "指针", "仍覆盖"),
+        "monotonic_stack": ("弹出", "单调栈", "answer"),
+    }
+
+    for scene_id, keywords in expectations.items():
+        text = _process_evidence_text(scene_id)
+        for keyword in keywords:
+            assert keyword in text, (scene_id, keyword, text)
+        assert "raw validation" not in text.lower(), scene_id
+
+
+def test_renderer_declares_process_evidence_and_preserves_raw_validation_report(tmp_path: Path):
+    artifact = golden_visual_artifact().model_copy(deep=True)
+    artifact.validation.errors.append("raw-process-error")
+    artifact.validation.warnings.append("raw-process-warning")
+    artifact.validation.release_gate.blocking_reasons.append("raw-blocking-reason")
+
+    out = save_html(artifact, tmp_path / "process_evidence.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function renderProcessEvidence" in html
+    assert "过程校验证据" in html
+    assert "本步过程核对" in html
+    assert "debug-validation-json" in html
+    assert "Warnings / errors" in html
+    assert "raw-process-error" in html
+    assert "raw-process-warning" in html
+    assert "raw-blocking-reason" in html
+
+    step_renderer = html.split("function renderStepEvidence", 1)[1].split("function renderChangeSummary", 1)[0]
+    assert "renderProcessEvidence(f)" in step_renderer
+    process_renderer = html.split("function renderProcessEvidence", 1)[1].split("function renderStepEvidence", 1)[0]
+    assert "f.evidence" in process_renderer
+    assert "algorithm" not in process_renderer
+    assert "problem_title" not in process_renderer
+
+
 def test_ml_primitives_cover_linear_and_logistic_regression(tmp_path: Path):
     linear = SemanticTrace.model_validate(
         {
@@ -1936,6 +3140,17 @@ def trace(input_data):
     assert result["events"][0]["op"] == "create"
 
 
+def test_sandbox_allows_string_hash_character_codes():
+    code = """
+def solve(input_data):
+    h = 0
+    for ch in input_data["text"]:
+        h = h * 257 + ord(ch)
+    return h
+"""
+    assert run_function(code, "solve", {"text": "ab"}) == 97 * 257 + 98
+
+
 def test_sandbox_blocks_dunder_introspection_import_escape():
     attacks = [
         'def solve(input_data):\n    return Tracer.__init__.__globals__["__builtins__"]["__import__"]("os").getcwd()',
@@ -1999,6 +3214,44 @@ def test_execute_variant_normalizes_event_steps():
     materialized = execute_variant(variant, {"x": 1})
     assert materialized.trace is not None
     assert [event.step for event in materialized.trace.events] == [0, 1]
+
+
+def test_execute_variant_rejects_legacy_trace_event_fields():
+    input_data = {
+        "tree": {"nodes": [{"id": "2"}], "edges": []},
+        "p": "2",
+        "q": "2",
+    }
+    variant = SolutionVariant(
+        id="legacy_lca_trace",
+        name="旧 trace 字段 LCA",
+        strategy="",
+        code="def solve(input_data):\n    return '2'",
+        tracker_code=(
+            "def trace(input_data):\n"
+            "    return {\n"
+            "      'schema_version': 'semantic-trace-v1',\n"
+            "      'algorithm': '二叉树最近公共祖先',\n"
+            "      'result': '2',\n"
+            "      'events': [\n"
+            "        {'type': 'create', 'target': 'tree', 'state': {'tree': input_data['tree'], 'p': '2', 'q': '2'}, 'reason': '初始化树。', 'code_line': 1},\n"
+            "        {'type': 'enter', 'target': 'node:2', 'state': {'tree': input_data['tree'], 'p': '2', 'q': '2', 'current': '2'}, 'role': 'current', 'reason': '进入节点。', 'code_line': 2},\n"
+            "        {'type': 'mark', 'target': 'node:2', 'state': {'tree': input_data['tree'], 'p': '2', 'q': '2', 'lca': '2'}, 'role': 'answer', 'reason': '找到最近公共祖先。', 'code_line': 3}\n"
+            "      ]\n"
+            "    }\n"
+        ),
+    )
+
+    try:
+        execute_variant(variant, input_data)
+    except Exception as exc:
+        message = str(exc)
+        assert "input_data" in message
+        assert "op" in message
+        assert "type" in message
+        assert "target" in message
+    else:
+        raise AssertionError("execute_variant 应拒绝旧 trace 字段 type/target 和缺失 input_data")
 
 
 def test_scene_validator_rejects_empty_visual_frame():
@@ -2141,26 +3394,38 @@ def run_all():
         test_contract_validator_blocks_oracle_expected_mismatch_and_timeout,
         test_contract_prompt_states_json_expected_and_verifier_boundaries,
         test_tracker_prompt_requires_tracer_api,
+        test_tracker_prompt_requires_teaching_and_complete_key_set_events,
         test_repair_prompt_converts_sparse_trace_to_tracer_api,
         test_contract_prompt_examples_normalize_for_two_sum_dp_graph_stack,
         test_contract_repair_loop_fixes_truncated_json,
         test_contract_repair_loop_handles_validator_and_oracle_failures,
+        test_solution_repair_context_classifies_failure_types_and_step_targets,
+        test_llm_benchmark_report_summarizes_repair_failure_type_transitions,
+        test_llm_benchmark_failed_run_preserves_repair_failure_types,
         test_schema_rejects_non_contiguous_steps,
         test_trace_validator_rejects_unknown_index_target,
         test_trace_validator_accepts_map_bracket_and_slice_targets,
+        test_trace_validator_rejects_legacy_map_colon_targets,
         test_trace_validator_accepts_input_tree_and_points_targets,
-        test_execute_variant_normalizes_quoted_map_targets,
+        test_execute_variant_rejects_quoted_map_targets,
         test_execute_variant_rejects_excessive_trace_events,
         test_process_validator_accepts_map_container_dependency,
+        test_process_validation_registry_declares_core_families,
+        test_process_validation_unknown_family_uses_fallback_not_strong_validation,
+        test_process_registry_does_not_replace_blocking_errors,
         test_semantic_event_normalizes_null_optional_text,
         test_process_validator_rejects_bad_unique_paths_transition,
+        test_process_validator_rejects_bad_unique_paths_dependencies,
         test_process_validator_rejects_sparse_unique_paths_trace,
         test_process_validator_rejects_low_tracer_coverage_meta,
         test_process_validator_rejects_forged_tracer_coverage_meta,
         test_process_validator_rejects_bad_bfs_distance,
+        test_process_validator_rejects_bad_bfs_discovery_parent,
         test_process_validator_rejects_bad_subset_sum_transition,
         test_process_validator_rejects_binary_search_mid_outside_window,
+        test_process_validator_rejects_binary_search_wrong_shrink_direction,
         test_process_validator_rejects_bad_heap_and_union_find,
+        test_process_validator_rejects_union_find_link_without_connected_roots,
         test_process_validator_rejects_bad_monotonic_stack_and_topo,
         test_process_validator_rejects_bad_dijkstra_lcs_and_edit_distance,
         test_process_validator_rejects_bad_kmp_complete_knapsack_interval_dp,
@@ -2174,14 +3439,22 @@ def run_all():
         test_classic_visual_layout_coverage,
         test_all_13_algorithm_families_have_fixture_and_layout,
         test_classic_subfamilies_have_deterministic_visual_coverage,
+        test_scene_compiler_preserves_compound_visual_primitives_for_core_examples,
+        test_scene_compiler_emits_generic_change_evidence_for_core_state_transitions,
+        test_golden_visual_matrix_declares_core_examples_and_contracts,
+        test_golden_visual_matrix_compiles_core_examples_without_renderer_branches,
+        test_golden_visual_matrix_declares_prediction_interactions_for_core_examples,
+        test_scene_compiler_emits_user_readable_process_evidence_for_golden_examples,
         test_ml_correctness_accepts_linear_regression_gradient_and_loss_curve,
         test_ml_correctness_rejects_bad_linear_regression_gradient_and_loss_curve,
         test_ml_correctness_checks_parameter_update_tolerance_and_random_seed,
         test_sandbox_blocks_imports_and_times_out,
         test_sandbox_exposes_tracer_to_generated_tracker,
+        test_sandbox_allows_string_hash_character_codes,
         test_sandbox_blocks_dunder_introspection_import_escape,
         test_execute_variant_requires_trace_input_data,
         test_execute_variant_normalizes_event_steps,
+        test_execute_variant_rejects_legacy_trace_event_fields,
         test_scene_validator_rejects_empty_visual_frame,
         test_pipeline_requires_process_evidence,
         test_pipeline_expected_result_allows_single_solution_release,
@@ -2194,8 +3467,27 @@ def run_all():
 
     with tempfile.TemporaryDirectory() as d:
         test_teaching_schema_compiles_explicit_fields_and_reason_fallback(Path(d))
+        test_teaching_step_renders_structured_fields_without_algorithm_branches(Path(d))
+        test_teaching_step_covers_generic_algorithm_families_and_formula_fallback()
         test_stable_renderer_exposes_correctness_and_step_evidence(Path(d))
+        test_renderer_uses_p1_information_architecture(Path(d))
+        test_scene_compiler_emits_generic_timeline_evidence()
+        test_scene_compiler_infers_timeline_phase_without_explicit_state_field()
+        test_renderer_uses_semantic_timeline_with_generic_fallback(Path(d))
+        test_tracker_prompt_requests_phase_labels_without_stage_targets()
+        test_tracker_prompt_requires_accurate_code_lines_for_key_events()
+        test_scene_frame_payload_flows_across_core_layouts()
+        test_renderer_declares_scene_frame_payload_fallbacks(Path(d))
+        test_renderer_declares_code_sync_and_line_fallbacks(Path(d))
+        test_scene_compiler_compiles_deps_as_dependency_edges_across_core_layouts()
+        test_renderer_declares_structured_dependency_flow(Path(d))
         test_scene_compiler_hides_internal_trace_meta_from_rendered_state(Path(d))
+        test_renderer_declares_process_evidence_and_preserves_raw_validation_report(Path(d))
+        test_renderer_declares_compound_primitive_layout(Path(d))
+        test_renderer_declares_generic_change_summary_in_teaching_panel(Path(d))
+        test_renderer_declares_readonly_prediction_interactions(Path(d))
+        test_renderer_declares_regeneration_entry_without_trace_mutation(Path(d))
+        test_renderer_declares_variant_comparison_without_scene_mixing(Path(d))
         test_renderer_writes_html(Path(d))
         test_ml_primitives_cover_linear_and_logistic_regression(Path(d))
 
