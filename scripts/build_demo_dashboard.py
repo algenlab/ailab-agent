@@ -58,6 +58,16 @@ class DemoDefinition:
     id: str
     title: str
     family: str
+    family_id: str
+    subfamily_id: str
+    gate_layer: str
+    support_level: str
+    process_profile: str
+    oracle_type: str
+    oracle_risk: str
+    oracle_notes: str
+    oracle_reference: str
+    demo_required: bool
     request: ProblemInput
     spec: dict[str, Any]
     source: str
@@ -108,6 +118,16 @@ def subset_sum_demo_definition() -> DemoDefinition:
         id=CUSTOM_SUBSET_SUM_ID,
         title=str(spec["problem_title"]),
         family="0-1 背包 / 子集和",
+        family_id="dp_1d",
+        subfamily_id="subset_sum",
+        gate_layer="smoke",
+        support_level="strong",
+        process_profile="dp",
+        oracle_type="bruteforce",
+        oracle_risk="none",
+        oracle_notes="Curated subset-sum demo uses generated verifier and fixed expected sample.",
+        oracle_reference="scripts.export_creative_demos.subset_sum_spec",
+        demo_required=True,
         source="curated_deterministic_spec",
         expected_layouts=("array",),
         request=ProblemInput(
@@ -129,6 +149,16 @@ def benchmark_demo_definition(case: BenchmarkCase, sample: BenchmarkInput, sampl
         id=case.id if sample_index == 0 else f"{case.id}_sample_{sample_index}",
         title=case.title,
         family=case.family,
+        family_id=case.family_id,
+        subfamily_id=case.subfamily_id,
+        gate_layer=case.gate_layer,
+        support_level=case.support_level,
+        process_profile=case.process_profile,
+        oracle_type=case.oracle_type,
+        oracle_risk=case.oracle_risk,
+        oracle_notes=case.oracle_notes,
+        oracle_reference=case.oracle_reference,
+        demo_required=case.demo_required,
         source="benchmark_deterministic_spec",
         sample_index=sample_index,
         expected_layouts=case.expected_layouts,
@@ -306,6 +336,16 @@ def materialize_demo(definition: DemoDefinition, demo_dir: Path, *, output_dir: 
         "id": definition.id,
         "title": definition.title,
         "family": definition.family,
+        "family_id": definition.family_id,
+        "subfamily_id": definition.subfamily_id,
+        "gate_layer": definition.gate_layer,
+        "support_level": definition.support_level,
+        "process_profile": definition.process_profile,
+        "oracle_type": definition.oracle_type,
+        "oracle_risk": definition.oracle_risk,
+        "oracle_notes": definition.oracle_notes,
+        "oracle_reference": definition.oracle_reference,
+        "demo_required": definition.demo_required,
         "source": definition.source,
         "sample_index": definition.sample_index,
         "ok": release_ready,
@@ -689,10 +729,16 @@ def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     for record in records:
         family = str(record["family"])
+        gate_layer = str(record.get("gate_layer") or "")
+        key = f"{family}\0{gate_layer}"
         row = rows.setdefault(
-            family,
+            key,
             {
                 "family": family,
+                "family_id": str(record.get("family_id") or ""),
+                "gate_layer": gate_layer,
+                "support_levels": set(),
+                "process_profiles": set(),
                 "total": 0,
                 "passed": 0,
                 "failed": 0,
@@ -702,6 +748,10 @@ def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             },
         )
         row["total"] += 1
+        if record.get("support_level"):
+            row["support_levels"].add(str(record["support_level"]))
+        if record.get("process_profile"):
+            row["process_profiles"].add(str(record["process_profile"]))
         if record["ok"]:
             row["passed"] += 1
         else:
@@ -712,11 +762,15 @@ def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             row["artifact_links"] += 1
 
     result = []
-    for family, row in sorted(rows.items()):
+    for _key, row in sorted(rows.items(), key=lambda item: (item[1]["family"], item[1]["gate_layer"])):
         total = row["total"]
         result.append(
             {
-                "family": family,
+                "family": row["family"],
+                "family_id": row["family_id"],
+                "gate_layer": row["gate_layer"],
+                "support_levels": sorted(row["support_levels"]),
+                "process_profile": ",".join(sorted(row["process_profiles"])),
                 "total": total,
                 "passed": row["passed"],
                 "failed": row["failed"],
@@ -740,6 +794,15 @@ def write_dashboard_core_table(path: Path, records: list[dict[str, Any]]) -> Non
         "id",
         "title",
         "family",
+        "family_id",
+        "subfamily_id",
+        "gate_layer",
+        "support_level",
+        "process_profile",
+        "oracle_type",
+        "oracle_risk",
+        "oracle_reference",
+        "demo_required",
         "ok",
         "expected",
         "actual",
@@ -766,6 +829,15 @@ def write_dashboard_core_table(path: Path, records: list[dict[str, Any]]) -> Non
                     "id": record["id"],
                     "title": record["title"],
                     "family": record["family"],
+                    "family_id": record["family_id"],
+                    "subfamily_id": record["subfamily_id"],
+                    "gate_layer": record["gate_layer"],
+                    "support_level": record["support_level"],
+                    "process_profile": record["process_profile"],
+                    "oracle_type": record["oracle_type"],
+                    "oracle_risk": record["oracle_risk"],
+                    "oracle_reference": record["oracle_reference"],
+                    "demo_required": record["demo_required"],
                     "ok": record["ok"],
                     "expected": json.dumps(record["expected"], ensure_ascii=False, separators=(",", ":")),
                     "actual": json.dumps(record["actual"], ensure_ascii=False, separators=(",", ":")),
@@ -803,9 +875,11 @@ def dedupe(items: Iterable[str]) -> list[str]:
 def render_dashboard_html(report: dict[str, Any]) -> str:
     demos = report["demos"]
     families = sorted({demo["family"] for demo in demos})
+    gate_layers = sorted({str(demo.get("gate_layer") or "") for demo in demos if demo.get("gate_layer")})
     cards = "\n".join(render_demo_card(demo) for demo in demos)
     coverage = render_family_coverage(report.get("family_coverage", []))
     family_options = "\n".join(f'<option value="{escape(family)}">{escape(family)}</option>' for family in families)
+    gate_options = "\n".join(f'<option value="{escape(gate)}">{escape(gate)}</option>' for gate in gate_layers)
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -838,7 +912,7 @@ h1 {{ margin:0; font-size:22px; letter-spacing:0; }}
 .main {{ width:min(1320px,100%); margin:0 auto; padding:16px; display:grid; gap:14px; }}
 .toolbar {{
   border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow);
-  padding:12px; display:grid; grid-template-columns:minmax(220px,1fr) minmax(180px,260px) minmax(120px,170px); gap:10px;
+  padding:12px; display:grid; grid-template-columns:minmax(220px,1fr) minmax(180px,260px) minmax(150px,220px) minmax(120px,170px); gap:10px;
 }}
 label {{ display:grid; gap:5px; color:#374151; font-size:12px; }}
 input,select {{ width:100%; border:1px solid var(--line); border-radius:6px; padding:8px 9px; background:#fff; color:var(--ink); font:inherit; }}
@@ -907,6 +981,7 @@ pre {{
     <section class="toolbar">
       <label>搜索<input id="search" type="search" placeholder="题目、算法族、布局"></label>
       <label>算法族<select id="family"><option value="">全部算法族</option>{family_options}</select></label>
+      <label>Gate layer<select id="gate-layer"><option value="">全部 gate layer</option>{gate_options}</select></label>
       <label>状态<select id="status"><option value="">全部状态</option><option value="pass">通过</option><option value="fail">失败</option></select></label>
     </section>
     {coverage}
@@ -920,16 +995,18 @@ pre {{
 const cards = Array.from(document.querySelectorAll('.demo'));
 const search = document.getElementById('search');
 const family = document.getElementById('family');
+const gateLayer = document.getElementById('gate-layer');
 const status = document.getElementById('status');
 const empty = document.getElementById('empty');
 function applyFilters() {{
   const q = search.value.trim().toLowerCase();
   const f = family.value;
+  const g = gateLayer.value;
   const s = status.value;
   let visible = 0;
   for (const card of cards) {{
     const text = card.dataset.search || '';
-    const ok = (!q || text.includes(q)) && (!f || card.dataset.family === f) && (!s || card.dataset.status === s);
+    const ok = (!q || text.includes(q)) && (!f || card.dataset.family === f) && (!g || card.dataset.gateLayer === g) && (!s || card.dataset.status === s);
     card.style.display = ok ? '' : 'none';
     if (ok) visible += 1;
   }}
@@ -937,6 +1014,7 @@ function applyFilters() {{
 }}
 search.addEventListener('input', applyFilters);
 family.addEventListener('change', applyFilters);
+gateLayer.addEventListener('change', applyFilters);
 status.addEventListener('change', applyFilters);
 </script>
 </body>
@@ -958,6 +1036,9 @@ def render_family_coverage(rows: list[dict[str, Any]]) -> str:
   <td class="num">{row["total"]}</td>
   <td class="num">{row["passed"]}</td>
   <td class="num">{row["failed"]}</td>
+  <td>{escape(row["gate_layer"])}</td>
+  <td>{render_chips(row["support_levels"])}</td>
+  <td>{escape(row["process_profile"])}</td>
   <td>{render_chips(row["layouts"])}</td>
   <td class="num">{row["html_links"]}</td>
   <td class="num">{row["artifact_links"]}</td>
@@ -967,10 +1048,10 @@ def render_family_coverage(rows: list[dict[str, Any]]) -> str:
     return f"""<section id="family-coverage" class="coverage">
   <div class="section-head">
     <h2>算法族覆盖</h2>
-    <p class="meta">按算法族汇总黄金样例、发布状态、HTML 链接和 artifact 链接。</p>
+    <p class="meta">按算法族和 gate layer 汇总黄金样例、发布状态、HTML 链接和 artifact 链接。</p>
   </div>
   <table class="coverage-table">
-    <thead><tr><th>算法族</th><th class="num">Demo</th><th class="num">通过</th><th class="num">失败</th><th>布局</th><th class="num">HTML 链接</th><th class="num">artifact 链接</th></tr></thead>
+    <thead><tr><th>算法族</th><th class="num">Demo</th><th class="num">通过</th><th class="num">失败</th><th>Gate layer</th><th>支持等级</th><th>Process profile</th><th>布局</th><th class="num">HTML 链接</th><th class="num">artifact 链接</th></tr></thead>
     <tbody>{body}</tbody>
   </table>
 </section>"""
@@ -983,6 +1064,13 @@ def render_demo_card(demo: dict[str, Any]) -> str:
         [
             demo["title"],
             demo["family"],
+            demo["family_id"],
+            demo["subfamily_id"],
+            demo["gate_layer"],
+            demo["support_level"],
+            demo["process_profile"],
+            demo["oracle_type"],
+            demo["oracle_risk"],
             " ".join(demo["expected_layouts"]),
             " ".join(demo["actual_layouts"]),
             demo["oracle_strategy"],
@@ -1010,17 +1098,20 @@ def render_demo_card(demo: dict[str, Any]) -> str:
     actual = json_preview(demo["actual"])
     errors = demo["errors"] or demo["blocking_reasons"]
     warnings = demo["warnings"]
-    return f"""<article class="demo" data-family="{escape(demo["family"])}" data-status="{status}" data-search="{escape(search_text)}">
+    return f"""<article class="demo" data-family="{escape(demo["family"])}" data-gate-layer="{escape(demo["gate_layer"])}" data-status="{status}" data-search="{escape(search_text)}">
   <div class="demo-head">
     <div>
       <h2>{escape(demo["title"])}</h2>
-      <p class="meta">{escape(demo["family"])} · sample {demo["sample_index"]} · {demo["trace_steps"]} steps · {demo["duration_s"]}s</p>
+      <p class="meta">{escape(demo["family"])} · {escape(demo["gate_layer"])} · sample {demo["sample_index"]} · {demo["trace_steps"]} steps · {demo["duration_s"]}s</p>
     </div>
     <span class="status {status}">{status_text}</span>
   </div>
   <dl class="kv">
     <dt>Expected</dt><dd>{escape(expected)}</dd>
     <dt>Actual</dt><dd>{escape(actual)}</dd>
+    <dt>Family id</dt><dd>{escape(demo["family_id"])} / {escape(demo["subfamily_id"])}</dd>
+    <dt>Gate layer</dt><dd>{escape(demo["gate_layer"])} · support={escape(demo["support_level"])} · process={escape(demo["process_profile"])}</dd>
+    <dt>Oracle</dt><dd>{escape(demo["oracle_type"])} · risk={escape(demo["oracle_risk"])} · demo_required={escape(str(demo["demo_required"]))}</dd>
     <dt>布局</dt><dd>{render_chips(demo["actual_layouts"])}</dd>
     <dt>Contract</dt><dd>{escape("READY" if demo["contract_gate_ready"] else "MISSING")} · oracle={escape(demo["oracle_strategy"] or "none")} · tests={escape(demo["contract_test_pass_rate"])}</dd>
     <dt>交互题</dt><dd>{escape(demo["interaction_coverage"])} · {render_chips(demo["interaction_types"])}</dd>

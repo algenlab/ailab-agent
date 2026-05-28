@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from algolab.compiler.scene_compiler import compile_scene
 from algolab.pipeline import _try_materialize
 from algolab.generation.solution_generator import normalize_solution_spec
 from algolab.renderer.capabilities import capabilities_prompt_context, runtime_capabilities
@@ -18,6 +19,8 @@ from algolab.schemas.input import ProblemInput
 from algolab.schemas.semantic_trace import SemanticTrace
 from algolab.schemas.validation import BuildArtifact, ReleaseGate, ValidationReport
 from algolab.verification.process_validator import validate_process
+from algolab.verification.scene_validator import validate_scene
+from algolab.verification.trace_validator import validate_trace
 from tests.benchmark_cases import BenchmarkCase, benchmark_cases
 from scripts.run_llm_benchmark import (
     average_duration,
@@ -121,6 +124,1436 @@ def _process_errors_for(raw_trace: dict) -> list[str]:
     return errors
 
 
+def _dp_contract_event(
+    step: int,
+    op: str,
+    targets: list[str],
+    *,
+    state: dict,
+    value=None,
+    before=None,
+    after=None,
+    deps: list[str] | None = None,
+    role: str = "",
+    reason: str = "DP contract test event.",
+    code_line: int = 1,
+) -> dict:
+    return {
+        "step": step,
+        "op": op,
+        "targets": [{"id": target} for target in targets],
+        "value": value,
+        "before": before,
+        "after": after,
+        "deps": [{"id": dep} for dep in (deps or [])],
+        "role": role,
+        "reason": reason,
+        "state": state,
+        "code_line": code_line,
+    }
+
+
+def _dp_contract_trace(algorithm: str, input_data: dict, result, events: list[dict], pseudocode: list[str] | None = None) -> dict:
+    normalized_events = [dict(event, step=index) for index, event in enumerate(events)]
+    return {
+        "schema_version": "semantic-trace-v1",
+        "algorithm": algorithm,
+        "input_data": input_data,
+        "result": result,
+        "pseudocode": pseudocode or ["dp transition"],
+        "events": normalized_events,
+    }
+
+
+def _graph_contract_event(
+    step: int,
+    op: str,
+    targets: list[str],
+    *,
+    state: dict,
+    value=None,
+    before=None,
+    after=None,
+    deps: list[str] | None = None,
+    role: str = "",
+    reason: str = "Graph contract test event.",
+    code_line: int = 1,
+) -> dict:
+    return {
+        "step": step,
+        "op": op,
+        "targets": [{"id": target} for target in targets],
+        "value": value,
+        "before": before,
+        "after": after,
+        "deps": [{"id": dep} for dep in (deps or [])],
+        "role": role,
+        "reason": reason,
+        "state": state,
+        "code_line": code_line,
+    }
+
+
+def _graph_contract_trace(
+    algorithm: str,
+    input_data: dict,
+    result,
+    events: list[dict],
+    pseudocode: list[str] | None = None,
+) -> dict:
+    normalized_events = [dict(event, step=index) for index, event in enumerate(events)]
+    return {
+        "schema_version": "semantic-trace-v1",
+        "algorithm": algorithm,
+        "input_data": input_data,
+        "result": result,
+        "pseudocode": pseudocode or ["graph transition"],
+        "events": normalized_events,
+    }
+
+
+def _family_contract_event(
+    step: int,
+    op: str,
+    targets: list[str],
+    *,
+    state: dict,
+    value=None,
+    before=None,
+    after=None,
+    deps: list[str] | None = None,
+    role: str = "",
+    reason: str = "Family contract test event.",
+    code_line: int = 1,
+) -> dict:
+    return {
+        "step": step,
+        "op": op,
+        "targets": [{"id": target} for target in targets],
+        "value": value,
+        "before": before,
+        "after": after,
+        "deps": [{"id": dep} for dep in (deps or [])],
+        "role": role,
+        "reason": reason,
+        "state": state,
+        "code_line": code_line,
+    }
+
+
+def _family_contract_trace(
+    algorithm: str,
+    input_data: dict,
+    result,
+    events: list[dict],
+    pseudocode: list[str] | None = None,
+) -> dict:
+    normalized_events = [dict(event, step=index) for index, event in enumerate(events)]
+    return {
+        "schema_version": "semantic-trace-v1",
+        "algorithm": algorithm,
+        "input_data": input_data,
+        "result": result,
+        "pseudocode": pseudocode or ["family transition"],
+        "events": normalized_events,
+    }
+
+
+def _contract_stack_errors(raw_trace: dict) -> tuple[list[str], list[str], list[str]]:
+    trace = SemanticTrace.model_validate(raw_trace)
+    trace_errors, _trace_warnings = validate_trace(trace)
+    process_errors, _process_warnings = validate_process(trace)
+    scene = compile_scene(trace)
+    scene_errors, _scene_warnings = validate_scene(scene)
+    return trace_errors, process_errors, scene_errors
+
+
+def _array_contract_trace(
+    algorithm: str,
+    input_data: dict,
+    result,
+    events: list[dict],
+    pseudocode: list[str] | None = None,
+) -> dict:
+    normalized_events = [dict(event, step=index) for index, event in enumerate(events)]
+    return {
+        "schema_version": "semantic-trace-v1",
+        "algorithm": algorithm,
+        "input_data": input_data,
+        "result": result,
+        "pseudocode": pseudocode or ["array pointer transition"],
+        "events": normalized_events,
+    }
+
+
+def test_phase12_dp_trace_contract_accepts_representative_subfamilies():
+    one_d_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[2]",
+        "expected_targets": ["dp[1]", "dp[2]"],
+        "subfamily": "1d",
+    }
+    two_d_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[1][1]",
+        "expected_targets": ["dp[1][1]"],
+        "subfamily": "2d",
+    }
+    knapsack_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[2]",
+        "expected_targets": ["dp[2]"],
+        "subfamily": "knapsack",
+    }
+    interval_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[0][1]",
+        "expected_targets": ["dp[0][1]"],
+        "subfamily": "interval",
+    }
+    tree_contract = {
+        "containers": ["dp_take", "dp_skip"],
+        "answer_position": "dp_take[1]",
+        "expected_targets": ["dp_take[1]", "dp_skip[1]"],
+        "subfamily": "tree",
+    }
+    bitmask_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[3]",
+        "expected_targets": ["dp[1]", "dp[2]", "dp[3]"],
+        "subfamily": "state_compression",
+    }
+
+    traces = [
+        _dp_contract_trace(
+            "一维 DP 合同正例",
+            {"houses": [2, 7, 9]},
+            11,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"houses": [2, 7, 9], "dp": [2, 0, 0], "i": 0, "formula": "dp[0]=houses[0]", "dp_contract": one_d_contract}),
+                _dp_contract_event(1, "set", ["dp[1]"], value=7, before=0, deps=["dp[0]", "houses[1]"], state={"houses": [2, 7, 9], "dp": [2, 7, 0], "i": 1, "formula": "dp[i]=max(dp[i-1], houses[i])", "dp_contract": one_d_contract}),
+                _dp_contract_event(2, "set", ["dp[2]"], value=11, before=0, deps=["dp[1]", "dp[0]", "houses[2]"], state={"houses": [2, 7, 9], "dp": [2, 7, 11], "i": 2, "formula": "dp[i]=max(dp[i-1], dp[i-2]+houses[i])", "dp_contract": one_d_contract}),
+                _dp_contract_event(3, "mark", ["dp[2]"], value=11, deps=["dp[2]"], role="answer", state={"houses": [2, 7, 9], "dp": [2, 7, 11], "i": 2, "answer": 11, "formula": "answer=dp[2]", "dp_contract": one_d_contract}),
+            ],
+            ["dp[i]=max(dp[i-1], dp[i-2]+value)"],
+        ),
+        _dp_contract_trace(
+            "二维 DP 合同正例",
+            {"rows": 2, "cols": 2},
+            2,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"dp": [[1, 1], [1, 0]], "i": 0, "j": 0, "formula": "boundary=1", "dp_contract": two_d_contract}),
+                _dp_contract_event(1, "set", ["dp[1][1]"], value=2, before=0, deps=["dp[0][1]", "dp[1][0]"], state={"dp": [[1, 1], [1, 2]], "i": 1, "j": 1, "formula": "dp[i][j]=dp[i-1][j]+dp[i][j-1]", "dp_contract": two_d_contract}),
+                _dp_contract_event(2, "mark", ["dp[1][1]"], value=2, deps=["dp[1][1]"], role="answer", state={"dp": [[1, 1], [1, 2]], "i": 1, "j": 1, "answer": 2, "formula": "answer=dp[1][1]", "dp_contract": two_d_contract}),
+            ],
+            ["dp[i][j]=dp[i-1][j]+dp[i][j-1]"],
+        ),
+        _dp_contract_trace(
+            "0-1 背包 DP 合同正例",
+            {"weights": [2], "capacity": 2},
+            True,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"weights": [2], "capacity": 2, "dp": [True, False, False], "i": -1, "formula": "dp[0]=True", "dp_contract": knapsack_contract}),
+                _dp_contract_event(1, "set", ["dp[2]"], value=True, before=False, deps=["dp[0]", "weights[0]"], state={"weights": [2], "capacity": 2, "dp": [True, False, True], "i": 0, "capacity_index": 2, "formula": "dp[c]=dp[c] or dp[c-weight]", "dp_contract": knapsack_contract}),
+                _dp_contract_event(2, "mark", ["dp[2]"], value=True, deps=["dp[2]"], role="answer", state={"weights": [2], "capacity": 2, "dp": [True, False, True], "i": 0, "capacity_index": 2, "answer": True, "formula": "answer=dp[capacity]", "dp_contract": knapsack_contract}),
+            ],
+            ["dp[c]=dp[c] or dp[c-weight]"],
+        ),
+        _dp_contract_trace(
+            "区间 DP 合同正例",
+            {"stones": [1, 2]},
+            3,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"stones": [1, 2], "prefix": [0, 1, 3], "dp": [[0, 0], [0, 0]], "i": 0, "j": 0, "formula": "dp[i][i]=0", "dp_mode": "min_merge", "dp_contract": interval_contract}),
+                _dp_contract_event(1, "set", ["dp[0][1]"], value=3, before=0, deps=["dp[0][0]", "dp[1][1]", "prefix[2]", "prefix[0]"], state={"stones": [1, 2], "prefix": [0, 1, 3], "dp": [[0, 3], [0, 0]], "i": 0, "j": 1, "k": 0, "formula": "dp[i][j]=min(dp[i][k]+dp[k+1][j])+sum(i,j)", "dp_mode": "min_merge", "dp_contract": interval_contract}),
+                _dp_contract_event(2, "mark", ["dp[0][1]"], value=3, deps=["dp[0][1]"], role="answer", state={"stones": [1, 2], "prefix": [0, 1, 3], "dp": [[0, 3], [0, 0]], "i": 0, "j": 1, "answer": 3, "formula": "answer=dp[0][1]", "dp_mode": "min_merge", "dp_contract": interval_contract}),
+            ],
+            ["dp[i][j]=min(dp[i][k]+dp[k+1][j])+sum(i,j)"],
+        ),
+        _dp_contract_trace(
+            "树形 DP 合同正例",
+            {"tree": {"nodes": [{"id": "1", "value": 3}], "edges": []}},
+            3,
+            [
+                _dp_contract_event(0, "create", ["tree"], state={"tree": {"nodes": [{"id": "1", "value": 3}], "edges": []}, "current": "1", "dp_take": {}, "dp_skip": {}, "formula": "postorder tree dp", "dp_contract": tree_contract}),
+                _dp_contract_event(1, "set", ["dp_skip[1]"], value=0, before=None, deps=["node:1"], state={"tree": {"nodes": [{"id": "1", "value": 3}], "edges": []}, "current": "1", "dp_take": {}, "dp_skip": {"1": 0}, "formula": "dp_skip[u]=sum(max(child states))", "dp_contract": tree_contract}),
+                _dp_contract_event(2, "set", ["dp_take[1]"], value=3, before=None, deps=["node:1", "dp_skip[1]"], state={"tree": {"nodes": [{"id": "1", "value": 3}], "edges": []}, "current": "1", "dp_take": {"1": 3}, "dp_skip": {"1": 0}, "formula": "dp_take[u]=weight[u]+sum(dp_skip[child])", "dp_contract": tree_contract}),
+                _dp_contract_event(3, "mark", ["dp_take[1]"], value=3, deps=["dp_take[1]", "dp_skip[1]"], role="answer", state={"tree": {"nodes": [{"id": "1", "value": 3}], "edges": []}, "current": "1", "dp_take": {"1": 3}, "dp_skip": {"1": 0}, "answer": 3, "formula": "answer=max(dp_take[root], dp_skip[root])", "dp_contract": tree_contract}),
+            ],
+            ["dp_take[u]=weight[u]+sum(dp_skip[child])", "dp_skip[u]=sum(max(child states))"],
+        ),
+        _dp_contract_trace(
+            "状态压缩 DP 合同正例",
+            {"item_count": 2},
+            2,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"item_count": 2, "dp": [0, 0, 0, 0], "mask": 0, "formula": "dp[0]=0", "dp_contract": bitmask_contract}),
+                _dp_contract_event(1, "set", ["dp[1]"], value=1, before=0, deps=["dp[0]"], state={"item_count": 2, "dp": [0, 1, 0, 0], "mask": 1, "formula": "dp[mask]=popcount(mask)", "dp_contract": bitmask_contract}),
+                _dp_contract_event(2, "set", ["dp[2]"], value=1, before=0, deps=["dp[0]"], state={"item_count": 2, "dp": [0, 1, 1, 0], "mask": 2, "formula": "dp[mask]=popcount(mask)", "dp_contract": bitmask_contract}),
+                _dp_contract_event(3, "set", ["dp[3]"], value=2, before=0, deps=["dp[1]", "dp[2]"], state={"item_count": 2, "dp": [0, 1, 1, 2], "mask": 3, "formula": "dp[mask]=popcount(mask)", "dp_contract": bitmask_contract}),
+                _dp_contract_event(4, "mark", ["dp[3]"], value=2, deps=["dp[3]"], role="answer", state={"item_count": 2, "dp": [0, 1, 1, 2], "mask": 3, "answer": 2, "formula": "answer=dp[(1<<n)-1]", "dp_contract": bitmask_contract}),
+            ],
+            ["dp[mask]=popcount(mask)"],
+        ),
+    ]
+
+    for raw_trace in traces:
+        errors = _process_errors_for(raw_trace)
+        assert errors == [], (raw_trace["algorithm"], errors)
+
+
+def test_phase12_dp_trace_contract_rejects_missing_deps_init_answer_and_key_updates():
+    contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[2]",
+        "expected_targets": ["dp[1]", "dp[2]"],
+        "subfamily": "1d",
+    }
+    valid_events = [
+        _dp_contract_event(0, "create", ["dp"], state={"dp": [1, 0, 0], "i": 0, "formula": "dp[0]=1", "dp_contract": contract}),
+        _dp_contract_event(1, "set", ["dp[1]"], value=1, before=0, deps=["dp[0]"], state={"dp": [1, 1, 0], "i": 1, "formula": "dp[i]=dp[i-1]", "dp_contract": contract}),
+        _dp_contract_event(2, "set", ["dp[2]"], value=2, before=0, deps=["dp[1]"], state={"dp": [1, 1, 2], "i": 2, "formula": "dp[i]=dp[i-1]+1", "dp_contract": contract}),
+        _dp_contract_event(3, "mark", ["dp[2]"], value=2, deps=["dp[2]"], role="answer", state={"dp": [1, 1, 2], "i": 2, "answer": 2, "formula": "answer=dp[2]", "dp_contract": contract}),
+    ]
+
+    missing_deps = [dict(event) for event in valid_events]
+    missing_deps[1] = dict(missing_deps[1], deps=[])
+    missing_deps_errors = _process_errors_for(_dp_contract_trace("DP contract missing deps", {}, 2, missing_deps))
+    assert any("DP contract" in error and "deps" in error for error in missing_deps_errors), missing_deps_errors
+
+    missing_init_errors = _process_errors_for(_dp_contract_trace("DP contract missing init", {}, 2, valid_events[1:]))
+    assert any("DP contract" in error and "初始化" in error for error in missing_init_errors), missing_init_errors
+
+    wrong_answer_contract = dict(contract, answer_position="dp[1]")
+    wrong_answer_events = [
+        dict(event, state={**event["state"], "dp_contract": wrong_answer_contract})
+        for event in valid_events
+    ]
+    wrong_answer_errors = _process_errors_for(_dp_contract_trace("DP contract wrong answer", {}, 2, wrong_answer_events))
+    assert any("DP contract" in error and "答案位置" in error for error in wrong_answer_errors), wrong_answer_errors
+
+    skipped_update_events = [valid_events[0], valid_events[2], valid_events[3]]
+    skipped_update_errors = _process_errors_for(_dp_contract_trace("DP contract skipped update", {}, 2, skipped_update_events))
+    assert any("DP contract" in error and "关键更新" in error for error in skipped_update_errors), skipped_update_errors
+
+
+def test_phase12_graph_trace_contract_accepts_representative_submodes():
+    bfs_contract = {"submode": "bfs", "source": "A", "expected_nodes": ["A", "B"]}
+    dfs_contract = {"submode": "dfs", "source": "A", "expected_nodes": ["A", "B"]}
+    dijkstra_contract = {"submode": "dijkstra", "source": "A", "expected_relax_edges": ["A->B"]}
+    topo_contract = {"submode": "topological_sort", "expected_nodes": ["A", "B"]}
+    mst_contract = {"submode": "mst", "expected_edges": ["A-B"]}
+    tarjan_contract = {"submode": "tarjan", "expected_nodes": ["A", "B"]}
+    flow_contract = {"submode": "network_flow", "source": "S", "sink": "T", "expected_paths": [["S", "T"]]}
+
+    traces = [
+        _graph_contract_trace(
+            "BFS graph contract positive",
+            {"graph": {"A": ["B"], "B": []}, "start": "A"},
+            {"A": 0, "B": 1},
+            [
+                _graph_contract_event(0, "create", ["queue", "node:A"], state={"graph": {"A": ["B"], "B": []}, "queue": ["A"], "dist": {"A": 0}, "parent": {}, "graph_contract": bfs_contract}),
+                _graph_contract_event(1, "pop", ["queue"], value="A", deps=["node:A"], state={"graph": {"A": ["B"], "B": []}, "queue": [], "dist": {"A": 0}, "parent": {}, "current": "A", "graph_contract": bfs_contract}),
+                _graph_contract_event(2, "compare", ["edge:A->B"], deps=["node:A", "node:B"], state={"graph": {"A": ["B"], "B": []}, "queue": [], "dist": {"A": 0}, "parent": {}, "current": "A", "neighbor": "B", "graph_contract": bfs_contract}),
+                _graph_contract_event(3, "set", ["dist[B]"], value=1, deps=["dist[A]", "edge:A->B"], role="visited", state={"graph": {"A": ["B"], "B": []}, "queue": ["B"], "dist": {"A": 0, "B": 1}, "parent": {"B": "A"}, "current": "A", "neighbor": "B", "graph_contract": bfs_contract}),
+                _graph_contract_event(4, "mark", ["dist[B]"], deps=["dist[B]"], role="answer", state={"graph": {"A": ["B"], "B": []}, "queue": [], "dist": {"A": 0, "B": 1}, "parent": {"B": "A"}, "graph_contract": bfs_contract}),
+            ],
+        ),
+        _graph_contract_trace(
+            "DFS graph contract positive",
+            {"graph": {"A": ["B"], "B": []}, "root": "A"},
+            ["A", "B"],
+            [
+                _graph_contract_event(0, "create", ["graph"], state={"graph": {"A": ["B"], "B": []}, "stack": [], "visited": {}, "graph_contract": dfs_contract}),
+                _graph_contract_event(1, "enter", ["frame:dfs(A)"], deps=["node:A"], state={"graph": {"A": ["B"], "B": []}, "stack": ["A"], "visited": {"A": True}, "current": "A", "graph_contract": dfs_contract}),
+                _graph_contract_event(2, "compare", ["edge:A->B"], deps=["node:A", "node:B"], state={"graph": {"A": ["B"], "B": []}, "stack": ["A"], "visited": {"A": True}, "current": "A", "neighbor": "B", "graph_contract": dfs_contract}),
+                _graph_contract_event(3, "enter", ["frame:dfs(B)"], deps=["edge:A->B"], state={"graph": {"A": ["B"], "B": []}, "stack": ["A", "B"], "visited": {"A": True, "B": True}, "current": "B", "graph_contract": dfs_contract}),
+                _graph_contract_event(4, "exit", ["frame:dfs(B)"], deps=["frame:dfs(B)"], state={"graph": {"A": ["B"], "B": []}, "stack": ["A"], "visited": {"A": True, "B": True}, "current": "B", "graph_contract": dfs_contract}),
+                _graph_contract_event(5, "exit", ["frame:dfs(A)"], deps=["frame:dfs(A)"], role="answer", state={"graph": {"A": ["B"], "B": []}, "stack": [], "visited": {"A": True, "B": True}, "graph_contract": dfs_contract}),
+            ],
+        ),
+        _graph_contract_trace(
+            "Dijkstra graph contract positive",
+            {"weighted_graph": {"A": [["B", 2]], "B": []}, "start": "A"},
+            {"A": 0, "B": 2},
+            [
+                _graph_contract_event(0, "create", ["heap", "node:A"], state={"weighted_graph": {"A": [["B", 2]], "B": []}, "heap": [[0, "A"]], "dist": {"A": 0}, "parent": {}, "graph_contract": dijkstra_contract}),
+                _graph_contract_event(1, "pop", ["heap"], value=[0, "A"], deps=["node:A"], state={"weighted_graph": {"A": [["B", 2]], "B": []}, "heap": [], "dist": {"A": 0}, "parent": {}, "current": "A", "graph_contract": dijkstra_contract}),
+                _graph_contract_event(2, "set", ["dist[B]"], value=2, before=None, after=2, deps=["dist[A]", "edge:A->B"], state={"weighted_graph": {"A": [["B", 2]], "B": []}, "heap": [[2, "B"]], "dist": {"A": 0, "B": 2}, "parent": {"B": "A"}, "current": "A", "neighbor": "B", "edge_weight": 2, "old_dist": None, "new_dist": 2, "graph_contract": dijkstra_contract}),
+                _graph_contract_event(3, "mark", ["dist[B]"], deps=["dist[B]"], role="answer", state={"weighted_graph": {"A": [["B", 2]], "B": []}, "heap": [], "dist": {"A": 0, "B": 2}, "parent": {"B": "A"}, "graph_contract": dijkstra_contract}),
+            ],
+        ),
+        _graph_contract_trace(
+            "Topological graph contract positive",
+            {"graph": {"A": ["B"], "B": []}},
+            ["A", "B"],
+            [
+                _graph_contract_event(0, "create", ["queue"], state={"graph": {"A": ["B"], "B": []}, "queue": ["A"], "indegree": {"A": 0, "B": 1}, "topo_order": [], "graph_contract": topo_contract}),
+                _graph_contract_event(1, "pop", ["queue"], value="A", deps=["node:A"], state={"graph": {"A": ["B"], "B": []}, "queue": [], "indegree": {"A": 0, "B": 1}, "topo_order": ["A"], "current": "A", "graph_contract": topo_contract}),
+                _graph_contract_event(2, "set", ["indegree[B]"], value=0, before=1, after=0, deps=["edge:A->B", "indegree[B]"], state={"graph": {"A": ["B"], "B": []}, "queue": ["B"], "indegree": {"A": 0, "B": 0}, "topo_order": ["A"], "current": "A", "neighbor": "B", "enqueue_reason": "indegree_zero", "graph_contract": topo_contract}),
+                _graph_contract_event(3, "mark", ["node:B"], deps=["indegree[B]"], role="answer", state={"graph": {"A": ["B"], "B": []}, "queue": [], "indegree": {"A": 0, "B": 0}, "topo_order": ["A", "B"], "enqueue_reason": "indegree_zero", "graph_contract": topo_contract}),
+            ],
+        ),
+        _graph_contract_trace(
+            "MST graph contract positive",
+            {"edges": [["A", "B", 1]], "n": 2},
+            [["A", "B", 1]],
+            [
+                _graph_contract_event(0, "create", ["union_find"], state={"edges": [["A", "B", 1]], "mst_edges": [], "union_find": {"parent": {"A": "A", "B": "B"}}, "graph_contract": mst_contract}),
+                _graph_contract_event(1, "mark", ["edge:A->B"], value="selected", deps=["node:A", "node:B"], role="selected", reason="MST 选择连接不同连通分量的最小边。", state={"edges": [["A", "B", 1]], "mst_edges": [["A", "B", 1]], "union_find": {"parent": {"A": "A", "B": "A"}}, "edge_decision": "select", "decision_reason": "different_components", "graph_contract": mst_contract}),
+                _graph_contract_event(2, "mark", ["edge:A->B"], deps=["edge:A->B"], role="answer", state={"edges": [["A", "B", 1]], "mst_edges": [["A", "B", 1]], "union_find": {"parent": {"A": "A", "B": "A"}}, "graph_contract": mst_contract}),
+            ],
+        ),
+        _graph_contract_trace(
+            "Tarjan graph contract positive",
+            {"graph": {"A": ["B"], "B": []}},
+            [["B"], ["A"]],
+            [
+                _graph_contract_event(0, "create", ["graph"], state={"graph": {"A": ["B"], "B": []}, "dfn": {}, "low": {}, "stack": [], "on_stack": {}, "graph_contract": tarjan_contract}),
+                _graph_contract_event(1, "set", ["dfn[A]"], value=1, deps=["node:A"], state={"graph": {"A": ["B"], "B": []}, "dfn": {"A": 1}, "low": {"A": 1}, "stack": ["A"], "on_stack": {"A": True}, "current": "A", "graph_contract": tarjan_contract}),
+                _graph_contract_event(2, "set", ["low[A]"], value=1, deps=["dfn[A]"], state={"graph": {"A": ["B"], "B": []}, "dfn": {"A": 1}, "low": {"A": 1}, "stack": ["A"], "on_stack": {"A": True}, "current": "A", "graph_contract": tarjan_contract}),
+                _graph_contract_event(3, "set", ["dfn[B]"], value=2, deps=["edge:A->B", "node:B"], state={"graph": {"A": ["B"], "B": []}, "dfn": {"A": 1, "B": 2}, "low": {"A": 1, "B": 2}, "stack": ["A", "B"], "on_stack": {"A": True, "B": True}, "current": "B", "graph_contract": tarjan_contract}),
+                _graph_contract_event(4, "set", ["low[B]"], value=2, deps=["dfn[B]"], state={"graph": {"A": ["B"], "B": []}, "dfn": {"A": 1, "B": 2}, "low": {"A": 1, "B": 2}, "stack": ["A", "B"], "on_stack": {"A": True, "B": True}, "current": "B", "graph_contract": tarjan_contract}),
+                _graph_contract_event(5, "mark", ["node:B"], deps=["low[B]", "dfn[B]"], role="component", state={"graph": {"A": ["B"], "B": []}, "dfn": {"A": 1, "B": 2}, "low": {"A": 1, "B": 2}, "stack": ["A"], "on_stack": {"A": True, "B": False}, "component": ["B"], "current": "B", "graph_contract": tarjan_contract}),
+            ],
+        ),
+        _graph_contract_trace(
+            "Network flow graph contract positive",
+            {"graph": {"S": ["T"], "T": []}, "capacity": {"S->T": 3}, "source": "S", "sink": "T"},
+            3,
+            [
+                _graph_contract_event(0, "create", ["queue"], state={"graph": {"S": ["T"], "T": []}, "capacity": {"S->T": 3}, "flow": {"S->T": 0}, "queue": ["S"], "parent": {"S": None}, "bottleneck": 3, "augmenting_path": [], "graph_contract": flow_contract}),
+                _graph_contract_event(1, "set", ["parent[T]"], value="S", deps=["edge:S->T", "cap[S->T]", "flow[S->T]"], state={"graph": {"S": ["T"], "T": []}, "capacity": {"S->T": 3}, "flow": {"S->T": 0}, "queue": ["T"], "parent": {"S": None, "T": "S"}, "bottleneck": 3, "augmenting_path": ["S", "T"], "graph_contract": flow_contract}),
+                _graph_contract_event(2, "set", ["flow[S->T]"], value=3, before=0, after=3, deps=["edge:S->T", "cap[S->T]", "parent[T]"], role="answer", state={"graph": {"S": ["T"], "T": []}, "capacity": {"S->T": 3}, "flow": {"S->T": 3}, "queue": [], "parent": {"S": None, "T": "S"}, "bottleneck": 3, "augmenting_path": ["S", "T"], "graph_contract": flow_contract}),
+            ],
+        ),
+    ]
+
+    for raw_trace in traces:
+        errors = _process_errors_for(raw_trace)
+        assert errors == [], (raw_trace["algorithm"], errors)
+
+
+def test_phase12_graph_trace_contract_rejects_submode_process_errors():
+    def errors_for(submode: str, events: list[dict], input_data: dict | None = None) -> list[str]:
+        return _process_errors_for(_graph_contract_trace(f"Graph contract {submode}", input_data or {}, None, events))
+
+    bfs_contract = {"submode": "bfs", "source": "A", "expected_nodes": ["A", "B"]}
+    bfs_valid = [
+        _graph_contract_event(0, "create", ["queue", "node:A"], state={"graph": {"A": ["B"], "B": []}, "queue": ["A"], "dist": {"A": 0}, "parent": {}, "graph_contract": bfs_contract}),
+        _graph_contract_event(1, "pop", ["queue"], value="A", deps=["node:A"], state={"graph": {"A": ["B"], "B": []}, "queue": [], "dist": {"A": 0}, "parent": {}, "current": "A", "graph_contract": bfs_contract}),
+        _graph_contract_event(2, "compare", ["edge:A->B"], deps=["node:A", "node:B"], state={"graph": {"A": ["B"], "B": []}, "queue": [], "dist": {"A": 0}, "parent": {}, "current": "A", "neighbor": "B", "graph_contract": bfs_contract}),
+        _graph_contract_event(3, "set", ["dist[B]"], value=1, deps=["dist[A]", "edge:A->B"], role="visited", state={"graph": {"A": ["B"], "B": []}, "queue": ["B"], "dist": {"A": 0, "B": 1}, "parent": {"B": "A"}, "current": "A", "neighbor": "B", "graph_contract": bfs_contract}),
+    ]
+    duplicate_visit = [*bfs_valid, _graph_contract_event(4, "set", ["dist[B]"], value=1, deps=["dist[A]", "edge:A->B"], role="visited", state={"graph": {"A": ["B"], "B": []}, "queue": ["B", "B"], "dist": {"A": 0, "B": 1}, "parent": {"B": "A"}, "current": "A", "neighbor": "B", "graph_contract": bfs_contract})]
+    duplicate_errors = errors_for("bfs duplicate", duplicate_visit, {"graph": {"A": ["B"], "B": []}, "start": "A"})
+    assert any("Graph contract" in error and "重复首次访问" in error for error in duplicate_errors), duplicate_errors
+
+    wrong_dist = [
+        dict(event, state={**event["state"], "dist": {"A": 0, "B": 2}})
+        if event["step"] == 3 else event
+        for event in bfs_valid
+    ]
+    wrong_dist_errors = errors_for("bfs wrong dist", wrong_dist, {"graph": {"A": ["B"], "B": []}, "start": "A"})
+    assert any("Graph contract" in error and "dist" in error for error in wrong_dist_errors), wrong_dist_errors
+
+    queue_jump = [
+        dict(event, state={**event["state"], "queue": ["B"]})
+        if event["step"] == 1 else event
+        for event in bfs_valid
+    ]
+    queue_jump_errors = errors_for("bfs queue jump", queue_jump, {"graph": {"A": ["B"], "B": []}, "start": "A"})
+    assert any("Graph contract" in error and "queue 跳变" in error for error in queue_jump_errors), queue_jump_errors
+
+    dfs_contract = {"submode": "dfs", "source": "A", "expected_nodes": ["A", "B"]}
+    dfs_errors = errors_for(
+        "dfs missing frame",
+        [
+            _graph_contract_event(0, "create", ["graph"], state={"graph": {"A": ["B"], "B": []}, "visited": {"A": True, "B": True}, "graph_contract": dfs_contract}),
+        ],
+    )
+    assert any("Graph contract" in error and "recursion frame" in error for error in dfs_errors), dfs_errors
+
+    dijkstra_contract = {"submode": "dijkstra", "source": "A", "expected_relax_edges": ["A->B"]}
+    dijkstra_missing_relax_errors = errors_for(
+        "dijkstra missing relax",
+        [
+            _graph_contract_event(0, "create", ["heap"], state={"weighted_graph": {"A": [["B", 2]], "B": []}, "heap": ["A"], "dist": {"A": 0, "B": 2}, "parent": {"B": "A"}, "graph_contract": dijkstra_contract}),
+        ],
+        {"weighted_graph": {"A": [["B", 2]], "B": []}, "start": "A"},
+    )
+    assert any("Graph contract" in error and "relax" in error for error in dijkstra_missing_relax_errors), dijkstra_missing_relax_errors
+
+    dijkstra_negative_errors = errors_for(
+        "dijkstra negative",
+        [
+            _graph_contract_event(0, "create", ["heap"], state={"weighted_graph": {"A": [["B", -1]], "B": []}, "heap": ["A"], "dist": {"A": 0}, "graph_contract": dijkstra_contract}),
+        ],
+        {"weighted_graph": {"A": [["B", -1]], "B": []}, "start": "A"},
+    )
+    assert any("Graph contract" in error and "负权" in error for error in dijkstra_negative_errors), dijkstra_negative_errors
+
+    topo_contract = {"submode": "topological_sort", "expected_nodes": ["A", "B"]}
+    topo_errors = errors_for(
+        "topo missing indegree",
+        [
+            _graph_contract_event(0, "create", ["queue"], state={"graph": {"A": ["B"], "B": []}, "queue": ["A"], "topo_order": [], "graph_contract": topo_contract}),
+            _graph_contract_event(1, "mark", ["node:B"], deps=["edge:A->B"], role="answer", state={"graph": {"A": ["B"], "B": []}, "queue": ["B"], "topo_order": ["A"], "graph_contract": topo_contract}),
+        ],
+    )
+    assert any("Graph contract" in error and "indegree" in error for error in topo_errors), topo_errors
+
+    mst_contract = {"submode": "mst", "expected_edges": ["A-B"]}
+    mst_errors = errors_for(
+        "mst missing uf",
+        [
+            _graph_contract_event(0, "create", ["graph"], state={"edges": [["A", "B", 1]], "mst_edges": [], "graph_contract": mst_contract}),
+            _graph_contract_event(1, "mark", ["edge:A->B"], role="selected", state={"edges": [["A", "B", 1]], "mst_edges": [["A", "B", 1]], "graph_contract": mst_contract}),
+        ],
+        {"edges": [["A", "B", 1]], "n": 2},
+    )
+    assert any("Graph contract" in error and "union-find" in error for error in mst_errors), mst_errors
+
+    tarjan_contract = {"submode": "tarjan", "expected_nodes": ["A"]}
+    tarjan_errors = errors_for(
+        "tarjan missing low",
+        [
+            _graph_contract_event(0, "create", ["graph"], state={"graph": {"A": []}, "dfn": {"A": 1}, "stack": ["A"], "graph_contract": tarjan_contract}),
+        ],
+    )
+    assert any("Graph contract" in error and "dfn/low/stack" in error for error in tarjan_errors), tarjan_errors
+
+    flow_contract = {"submode": "network_flow", "source": "S", "sink": "T", "expected_paths": [["S", "T"]]}
+    flow_errors = errors_for(
+        "flow missing bottleneck",
+        [
+            _graph_contract_event(0, "create", ["queue"], state={"graph": {"S": ["T"], "T": []}, "capacity": {"S->T": 3}, "flow": {"S->T": 0}, "parent": {"T": "S"}, "augmenting_path": ["S", "T"], "graph_contract": flow_contract}),
+            _graph_contract_event(1, "set", ["flow[S->T]"], value=3, deps=["edge:S->T"], state={"graph": {"S": ["T"], "T": []}, "capacity": {"S->T": 3}, "flow": {"S->T": 3}, "parent": {"T": "S"}, "augmenting_path": ["S", "T"], "graph_contract": flow_contract}),
+        ],
+    )
+    assert any("Graph contract" in error and "bottleneck" in error for error in flow_errors), flow_errors
+
+
+def test_phase12_family_trace_contract_accepts_string_tree_backtracking_and_structures():
+    string_contract = {"family": "string", "submode": "kmp", "expected_tables": ["pi"], "expected_events": ["compare", "fallback"]}
+    tree_contract = {"family": "tree", "submode": "postorder", "expected_nodes": ["1"], "expected_frames": ["frame:dfs(1)"]}
+    backtracking_contract = {"family": "backtracking", "submode": "permutation", "expected_events": ["choose", "record", "undo"]}
+    heap_contract = {"family": "heap", "submode": "topk", "expected_events": ["push", "pop"]}
+    trie_contract = {"family": "trie", "submode": "insert_search", "expected_events": ["create_node", "terminal", "prefix_count"]}
+    linked_contract = {"family": "linked_list", "submode": "reverse", "expected_events": ["move_pointer", "link_change"]}
+
+    tree_state = {
+        "tree": {"nodes": [{"id": "1"}], "edges": []},
+        "current": "1",
+        "frames": ["frame:dfs(1)"],
+        "return_values": {},
+        "family_contract": tree_contract,
+    }
+    recursion_tree = {"nodes": [{"id": "root", "label": "[]"}, {"id": "root_1", "label": "[1]"}], "edges": [["root", "root_1"]]}
+    linked_nodes = [
+        {"id": "1", "label": "1", "meta": {"next": "2"}},
+        {"id": "2", "label": "2", "meta": {"next": None}},
+    ]
+
+    traces = [
+        _family_contract_trace(
+            "KMP family contract positive",
+            {"text": "ababc", "pattern": "abc"},
+            2,
+            [
+                _family_contract_event(0, "create", ["text", "pattern", "pi"], state={"text": "ababc", "pattern": "abc", "i": 0, "j": 0, "pi": [0, 0, 0], "family_contract": string_contract}, reason="初始化 text/pattern 指针和 KMP 前缀表。"),
+                _family_contract_event(1, "compare", ["text[2]", "pattern[0]"], deps=["text[2]", "pattern[0]"], state={"text": "ababc", "pattern": "abc", "i": 2, "j": 0, "pi": [0, 0, 0], "mismatch_reason": "失配后按 pi 回退", "family_contract": string_contract}, reason="KMP 比较当前文本字符和模式字符，失配时准备回退。"),
+                _family_contract_event(2, "move", ["pointer:j"], value=0, deps=["pi[0]", "pattern[0]"], state={"text": "ababc", "pattern": "abc", "i": 2, "j": 0, "pi": [0, 0, 0], "fallback_reason": "失配回退到 pi[j-1]", "family_contract": string_contract}, reason="KMP 失配回退使用 pi 表，不重新扫描已经匹配的文本。"),
+                _family_contract_event(3, "mark", ["text[2]"], deps=["pattern[0]"], role="answer", state={"text": "ababc", "pattern": "abc", "i": 4, "j": 3, "pi": [0, 0, 0], "answer": 2, "family_contract": string_contract}, reason="模式串完整匹配，答案起点是 i - len(pattern) + 1。"),
+            ],
+        ),
+        _family_contract_trace(
+            "Tree family contract positive",
+            {"tree": {"nodes": [{"id": "1"}], "edges": []}},
+            ["1"],
+            [
+                _family_contract_event(0, "create", ["tree"], state={"tree": tree_state["tree"], "current": "1", "frames": [], "return_values": {}, "family_contract": tree_contract}, reason="初始化树结构。"),
+                _family_contract_event(1, "enter", ["frame:dfs(1)"], deps=["node:1"], state=tree_state, reason="进入节点 1 的递归 frame。"),
+                _family_contract_event(2, "exit", ["frame:dfs(1)"], value=["1"], deps=["node:1"], role="answer", state={**tree_state, "frames": [], "return_values": {"1": ["1"]}, "aggregate": ["1"], "answer": ["1"]}, reason="子树返回值已经聚合，退出 frame。"),
+            ],
+        ),
+        _family_contract_trace(
+            "Backtracking family contract positive",
+            {"nums": [1]},
+            [[1]],
+            [
+                _family_contract_event(0, "create", ["recursion_tree"], state={"nums": [1], "path": [], "used": [False], "answer": [], "recursion_tree": {"nodes": [{"id": "root", "label": "[]"}], "edges": []}, "family_contract": backtracking_contract}, reason="从空路径开始回溯。"),
+                _family_contract_event(1, "enter", ["frame:dfs([])"], deps=["recursion_tree"], state={"nums": [1], "path": [], "used": [False], "answer": [], "recursion_tree": recursion_tree, "choice": None, "family_contract": backtracking_contract}, reason="进入当前回溯 frame。"),
+                _family_contract_event(2, "push", ["path"], value=1, deps=["nums[0]"], role="choose", state={"nums": [1], "path": [1], "used": [True], "answer": [], "recursion_tree": recursion_tree, "choice": 1, "family_contract": backtracking_contract}, reason="选择 nums[0] 放入 path。"),
+                _family_contract_event(3, "mark", ["answer"], value=[[1]], deps=["path[0]"], role="answer", state={"nums": [1], "path": [1], "used": [True], "answer": [[1]], "recursion_tree": recursion_tree, "choice": 1, "family_contract": backtracking_contract}, reason="path 长度达到 nums 长度，记录一个答案。"),
+                _family_contract_event(4, "pop", ["path"], value=1, deps=["path[0]"], role="undo", state={"nums": [1], "path": [], "used": [False], "answer": [[1]], "recursion_tree": recursion_tree, "choice": 1, "family_contract": backtracking_contract}, reason="撤销选择，恢复 path 和 used 后继续尝试其他分支。"),
+            ],
+        ),
+        _family_contract_trace(
+            "Heap family contract positive",
+            {"nums": [3, 1], "k": 1},
+            3,
+            [
+                _family_contract_event(0, "create", ["heap"], state={"nums": [3, 1], "heap": [], "heap_type": "min", "k": 1, "family_contract": heap_contract}, reason="初始化容量为 k 的小顶堆。"),
+                _family_contract_event(1, "push", ["heap"], value=3, deps=["nums[0]"], state={"nums": [3, 1], "heap": [3], "heap_type": "min", "k": 1, "i": 0, "heap_top": 3, "family_contract": heap_contract}, reason="把当前元素加入堆并维护堆顶。"),
+                _family_contract_event(2, "push", ["heap"], value=1, deps=["nums[1]"], state={"nums": [3, 1], "heap": [1, 3], "heap_type": "min", "k": 1, "i": 1, "heap_top": 1, "family_contract": heap_contract}, reason="加入新元素后小顶堆堆顶是最小候选。"),
+                _family_contract_event(3, "pop", ["heap"], value=1, deps=["heap[0]"], role="conflict", state={"nums": [3, 1], "heap": [3], "heap_type": "min", "k": 1, "i": 1, "heap_top": 3, "family_contract": heap_contract}, reason="堆超过 k 个元素，弹出堆顶后保留最大的 k 个。"),
+                _family_contract_event(4, "mark", ["heap[0]"], value=3, deps=["heap[0]"], role="answer", state={"nums": [3, 1], "heap": [3], "heap_type": "min", "k": 1, "answer": 3, "heap_top": 3, "family_contract": heap_contract}, reason="堆顶就是第 k 大元素。"),
+            ],
+        ),
+        _family_contract_trace(
+            "Trie family contract positive",
+            {"words": ["a"], "prefix": "a"},
+            1,
+            [
+                _family_contract_event(0, "create", ["trie"], state={"words": ["a"], "prefix": "a", "trie": {"nodes": [{"id": "root", "label": "root", "meta": {"count": 0}}], "edges": []}, "current": "root", "family_contract": trie_contract}, reason="初始化 Trie 根节点。"),
+                _family_contract_event(1, "link", ["node:root_a"], deps=["node:root", "words[0]"], state={"words": ["a"], "prefix": "a", "trie": {"nodes": [{"id": "root", "label": "root", "meta": {"count": 1}}, {"id": "root_a", "label": "a", "meta": {"count": 1, "terminal": True}}], "edges": [["root", "root_a"]]}, "current": "root_a", "char": "a", "prefix_count": 1, "family_contract": trie_contract}, reason="沿字符 a 创建 Trie 子节点，并更新经过计数。"),
+                _family_contract_event(2, "mark", ["node:root_a"], value=1, deps=["node:root_a"], role="answer", state={"words": ["a"], "prefix": "a", "trie": {"nodes": [{"id": "root", "label": "root", "meta": {"count": 1}}, {"id": "root_a", "label": "a", "meta": {"count": 1, "terminal": True}}], "edges": [["root", "root_a"]]}, "current": "root_a", "char": "a", "prefix_count": 1, "answer": 1, "family_contract": trie_contract}, reason="前缀路径结束，当前节点 count 就是前缀匹配数量。"),
+            ],
+        ),
+        _family_contract_trace(
+            "Linked list family contract positive",
+            {"values": [1, 2]},
+            [2, 1],
+            [
+                _family_contract_event(0, "create", ["linked_list"], state={"linked_list": {"nodes": linked_nodes, "edges": [["1", "2"]]}, "current": "1", "prev": None, "next": "2", "family_contract": linked_contract}, reason="初始化链表和 prev/current/next 指针。"),
+                _family_contract_event(1, "move", ["pointer:current"], value=1, deps=["node:1"], state={"linked_list": {"nodes": linked_nodes, "edges": [["1", "2"]]}, "current": "1", "prev": None, "next": "2", "family_contract": linked_contract}, reason="定位当前待反转节点。"),
+                _family_contract_event(2, "unlink", ["edge:1->2"], deps=["node:1", "node:2"], state={"linked_list": {"nodes": linked_nodes, "edges": []}, "current": "1", "prev": None, "next": "2", "family_contract": linked_contract}, reason="断开 current 原来的 next 指向，为反转做准备。"),
+                _family_contract_event(3, "link", ["edge:2->1"], deps=["node:2", "node:1"], state={"linked_list": {"nodes": [{"id": "1", "label": "1", "meta": {"next": None}}, {"id": "2", "label": "2", "meta": {"next": "1"}}], "edges": [["2", "1"]]}, "current": "2", "prev": "1", "next": None, "family_contract": linked_contract}, reason="修改 next 指针，让节点 2 指向已经反转好的前缀。"),
+                _family_contract_event(4, "mark", ["node:2"], value=[2, 1], deps=["edge:2->1"], role="answer", state={"linked_list": {"nodes": [{"id": "1", "label": "1", "meta": {"next": None}}, {"id": "2", "label": "2", "meta": {"next": "1"}}], "edges": [["2", "1"]]}, "current": None, "prev": "2", "next": None, "answer": [2, 1], "family_contract": linked_contract}, reason="current 为空，prev 指向反转后链表头。"),
+            ],
+        ),
+    ]
+
+    for raw_trace in traces:
+        trace_errors, process_errors, scene_errors = _contract_stack_errors(raw_trace)
+        assert trace_errors == [], (raw_trace["algorithm"], trace_errors)
+        assert process_errors == [], (raw_trace["algorithm"], process_errors)
+        assert scene_errors == [], (raw_trace["algorithm"], scene_errors)
+
+
+def test_phase12_family_trace_contract_rejects_missing_process_evidence():
+    def errors_for(events: list[dict], algorithm: str = "Family contract negative") -> list[str]:
+        return _process_errors_for(_family_contract_trace(algorithm, {}, None, events))
+
+    string_contract = {"family": "string", "submode": "kmp", "expected_tables": ["pi"], "expected_events": ["compare", "fallback"]}
+    string_errors = errors_for(
+        [
+            _family_contract_event(0, "create", ["text", "pattern"], state={"text": "ababc", "pattern": "abc", "i": 0, "family_contract": string_contract}, reason="初始化字符串。"),
+            _family_contract_event(1, "mark", ["text[2]"], role="answer", state={"text": "ababc", "pattern": "abc", "i": 2, "answer": 2, "family_contract": string_contract}, reason="匹配完成。"),
+        ],
+        "String family contract negative",
+    )
+    assert any("Family contract string" in error and "pattern 指针" in error for error in string_errors), string_errors
+    assert any("Family contract string" in error and "表结构" in error for error in string_errors), string_errors
+    assert any("Family contract string" in error and "失配/扩展" in error for error in string_errors), string_errors
+
+    tree_contract = {"family": "tree", "submode": "postorder", "expected_nodes": ["1"], "expected_frames": ["frame:dfs(1)"]}
+    tree_errors = errors_for(
+        [
+            _family_contract_event(0, "create", ["tree"], state={"tree": {"nodes": [{"id": "1"}], "edges": []}, "current": "1", "family_contract": tree_contract}, reason="初始化树。"),
+            _family_contract_event(1, "mark", ["node:1"], role="answer", state={"tree": {"nodes": [{"id": "1"}], "edges": []}, "current": "1", "answer": ["1"], "family_contract": tree_contract}, reason="直接给出结果。"),
+        ],
+        "Tree family contract negative",
+    )
+    assert any("Family contract tree" in error and "enter/exit" in error for error in tree_errors), tree_errors
+    assert any("Family contract tree" in error and "返回值" in error for error in tree_errors), tree_errors
+
+    backtracking_contract = {"family": "backtracking", "submode": "permutation", "expected_events": ["choose", "record", "undo"]}
+    backtracking_errors = errors_for(
+        [
+            _family_contract_event(0, "create", ["recursion_tree"], state={"nums": [1], "path": [], "used": [False], "answer": [], "recursion_tree": {"nodes": [{"id": "root"}], "edges": []}, "family_contract": backtracking_contract}, reason="初始化。"),
+            _family_contract_event(1, "mark", ["answer"], role="answer", state={"nums": [1], "path": [], "used": [False], "answer": [[1]], "recursion_tree": {"nodes": [{"id": "root"}], "edges": []}, "family_contract": backtracking_contract}, reason="直接给出答案。"),
+        ],
+        "Backtracking family contract negative",
+    )
+    assert any("Family contract backtracking" in error and "choose" in error for error in backtracking_errors), backtracking_errors
+    assert any("Family contract backtracking" in error and "undo" in error for error in backtracking_errors), backtracking_errors
+
+    heap_contract = {"family": "heap", "submode": "topk", "expected_events": ["push", "pop"]}
+    heap_errors = errors_for(
+        [
+            _family_contract_event(0, "create", ["heap"], state={"nums": [3, 1], "heap": [], "heap_type": "min", "k": 1, "family_contract": heap_contract}, reason="初始化堆。"),
+            _family_contract_event(1, "push", ["heap"], value=3, deps=["nums[0]"], state={"nums": [3, 1], "heap": [3], "heap_type": "min", "k": 1, "family_contract": heap_contract}, reason="加入堆。"),
+        ],
+        "Heap family contract negative",
+    )
+    assert any("Family contract heap" in error and "pop" in error for error in heap_errors), heap_errors
+    assert any("Family contract heap" in error and "heap_top" in error for error in heap_errors), heap_errors
+
+    trie_contract = {"family": "trie", "submode": "insert_search", "expected_events": ["create_node", "terminal", "prefix_count"]}
+    trie_errors = errors_for(
+        [
+            _family_contract_event(0, "create", ["trie"], state={"words": ["a"], "prefix": "a", "trie": {"nodes": [{"id": "root"}], "edges": []}, "family_contract": trie_contract}, reason="初始化 Trie。"),
+            _family_contract_event(1, "link", ["node:root_a"], deps=["node:root"], state={"words": ["a"], "prefix": "a", "trie": {"nodes": [{"id": "root"}, {"id": "root_a", "label": "a"}], "edges": [["root", "root_a"]]}, "family_contract": trie_contract}, reason="创建节点。"),
+        ],
+        "Trie family contract negative",
+    )
+    assert any("Family contract trie" in error and "terminal" in error for error in trie_errors), trie_errors
+    assert any("Family contract trie" in error and "count" in error for error in trie_errors), trie_errors
+
+    linked_contract = {"family": "linked_list", "submode": "reverse", "expected_events": ["move_pointer", "link_change"]}
+    linked_errors = errors_for(
+        [
+            _family_contract_event(0, "create", ["linked_list"], state={"linked_list": {"nodes": [{"id": "1"}, {"id": "2"}], "edges": [["1", "2"]]}, "family_contract": linked_contract}, reason="初始化链表。"),
+            _family_contract_event(1, "mark", ["node:2"], role="answer", state={"linked_list": {"nodes": [{"id": "1"}, {"id": "2"}], "edges": [["2", "1"]]}, "answer": [2, 1], "family_contract": linked_contract}, reason="直接给出最终链。"),
+        ],
+        "Linked list family contract negative",
+    )
+    assert any("Family contract linked_list" in error and "pointer" in error for error in linked_errors), linked_errors
+    assert any("Family contract linked_list" in error and "next/prev" in error for error in linked_errors), linked_errors
+
+
+def test_phase13_array_pointer_validator_rejects_process_errors_and_tracks_samples():
+    profiles = {profile.family: profile for profile in __import__("algolab.verification.process_validator", fromlist=["process_validation_registry"]).process_validation_registry()}
+    assert "array_pointer" in profiles
+    assert profiles["array_pointer"].status == "strong"
+
+    array_pointer_samples = [
+        sample
+        for case in benchmark_cases()
+        if case.process_profile == "array_pointer"
+        for sample in case.samples
+    ]
+    assert len(array_pointer_samples) >= 18
+
+    valid_two_pointer_errors = _process_errors_for(
+        _array_contract_trace(
+            "Two pointer pair sum trace",
+            {"nums": [1, 2, 4, 6, 10], "target": 8},
+            [1, 3],
+            [
+                _family_contract_event(
+                    0,
+                    "create",
+                    ["nums", "pointer:left", "pointer:right"],
+                    state={"nums": [1, 2, 4, 6, 10], "left": 0, "right": 4, "target": 8, "array_contract": {"submode": "two_pointer"}},
+                    reason="初始化左右双指针。",
+                ),
+                _family_contract_event(
+                    1,
+                    "compare",
+                    ["nums[0]", "nums[4]"],
+                    value=11,
+                    state={"nums": [1, 2, 4, 6, 10], "left": 0, "right": 4, "target": 8, "sum": 11, "array_contract": {"submode": "two_pointer"}},
+                    reason="比较左右指针元素之和。",
+                ),
+                _family_contract_event(
+                    2,
+                    "move",
+                    ["pointer:right"],
+                    value=3,
+                    deps=["nums[0]", "nums[4]", "target"],
+                    state={"nums": [1, 2, 4, 6, 10], "left": 0, "right": 3, "target": 8, "array_contract": {"submode": "two_pointer"}},
+                    reason="当前和大于 target，右指针左移。",
+                ),
+                _family_contract_event(
+                    3,
+                    "compare",
+                    ["nums[0]", "nums[3]"],
+                    value=7,
+                    state={"nums": [1, 2, 4, 6, 10], "left": 0, "right": 3, "target": 8, "sum": 7, "array_contract": {"submode": "two_pointer"}},
+                    reason="比较移动后的两数之和。",
+                ),
+                _family_contract_event(
+                    4,
+                    "move",
+                    ["pointer:left"],
+                    value=1,
+                    deps=["nums[0]", "nums[3]", "target"],
+                    state={"nums": [1, 2, 4, 6, 10], "left": 1, "right": 3, "target": 8, "array_contract": {"submode": "two_pointer"}},
+                    reason="当前和小于 target，左指针右移。",
+                ),
+                _family_contract_event(
+                    5,
+                    "mark",
+                    ["nums[1]", "nums[3]"],
+                    value=[1, 3],
+                    state={"nums": [1, 2, 4, 6, 10], "left": 1, "right": 3, "target": 8, "sum": 8, "answer": [1, 3], "array_contract": {"submode": "two_pointer"}},
+                    role="answer",
+                    reason="两数之和等于 target，返回当前指针。",
+                ),
+            ],
+        )
+    )
+    assert valid_two_pointer_errors == [], valid_two_pointer_errors
+
+    wrong_mid_errors = _process_errors_for(
+        _array_contract_trace(
+            "Binary search wrong mid array pointer",
+            {"nums": [1, 3, 5, 7], "target": 7},
+            3,
+            [
+                _family_contract_event(0, "create", ["nums"], state={"nums": [1, 3, 5, 7], "left": 0, "right": 3, "mid": 3, "target": 7}, reason="初始化错误 mid。"),
+                _family_contract_event(1, "compare", ["nums[3]", "pointer:mid"], value=3, state={"nums": [1, 3, 5, 7], "left": 0, "right": 3, "mid": 3, "target": 7}, reason="比较错误中点。"),
+            ],
+        )
+    )
+    assert any("mid" in error and "二分" in error for error in wrong_mid_errors), wrong_mid_errors
+
+    wrong_shrink_errors = _process_errors_for(
+        _array_contract_trace(
+            "Binary search wrong shrink array pointer",
+            {"nums": [1, 3, 5, 7], "target": 7},
+            3,
+            [
+                _family_contract_event(0, "create", ["nums"], state={"nums": [1, 3, 5, 7], "left": 0, "right": 3, "target": 7}, reason="初始化。"),
+                _family_contract_event(1, "compare", ["nums[1]", "pointer:mid"], value=1, state={"nums": [1, 3, 5, 7], "left": 0, "right": 3, "mid": 1, "target": 7}, reason="比较中点。"),
+                _family_contract_event(2, "move", ["pointer:right"], value=0, deps=["nums[1]", "target"], state={"nums": [1, 3, 5, 7], "left": 0, "right": 0, "target": 7}, reason="错误地向左收缩。"),
+            ],
+        )
+    )
+    assert any("收缩方向错误" in error for error in wrong_shrink_errors), wrong_shrink_errors
+
+    wrong_prefix_errors = _process_errors_for(
+        _array_contract_trace(
+            "Prefix sum wrong update",
+            {"nums": [2, 4, 6], "query": [1, 2]},
+            10,
+            [
+                _family_contract_event(0, "create", ["nums", "prefix"], state={"nums": [2, 4, 6], "prefix": [0, 0, 0, 0], "array_contract": {"submode": "prefix_sum", "expected_targets": ["prefix[1]", "prefix[2]", "prefix[3]"]}}, reason="初始化前缀数组。"),
+                _family_contract_event(1, "set", ["prefix[1]"], value=2, deps=["prefix[0]", "nums[0]"], state={"nums": [2, 4, 6], "prefix": [0, 2, 0, 0], "i": 0, "array_contract": {"submode": "prefix_sum", "expected_targets": ["prefix[1]", "prefix[2]", "prefix[3]"]}}, reason="写入 prefix[1]。"),
+                _family_contract_event(2, "set", ["prefix[2]"], value=7, deps=["prefix[1]", "nums[1]"], state={"nums": [2, 4, 6], "prefix": [0, 2, 7, 0], "i": 1, "array_contract": {"submode": "prefix_sum", "expected_targets": ["prefix[1]", "prefix[2]", "prefix[3]"]}}, reason="错误写入 prefix[2]。"),
+            ],
+        )
+    )
+    assert any("prefix" in error and "应为" in error for error in wrong_prefix_errors), wrong_prefix_errors
+
+    wrong_diff_errors = _process_errors_for(
+        _array_contract_trace(
+            "Difference array wrong update",
+            {"nums": [1, 1, 1], "updates": [[0, 1, 2]]},
+            [3, 3, 1],
+            [
+                _family_contract_event(0, "create", ["diff"], state={"nums": [1, 1, 1], "diff": [1, 0, 0, 0], "updates": [[0, 1, 2]], "array_contract": {"submode": "difference_array", "expected_targets": ["diff[0]", "diff[2]"]}}, reason="初始化差分数组。"),
+                _family_contract_event(1, "set", ["diff[0]"], value=3, deps=["diff[0]", "updates[0]"], state={"nums": [1, 1, 1], "diff": [3, 0, 0, 0], "updates": [[0, 1, 2]], "update_index": 0, "array_contract": {"submode": "difference_array", "expected_targets": ["diff[0]", "diff[2]"]}}, reason="区间左端加 delta。"),
+                _family_contract_event(2, "set", ["diff[2]"], value=0, deps=["diff[2]", "updates[0]"], state={"nums": [1, 1, 1], "diff": [3, 0, 0, 0], "updates": [[0, 1, 2]], "update_index": 0, "array_contract": {"submode": "difference_array", "expected_targets": ["diff[0]", "diff[2]"]}}, reason="错误地没有在右端后一位减 delta。"),
+            ],
+        )
+    )
+    assert any("diff" in error and "应为" in error for error in wrong_diff_errors), wrong_diff_errors
+
+    valid_diff_trace = _array_contract_trace(
+        "Difference array valid update dependency",
+        {"nums": [1, 1, 1], "updates": [[0, 1, 2]]},
+        [3, 3, 1],
+        [
+            _family_contract_event(
+                0,
+                "create",
+                ["diff"],
+                state={
+                    "nums": [1, 1, 1],
+                    "diff": [1, 0, 0, 0],
+                    "updates": [[0, 1, 2]],
+                    "array_contract": {"submode": "difference_array", "expected_targets": ["diff[0]", "diff[2]"]},
+                },
+                reason="初始化差分数组。",
+            ),
+            _family_contract_event(
+                1,
+                "set",
+                ["diff[0]"],
+                value=3,
+                deps=["diff[0]", "updates[0]"],
+                state={
+                    "nums": [1, 1, 1],
+                    "diff": [3, 0, 0, 0],
+                    "updates": [[0, 1, 2]],
+                    "update_index": 0,
+                    "array_contract": {"submode": "difference_array", "expected_targets": ["diff[0]", "diff[2]"]},
+                },
+                reason="区间左端差分加 delta。",
+            ),
+            _family_contract_event(
+                2,
+                "set",
+                ["diff[2]"],
+                value=-2,
+                deps=["diff[2]", "updates[0]"],
+                state={
+                    "nums": [1, 1, 1],
+                    "diff": [3, 0, -2, 0],
+                    "updates": [[0, 1, 2]],
+                    "update_index": 0,
+                    "array_contract": {"submode": "difference_array", "expected_targets": ["diff[0]", "diff[2]"]},
+                },
+                reason="区间右端后一位差分减 delta。",
+            ),
+            _family_contract_event(
+                3,
+                "mark",
+                ["diff"],
+                value=[3, 3, 1],
+                state={
+                    "nums": [1, 1, 1],
+                    "diff": [3, 0, -2, 0],
+                    "updates": [[0, 1, 2]],
+                    "answer": [3, 3, 1],
+                    "array_contract": {"submode": "difference_array", "expected_targets": ["diff[0]", "diff[2]"]},
+                },
+                role="answer",
+                reason="前缀还原最终数组。",
+            ),
+        ],
+    )
+    valid_diff_trace_errors, valid_diff_process_errors, valid_diff_scene_errors = _contract_stack_errors(valid_diff_trace)
+    assert valid_diff_trace_errors == []
+    assert valid_diff_process_errors == []
+    assert valid_diff_scene_errors == []
+
+    window_jump_errors = _process_errors_for(
+        _array_contract_trace(
+            "Sliding window jump",
+            {"nums": [1, 2, 3], "target": 3},
+            2,
+            [
+                _family_contract_event(0, "create", ["nums"], state={"nums": [1, 2, 3], "left": 0, "right": 0, "window_sum": 1, "array_contract": {"submode": "sliding_window"}}, reason="初始化窗口。"),
+                _family_contract_event(1, "move", ["pointer:right"], value=2, state={"nums": [1, 2, 3], "left": 0, "right": 2, "window_sum": 6, "array_contract": {"submode": "sliding_window"}}, reason="错误跳过一个窗口位置。"),
+            ],
+        )
+    )
+    assert any("窗口" in error and "跳变" in error for error in window_jump_errors), window_jump_errors
+
+
+def test_phase13_dp_validator_expands_family_core_samples_and_rejects_digit_dp_errors():
+    profiles = {profile.family: profile for profile in __import__("algolab.verification.process_validator", fromlist=["process_validation_registry"]).process_validation_registry()}
+    assert "dp" in profiles
+    assert profiles["dp"].status == "strong"
+
+    dp_cases = [
+        case
+        for case in benchmark_cases()
+        if case.gate_layer == "family_core" and case.process_profile == "dp"
+    ]
+    dp_samples = [sample for case in dp_cases for sample in case.samples]
+    subfamilies = {case.subfamily_id for case in dp_cases}
+    assert len(dp_samples) >= 35
+    assert {
+        "house_robber",
+        "unique_paths",
+        "knapsack_01",
+        "complete_knapsack",
+        "bounded_knapsack",
+        "lcs",
+        "edit_distance",
+        "interval_dp",
+        "tree_max_independent_set",
+        "state_compression",
+        "digit_dp",
+    } <= subfamilies
+
+    def assert_dp_error(raw_trace: dict, *expected_terms: str) -> None:
+        errors = _process_errors_for(raw_trace)
+        assert any(all(term in error for term in expected_terms) for error in errors), errors
+
+    house_robber_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[2]",
+        "expected_targets": ["dp[2]"],
+        "subfamily": "house_robber",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "打家劫舍 DP 错误转移",
+            {"nums": [2, 7, 9]},
+            11,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"nums": [2, 7, 9], "dp": [2, 7, 0], "i": 1, "formula": "dp[1]=max(nums[0], nums[1])", "dp_contract": house_robber_contract}),
+                _dp_contract_event(1, "set", ["dp[2]"], value=99, before=0, deps=["dp[1]", "dp[0]", "nums[2]"], state={"nums": [2, 7, 9], "dp": [2, 7, 99], "i": 2, "formula": "dp[i]=max(dp[i-1], dp[i-2]+nums[i])", "dp_contract": house_robber_contract}),
+                _dp_contract_event(2, "mark", ["dp[2]"], value=99, deps=["dp[2]"], role="answer", state={"nums": [2, 7, 9], "dp": [2, 7, 99], "i": 2, "answer": 99, "formula": "answer=dp[2]", "dp_contract": house_robber_contract}),
+            ],
+        ),
+        "打家劫舍",
+        "不满足",
+    )
+
+    unique_paths_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[1][1]",
+        "expected_targets": ["dp[1][1]"],
+        "subfamily": "unique_paths",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "不同路径 DP 错误转移",
+            {"m": 2, "n": 2},
+            2,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"dp": [[1, 1], [1, 0]], "i": 0, "j": 0, "formula": "boundary=1", "dp_contract": unique_paths_contract}),
+                _dp_contract_event(1, "set", ["dp[1][1]"], value=3, before=0, deps=["dp[0][1]", "dp[1][0]"], state={"dp": [[1, 1], [1, 3]], "i": 1, "j": 1, "formula": "dp[i][j]=dp[i-1][j]+dp[i][j-1]", "dp_contract": unique_paths_contract}),
+                _dp_contract_event(2, "mark", ["dp[1][1]"], value=3, deps=["dp[1][1]"], role="answer", state={"dp": [[1, 1], [1, 3]], "i": 1, "j": 1, "answer": 3, "formula": "answer=dp[1][1]", "dp_contract": unique_paths_contract}),
+            ],
+        ),
+        "不同路径",
+        "不满足",
+    )
+
+    subset_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[11]",
+        "expected_targets": ["dp[5]"],
+        "subfamily": "knapsack_01",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "0-1 背包可达性错误",
+            {"nums": [1, 5, 11, 5]},
+            True,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"nums": [1, 5, 11, 5], "target": 11, "dp": [True] + [False] * 11, "i": -1, "formula": "dp[0]=True", "dp_contract": subset_contract}),
+                _dp_contract_event(1, "set", ["dp[5]"], value=True, before=False, deps=["dp[4]", "nums[0]"], state={"nums": [1, 5, 11, 5], "target": 11, "dp": [True, True, False, False, False, True, False, False, False, False, False, False], "i": 0, "capacity_index": 5, "formula": "dp[j]=dp[j] or dp[j-num]", "dp_contract": subset_contract}),
+                _dp_contract_event(2, "mark", ["dp[11]"], value=True, deps=["dp[11]"], role="answer", state={"nums": [1, 5, 11, 5], "target": 11, "dp": [True, True, False, False, False, True, False, False, False, False, False, True], "i": 0, "capacity_index": 11, "answer": True, "formula": "answer=dp[target]", "dp_contract": subset_contract}),
+            ],
+        ),
+        "0-1 背包",
+        "不满足",
+    )
+
+    complete_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[3]",
+        "expected_targets": ["dp[3]"],
+        "subfamily": "complete_knapsack",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "完全背包零钱兑换错误",
+            {"coins": [2], "amount": 3},
+            -1,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"coins": [2], "amount": 3, "dp": [0, -1, -1, -1], "i": -1, "formula": "dp[0]=0", "dp_mode": "complete_min", "dp_contract": complete_contract}),
+                _dp_contract_event(1, "set", ["dp[3]"], value=1, before=-1, deps=["dp[1]", "coins[0]"], state={"coins": [2], "amount": 3, "dp": [0, -1, 1, 1], "i": 0, "capacity_index": 3, "formula": "dp[j]=min(dp[j], dp[j-coin]+1)", "dp_mode": "complete_min", "dp_contract": complete_contract}),
+                _dp_contract_event(2, "mark", ["dp[3]"], value=1, deps=["dp[3]"], role="answer", state={"coins": [2], "amount": 3, "dp": [0, -1, 1, 1], "i": 0, "capacity_index": 3, "answer": 1, "formula": "answer=dp[amount]", "dp_mode": "complete_min", "dp_contract": complete_contract}),
+            ],
+        ),
+        "完全背包",
+        "不满足",
+    )
+
+    lcs_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[1][1]",
+        "expected_targets": ["dp[1][1]"],
+        "subfamily": "lcs",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "LCS 错误转移",
+            {"text1": "a", "text2": "a"},
+            1,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"dp": [[0, 0], [0, 0]], "i": 0, "j": 0, "formula": "boundary=0", "dp_contract": lcs_contract}),
+                _dp_contract_event(1, "set", ["dp[1][1]"], value=0, before=0, deps=["dp[0][0]", "text1[0]", "text2[0]"], state={"dp": [[0, 0], [0, 0]], "i": 1, "j": 1, "formula": "dp[i][j]=dp[i-1][j-1]+1", "dp_contract": lcs_contract}),
+                _dp_contract_event(2, "mark", ["dp[1][1]"], value=0, deps=["dp[1][1]"], role="answer", state={"dp": [[0, 0], [0, 0]], "i": 1, "j": 1, "answer": 0, "formula": "answer=dp[m][n]", "dp_contract": lcs_contract}),
+            ],
+        ),
+        "LCS",
+        "不满足",
+    )
+
+    edit_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[1][1]",
+        "expected_targets": ["dp[1][1]"],
+        "subfamily": "edit_distance",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "编辑距离错误转移",
+            {"word1": "a", "word2": "b"},
+            1,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"dp": [[0, 1], [1, 0]], "i": 0, "j": 0, "formula": "boundary=i or j", "dp_contract": edit_contract}),
+                _dp_contract_event(1, "set", ["dp[1][1]"], value=0, before=0, deps=["dp[0][1]", "dp[1][0]", "dp[0][0]"], state={"dp": [[0, 1], [1, 0]], "i": 1, "j": 1, "formula": "dp[i][j]=min(delete, insert, replace)+1", "dp_contract": edit_contract}),
+                _dp_contract_event(2, "mark", ["dp[1][1]"], value=0, deps=["dp[1][1]"], role="answer", state={"dp": [[0, 1], [1, 0]], "i": 1, "j": 1, "answer": 0, "formula": "answer=dp[m][n]", "dp_contract": edit_contract}),
+            ],
+        ),
+        "编辑距离",
+        "不满足",
+    )
+
+    interval_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[0][1]",
+        "expected_targets": ["dp[0][1]"],
+        "subfamily": "interval_dp",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "区间 DP 合并石子错误转移",
+            {"stones": [1, 2]},
+            3,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"stones": [1, 2], "dp": [[0, 0], [0, 0]], "i": 0, "j": 0, "formula": "dp[i][i]=0", "dp_mode": "merge_stones", "dp_contract": interval_contract}),
+                _dp_contract_event(1, "set", ["dp[0][1]"], value=4, before=0, deps=["dp[0][0]", "dp[1][1]"], state={"stones": [1, 2], "dp": [[0, 4], [0, 0]], "i": 0, "j": 1, "k": 0, "formula": "dp[i][j]=min(dp[i][k]+dp[k+1][j])+sum(i,j)", "dp_mode": "merge_stones", "dp_contract": interval_contract}),
+                _dp_contract_event(2, "mark", ["dp[0][1]"], value=4, deps=["dp[0][1]"], role="answer", state={"stones": [1, 2], "dp": [[0, 4], [0, 0]], "i": 0, "j": 1, "answer": 4, "formula": "answer=dp[0][n-1]", "dp_mode": "merge_stones", "dp_contract": interval_contract}),
+            ],
+        ),
+        "区间 DP",
+        "不满足",
+    )
+
+    tree_contract = {
+        "containers": ["dp_take", "dp_skip"],
+        "answer_position": "dp_take[1]",
+        "expected_targets": ["dp_take[1]"],
+        "subfamily": "tree_max_independent_set",
+    }
+    tree = {"nodes": [{"id": "1", "value": 3}], "edges": []}
+    assert_dp_error(
+        _dp_contract_trace(
+            "树形 DP 错误转移",
+            {"tree": tree},
+            3,
+            [
+                _dp_contract_event(0, "create", ["tree"], state={"tree": tree, "current": "1", "dp_take": {}, "dp_skip": {}, "formula": "postorder tree dp", "dp_contract": tree_contract}),
+                _dp_contract_event(1, "set", ["dp_take[1]"], value=4, before=None, deps=["node:1", "dp_skip[1]"], state={"tree": tree, "current": "1", "dp_take": {"1": 4}, "dp_skip": {"1": 0}, "formula": "dp_take[u]=weight[u]+sum(dp_skip[child])", "dp_contract": tree_contract}),
+                _dp_contract_event(2, "mark", ["dp_take[1]"], value=4, deps=["dp_take[1]"], role="answer", state={"tree": tree, "current": "1", "dp_take": {"1": 4}, "dp_skip": {"1": 0}, "answer": 4, "formula": "answer=max(dp_take[root], dp_skip[root])", "dp_contract": tree_contract}),
+            ],
+        ),
+        "树形 DP",
+        "应为",
+    )
+
+    bitmask_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[3]",
+        "expected_targets": ["dp[1]", "dp[3]"],
+        "subfamily": "state_compression",
+    }
+    assert_dp_error(
+        _dp_contract_trace(
+            "状态压缩 DP 合同缺少依赖",
+            {"item_count": 2},
+            2,
+            [
+                _dp_contract_event(0, "create", ["dp"], state={"item_count": 2, "dp": [0, 0, 0, 0], "mask": 0, "formula": "dp[0]=0", "dp_contract": bitmask_contract}),
+                _dp_contract_event(1, "set", ["dp[1]"], value=1, before=0, deps=[], state={"item_count": 2, "dp": [0, 1, 0, 0], "mask": 1, "formula": "dp[mask]=popcount(mask)", "dp_contract": bitmask_contract}),
+                _dp_contract_event(2, "set", ["dp[3]"], value=2, before=0, deps=["dp[1]"], state={"item_count": 2, "dp": [0, 1, 0, 2], "mask": 3, "formula": "dp[mask]=popcount(mask)", "dp_contract": bitmask_contract}),
+                _dp_contract_event(3, "mark", ["dp[3]"], value=2, deps=["dp[3]"], role="answer", state={"item_count": 2, "dp": [0, 1, 0, 2], "mask": 3, "answer": 2, "formula": "answer=dp[(1<<n)-1]", "dp_contract": bitmask_contract}),
+            ],
+        ),
+        "DP contract",
+        "deps",
+    )
+
+    digit_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[1]",
+        "expected_targets": ["dp[1]"],
+        "subfamily": "digit_dp",
+    }
+    digit_errors = _process_errors_for(
+        _dp_contract_trace(
+            "数位 DP 统计不含 7 的数字",
+            {"n": 20},
+            18,
+            [
+                _dp_contract_event(
+                    0,
+                    "create",
+                    ["dp"],
+                    state={"digits": [2, 0], "dp": [1, 0], "digit": 0, "tight": True, "formula": "dp[0]=1", "dp_contract": digit_contract},
+                    reason="初始化数位 DP。",
+                ),
+                _dp_contract_event(
+                    1,
+                    "set",
+                    ["dp[1]"],
+                    value=19,
+                    before=0,
+                    deps=["dp[0]"],
+                    state={"digits": [2, 0], "dp": [1, 19], "digit": 1, "tight": False, "formula": "dp[pos+1]+=dp[pos]*valid_choices", "dp_contract": digit_contract},
+                    reason="错误地把数字 7 也计入可选分支。",
+                ),
+                _dp_contract_event(
+                    2,
+                    "mark",
+                    ["dp[1]"],
+                    value=19,
+                    deps=["dp[1]"],
+                    role="answer",
+                    state={"digits": [2, 0], "dp": [1, 19], "digit": 1, "answer": 19, "formula": "answer=dp[1]", "dp_contract": digit_contract},
+                    reason="返回错误计数。",
+                ),
+            ],
+        )
+    )
+    assert any("数位 DP" in error and "应为" in error for error in digit_errors), digit_errors
+
+    bounded_contract = {
+        "containers": ["dp"],
+        "answer_position": "dp[5]",
+        "expected_targets": ["dp[5]"],
+        "subfamily": "bounded_knapsack",
+    }
+    bounded_errors = _process_errors_for(
+        _dp_contract_trace(
+            "多重背包最大价值",
+            {"weights": [2], "values": [3], "counts": [2], "capacity": 5},
+            6,
+            [
+                _dp_contract_event(
+                    0,
+                    "create",
+                    ["dp"],
+                    state={"weights": [2], "values": [3], "counts": [2], "capacity": 5, "dp": [0, 0, 0, 0, 0, 0], "i": -1, "formula": "dp[c]=0", "dp_contract": bounded_contract},
+                    reason="初始化多重背包 DP。",
+                ),
+                _dp_contract_event(
+                    1,
+                    "set",
+                    ["dp[5]"],
+                    value=9,
+                    before=0,
+                    deps=["dp[1]", "weights[0]", "values[0]"],
+                    state={"weights": [2], "values": [3], "counts": [2], "capacity": 5, "dp": [0, 0, 3, 3, 6, 9], "i": 0, "capacity_index": 5, "formula": "dp[c]=max(dp[c], prev[c-k*w]+k*v)", "dp_contract": bounded_contract},
+                    reason="错误地使用超过 count 的物品数量。",
+                ),
+                _dp_contract_event(
+                    2,
+                    "mark",
+                    ["dp[5]"],
+                    value=9,
+                    deps=["dp[5]"],
+                    role="answer",
+                    state={"weights": [2], "values": [3], "counts": [2], "capacity": 5, "dp": [0, 0, 3, 3, 6, 9], "i": 0, "capacity_index": 5, "answer": 9, "formula": "answer=dp[capacity]", "dp_contract": bounded_contract},
+                    reason="返回错误最大价值。",
+                ),
+            ],
+        )
+    )
+    assert any("多重背包" in error and "应为" in error for error in bounded_errors), bounded_errors
+
+
+def test_phase13_graph_validator_expands_core_shortest_mst_samples_and_rejects_process_errors():
+    profiles = {
+        profile.family: profile
+        for profile in __import__(
+            "algolab.verification.process_validator",
+            fromlist=["process_validation_registry"],
+        ).process_validation_registry()
+    }
+    assert "bfs" in profiles
+    assert profiles["bfs"].status == "strong"
+    assert "shortest_path_mst" in profiles
+    assert profiles["shortest_path_mst"].status == "strong"
+
+    basic_graph_cases = [
+        case
+        for case in benchmark_cases()
+        if case.gate_layer == "family_core" and case.family_id == "basic_graph"
+    ]
+    basic_graph_samples = [sample for case in basic_graph_cases for sample in case.samples]
+    basic_graph_subfamilies = {case.subfamily_id for case in basic_graph_cases}
+    assert len(basic_graph_samples) >= 22
+    assert {
+        "bfs_shortest_layers",
+        "dfs_traversal",
+        "connected_components",
+        "topological_sort",
+        "bipartite_coloring",
+    } <= basic_graph_subfamilies
+
+    shortest_mst_cases = [
+        case
+        for case in benchmark_cases()
+        if case.gate_layer == "family_core" and case.family_id == "shortest_path_mst"
+    ]
+    shortest_mst_samples = [sample for case in shortest_mst_cases for sample in case.samples]
+    shortest_mst_subfamilies = {case.subfamily_id for case in shortest_mst_cases}
+    assert len(shortest_mst_samples) >= 18
+    assert {
+        "dijkstra",
+        "bellman_ford",
+        "floyd_warshall",
+        "zero_one_bfs",
+        "kruskal_mst",
+    } <= shortest_mst_subfamilies
+
+    wrong_dijkstra_relax = _process_errors_for(
+        _graph_contract_trace(
+            "P13.3 Dijkstra wrong relax",
+            {"weighted_graph": {"A": [["B", 2]], "B": []}, "start": "A"},
+            {"A": 0, "B": 2},
+            [
+                _graph_contract_event(
+                    0,
+                    "create",
+                    ["heap"],
+                    state={
+                        "weighted_graph": {"A": [["B", 2]], "B": []},
+                        "heap": [[0, "A"]],
+                        "dist": {"A": 0},
+                        "parent": {},
+                        "graph_contract": {"submode": "dijkstra", "source": "A", "expected_relax_edges": ["A->B"]},
+                    },
+                    reason="初始化 Dijkstra 堆。",
+                ),
+                _graph_contract_event(
+                    1,
+                    "set",
+                    ["dist[B]"],
+                    value=3,
+                    after=3,
+                    deps=["dist[A]", "edge:A->B"],
+                    state={
+                        "weighted_graph": {"A": [["B", 2]], "B": []},
+                        "heap": [[3, "B"]],
+                        "dist": {"A": 0, "B": 3},
+                        "parent": {"B": "A"},
+                        "old_dist": None,
+                        "new_dist": 3,
+                        "current": "A",
+                        "neighbor": "B",
+                        "weight": 2,
+                        "graph_contract": {"submode": "dijkstra", "source": "A", "expected_relax_edges": ["A->B"]},
+                    },
+                    reason="错误松弛 Dijkstra 距离。",
+                ),
+            ],
+        )
+    )
+    assert any("Dijkstra" in error and "dist[B]" in error for error in wrong_dijkstra_relax), wrong_dijkstra_relax
+
+    wrong_bellman_relax = _process_errors_for(
+        _graph_contract_trace(
+            "P13.3 Bellman-Ford wrong relax",
+            {"edges": [["A", "B", 2]], "start": "A"},
+            {"A": 0, "B": 2},
+            [
+                _graph_contract_event(
+                    0,
+                    "create",
+                    ["dist"],
+                    state={
+                        "edges": [["A", "B", 2]],
+                        "dist": {"A": 0, "B": float("inf")},
+                        "round": 0,
+                        "graph_contract": {"submode": "bellman_ford", "source": "A", "expected_relax_edges": ["A->B"]},
+                    },
+                    reason="初始化 Bellman-Ford 距离。",
+                ),
+                _graph_contract_event(
+                    1,
+                    "set",
+                    ["dist[B]"],
+                    value=5,
+                    before=float("inf"),
+                    after=5,
+                    deps=["dist[A]", "edge:A->B"],
+                    state={
+                        "edges": [["A", "B", 2]],
+                        "dist": {"A": 0, "B": 5},
+                        "round": 1,
+                        "current_edge": ["A", "B", 2],
+                        "old_dist": float("inf"),
+                        "new_dist": 5,
+                        "graph_contract": {"submode": "bellman_ford", "source": "A", "expected_relax_edges": ["A->B"]},
+                    },
+                    reason="错误松弛 Bellman-Ford 距离。",
+                ),
+            ],
+        )
+    )
+    assert any("Bellman-Ford" in error and "dist[B]" in error for error in wrong_bellman_relax), wrong_bellman_relax
+
+    wrong_floyd_phase = _process_errors_for(
+        _graph_contract_trace(
+            "P13.3 Floyd wrong transition",
+            {"dist": [[0, 2, 9], [2, 0, 3], [9, 3, 0]]},
+            [[0, 2, 5], [2, 0, 3], [5, 3, 0]],
+            [
+                _graph_contract_event(
+                    0,
+                    "set",
+                    ["dist[0][2]"],
+                    value=6,
+                    before=9,
+                    after=6,
+                    deps=["dist[0][1]", "dist[1][2]"],
+                    state={
+                        "dist": [[0, 2, 6], [2, 0, 3], [9, 3, 0]],
+                        "k": 1,
+                        "i": 0,
+                        "j": 2,
+                        "graph_contract": {"submode": "floyd_warshall", "expected_relax_edges": ["0->2"]},
+                    },
+                    reason="错误 Floyd 中转松弛。",
+                )
+            ],
+        )
+    )
+    assert any("Floyd" in error and "dist[0][2]" in error for error in wrong_floyd_phase), wrong_floyd_phase
+
+    wrong_topo_indegree = _process_errors_for(
+        _graph_contract_trace(
+            "P13.3 topo wrong indegree",
+            {"graph": {"A": ["B"], "B": []}},
+            ["A", "B"],
+            [
+                _graph_contract_event(
+                    0,
+                    "create",
+                    ["queue"],
+                    state={
+                        "graph": {"A": ["B"], "B": []},
+                        "queue": ["A"],
+                        "indegree": {"A": 0, "B": 1},
+                        "topo_order": [],
+                        "graph_contract": {"submode": "topological_sort", "expected_nodes": ["A", "B"]},
+                    },
+                    reason="初始化拓扑入度。",
+                ),
+                _graph_contract_event(
+                    1,
+                    "set",
+                    ["indegree[B]"],
+                    value=1,
+                    before=1,
+                    after=1,
+                    deps=["edge:A->B"],
+                    state={
+                        "graph": {"A": ["B"], "B": []},
+                        "queue": ["B"],
+                        "indegree": {"A": 0, "B": 1},
+                        "topo_order": ["A"],
+                        "current": "A",
+                        "graph_contract": {"submode": "topological_sort", "expected_nodes": ["A", "B"]},
+                    },
+                    reason="错误地没有降低 B 的入度却让它入队。",
+                ),
+            ],
+        )
+    )
+    assert any("topological_sort" in error and "indegree[B]" in error for error in wrong_topo_indegree), wrong_topo_indegree
+
+    wrong_mst_cycle = _process_errors_for(
+        _graph_contract_trace(
+            "P13.3 Kruskal wrong selected cycle",
+            {"edges": [["A", "B", 1], ["B", "C", 1], ["A", "C", 1]]},
+            2,
+            [
+                _graph_contract_event(
+                    0,
+                    "create",
+                    ["union_find"],
+                    state={
+                        "edges": [["A", "B", 1], ["B", "C", 1], ["A", "C", 1]],
+                        "mst_edges": [["A", "B", 1], ["B", "C", 1], ["A", "C", 1]],
+                        "union_find": {"parent": {"A": "A", "B": "A", "C": "A"}},
+                        "edge_decision": "selected",
+                        "graph_contract": {"submode": "mst", "expected_edges": ["A-B", "B-C"]},
+                    },
+                    reason="错误地选择了形成环的边。",
+                )
+            ],
+        )
+    )
+    assert any("MST" in error and "环" in error for error in wrong_mst_cycle), wrong_mst_cycle
+
+
 def test_benchmark_cases_are_multi_input_release_ready():
     cases = benchmark_cases()
     assert len(cases) >= 5
@@ -152,6 +1585,55 @@ def test_benchmark_cases_are_multi_input_release_ready():
                 }
                 for expected_layout in case.expected_layouts:
                     assert expected_layout in layouts, (case.id, index, expected_layout, layouts)
+
+
+def test_benchmark_cases_expose_phase10_metadata():
+    from scripts.check_family_capabilities import load_family_capabilities
+
+    capabilities_by_label = {
+        entry["label"]: entry for entry in load_family_capabilities()["families"]
+    }
+    valid_gate_layers = {"smoke", "family_core", "expansion", "llm_eval"}
+    valid_support_levels = {"strong", "medium_plus", "medium", "basic", "planned"}
+    valid_oracle_types = {"closed_form", "independent_reference", "bruteforce", "property"}
+
+    for case in benchmark_cases():
+        family_capability = capabilities_by_label[case.family]
+        assert case.family_id == family_capability["family_id"], case.id
+        assert case.process_profile == family_capability["process_profile"], case.id
+        assert case.support_level == family_capability["current_level"], case.id
+        assert case.subfamily_id, case.id
+        assert case.gate_layer in valid_gate_layers, case.id
+        assert case.support_level in valid_support_levels, case.id
+        assert case.oracle_type in valid_oracle_types, case.id
+        assert isinstance(case.demo_required, bool), case.id
+
+
+def test_benchmark_cases_expose_phase11_oracle_metadata_and_independent_examples():
+    from tests.oracles import oracle_examples
+
+    valid_oracle_types = {"closed_form", "independent_reference", "bruteforce", "property"}
+    valid_risks = {"none", "missing_verifier", "verifier_matches_solve"}
+    example_families = {example["family_id"] for example in oracle_examples()}
+
+    assert {"dp_1d", "basic_graph", "string_advanced", "sorting", "union_find", "range_structure"} <= example_families
+    for example in oracle_examples():
+        assert example["oracle_type"] in valid_oracle_types
+        assert callable(example["reference"])
+        assert example["notes"]
+
+    risky_case_ids = {"tarjan_scc", "articulation_bridges", "bipartite_matching", "edmonds_karp"}
+    for case in benchmark_cases():
+        assert case.oracle_type in valid_oracle_types, case.id
+        assert case.oracle_risk in valid_risks, case.id
+        assert case.oracle_notes, case.id
+        if not case.verifier_code.strip():
+            assert case.oracle_risk == "missing_verifier", case.id
+        if case.id in risky_case_ids:
+            assert case.oracle_risk == "verifier_matches_solve", case.id
+            assert "solve" in case.oracle_notes.lower() or "结构" in case.oracle_notes, case.id
+        if case.support_level == "strong" and case.oracle_risk != "none":
+            assert case.oracle_reference, case.id
 
 
 def test_process_validator_rejects_missing_key_step_coverage_for_small_traces():
@@ -1454,6 +2936,49 @@ def test_demo_dashboard_writes_bundle_and_index(tmp_path: Path):
     assert "artifact.json" in html
 
 
+def test_demo_dashboard_groups_by_family_and_gate_layer(tmp_path: Path):
+    index = build_dashboard(
+        tmp_path / "dashboard",
+        demo_ids=["binary_search", "graph_bfs"],
+        style="stable",
+    )
+    report = json.loads(index.with_name("dashboard.json").read_text(encoding="utf-8"))
+
+    for demo in report["demos"]:
+        assert demo["family_id"]
+        assert demo["subfamily_id"]
+        assert demo["gate_layer"] == "family_core"
+        assert demo["support_level"] == "strong"
+        assert demo["process_profile"] in {"binary_search", "bfs"}
+        assert demo["oracle_type"] in {"independent_reference", "property"}
+        assert demo["oracle_risk"] == "none"
+        assert demo["oracle_notes"]
+        assert demo["demo_required"] is True
+
+    coverage = {(row["family"], row["gate_layer"]): row for row in report["family_coverage"]}
+    assert ("二分", "family_core") in coverage
+    assert ("BFS/DFS 基础图", "family_core") in coverage
+    assert coverage[("二分", "family_core")]["family_id"] == "binary_search"
+    assert coverage[("BFS/DFS 基础图", "family_core")]["process_profile"] == "bfs"
+
+    core_table = index.with_name("dashboard_core_table.csv").read_text(encoding="utf-8")
+    for field in (
+        "family_id",
+        "subfamily_id",
+        "gate_layer",
+        "support_level",
+        "process_profile",
+        "oracle_type",
+        "oracle_risk",
+        "oracle_reference",
+        "demo_required",
+    ):
+        assert field in core_table
+    html = index.read_text(encoding="utf-8")
+    assert "Gate layer" in html
+    assert "family_core" in html
+
+
 def test_runtime_capabilities_prompt_context_is_json():
     capabilities = runtime_capabilities()
     assert capabilities["schema_version"] == "runtime-capabilities-v1"
@@ -1504,6 +3029,63 @@ def test_evaluation_manifest_covers_phase10_datasets(tmp_path: Path):
     sample_csv_text = sample_csv_path.read_text(encoding="utf-8")
     assert "two_sum" in sample_csv_text
     assert "llm_two_sum_0.json" in sample_csv_text
+
+
+def test_evaluation_manifest_exports_phase10_case_metadata_and_summaries(tmp_path: Path):
+    manifest = build_manifest()
+    summary = manifest["summary"]
+
+    assert "families_by_id" in summary
+    assert "subfamilies" in summary
+    assert "gate_layers" in summary
+    assert "support_levels" in summary
+    assert "process_profiles" in summary
+    assert "oracle_types" in summary
+    assert "oracle_risks" in summary
+    assert "demo_required_count" in summary
+    assert summary["gate_layers"]["family_core"] >= 1
+    assert summary["process_profiles"]["dp"] >= 1
+
+    cases_by_id = {case["id"]: case for case in manifest["cases"]}
+    binary = cases_by_id["binary_search"]
+    assert binary["family_id"] == "binary_search"
+    assert binary["subfamily_id"] == "closed_interval_search"
+    assert binary["gate_layer"] == "family_core"
+    assert binary["support_level"] == "strong"
+    assert binary["process_profile"] == "binary_search"
+    assert binary["oracle_type"] == "independent_reference"
+    assert binary["oracle_risk"] == "none"
+    assert binary["oracle_notes"]
+    assert binary["demo_required"] is True
+
+    two_sum = cases_by_id["two_sum"]
+    assert two_sum["family_id"] == "hash_map"
+    assert two_sum["support_level"] == "basic"
+    assert two_sum["process_profile"] == "hash"
+    assert two_sum["oracle_type"] == "bruteforce"
+    assert two_sum["oracle_risk"] == "none"
+
+    tarjan = cases_by_id["tarjan_scc"]
+    assert tarjan["oracle_risk"] == "verifier_matches_solve"
+    assert tarjan["oracle_reference"] == "tests.oracles.advanced_graph_oracle_examples"
+
+    path = write_manifest(tmp_path)
+    csv_text = (tmp_path / "evaluation_cases.csv").read_text(encoding="utf-8")
+    for field in (
+        "family_id",
+        "subfamily_id",
+        "gate_layer",
+        "support_level",
+        "process_profile",
+        "oracle_type",
+        "oracle_risk",
+        "oracle_notes",
+        "oracle_reference",
+        "demo_required",
+    ):
+        assert field in csv_text
+    written = json.loads(path.read_text(encoding="utf-8"))
+    assert written["summary"]["gate_layers"] == summary["gate_layers"]
 
 
 def test_evaluation_report_exports_phase10_metrics_and_core_tables(tmp_path: Path):
@@ -1569,6 +3151,20 @@ def test_evaluation_report_exports_phase10_metrics_and_core_tables(tmp_path: Pat
             },
         ],
     }
+    family_gate = {
+        "schema_version": "family-release-gate-v1",
+        "overall_ready": True,
+        "summary": {
+            "case_count": 47,
+            "sample_count": 131,
+            "answer_pass_rate": 1.0,
+            "process_pass_rate": 1.0,
+            "demo_readiness_pass_rate": 1.0,
+            "process_fallback_cases": 1,
+            "process_uncovered_cases": 5,
+            "degraded_family_count": 6,
+        },
+    }
     metrics = compute_metrics(manifest=manifest, dashboard=dashboard, llm_report=llm_report)
     by_name = {metric["name"]: metric for metric in metrics}
     assert by_name["generation_success_rate"]["value"] == 1.0
@@ -1591,10 +3187,12 @@ def test_evaluation_report_exports_phase10_metrics_and_core_tables(tmp_path: Pat
     manifest_path = tmp_path / "evaluation_manifest.json"
     dashboard_path = tmp_path / "dashboard.json"
     llm_path = tmp_path / "llm_benchmark_report.json"
+    family_gate_path = tmp_path / "family_release_gate.json"
     human_path = tmp_path / "human.csv"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     dashboard_path.write_text(json.dumps(dashboard, ensure_ascii=False), encoding="utf-8")
     llm_path.write_text(json.dumps(llm_report, ensure_ascii=False), encoding="utf-8")
+    family_gate_path.write_text(json.dumps(family_gate, ensure_ascii=False), encoding="utf-8")
     human_path.write_text("case_id,score\nbinary_search,4\ngraph_bfs,5\n", encoding="utf-8")
 
     report_path = build_evaluation_report(
@@ -1603,6 +3201,7 @@ def test_evaluation_report_exports_phase10_metrics_and_core_tables(tmp_path: Pat
         dashboard_path=dashboard_path,
         llm_report_path=llm_path,
         human_ratings_path=human_path,
+        family_gate_path=family_gate_path,
     )
     report = json.loads(report_path.read_text(encoding="utf-8"))
     report_metrics = {metric["name"]: metric for metric in report["metrics"]}
@@ -1613,6 +3212,9 @@ def test_evaluation_report_exports_phase10_metrics_and_core_tables(tmp_path: Pat
     assert report["repair_summary"]["cases_with_repair"] == 1
     assert report["repair_summary"]["repair_rounds_attempted"] == 1
     assert report["repair_summary"]["repair_successes"] == 1
+    assert report["family_release_gate"]["status"] == "ok"
+    assert report["family_release_gate"]["sample_count"] == 131
+    assert report["family_release_gate"]["process_uncovered_cases"] == 5
     family_by_name = {item["family"]: item for item in report["family_summary"]}
     assert family_by_name["二分"]["pass_rate"] == 1.0
     assert family_by_name["BFS/DFS 基础图"]["failure_types"] == {"process_invariant": 1}
@@ -1633,6 +3235,7 @@ def test_evaluation_report_exports_phase10_metrics_and_core_tables(tmp_path: Pat
     assert "纯 LLM judge" in (tmp_path / "evaluation_comparisons.csv").read_text(encoding="utf-8")
     assert "process_invariant" in (tmp_path / "evaluation_family_summary.csv").read_text(encoding="utf-8")
     assert "## Family Summary" in (tmp_path / "evaluation_report.md").read_text(encoding="utf-8")
+    assert "## Family Release Gate" in (tmp_path / "evaluation_report.md").read_text(encoding="utf-8")
     assert "## Comparisons" in (tmp_path / "evaluation_report.md").read_text(encoding="utf-8")
 
 
@@ -1764,7 +3367,7 @@ def test_v1_release_gate_report_records_release_requirements(tmp_path: Path):
         "/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py"
     )
     deterministic = report["checks"]["deterministic_benchmark"]
-    assert 80 <= deterministic["benchmark_sample_count"] <= 120
+    assert 80 <= deterministic["benchmark_sample_count"] <= 160
     assert deterministic["benchmark_sample_count"] == sum(len(case.samples) for case in benchmark_cases())
     assert deterministic["status"] == "pass"
 
@@ -1793,6 +3396,235 @@ def test_v1_release_gate_report_records_release_requirements(tmp_path: Path):
     assert loaded == report
     assert (tmp_path / "v1_release_gate.md").exists()
     assert "V1 Release Gate" in (tmp_path / "v1_release_gate.md").read_text(encoding="utf-8")
+
+
+def test_family_capabilities_registry_covers_existing_benchmark_families(tmp_path: Path):
+    from scripts.check_family_capabilities import (
+        build_family_capabilities_report,
+        load_family_capabilities,
+        validate_family_capabilities,
+        write_family_capabilities_report,
+    )
+
+    capabilities = load_family_capabilities()
+    report = build_family_capabilities_report(capabilities)
+
+    assert report["schema_version"] == "family-capabilities-report-v1"
+    assert report["overall_ready"] is True
+    assert report["benchmark_family_count"] == len({case.family for case in benchmark_cases()})
+    assert report["registered_family_count"] >= report["benchmark_family_count"]
+    assert report["missing_benchmark_families"] == []
+    assert report["unknown_process_profiles"] == []
+
+    raw_entries_by_label = {entry["label"]: entry for entry in capabilities["families"]}
+    report_entries_by_label = {entry["label"]: entry for entry in report["families"]}
+    for case in benchmark_cases():
+        assert case.family in raw_entries_by_label, case.family
+        raw_entry = raw_entries_by_label[case.family]
+        entry = report_entries_by_label[case.family]
+        assert raw_entry["process_profile"] == entry["process_profile"]
+        assert entry["family_id"]
+        assert entry["target_level"] in {"strong", "medium_plus", "medium", "basic", "planned"}
+        assert entry["current_level"] in {"strong", "medium_plus", "medium", "basic", "planned"}
+        assert entry["process_profile"] in report["known_process_profiles"]
+        assert entry["process_status"] in {"strong", "fallback", "uncovered"}
+        assert entry["core_subfamilies"]
+        assert entry["visual_primitives"]
+        assert entry["benchmark_target"]["min_cases"] >= 1
+        if entry["process_status"] != "strong":
+            assert entry["fallback_boundaries"]
+
+    broken = dict(capabilities)
+    broken["families"] = [entry for entry in capabilities["families"] if entry["label"] != benchmark_cases()[0].family]
+    broken_report = validate_family_capabilities(broken, benchmark_cases())
+    assert broken_report["overall_ready"] is False
+    assert benchmark_cases()[0].family in broken_report["missing_benchmark_families"]
+
+    written = write_family_capabilities_report(tmp_path)
+    loaded = json.loads(written.read_text(encoding="utf-8"))
+    assert loaded == report
+    assert (tmp_path / "family_capabilities.md").exists()
+    assert "Family Capabilities" in (tmp_path / "family_capabilities.md").read_text(encoding="utf-8")
+
+
+def test_family_release_gate_reports_layered_family_readiness_and_strong_fallback_failures(tmp_path: Path):
+    from scripts.check_family_capabilities import load_family_capabilities
+    from scripts.check_family_release_gate import (
+        build_family_release_gate_report,
+        validate_family_release_gate,
+        write_family_release_gate_report,
+    )
+
+    capabilities = load_family_capabilities()
+    report = build_family_release_gate_report(capabilities)
+
+    assert report["schema_version"] == "family-release-gate-v1"
+    assert report["overall_ready"] is True
+    assert report["v1_release_gate"]["schema_version"] == "v1-release-gate-v1"
+    assert report["v1_release_gate"]["overall_ready"] is True
+    assert report["summary"]["case_count"] == len(benchmark_cases())
+    assert report["summary"]["sample_count"] == sum(len(case.samples) for case in benchmark_cases())
+
+    rows_by_label = {row["label"]: row for row in report["families"]}
+    assert rows_by_label["二分"]["current_level"] == "strong"
+    assert rows_by_label["二分"]["answer"]["passed_samples"] == rows_by_label["二分"]["sample_count"]
+    assert rows_by_label["二分"]["process"]["passed_samples"] == rows_by_label["二分"]["sample_count"]
+    assert rows_by_label["二分"]["demo_readiness"]["ready_cases"] == rows_by_label["二分"]["case_count"]
+    assert rows_by_label["二分"]["fallback"]["process_fallback_cases"] == 0
+    assert rows_by_label["二分"]["fallback"]["process_uncovered_cases"] == 0
+
+    sorting = rows_by_label["排序"]
+    assert sorting["current_level"] == "basic"
+    assert sorting["fallback"]["process_uncovered_cases"] == sorting["case_count"]
+    assert sorting["status"] == "pass"
+    assert sorting["warnings"]
+
+    written = write_family_release_gate_report(tmp_path)
+    loaded = json.loads(written.read_text(encoding="utf-8"))
+    assert loaded == report
+    md = (tmp_path / "family_release_gate.md").read_text(encoding="utf-8")
+    assert "Family Release Gate" in md
+    assert "process_uncovered" in md
+
+    broken = dict(capabilities)
+    broken["families"] = [dict(entry) for entry in capabilities["families"]]
+    broken["families"][0]["process_profile"] = "uncovered"
+    broken_report = validate_family_release_gate(broken, benchmark_cases())
+    assert broken_report["overall_ready"] is False
+    broken_row = next(row for row in broken_report["families"] if row["label"] == broken["families"][0]["label"])
+    assert broken_row["current_level"] == "strong"
+    assert broken_row["fallback"]["process_uncovered_cases"] == broken_row["case_count"]
+    assert any("strong family" in error for error in broken_row["errors"])
+
+
+def test_property_benchmark_generates_seeded_robustness_report(tmp_path: Path):
+    from tests.property_cases import DEFAULT_PROPERTY_SEED, property_cases
+    from scripts.run_property_benchmark import build_property_benchmark_report, write_property_benchmark_report
+
+    cases = property_cases()
+    subfamilies = {case.subfamily_id for case in cases}
+    assert {
+        "house_robber",
+        "subset_sum",
+        "lcs",
+        "edit_distance",
+        "knapsack_01",
+        "bfs_layers",
+        "dfs_connected",
+        "topological_sort",
+        "dijkstra_positive",
+        "kmp",
+        "z_algorithm",
+        "manacher",
+        "insertion_sort",
+        "merge_sort",
+        "quickselect",
+        "union_find_connectivity",
+        "range_sum_update",
+    } <= subfamilies
+
+    report_a = build_property_benchmark_report(seed=DEFAULT_PROPERTY_SEED, sample_count=3)
+    report_b = build_property_benchmark_report(seed=DEFAULT_PROPERTY_SEED, sample_count=3)
+    assert report_a == report_b
+    assert report_a["schema_version"] == "property-benchmark-v1"
+    assert report_a["release_gate_included"] is False
+    assert report_a["summary"]["seed"] == DEFAULT_PROPERTY_SEED
+    assert report_a["summary"]["total"] == len(cases) * 3
+    assert report_a["summary"]["failed"] == 0
+    assert report_a["summary"]["passed"] == report_a["summary"]["total"]
+    assert set(report_a["summary"]["families"]) >= {
+        "dynamic_programming",
+        "basic_graph",
+        "string_matching",
+        "sorting",
+        "union_find",
+        "range_structure",
+    }
+    for family_id, row in report_a["summary"]["family_robustness"].items():
+        assert row["total"] > 0, family_id
+        assert row["passed"] == row["total"], family_id
+        assert row["failed"] == 0, family_id
+        assert row["pass_rate"] == 1.0, family_id
+
+    for result in report_a["results"]:
+        assert {
+            "family",
+            "family_id",
+            "subfamily",
+            "subfamily_id",
+            "input",
+            "expected",
+            "actual",
+            "ok",
+            "failure_type",
+        } <= set(result), result
+
+    json_path = write_property_benchmark_report(tmp_path, seed=DEFAULT_PROPERTY_SEED, sample_count=2)
+    loaded = json.loads(json_path.read_text(encoding="utf-8"))
+    assert loaded == build_property_benchmark_report(seed=DEFAULT_PROPERTY_SEED, sample_count=2)
+    md = (tmp_path / "property_benchmark_report.md").read_text(encoding="utf-8")
+    assert "Property Benchmark" in md
+    assert "not included in V1 release gate" in md
+
+
+def test_boundary_case_registry_reports_family_core_coverage_and_strong_upgrade_gate(tmp_path: Path):
+    from scripts.check_boundary_cases import (
+        BOUNDARY_CATEGORIES,
+        build_boundary_case_report,
+        load_boundary_cases,
+        validate_boundary_cases,
+        write_boundary_case_report,
+    )
+
+    registry = load_boundary_cases()
+    report = build_boundary_case_report(registry)
+    family_core_cases = [case for case in benchmark_cases() if case.gate_layer == "family_core"]
+    strong_core_cases = [case for case in family_core_cases if case.support_level == "strong"]
+
+    assert registry["schema_version"] == "boundary-cases-v1"
+    assert set(BOUNDARY_CATEGORIES) == {"empty", "single", "duplicate", "zero_or_negative", "extreme", "no_solution", "multiple_solutions"}
+    assert report["schema_version"] == "boundary-case-report-v1"
+    assert report["summary"]["family_core_case_count"] == len(family_core_cases)
+    assert report["summary"]["strong_family_core_case_count"] == len(strong_core_cases)
+    assert report["summary"]["missing_family_core_cases"] == []
+    assert report["summary"]["strong_upgrade_blocked_cases"] == []
+    assert report["summary"]["overall_ready"] is True
+    assert report["summary"]["strong_upgrade_ready"] is True
+
+    rows_by_case = {row["case_id"]: row for row in report["cases"]}
+    for case in family_core_cases:
+        row = rows_by_case[case.id]
+        assert row["gate_layer"] == "family_core", case.id
+        assert row["covered_categories"] or row["not_applicable_categories"], case.id
+        assert set(row["covered_categories"]) | set(row["not_applicable_categories"]) == set(BOUNDARY_CATEGORIES), case.id
+        assert row["missing_categories"] == [], case.id
+        assert row["status"] == "pass", case.id
+        for item in row["not_applicable"]:
+            assert item["reason"], (case.id, item)
+
+    for family_id, row in report["families"].items():
+        assert row["case_count"] > 0, family_id
+        assert row["boundary_counts"], family_id
+        assert row["missing_case_count"] == 0, family_id
+
+    written = write_boundary_case_report(tmp_path)
+    loaded = json.loads(written.read_text(encoding="utf-8"))
+    assert loaded == report
+    md = (tmp_path / "boundary_cases.md").read_text(encoding="utf-8")
+    assert "Boundary Cases" in md
+    assert "strong_upgrade_ready" in md
+
+    broken = dict(registry)
+    broken["cases"] = [dict(item) for item in registry["cases"]]
+    broken["cases"][0] = dict(broken["cases"][0])
+    broken["cases"][0]["coverage"] = []
+    broken["cases"][0]["not_applicable"] = []
+    broken_report = validate_boundary_cases(broken, benchmark_cases())
+    assert broken_report["summary"]["overall_ready"] is False
+    if rows_by_case[broken["cases"][0]["case_id"]]["support_level"] == "strong":
+        assert broken_report["summary"]["strong_upgrade_ready"] is False
+        assert broken_report["summary"]["strong_upgrade_blocked_cases"]
+    assert broken_report["summary"]["missing_boundary_cases"]
 
 
 def benchmark_coverage_artifact() -> BuildArtifact:
@@ -1828,9 +3660,19 @@ def benchmark_coverage_artifact() -> BuildArtifact:
 
 
 def run_all():
+    test_phase12_dp_trace_contract_accepts_representative_subfamilies()
+    test_phase12_dp_trace_contract_rejects_missing_deps_init_answer_and_key_updates()
+    test_phase12_graph_trace_contract_accepts_representative_submodes()
+    test_phase12_graph_trace_contract_rejects_submode_process_errors()
+    test_phase12_family_trace_contract_accepts_string_tree_backtracking_and_structures()
+    test_phase12_family_trace_contract_rejects_missing_process_evidence()
+    test_phase13_array_pointer_validator_rejects_process_errors_and_tracks_samples()
+    test_phase13_dp_validator_expands_family_core_samples_and_rejects_digit_dp_errors()
     test_benchmark_cases_are_multi_input_release_ready()
     test_process_validator_rejects_missing_key_step_coverage_for_small_traces()
     test_process_validator_rejects_bad_string_algorithm_tables()
+    test_benchmark_cases_expose_phase10_metadata()
+    test_benchmark_cases_expose_phase11_oracle_metadata_and_independent_examples()
     test_convex_hull_trace_exposes_scan_phases_and_pop_steps()
     test_phase7_string_algorithms_have_benchmarks_visual_state_and_examples()
     test_process_validator_rejects_bad_phase7_tree_recursion_aggregates()
@@ -1856,11 +3698,17 @@ def run_all():
         test_llm_client_reads_local_api_settings_without_committing_key(Path(d))
         test_benchmark_aggregate_artifact(Path(d))
         test_demo_dashboard_writes_bundle_and_index(Path(d))
+        test_demo_dashboard_groups_by_family_and_gate_layer(Path(d))
         test_evaluation_manifest_covers_phase10_datasets(Path(d))
+        test_evaluation_manifest_exports_phase10_case_metadata_and_summaries(Path(d))
         test_evaluation_report_exports_phase10_metrics_and_core_tables(Path(d))
         test_evaluation_report_summarizes_baseline_ablation_conditions(Path(d))
         test_reproducibility_package_records_environment_commands_samples_and_modes(Path(d))
         test_v1_release_gate_report_records_release_requirements(Path(d))
+        test_family_capabilities_registry_covers_existing_benchmark_families(Path(d))
+        test_family_release_gate_reports_layered_family_readiness_and_strong_fallback_failures(Path(d))
+        test_property_benchmark_generates_seeded_robustness_report(Path(d))
+        test_boundary_case_registry_reports_family_core_coverage_and_strong_upgrade_gate(Path(d))
     test_creative_renderer_contains_theme_controls_and_stage()
 
 

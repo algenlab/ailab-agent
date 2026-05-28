@@ -122,6 +122,67 @@ tracer.result(answer)
 return tracer.to_trace()
 小输入逐帧、大输入抽样、step 编号、targets/deps 格式和 coverage 由 Tracer 统一管理。
 
+DP trace contract 要求：
+- 动态规划 tracker 必须在每个关键 DP 事件的 state 中放入同一个 state["dp_contract"]。
+- state["dp_contract"] 必须至少包含：
+  {"containers": ["dp"], "answer_position": "dp[n-1]", "expected_targets": ["dp[1]", "dp[2]"], "subfamily": "1d"}
+- containers 是 DP 容器名列表；二维/一维/背包通常是 ["dp"]，树形 DP 可用 ["dp_take", "dp_skip"]。
+- answer_position 必须是最终答案所在 target，并且最终答案事件必须 role="answer"，targets 或 deps 必须引用这个 target。
+- expected_targets 是小规模 full-trace 样例必须逐个 set 的关键 DP target；当更新数量不超过 80 时不能省略。
+- subfamily 使用简短标签，例如 1d、2d、knapsack_01、complete_knapsack、bounded_knapsack、lcs、edit_distance、interval_dp、tree、state_compression、digit_dp。
+- 背包类必须用 dp_contract.subfamily 或 state 中的 dp_mode/knapsack 区分 0-1、完全、多重背包；多重背包必须把 counts 上限写入 state。
+- 数位 DP 入门版默认统计 1..n 中不含 forbidden digit 的数量，默认 forbidden digit 为 7；改变边界时必须在 state 中写 forbidden_digit、include_zero 或 count_range。
+- 每个关键 DP set 事件必须提供 targets、deps、value 或 before/after、state、循环变量和公式。
+- DP set 事件的 state 必须包含当前 DP 容器、循环变量（例如 i、j、k、capacity_index、capacity、mask、current）和 formula。
+- 初始化必须用 create 事件记录 DP 容器初始状态；不能只在最后给出完整 DP 表。
+
+数组指针、窗口和前缀结构 trace contract 要求：
+- 数组指针、窗口、前缀和差分 tracker 必须在关键事件 state 中放入同一个 state["array_contract"]。
+- state["array_contract"] 必须至少包含 submode，例如：
+  {"submode": "sliding_window", "expected_targets": ["pointer:left", "pointer:right", "nums[0:3]"]}
+- submode 可用 binary_answer、two_pointer、sliding_window、prefix_sum、difference_array、fast_slow。
+- 二分答案必须记录 left、right、mid，每次比较后再收缩区间；mid 必须对应当前 (left + right) // 2。
+- 双指针必须记录 left/right 或 i/j、当前比较值和移动原因，指针不能跳出数组边界。
+- 滑动窗口必须记录 left、right、窗口约束和 window_sum 或等价状态；窗口扩张/收缩不能无解释跳变。
+- 前缀和必须逐步 set prefix[i] 或 prefix_sum[i]，deps 指向来源 prefix 和 nums 项，不能只给最终 prefix 数组。
+- 差分数组必须逐步 set diff[i] 或 difference[i]，state 要包含 nums、updates、update_index 和当前 diff；引用整条 update 时可使用 updates[k]。
+- 快慢指针必须记录 slow、fast 和下一步来源；空数组要显式给出无环/终止解释。
+- expected_targets 是小规模 full-trace 样例必须覆盖的关键 pointer、window、prefix 或 diff target；当关键更新数量不超过 80 时不能省略。
+
+图算法 trace contract 要求：
+- 图算法 tracker 必须在关键图事件的 state 中放入同一个 state["graph_contract"]。
+- state["graph_contract"] 必须至少包含 submode，例如：
+  {"submode": "bfs", "source": "A", "expected_nodes": ["A", "B"]}
+- submode 可用 bfs、dfs、dijkstra、topological_sort、mst、tarjan、network_flow。
+- BFS/DFS 必须记录 frontier：BFS 使用 queue，DFS 使用 stack 或 frame:dfs(...) enter/exit；小图不能只给最终 visited/dist。
+- BFS 首次访问必须用 set dist[node] 或 mark node 记录来源边，state 要包含 queue、dist、parent；不能重复首次访问同一节点，不能让 queue 无理由跳变。
+- Dijkstra 必须记录 heap/frontier、每条关键边的 relax、old_dist、new_dist、parent/predecessor；负权输入必须拒绝或明确降级说明，不能当作普通 Dijkstra 发布。
+- 拓扑排序必须记录 indegree 变化和因为 indegree 变为 0 入队的原因。
+- MST 必须记录 edge 选择或弃用原因，并同步记录 union_find/dsu 状态。
+- Tarjan 必须记录 dfn、low、stack/on_stack 更新，以及 low==dfn 时 component 弹栈。
+- 网络流必须记录 augmenting_path、bottleneck、capacity/cap、flow 和每条增广边的 flow 更新。
+
+字符串、树、回溯和数据结构 family trace contract 要求：
+- 字符串、树递归、回溯、堆、Trie、链表 tracker 必须在关键事件 state 中放入同一个 state["family_contract"]。
+- 字符串使用：
+  {"family": "string", "submode": "kmp", "expected_tables": ["pi"], "expected_events": ["compare", "fallback"]}
+  必须记录 text、pattern、文本指针 i、模式指针 j、pi/z/radius/hash 等表结构、text[i]/pattern[j] target，以及失配、回退、扩展或窗口移动原因。
+- 树递归使用：
+  {"family": "tree", "submode": "postorder", "expected_nodes": ["1"], "expected_frames": ["frame:dfs(1)"]}
+  必须记录 tree、current、frame:* enter/exit、return_values/aggregate/height/dp_take/dp_skip 等子树返回或聚合状态。
+- 回溯使用：
+  {"family": "backtracking", "submode": "permutation", "expected_events": ["choose", "record", "undo"]}
+  必须记录 recursion_tree/search_tree、path、used、choose、record answer、undo；撤销后 path/used 不能无解释跳变。
+- 堆使用：
+  {"family": "heap", "submode": "topk", "expected_events": ["push", "pop"]}
+  必须记录 push/pop 后的完整 heap、heap_type、heap_top 或 heap[0]。
+- Trie 使用：
+  {"family": "trie", "submode": "insert_search", "expected_events": ["create_node", "terminal", "prefix_count"]}
+  必须记录 trie nodes/edges、字符路径、节点创建、terminal/is_word 标记和 count/prefix_count。
+- 链表使用：
+  {"family": "linked_list", "submode": "reverse", "expected_events": ["move_pointer", "link_change"]}
+  必须记录 linked_list nodes/edges、current/prev/next 或 pointer:*，以及 link/unlink 或 next/prev 改变事件；不能只给最终链。
+
 teaching 字段要求：
 - 每个关键事件必须提供 teaching 字段，至少包含 what 和 why 两个非空简体中文字符串。
 - DP、二分、图搜索、单调栈、递归返回等教学关键帧应尽量补充 formula 或 invariant。

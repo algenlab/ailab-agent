@@ -33,6 +33,16 @@ class EvaluationCase:
     source: str
     suite: str
     family: str
+    family_id: str
+    subfamily_id: str
+    gate_layer: str
+    support_level: str
+    process_profile: str
+    oracle_type: str
+    oracle_risk: str
+    oracle_notes: str
+    oracle_reference: str
+    demo_required: bool
     strata: list[str]
     sample_count: int
     expected_layouts: list[str]
@@ -53,6 +63,16 @@ ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
         source="phase9_ml_fixture",
         suite="ml_demo",
         family="ML / regression",
+        family_id="ml_regression",
+        subfamily_id="linear_regression_single_step",
+        gate_layer="smoke",
+        support_level="basic",
+        process_profile="uncovered",
+        oracle_type="property",
+        oracle_risk="none",
+        oracle_notes="ML fixture uses deterministic expected property evidence.",
+        oracle_reference="phase9_ml_fixture",
+        demo_required=True,
         strata=["ML demo 集"],
         sample_count=1,
         expected_layouts=["ml", "matrix", "loss_curve"],
@@ -84,6 +104,16 @@ ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
         source="phase9_ml_fixture",
         suite="ml_demo",
         family="ML / classification",
+        family_id="ml_classification",
+        subfamily_id="logistic_regression_boundary",
+        gate_layer="smoke",
+        support_level="basic",
+        process_profile="uncovered",
+        oracle_type="property",
+        oracle_risk="none",
+        oracle_notes="ML fixture uses deterministic expected property evidence.",
+        oracle_reference="phase9_ml_fixture",
+        demo_required=True,
         strata=["ML demo 集"],
         sample_count=1,
         expected_layouts=["ml", "computational_graph", "decision_boundary"],
@@ -139,6 +169,16 @@ def _evaluation_case_from_benchmark(case: BenchmarkCase, default_demo_ids: set[s
         source="tests.benchmark_cases",
         suite=suite,
         family=case.family,
+        family_id=case.family_id,
+        subfamily_id=case.subfamily_id,
+        gate_layer=case.gate_layer,
+        support_level=case.support_level,
+        process_profile=case.process_profile,
+        oracle_type=case.oracle_type,
+        oracle_risk=case.oracle_risk,
+        oracle_notes=case.oracle_notes,
+        oracle_reference=case.oracle_reference,
+        demo_required=case.demo_required,
         strata=_strata_for_case(case),
         sample_count=len(case.samples),
         expected_layouts=list(case.expected_layouts),
@@ -212,6 +252,14 @@ def _summary(cases: list[EvaluationCase]) -> dict[str, Any]:
         "ml_demo_count": sum(1 for case in cases if case.is_ml_demo),
         "sample_count": sum(case.sample_count for case in cases),
         "families": sorted({case.family for case in cases}),
+        "families_by_id": dict(sorted(Counter(case.family_id for case in cases).items())),
+        "subfamilies": dict(sorted(Counter(case.subfamily_id for case in cases).items())),
+        "gate_layers": dict(sorted(Counter(case.gate_layer for case in cases).items())),
+        "support_levels": dict(sorted(Counter(case.support_level for case in cases).items())),
+        "process_profiles": dict(sorted(Counter(case.process_profile for case in cases).items())),
+        "oracle_types": dict(sorted(Counter(case.oracle_type for case in cases).items())),
+        "oracle_risks": dict(sorted(Counter(case.oracle_risk for case in cases).items())),
+        "demo_required_count": sum(1 for case in cases if case.demo_required),
         "suites": dict(sorted(Counter(case.suite for case in cases).items())),
     }
 
@@ -247,6 +295,16 @@ def _write_cases_csv(path: Path, cases: list[dict[str, Any]]) -> None:
         "source",
         "suite",
         "family",
+        "family_id",
+        "subfamily_id",
+        "gate_layer",
+        "support_level",
+        "process_profile",
+        "oracle_type",
+        "oracle_risk",
+        "oracle_notes",
+        "oracle_reference",
+        "demo_required",
         "strata",
         "sample_count",
         "expected_layouts",

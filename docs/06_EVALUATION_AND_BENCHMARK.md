@@ -12,6 +12,20 @@ AlgoLab 的评估不是只看页面是否好看，而是证明系统能把 LLM �
 - HTML 页面是否可运行。
 - 页面是否支持有效学习交互。
 
+V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只是证据，不是最终目标。系统要证明的是：同一套视觉原语、SemanticTrace 合同、过程校验和演示门禁能覆盖经典算法族，而不是为每道题堆专用规则。
+
+评估优先级固定为：
+
+| 优先级 | 指标 | 说明 |
+|---|---|---|
+| P0 | 答案正确 | `solve`、`trace.result`、`verify`、expected 或 oracle 一致 |
+| P1 | 过程正确 | algorithm family invariant、状态转移、deps、覆盖率通过 |
+| P2 | 演示正确 | trace 足以讲清算法，不缺关键步骤，不误导 |
+| P3 | 可运行 | SceneGraph、HTML、播放、步进、Debug Drawer 正常 |
+| P4 | 视觉质量 | 布局、美观、动画和交互 polish |
+
+当前下一阶段优先建设 P0 到 P2。视觉质量不是短期阻塞项。
+
 ## 2. Benchmark 范围
 
 当前确定性 benchmark 见：
@@ -19,24 +33,28 @@ AlgoLab 的评估不是只看页面是否好看，而是证明系统能把 LLM �
 - `tests/benchmark_cases.py`
 - `benchmark/benchmark_cases_list.md`
 
-已有 14 个代表题，覆盖：
+当前 V1.1 deterministic benchmark 已有 47 个代表 case、131 个 samples，覆盖：
 
 - 一维 DP：打家劫舍。
 - 二维 DP：不同路径。
-- 数组指针：二分查找。
+- DP 核心扩展：0/1 背包、完全背包、多重背包基础、LCS、编辑距离、区间 DP、状态压缩 DP、数位 DP。
+- 数组指针：二分查找、二分答案、双指针、滑动窗口、前缀和、差分数组、快慢指针。
 - 图搜索：BFS 最短层数。
-- 字符串：KMP。
+- 字符串：KMP、Rabin-Karp、Z Algorithm、Manacher。
 - 哈希表：Two Sum。
 - 单调栈：每日温度。
 - 排序：插入排序。
-- 树：LCA。
+- 树：中序遍历、LCA、树直径、树形 DP。
 - 堆：第 K 大。
 - Trie：前缀计数。
 - 并查集：省份数量。
 - 回溯：全排列。
 - 几何：凸包。
+- 区间结构：线段树、树状数组、稀疏表。
+- 数学与位运算：GCD、快速幂、筛法、组合数、bitmask、lowbit。
+- 图高级：Tarjan SCC、割点桥、二分图匹配、Edmonds-Karp。
 
-第一阶段 V1 benchmark 目标扩展到 80 到 120 个题目样例。
+第一阶段 V1 benchmark 门禁范围从 80 到 120 个 deterministic samples 起步；P13.2 后 V1.1 本地确定性门禁范围调整为 80 到 160 个 deterministic samples，用于容纳 DP family core 扩容。后续继续扩容时，应优先通过 family release gate 明确算法族覆盖，而不是只宣传总样例数。
 
 完整 V1 的算法族覆盖目标应更广，逐步加入：
 
@@ -61,6 +79,159 @@ AlgoLab 的评估不是只看页面是否好看，而是证明系统能把 LLM �
 扩展 benchmark 时，每个算法族先选代表题和代表输入，不要求一开始覆盖所有变体。
 
 完整 V1 可以逐步扩展到 200 到 300 个经典样例。该数字是长期覆盖目标，不是下一轮实施必须一次完成的任务。
+
+## 2.1 Benchmark 分层
+
+V1 之后 benchmark 必须分层，不再把所有样例混成一个 pass/fail 总数。
+
+| 层级 | 作用 | 门禁要求 |
+|---|---|---|
+| `smoke` | 证明主 pipeline、SceneGraph、HTML、浏览器 smoke 没坏 | 必须全通过 |
+| `family_core` | 证明算法族核心子模式正确 | strong family 必须全通过 |
+| `expansion` | 扩大经典题覆盖面和复杂变体 | 可分阶段提高通过率，但必须准确报告 |
+| `property` | 固定 seed 的随机小规模性质测试 | 不进 V1 门禁，进入 robustness report |
+| `llm_eval` | 真实 LLM 生成、repair、失败分类 | 不阻塞 deterministic gate，衡量真实产品能力 |
+
+新增 case 必须声明：
+
+- `family_id`
+- `subfamily_id`
+- `gate_layer`
+- `support_level`
+- `process_profile`
+- `oracle_type`
+- `oracle_risk`
+- `oracle_reference`
+- `demo_required`
+
+如果当前数据结构尚未实现这些字段，执行 AI 应先完成 roadmap P10.1 到 P10.3，再继续扩 case。
+
+## 2.2 算法族能力等级
+
+算法族支持强度按族统计，不按单题宣传。
+
+| 等级 | 含义 | 报告要求 |
+|---|---|---|
+| `strong` | 有族级 process invariant、覆盖规则、正反例测试和 family core benchmark | family core 不允许 fallback/uncovered |
+| `medium_plus` | 多数核心过程可校验，复杂变体允许明确 fallback | 必须列出 fallback 子模式 |
+| `medium` | 答案和视觉表达稳定，过程校验覆盖部分结构 | 不能宣传为强过程正确 |
+| `basic` | 只能依赖 schema、answer、scene gate | 必须显示 `process_fallback` 或 `process_uncovered` |
+| `planned` | 文档规划中 | 不进入强能力统计 |
+
+每次 evaluation report 必须输出 family summary：
+
+- case 数。
+- sample 数。
+- answer pass rate。
+- process pass rate。
+- demo readiness pass rate。
+- scene/html pass rate。
+- failure type 分布。
+- fallback/uncovered 数量。
+
+## 2.3 Oracle 要求
+
+最终答案正确不能依赖 LLM 自证。每个 deterministic benchmark case 必须有 verifier 或 oracle 类型。
+
+| Oracle 类型 | 适用场景 | 要求 |
+|---|---|---|
+| `closed_form` | 组合数、不同路径等 | 公式实现必须独立于被测 solve |
+| `independent_reference` | BFS、排序、字符串表、区间查询 | 参考实现不能复制被测实现结构 |
+| `bruteforce` | 小规模 DP、回溯、图、匹配 | 固定小输入规模，可穷举 |
+| `property` | 排序、堆、并查集、几何性质 | 检查性质和不变量，不只比较一个答案 |
+
+如果 case 的 verifier 与 solve 高度相似，必须标记为 oracle 风险，不能作为 strong family 的唯一证据。
+
+每个 deterministic benchmark case 还必须暴露：
+
+- `oracle_risk`：`none`、`missing_verifier` 或 `verifier_matches_solve`。
+- `oracle_notes`：解释 oracle 证据是否独立，以及风险边界。
+- `oracle_reference`：当 verifier 结构过于接近 solve，或需要额外佐证时，指向独立参考实现或性质检查入口。
+
+当前独立 oracle 示例放在 `tests/oracles/`。P11.1 至少提供 DP、图、字符串、排序、并查集和区间结构示例；这些示例只定义 reference / property 形态，不生成随机样例。固定 seed 的随机小样例属于 P11.2。
+
+## 2.3.1 Property Benchmark
+
+P11.2 的随机小样例由 `tests/property_cases.py` 定义，运行入口是：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_property_benchmark.py --output-dir output/property_benchmark
+```
+
+报告输出：
+
+- `output/property_benchmark/property_benchmark_report.json`
+- `output/property_benchmark/property_benchmark_report.md`
+
+该层只作为 family robustness evidence，不进入 V1 release gate，也不调用 LLM、renderer 或 HTML materialization。脚本固定默认 seed，报告显式记录 `release_gate_included: false`。
+
+第一批覆盖：
+
+- DP：house robber、subset sum、LCS、编辑距离、0/1 knapsack。
+- 图：BFS layers、DFS connected、topological sort、Dijkstra positive weights。
+- 字符串：KMP、Z Algorithm、Manacher。
+- 排序：insertion sort、merge sort、quickselect。
+- 并查集：random union/find connectivity queries。
+- 区间结构：random range sum query/update。
+
+每条结果必须包含 `family`、`family_id`、`subfamily`、`subfamily_id`、`input`、`expected`、`actual`、`ok` 和 `failure_type`。失败类型固定使用：
+
+- `answer_mismatch`
+- `exception`
+- `oracle_error`
+
+`summary.family_robustness` 按 family 聚合 total、passed、failed、pass_rate、subfamilies 和 failure type 分布，供 family 级鲁棒性报告使用。
+
+## 2.3.2 Boundary Case Registry
+
+P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查入口是：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py
+```
+
+该层不执行 LLM、不生成 HTML、不改变 deterministic benchmark 样例，只把当前 `family_core` case 的边界覆盖状态显式登记为两类证据：
+
+- `coverage`：指向已有 deterministic sample index，并说明覆盖的边界。
+- `not_applicable`：说明该边界为何不适用于当前 case 或当前输入合同。
+
+边界类别固定为：
+
+- `empty`
+- `single`
+- `duplicate`
+- `zero_or_negative`
+- `extreme`
+- `no_solution`
+- `multiple_solutions`
+
+检查脚本输出：
+
+- `output/boundary_cases/boundary_cases.json`
+- `output/boundary_cases/boundary_cases.md`
+
+报告会按 case 和 family 汇总 covered / not applicable / missing categories。缺失边界不会阻塞 expansion 层继续扩样例，但会让 `strong` 的 `family_core` case 出现在 `strong_upgrade_blocked_cases` 中，阻塞 strong 等级升级。
+
+## 2.4 演示正确性
+
+演示正确性不是视觉 polish。它检查 trace 是否足够支撑教学页面，且不会误导学习者。
+
+最低检查：
+
+- 关键帧有 `op`、`targets`、`state`、`reason`。
+- 状态转移有 `deps` 或明确的 before/after。
+- 关键阶段没有缺失：初始化、主循环、关键转移/访问、答案。
+- 解释与算法族不矛盾。
+- 当前帧能回答“做什么、为什么、依赖谁、状态怎么变”。
+
+建议失败类型：
+
+- `demo_missing_reason`
+- `demo_missing_deps`
+- `demo_missing_state`
+- `demo_state_jump`
+- `demo_algorithm_mismatch`
+- `demo_key_step_missing`
 
 ## 3. 指标定义
 
@@ -180,6 +351,65 @@ AlgoLab 的评估不是只看页面是否好看，而是证明系统能把 LLM �
 
 未知算法族必须返回 `process_uncovered` 降级画像，不能标记为 `strong`，也不能在没有族级 invariant 的情况下假装通过强校验。过程错误消息进入 benchmark 时会映射到 `process_invariant`、`coverage_error`、`process_fallback` 或 `process_uncovered` 等类型。
 
+## 7.2 算法族能力注册表
+
+算法族能力由独立文件 `benchmark/family_capabilities.json` 声明，不能只从 `process_validator.py` 反向推断。注册表中的 `label` 必须与 `tests/benchmark_cases.py` 中的 `BenchmarkCase.family` 完全一致；`process_profile` 必须映射到已注册 profile，或显式写为 `uncovered` 并说明 fallback 边界。
+
+当前 deterministic benchmark 注册族名：
+
+- `一维 DP`
+- `二维 DP`
+- `DP 核心扩展`
+- `二分`
+- `BFS/DFS 基础图`
+- `字符串高级算法`
+- `哈希表 / map`
+- `栈 / 队列 / 单调栈`
+- `排序`
+- `树 / BST / LCA`
+- `树形 DP`
+- `堆 / TopK / Huffman`
+- `Trie`
+- `并查集`
+- `回溯 / 递归`
+- `几何 / 扫描线`
+- `区间结构`
+- `数学与位运算`
+- `图高级`
+
+注册表一致性检查：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py
+```
+
+## 7.3 分层算法族发布门禁
+
+V1 发布门禁仍由 `scripts/check_v1_release_gate.py` 维护，不改变既有 V1 deterministic 结论。V1.1 起新增独立 family release gate，用同一批 deterministic benchmark case 生成算法族级报告：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate
+```
+
+输出：
+
+- `output/release_gate/family_release_gate.json`
+- `output/release_gate/family_release_gate.md`
+
+报告按 family 汇总：
+
+- case 数和 sample 数。
+- answer pass：脚本实际执行 `solve`、`trace`、`verify`，并与 expected 比较。
+- process pass：脚本实际对 trace 运行 `validate_process`。
+- demo readiness：基于 `demo_required` 和 expected layouts 的确定性演示就绪统计。
+- `process_fallback` / `process_uncovered` case 与 sample 数。
+
+门禁规则：
+
+- `current_level=strong` 的算法族如果使用 `process_fallback` 或 `process_uncovered`，family gate 必须失败。
+- `medium_plus`、`medium`、`basic` 算法族可以 fallback 或 uncovered，但报告必须显式列出 failure type、case 数、sample 数和 fallback 边界。
+- family gate 嵌入 V1 release gate 的结论作为证据，但不修改 V1 gate 的含义。
+
 ## 8. 必须保留的产物
 
 每次正式评估应保存：
@@ -252,7 +482,7 @@ P9.3 的 V1 发布门禁由确定性证据报告和完整质量检查共同证�
 
 门禁要求：
 
-- deterministic benchmark 样例数必须位于 80 到 120。
+- deterministic benchmark 样例数必须位于 80 到 160。
 - `unique_paths`、`graph_bfs`、`binary_search`、`daily_temperatures` 必须进入 browser smoke。
 - Debug Drawer 必须能展开查看 raw validation、release gate、raw state 和 artifact。
 - evaluation report 必须能输出失败分类 CSV。

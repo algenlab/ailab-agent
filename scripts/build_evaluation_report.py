@@ -32,12 +32,14 @@ def build_evaluation_report(
     dashboard_path: Path | None = None,
     llm_report_path: Path | None = None,
     human_ratings_path: Path | None = None,
+    family_gate_path: Path | None = None,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = _load_json_or_manifest(manifest_path)
     dashboard = _load_json(dashboard_path) if dashboard_path and dashboard_path.exists() else None
     llm_report = _load_json(llm_report_path) if llm_report_path and llm_report_path.exists() else None
     human_scores = _load_human_scores(human_ratings_path) if human_ratings_path and human_ratings_path.exists() else None
+    family_gate = _load_json(family_gate_path) if family_gate_path and family_gate_path.exists() else None
 
     metrics = compute_metrics(
         manifest=manifest,
@@ -57,12 +59,14 @@ def build_evaluation_report(
             "dashboard": str(dashboard_path) if dashboard_path else "",
             "llm_report": str(llm_report_path) if llm_report_path else "",
             "human_ratings": str(human_ratings_path) if human_ratings_path else "",
+            "family_gate": str(family_gate_path) if family_gate_path else "",
         },
         "model_config": model_config_from_llm_report(llm_report),
         "repair_summary": repair_summary(llm_report),
         "dataset_summary": manifest["summary"],
         "metrics": metrics,
         "family_summary": family_rows,
+        "family_release_gate": family_release_gate_summary(family_gate),
         "condition_summary": condition_rows,
         "failure_type_summary": failure_rows,
         "comparisons": comparisons,
@@ -182,6 +186,28 @@ def family_summary(
             }
         )
     return result
+
+
+def family_release_gate_summary(family_gate: dict[str, Any] | None) -> dict[str, Any]:
+    if not family_gate:
+        return {
+            "status": "missing",
+            "reason": "未提供 family release gate report。",
+        }
+    summary = dict(family_gate.get("summary") or {})
+    return {
+        "status": "ok" if family_gate.get("overall_ready") else "fail",
+        "overall_ready": bool(family_gate.get("overall_ready")),
+        "schema_version": family_gate.get("schema_version", ""),
+        "case_count": summary.get("case_count", 0),
+        "sample_count": summary.get("sample_count", 0),
+        "answer_pass_rate": summary.get("answer_pass_rate"),
+        "process_pass_rate": summary.get("process_pass_rate"),
+        "demo_readiness_pass_rate": summary.get("demo_readiness_pass_rate"),
+        "process_fallback_cases": summary.get("process_fallback_cases", 0),
+        "process_uncovered_cases": summary.get("process_uncovered_cases", 0),
+        "degraded_family_count": summary.get("degraded_family_count", 0),
+    }
 
 
 def condition_summary(llm_report: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -722,6 +748,22 @@ def _render_markdown(report: dict[str, Any]) -> str:
         pass_rate = "N/A" if row["pass_rate"] is None else row["pass_rate"]
         failures = json.dumps(row["failure_types"], ensure_ascii=False, sort_keys=True)
         lines.append(f"| {row['family']} | {pass_rate} | {row['passed']} | {row['failed']} | {failures} |")
+    family_gate = report.get("family_release_gate") or {}
+    lines.extend(
+        [
+            "",
+            "## Family Release Gate",
+            "",
+            f"- Status: {family_gate.get('status', 'missing')}",
+            f"- Overall ready: {family_gate.get('overall_ready', 'N/A')}",
+            f"- Cases: {family_gate.get('case_count', 'N/A')}",
+            f"- Samples: {family_gate.get('sample_count', 'N/A')}",
+            f"- Answer pass rate: {family_gate.get('answer_pass_rate', 'N/A')}",
+            f"- Process pass rate: {family_gate.get('process_pass_rate', 'N/A')}",
+            f"- Demo readiness pass rate: {family_gate.get('demo_readiness_pass_rate', 'N/A')}",
+            f"- Fallback / uncovered cases: {family_gate.get('process_fallback_cases', 'N/A')} / {family_gate.get('process_uncovered_cases', 'N/A')}",
+        ]
+    )
     lines.extend(
         [
             "",
@@ -767,6 +809,7 @@ def main() -> int:
     parser.add_argument("--dashboard", type=Path, default=Path("output/dashboard/dashboard.json"), help="dashboard JSON")
     parser.add_argument("--llm-report", type=Path, default=Path("output/llm_benchmark/llm_benchmark_report.json"), help="可选 llm_benchmark_report.json")
     parser.add_argument("--human-ratings", type=Path, default=None, help="可选人工教学质量评分 CSV")
+    parser.add_argument("--family-gate", type=Path, default=Path("output/release_gate/family_release_gate.json"), help="可选 family release gate JSON")
     args = parser.parse_args()
 
     path = build_evaluation_report(
@@ -775,6 +818,7 @@ def main() -> int:
         dashboard_path=args.dashboard,
         llm_report_path=_existing_or_none(args.llm_report),
         human_ratings_path=args.human_ratings,
+        family_gate_path=_existing_or_none(args.family_gate),
     )
     print(path)
     return 0

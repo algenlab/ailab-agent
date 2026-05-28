@@ -26,7 +26,7 @@ from tests.benchmark_cases import benchmark_cases
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
 MIN_V1_SAMPLES = 80
-MAX_V1_SAMPLES = 120
+MAX_V1_SAMPLES = 160
 GOLDEN_BROWSER_CASES = ("unique_paths", "graph_bfs", "binary_search", "daily_temperatures")
 DEBUG_DRAWER_SELECTORS = (
     "#debug-validation-json",

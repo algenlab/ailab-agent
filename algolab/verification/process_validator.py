@@ -29,6 +29,32 @@ SMALL_BFS_NODE_LIMIT = 20
 SMALL_BFS_EDGE_LIMIT = 80
 SMALL_BINARY_SEARCH_INPUT_LIMIT = 64
 SMALL_MONOTONIC_STACK_INPUT_LIMIT = 64
+DP_CONTRACT_LOOP_KEYS = ("i", "j", "k", "capacity_index", "capacity", "mask", "digit", "current")
+ARRAY_POINTER_SUBMODES = {
+    "binary_answer",
+    "two_pointer",
+    "sliding_window",
+    "prefix_sum",
+    "difference_array",
+    "fast_slow",
+}
+GRAPH_CONTRACT_SUBMODES = {
+    "bfs",
+    "dfs",
+    "dijkstra",
+    "topological_sort",
+    "mst",
+    "tarjan",
+    "network_flow",
+}
+FAMILY_CONTRACT_FAMILIES = {
+    "string",
+    "tree",
+    "backtracking",
+    "heap",
+    "trie",
+    "linked_list",
+}
 ProcessValidationStatus = Literal["strong", "fallback"]
 
 
@@ -50,28 +76,41 @@ PROCESS_VALIDATION_REGISTRY: tuple[ProcessFamilyRegistration, ...] = (
         label="动态规划",
         status="strong",
         level=ALGORITHM_LEVEL,
-        coverage_rule="Tracer _trace_meta 覆盖率 + matcher-gated DP 转移；小 unique_paths 表要求逐格转移",
+        coverage_rule="显式 dp_contract + Tracer _trace_meta 覆盖率 + matcher-gated DP 转移；小 full-trace 样例要求逐格/逐状态转移",
         failure_type="process_invariant",
         checks=(
+            "_validate_dp_trace_contract",
             "_validate_unique_paths_dp",
             "_validate_house_robber_dp",
             "_validate_subset_sum_dp",
             "_validate_lcs_dp",
             "_validate_edit_distance_dp",
             "_validate_complete_knapsack",
+            "_validate_bounded_knapsack",
             "_validate_interval_dp",
+            "_validate_digit_dp",
         ),
-        aliases=("dp", "动态规划", "一维 dp", "二维 dp", "背包", "lcs", "编辑距离", "区间 dp"),
+        aliases=("dp", "动态规划", "一维 dp", "二维 dp", "背包", "lcs", "编辑距离", "区间 dp", "数位 dp"),
     ),
     ProcessFamilyRegistration(
         family="bfs",
         label="BFS 图遍历",
         status="strong",
         level=ALGORITHM_LEVEL,
-        coverage_rule="无权图 start + graph 输入触发 BFS 距离不变量；小图要求出队、检查边、首次访问",
+        coverage_rule="显式 graph_contract + 无权图 start + graph 输入触发 BFS 距离不变量；小图要求出队、检查边、首次访问",
         failure_type="process_invariant",
-        checks=("_validate_bfs_distances",),
+        checks=("_validate_graph_trace_contract", "_validate_bfs_distances"),
         aliases=("bfs", "宽度优先", "基础图", "图 bfs"),
+    ),
+    ProcessFamilyRegistration(
+        family="array_pointer",
+        label="数组指针 / 窗口 / 前缀",
+        status="strong",
+        level=ALGORITHM_LEVEL,
+        coverage_rule="显式 array_contract + 二分/双指针/滑窗/前缀和/差分/快慢指针状态连续性和递推校验",
+        failure_type="process_invariant",
+        checks=("_validate_array_pointer_contract", "_validate_binary_search_window"),
+        aliases=("array pointer", "array_pointer", "数组指针", "滑动窗口", "前缀和", "差分", "双指针", "快慢指针"),
     ),
     ProcessFamilyRegistration(
         family="binary_search",
@@ -107,9 +146,10 @@ PROCESS_VALIDATION_REGISTRY: tuple[ProcessFamilyRegistration, ...] = (
         label="字符串算法",
         status="strong",
         level=ALGORITHM_LEVEL,
-        coverage_rule="KMP 前缀表、Rabin-Karp 滚动哈希、Z 数组和 Manacher 半径表按输入字符串复核",
+        coverage_rule="显式 family_contract + KMP 前缀表、Rabin-Karp 滚动哈希、Z 数组和 Manacher 半径表按输入字符串复核",
         failure_type="process_invariant",
         checks=(
+            "_validate_family_trace_contract",
             "_validate_kmp_prefix",
             "_validate_rabin_karp_hashes",
             "_validate_z_algorithm",
@@ -122,9 +162,9 @@ PROCESS_VALIDATION_REGISTRY: tuple[ProcessFamilyRegistration, ...] = (
         label="树 / BST / LCA",
         status="strong",
         level=ALGORITHM_LEVEL,
-        coverage_rule="BST/LCA/树直径/树形 DP 等有明确 state 信号的子族触发强校验；普通树遍历仍依赖基础门禁",
+        coverage_rule="显式 family_contract + BST/LCA/树直径/树形 DP 等有明确 state 信号的子族触发强校验；普通树遍历仍依赖基础门禁",
         failure_type="process_invariant",
-        checks=("_validate_bst_order", "_validate_lca_node", "_validate_tree_diameter", "_validate_tree_max_independent_set"),
+        checks=("_validate_family_trace_contract", "_validate_bst_order", "_validate_lca_node", "_validate_tree_diameter", "_validate_tree_max_independent_set"),
         aliases=("tree", "树", "bst", "lca", "二叉树", "树直径", "树形 dp", "tree dp"),
     ),
     ProcessFamilyRegistration(
@@ -159,9 +199,10 @@ PROCESS_VALIDATION_REGISTRY: tuple[ProcessFamilyRegistration, ...] = (
         label="图高级",
         status="strong",
         level=ALGORITHM_LEVEL,
-        coverage_rule="Tarjan dfn/low、桥/割点、二分图匹配和 Edmonds-Karp flow/capacity 按 state 复核",
+        coverage_rule="显式 graph_contract + Tarjan dfn/low、桥/割点、二分图匹配和 Edmonds-Karp flow/capacity 按 state 复核",
         failure_type="process_invariant",
         checks=(
+            "_validate_graph_trace_contract",
             "_validate_tarjan_lowlink",
             "_validate_articulation_bridges",
             "_validate_bipartite_matching",
@@ -241,6 +282,9 @@ def process_failure_type_for_message(message: str) -> str | None:
         "process",
         "invariant",
         "dp[",
+        "dp contract",
+        "graph contract",
+        "family contract",
         "背包",
         "bfs",
         "dijkstra",
@@ -477,6 +521,10 @@ def _validate_structure_invariants(trace: SemanticTrace) -> tuple[list[str], lis
 def _validate_algorithm_invariants(trace: SemanticTrace) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
+    errors.extend(_validate_array_pointer_contract(trace))
+    errors.extend(_validate_dp_trace_contract(trace))
+    errors.extend(_validate_graph_trace_contract(trace))
+    errors.extend(_validate_family_trace_contract(trace))
     if _looks_like_unique_paths(trace):
         errors.extend(_validate_unique_paths_dp(trace))
     if _looks_like_house_robber(trace):
@@ -502,7 +550,9 @@ def _validate_algorithm_invariants(trace: SemanticTrace) -> tuple[list[str], lis
             _validate_z_algorithm,
             _validate_manacher_radius,
             _validate_complete_knapsack,
+            _validate_bounded_knapsack,
             _validate_interval_dp,
+            _validate_digit_dp,
             _validate_lca_node,
             _validate_tree_diameter,
             _validate_tree_max_independent_set,
@@ -524,6 +574,1063 @@ def _validate_algorithm_invariants(trace: SemanticTrace) -> tuple[list[str], lis
     errors.extend(family_errors)
     warnings.extend(family_warnings)
     return errors, warnings
+
+
+def _validate_array_pointer_contract(trace: SemanticTrace) -> list[str]:
+    contract = _array_contract_for_trace(trace)
+    if contract is None:
+        return []
+    submode = _normalize_array_contract_submode(contract.get("submode"))
+    if not submode:
+        return ["Array pointer contract 缺少 submode，无法选择数组指针过程合同"]
+    if submode not in ARRAY_POINTER_SUBMODES:
+        return [f"Array pointer contract 未支持的 submode：{submode}"]
+    errors: list[str] = []
+    if submode == "prefix_sum":
+        errors.extend(_validate_array_contract_prefix_sum(trace, contract))
+    elif submode == "difference_array":
+        errors.extend(_validate_array_contract_difference_array(trace, contract))
+    elif submode == "sliding_window":
+        errors.extend(_validate_array_contract_window(trace, contract))
+    elif submode in {"two_pointer", "fast_slow"}:
+        errors.extend(_validate_array_contract_pointer_bounds(trace, contract))
+    elif submode == "binary_answer":
+        errors.extend(_validate_array_contract_pointer_bounds(trace, contract))
+    errors.extend(_validate_array_contract_expected_targets(trace, contract))
+    return errors
+
+
+def _array_contract_for_trace(trace: SemanticTrace) -> dict[str, Any] | None:
+    for event in trace.events:
+        contract = (event.state or {}).get("array_contract")
+        if isinstance(contract, dict):
+            return contract
+    return None
+
+
+def _normalize_array_contract_submode(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "prefix": "prefix_sum",
+        "prefixsum": "prefix_sum",
+        "prefix_array": "prefix_sum",
+        "diff": "difference_array",
+        "difference": "difference_array",
+        "sliding": "sliding_window",
+        "window": "sliding_window",
+        "binary_search_answer": "binary_answer",
+        "binary_answer_search": "binary_answer",
+        "fast_slow_pointer": "fast_slow",
+        "slow_fast": "fast_slow",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _array_contract_string_list(contract: dict[str, Any], key: str) -> list[str]:
+    raw = contract.get(key)
+    if not isinstance(raw, list):
+        return []
+    return [item.strip() for item in raw if isinstance(item, str) and item.strip()]
+
+
+def _validate_array_contract_prefix_sum(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        state = event.state or {}
+        nums = state.get("nums") or state.get("array")
+        prefix = state.get("prefix") or state.get("prefix_sum")
+        if not _is_numeric_sequence(nums) or not _is_numeric_sequence(prefix):
+            continue
+        base_zero = len(prefix) == len(nums) + 1
+        if len(prefix) not in {len(nums), len(nums) + 1}:
+            errors.append(f"第 {event.step} 步 prefix 长度应为 nums 长度或 nums 长度 + 1")
+            continue
+        target_indices = _array_contract_index_targets(event, {"prefix", "prefix_sum"})
+        if not target_indices and event.role == "answer":
+            target_indices = set(range(len(prefix)))
+        for index in sorted(target_indices):
+            if index >= len(prefix):
+                continue
+            actual = prefix[index]
+            if actual is None:
+                continue
+            if not isinstance(actual, (int, float)):
+                continue
+            expected = sum(nums[:index]) if base_zero else sum(nums[: index + 1])
+            if actual != expected:
+                errors.append(f"第 {event.step} 步 prefix[{index}] 应为 {expected}")
+    if not any(_event_refs_include_prefix(event, ("prefix[", "prefix_sum[")) for event in trace.events):
+        errors.append("Array pointer contract prefix_sum 缺少 prefix 更新 target")
+    return errors
+
+
+def _validate_array_contract_difference_array(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for event in trace.events:
+        state = event.state or {}
+        nums = state.get("nums") or state.get("array")
+        diff = state.get("diff") or state.get("difference")
+        updates = state.get("updates") or state.get("ranges")
+        if not _is_numeric_sequence(nums) or not _is_numeric_sequence(diff) or not isinstance(updates, list):
+            continue
+        update_index = state.get("update_index")
+        active_updates = updates[: update_index + 1] if isinstance(update_index, int) and update_index >= 0 else updates if event.role == "answer" else []
+        expected = _expected_diff_after_updates(nums, active_updates, len(diff))
+        if expected is None:
+            continue
+        target_indices = _array_contract_index_targets(event, {"diff", "difference"})
+        if not target_indices and event.role == "answer":
+            target_indices = set(range(len(diff)))
+        for index in sorted(target_indices):
+            if index >= len(diff):
+                continue
+            actual = diff[index]
+            if actual is None:
+                continue
+            if not isinstance(actual, (int, float)):
+                continue
+            if index < len(expected) and actual != expected[index]:
+                errors.append(f"第 {event.step} 步 diff[{index}] 应为 {expected[index]}")
+    if not any(_event_refs_include_prefix(event, ("diff[", "difference[")) for event in trace.events):
+        errors.append("Array pointer contract difference_array 缺少 diff 更新 target")
+    return errors
+
+
+def _array_contract_index_targets(event, names: set[str]) -> set[int]:
+    indices: set[int] = set()
+    for target_id in _event_target_ids(event):
+        parsed = parse_target(target_id)
+        if parsed.kind == "indexed" and parsed.name in names and len(parsed.indices) == 1:
+            indices.add(parsed.indices[0])
+    return indices
+
+
+def _expected_diff_after_updates(nums: list[Any], updates: list[Any], length: int) -> list[int | float] | None:
+    if length not in {len(nums), len(nums) + 1}:
+        return None
+    diff: list[int | float] = [0] * length
+    if nums:
+        diff[0] = nums[0]
+        for index in range(1, len(nums)):
+            diff[index] = nums[index] - nums[index - 1]
+    for update in updates:
+        if not isinstance(update, (list, tuple)) or len(update) < 3:
+            continue
+        left, right, delta = update[0], update[1], update[2]
+        if not isinstance(left, int) or not isinstance(right, int) or not isinstance(delta, (int, float)):
+            continue
+        if not (0 <= left <= right < len(nums)):
+            continue
+        diff[left] += delta
+        if right + 1 < length:
+            diff[right + 1] -= delta
+    return diff
+
+
+def _validate_array_contract_window(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    previous: tuple[int, int] | None = None
+    for event in trace.events:
+        state = event.state or {}
+        nums = state.get("nums") or state.get("array")
+        if not isinstance(nums, list):
+            nums = []
+        left = state.get("left")
+        right = state.get("right")
+        if not isinstance(left, int) or not isinstance(right, int):
+            continue
+        upper = len(nums) if nums else max(left, right, 0) + 1
+        if left < 0 or right < -1 or left > upper or right >= upper:
+            errors.append(f"第 {event.step} 步窗口指针越界")
+        if left <= right and "window_sum" in state and nums and all(isinstance(item, (int, float)) for item in nums):
+            expected_sum = sum(nums[left : right + 1])
+            if state.get("window_sum") != expected_sum:
+                errors.append(f"第 {event.step} 步 window_sum 应为 {expected_sum}")
+        if previous is not None:
+            prev_left, prev_right = previous
+            if abs(left - prev_left) > 1 or abs(right - prev_right) > 1:
+                errors.append(f"第 {event.step} 步窗口指针跳变")
+        previous = (left, right)
+    return errors
+
+
+def _validate_array_contract_pointer_bounds(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    pointer_keys = ("left", "right", "slow", "fast", "i", "j")
+    for event in trace.events:
+        state = event.state or {}
+        nums = state.get("nums") or state.get("array") or state.get("candidates")
+        if not isinstance(nums, list):
+            continue
+        for key in pointer_keys:
+            value = state.get(key)
+            if isinstance(value, int) and not (-1 <= value <= len(nums)):
+                errors.append(f"第 {event.step} 步 pointer:{key} 越界")
+    return errors
+
+
+def _validate_array_contract_expected_targets(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    expected = _array_contract_string_list(contract, "expected_targets")
+    if not expected:
+        return []
+    covered = {
+        ref
+        for event in trace.events
+        if event.op in {SemanticOp.SET, SemanticOp.MOVE, SemanticOp.MARK, SemanticOp.PUSH, SemanticOp.POP}
+        for ref in _event_target_ids(event)
+    }
+    missing = [target for target in expected if target not in covered]
+    if not missing:
+        return []
+    return [f"Array pointer contract 缺少关键更新：{', '.join(missing[:6])}"]
+
+
+def _validate_dp_trace_contract(trace: SemanticTrace) -> list[str]:
+    contract = _dp_contract_for_trace(trace)
+    if contract is None:
+        return []
+
+    containers = _dp_contract_string_list(contract, "containers")
+    answer_position = contract.get("answer_position")
+    expected_targets = _dp_contract_string_list(contract, "expected_targets")
+    errors: list[str] = []
+
+    if not containers:
+        errors.append("DP contract 缺少 containers，无法确认当前 DP 容器")
+        return errors
+    if not isinstance(answer_position, str) or not answer_position.strip():
+        errors.append("DP contract 缺少答案位置 answer_position")
+
+    init_events = [event for event in trace.events if event.op == SemanticOp.CREATE and _dp_event_state_has_container(event, containers)]
+    if not init_events:
+        errors.append("DP contract 缺少初始化事件：必须用 create 事件给出 DP 容器初始状态")
+
+    covered_targets: set[str] = set()
+    answer_position = answer_position.strip() if isinstance(answer_position, str) else ""
+    answer_position_seen = False
+
+    for event in trace.events:
+        target_ids = _event_target_ids(event)
+        dep_ids = _event_dep_ids(event)
+        if event.op == SemanticOp.SET:
+            for target_id in target_ids:
+                if _target_belongs_to_containers(target_id, containers):
+                    covered_targets.add(target_id)
+            if (not target_ids and _dp_event_state_has_container(event, containers)) or any(
+                _target_belongs_to_containers(target_id, containers) for target_id in target_ids
+            ):
+                errors.extend(_validate_dp_contract_set_event(event, containers))
+        if answer_position and event.role == "answer" and answer_position in (target_ids | dep_ids):
+            answer_position_seen = True
+
+    if answer_position and not answer_position_seen:
+        errors.append(f"DP contract 答案位置未明确：role=answer 事件必须引用 {answer_position}")
+
+    missing_targets = [target for target in expected_targets if target not in covered_targets]
+    if missing_targets:
+        preview = ", ".join(missing_targets[:6])
+        suffix = "..." if len(missing_targets) > 6 else ""
+        errors.append(f"DP contract 缺少关键更新：{preview}{suffix}")
+
+    return errors
+
+
+def _dp_contract_for_trace(trace: SemanticTrace) -> dict[str, Any] | None:
+    for event in trace.events:
+        contract = (event.state or {}).get("dp_contract")
+        if isinstance(contract, dict):
+            return contract
+    return None
+
+
+def _dp_contract_string_list(contract: dict[str, Any], key: str) -> list[str]:
+    raw = contract.get(key)
+    if not isinstance(raw, list):
+        return []
+    result: list[str] = []
+    for item in raw:
+        if isinstance(item, str) and item.strip():
+            result.append(item.strip())
+    return result
+
+
+def _dp_event_state_has_container(event, containers: list[str]) -> bool:
+    state = event.state or {}
+    return any(container in state for container in containers)
+
+
+def _target_belongs_to_containers(target_id: str, containers: list[str]) -> bool:
+    return _target_container_name(target_id) in set(containers)
+
+
+def _target_container_name(target_id: str) -> str:
+    parsed = parse_target(target_id)
+    if parsed.kind in {"indexed", "slice"}:
+        return parsed.name
+    if parsed.kind == "map":
+        key, _, _item = parsed.name.partition(":")
+        return key
+    if parsed.kind == "container":
+        return parsed.name
+    return target_id
+
+
+def _validate_dp_contract_set_event(event, containers: list[str]) -> list[str]:
+    errors: list[str] = []
+    if not event.targets:
+        errors.append(f"第 {event.step} 步 DP contract 关键更新缺少 targets")
+    if not event.deps:
+        errors.append(f"第 {event.step} 步 DP contract 关键更新缺少 deps")
+    if not (
+        _has_explicit_aux_value(event.value)
+        or _has_explicit_aux_value(event.before)
+        or _has_explicit_aux_value(event.after)
+    ):
+        errors.append(f"第 {event.step} 步 DP contract 关键更新缺少 value / before / after")
+    if not event.state:
+        errors.append(f"第 {event.step} 步 DP contract 关键更新缺少 state")
+        return errors
+    if not any(container in event.state for container in containers):
+        errors.append(f"第 {event.step} 步 DP contract state 缺少当前 DP 容器")
+    if not any(key in event.state for key in DP_CONTRACT_LOOP_KEYS):
+        keys = ", ".join(DP_CONTRACT_LOOP_KEYS)
+        errors.append(f"第 {event.step} 步 DP contract state 缺少循环变量：{keys}")
+    if not _dp_event_has_formula(event):
+        errors.append(f"第 {event.step} 步 DP contract 转移事件缺少可复原公式")
+    return errors
+
+
+def _dp_event_has_formula(event) -> bool:
+    state = event.state or {}
+    formula = state.get("formula")
+    if isinstance(formula, str) and formula.strip():
+        return True
+    teaching = event.teaching
+    teaching_formula = getattr(teaching, "formula", "") if teaching is not None else ""
+    if isinstance(teaching_formula, str) and teaching_formula.strip():
+        return True
+    reason = event.reason or ""
+    return "=" in reason and any(token in reason for token in ("dp", "状态", "转移"))
+
+
+def _validate_graph_trace_contract(trace: SemanticTrace) -> list[str]:
+    contract = _graph_contract_for_trace(trace)
+    if contract is None:
+        return []
+    submode = _normalize_graph_submode(contract.get("submode"))
+    if not submode:
+        return ["Graph contract 缺少 submode，无法选择图算法过程合同"]
+    if submode not in GRAPH_CONTRACT_SUBMODES:
+        return [f"Graph contract 未支持的 submode：{submode}"]
+    if submode == "bfs":
+        return _validate_graph_contract_bfs(trace, contract)
+    if submode == "dfs":
+        return _validate_graph_contract_dfs(trace, contract)
+    if submode == "dijkstra":
+        return _validate_graph_contract_dijkstra(trace, contract)
+    if submode == "topological_sort":
+        return _validate_graph_contract_topological(trace, contract)
+    if submode == "mst":
+        return _validate_graph_contract_mst(trace, contract)
+    if submode == "tarjan":
+        return _validate_graph_contract_tarjan(trace, contract)
+    if submode == "network_flow":
+        return _validate_graph_contract_network_flow(trace, contract)
+    return []
+
+
+def _graph_contract_for_trace(trace: SemanticTrace) -> dict[str, Any] | None:
+    for event in trace.events:
+        contract = (event.state or {}).get("graph_contract")
+        if isinstance(contract, dict):
+            return contract
+    return None
+
+
+def _normalize_graph_submode(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "topo": "topological_sort",
+        "topological": "topological_sort",
+        "topological_sorting": "topological_sort",
+        "kruskal": "mst",
+        "prim": "mst",
+        "max_flow": "network_flow",
+        "edmonds_karp": "network_flow",
+        "edmonds-karp": "network_flow",
+        "flow": "network_flow",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _validate_graph_contract_bfs(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    graph = _graph_contract_graph(trace)
+    source = contract.get("source") or (trace.input_data.get("start") if isinstance(trace.input_data, dict) else None)
+    if not isinstance(graph, dict):
+        errors.append("Graph contract BFS 缺少 graph state")
+        return errors
+    if source is None:
+        errors.append("Graph contract BFS 缺少 source/start")
+    if not any(isinstance((event.state or {}).get("queue"), list) for event in trace.events):
+        errors.append("Graph contract BFS 必须记录 frontier queue")
+    if not _trace_has_bfs_pop(trace):
+        errors.append("Graph contract BFS 缺少 queue pop 事件")
+    if _reachable_edge_count(graph, _bfs_dist(graph, source)) > 0 and not _trace_has_bfs_edge_check(trace):
+        errors.append("Graph contract BFS 缺少边检查事件")
+
+    expected_dist = _bfs_dist(graph, source)
+    first_seen: dict[str, int] = {}
+    previous_queue: list[Any] | None = None
+    previous_dist: dict[Any, Any] = {}
+    for event in trace.events:
+        state = event.state or {}
+        queue = state.get("queue")
+        if isinstance(queue, list):
+            if previous_queue is not None:
+                errors.extend(_validate_bfs_queue_transition(event.step, previous_queue, queue, event))
+            previous_queue = list(queue)
+        dist = state.get("dist")
+        if not isinstance(dist, dict):
+            continue
+        for node, value in dist.items():
+            if node in expected_dist and value != expected_dist[node]:
+                errors.append(f"第 {event.step} 步 Graph contract BFS dist[{node}] 应为 {expected_dist[node]}，实际为 {value}")
+        new_nodes = [node for node in dist if node not in previous_dist]
+        if event.op == SemanticOp.SET:
+            target_nodes = _graph_contract_dist_targets(event)
+            for node in target_nodes:
+                if str(node) in first_seen:
+                    errors.append(f"第 {event.step} 步 Graph contract BFS 重复首次访问 node:{node}")
+                first_seen[str(node)] = event.step
+        for node in new_nodes:
+            if str(node) == str(source):
+                continue
+            if str(node) in first_seen:
+                continue
+            first_seen[str(node)] = event.step
+        previous_dist = dict(dist)
+    return errors
+
+
+def _graph_contract_graph(trace: SemanticTrace) -> Any:
+    for event in trace.events:
+        state = event.state or {}
+        for key in ("graph", "weighted_graph"):
+            value = state.get(key)
+            if isinstance(value, dict):
+                return value
+    if isinstance(trace.input_data, dict):
+        return trace.input_data.get("graph") or trace.input_data.get("weighted_graph")
+    return None
+
+
+def _validate_bfs_queue_transition(step: int, previous: list[Any], current: list[Any], event) -> list[str]:
+    if event.op == SemanticOp.POP and len(current) <= len(previous):
+        return []
+    if event.op in {SemanticOp.PUSH, SemanticOp.SET, SemanticOp.MARK} and len(current) <= len(previous) + 1:
+        return []
+    if event.op in {SemanticOp.COMPARE, SemanticOp.EXPLAIN} and current == previous:
+        return []
+    if current == previous:
+        return []
+    return [f"第 {step} 步 Graph contract BFS queue 跳变：{previous} -> {current}"]
+
+
+def _graph_contract_dist_targets(event) -> list[str]:
+    nodes: list[str] = []
+    for target in event.targets:
+        parsed = parse_target(target.id)
+        if parsed.kind == "map":
+            key, _, item = parsed.name.partition(":")
+            if key == "dist" and item:
+                nodes.append(item)
+    return nodes
+
+
+def _validate_graph_contract_dfs(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    has_frontier = any(isinstance((event.state or {}).get("stack"), list) or isinstance((event.state or {}).get("frames"), list) for event in trace.events)
+    has_frame_event = any(
+        event.op in {SemanticOp.ENTER, SemanticOp.EXIT}
+        and any(ref.startswith("frame:") for ref in (_event_target_ids(event) | _event_dep_ids(event)))
+        for event in trace.events
+    )
+    if not has_frontier:
+        errors.append("Graph contract DFS 必须记录 stack 或 recursion frame frontier")
+    if not has_frame_event:
+        errors.append("Graph contract DFS 缺少 recursion frame enter/exit 事件")
+    if _graph_contract_string_list(contract, "expected_nodes") and not _visited_covers_expected_nodes(trace, contract):
+        errors.append("Graph contract DFS visited 未覆盖 expected_nodes")
+    return errors
+
+
+def _visited_covers_expected_nodes(trace: SemanticTrace, contract: dict[str, Any]) -> bool:
+    expected = set(_graph_contract_string_list(contract, "expected_nodes"))
+    if not expected:
+        return True
+    for event in reversed(trace.events):
+        visited = (event.state or {}).get("visited")
+        if isinstance(visited, dict):
+            covered = {str(node) for node, flag in visited.items() if flag}
+            if expected <= covered:
+                return True
+        if isinstance(visited, list):
+            covered = {str(node) for node in visited}
+            if expected <= covered:
+                return True
+    return False
+
+
+def _graph_contract_string_list(contract: dict[str, Any], key: str) -> list[str]:
+    raw = contract.get(key)
+    if not isinstance(raw, list):
+        return []
+    return [str(item) for item in raw if item is not None and str(item)]
+
+
+def _validate_graph_contract_dijkstra(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    graph = _graph_contract_graph(trace)
+    if _weighted_graph_has_negative_edge(graph):
+        errors.append("Graph contract Dijkstra 遇到负权输入，必须拒绝或提供降级说明")
+    if not any(isinstance((event.state or {}).get("heap"), list) or isinstance((event.state or {}).get("queue"), list) for event in trace.events):
+        errors.append("Graph contract Dijkstra 必须记录 heap/frontier")
+    relax_events = [event for event in trace.events if event.op == SemanticOp.SET and any(ref.startswith("dist[") for ref in _event_target_ids(event))]
+    if not relax_events:
+        errors.append("Graph contract Dijkstra 缺少 edge relax 事件")
+    expected_edges = set(_graph_contract_string_list(contract, "expected_relax_edges"))
+    covered_edges: set[str] = set()
+    for event in relax_events:
+        state = event.state or {}
+        deps = _event_dep_ids(event)
+        edge_refs = [ref for ref in deps if ref.startswith("edge:")]
+        if not edge_refs:
+            errors.append(f"第 {event.step} 步 Graph contract Dijkstra relax 缺少 edge dep")
+        for edge in edge_refs:
+            covered_edges.add(edge.split(":", 1)[1])
+        if "old_dist" not in state or "new_dist" not in state:
+            errors.append(f"第 {event.step} 步 Graph contract Dijkstra relax 缺少 old_dist/new_dist")
+        parent = state.get("parent") or state.get("predecessor") or state.get("prev")
+        if not isinstance(parent, dict):
+            errors.append(f"第 {event.step} 步 Graph contract Dijkstra relax 缺少 parent/predecessor")
+    missing = sorted(expected_edges - covered_edges)
+    if missing:
+        errors.append(f"Graph contract Dijkstra 缺少 relax 覆盖：{', '.join(missing)}")
+    return errors
+
+
+def _weighted_graph_has_negative_edge(graph: Any) -> bool:
+    if not isinstance(graph, dict):
+        return False
+    for node in graph:
+        for _neighbor, weight in _weighted_neighbors(graph, node):
+            if weight < 0:
+                return True
+    return False
+
+
+def _validate_graph_contract_topological(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not any(isinstance((event.state or {}).get("queue"), list) for event in trace.events):
+        errors.append("Graph contract topological_sort 必须记录 zero-indegree queue")
+    indegree_events = [
+        event for event in trace.events
+        if event.op == SemanticOp.SET and any(ref.startswith("indegree[") for ref in _event_target_ids(event))
+    ]
+    if not indegree_events:
+        errors.append("Graph contract topological_sort 缺少 indegree 变化事件")
+    for event in indegree_events:
+        state = event.state or {}
+        if "enqueue_reason" not in state and "入队" not in (event.reason or "") and "zero" not in (event.reason or "").lower():
+            errors.append(f"第 {event.step} 步 Graph contract topological_sort 缺少入队原因")
+    if _graph_contract_string_list(contract, "expected_nodes"):
+        expected = set(_graph_contract_string_list(contract, "expected_nodes"))
+        seen_order = set()
+        for event in trace.events:
+            order = (event.state or {}).get("topo_order") or (event.state or {}).get("order")
+            if isinstance(order, list):
+                seen_order.update(str(node) for node in order)
+        if not expected <= seen_order:
+            errors.append("Graph contract topological_sort topo_order 未覆盖 expected_nodes")
+    return errors
+
+
+def _validate_graph_contract_mst(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not any(isinstance((event.state or {}).get("union_find"), dict) or isinstance((event.state or {}).get("dsu"), dict) for event in trace.events):
+        errors.append("Graph contract MST 必须记录 union-find 状态")
+    decision_events = [event for event in trace.events if any(ref.startswith("edge:") for ref in (_event_target_ids(event) | _event_dep_ids(event)))]
+    if not decision_events:
+        errors.append("Graph contract MST 缺少选边/弃边事件")
+    selected = False
+    for event in decision_events:
+        state = event.state or {}
+        decision = state.get("edge_decision") or event.role
+        reason = state.get("decision_reason") or event.reason
+        if decision in {"selected", "select", "chosen"}:
+            selected = True
+        if decision in {"selected", "select", "chosen", "rejected", "reject", "skip"} and not reason:
+            errors.append(f"第 {event.step} 步 Graph contract MST 缺少选边/弃边原因")
+    if _graph_contract_string_list(contract, "expected_edges") and not selected:
+        errors.append("Graph contract MST 未记录 expected_edges 的选边事件")
+    return errors
+
+
+def _validate_graph_contract_tarjan(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    has_dfn = has_low = has_stack = False
+    for event in trace.events:
+        state = event.state or {}
+        has_dfn = has_dfn or isinstance(state.get("dfn") or state.get("disc"), dict)
+        has_low = has_low or isinstance(state.get("low") or state.get("lowlink"), dict)
+        has_stack = has_stack or isinstance(state.get("stack"), list)
+    if not (has_dfn and has_low and has_stack):
+        errors.append("Graph contract Tarjan 必须记录 dfn/low/stack 更新")
+    if not any(event.op == SemanticOp.SET and any(ref.startswith("dfn[") for ref in _event_target_ids(event)) for event in trace.events):
+        errors.append("Graph contract Tarjan 缺少 dfn 写入事件")
+    if not any(event.op == SemanticOp.SET and any(ref.startswith("low[") for ref in _event_target_ids(event)) for event in trace.events):
+        errors.append("Graph contract Tarjan 缺少 low 写入事件")
+    if not any(isinstance((event.state or {}).get("component"), list) for event in trace.events):
+        errors.append("Graph contract Tarjan 缺少 component 弹栈事件")
+    return errors
+
+
+def _validate_graph_contract_network_flow(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    has_path = has_bottleneck = has_capacity = has_flow = False
+    flow_update = False
+    for event in trace.events:
+        state = event.state or {}
+        has_path = has_path or isinstance(state.get("augmenting_path"), list)
+        bottleneck = state.get("bottleneck")
+        has_bottleneck = has_bottleneck or isinstance(bottleneck, (int, float))
+        has_capacity = has_capacity or isinstance(state.get("capacity") or state.get("cap"), dict)
+        has_flow = has_flow or isinstance(state.get("flow"), dict)
+        if event.op == SemanticOp.SET and any(ref.startswith("flow[") for ref in _event_target_ids(event)):
+            flow_update = True
+            deps = _event_dep_ids(event)
+            if not any(ref.startswith("cap[") for ref in deps) and not isinstance(state.get("capacity") or state.get("cap"), dict):
+                errors.append(f"第 {event.step} 步 Graph contract network_flow flow 更新缺少 capacity 依据")
+    if not has_path:
+        errors.append("Graph contract network_flow 缺少 augmenting path")
+    if not has_bottleneck:
+        errors.append("Graph contract network_flow 缺少 bottleneck")
+    if not has_capacity or not has_flow:
+        errors.append("Graph contract network_flow 必须记录 flow/capacity")
+    if not flow_update:
+        errors.append("Graph contract network_flow 缺少 flow/capacity 更新事件")
+    return errors
+
+
+def _validate_family_trace_contract(trace: SemanticTrace) -> list[str]:
+    contract = _family_contract_for_trace(trace)
+    if contract is None:
+        return []
+    family = _normalize_family_contract_family(contract.get("family") or contract.get("submode"))
+    if not family:
+        return ["Family contract 缺少 family，无法选择算法族过程合同"]
+    if family not in FAMILY_CONTRACT_FAMILIES:
+        return [f"Family contract 未支持的 family：{family}"]
+    if family == "string":
+        return _validate_family_contract_string(trace, contract)
+    if family == "tree":
+        return _validate_family_contract_tree(trace, contract)
+    if family == "backtracking":
+        return _validate_family_contract_backtracking(trace, contract)
+    if family == "heap":
+        return _validate_family_contract_heap(trace, contract)
+    if family == "trie":
+        return _validate_family_contract_trie(trace, contract)
+    if family == "linked_list":
+        return _validate_family_contract_linked_list(trace, contract)
+    return []
+
+
+def _family_contract_for_trace(trace: SemanticTrace) -> dict[str, Any] | None:
+    for event in trace.events:
+        contract = (event.state or {}).get("family_contract")
+        if isinstance(contract, dict):
+            return contract
+    return None
+
+
+def _normalize_family_contract_family(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    normalized = value.strip().lower().replace("-", "_").replace(" ", "_").replace("/", "_")
+    aliases = {
+        "strings": "string",
+        "字符串": "string",
+        "kmp": "string",
+        "rabin_karp": "string",
+        "z_algorithm": "string",
+        "manacher": "string",
+        "trees": "tree",
+        "binary_tree": "tree",
+        "树": "tree",
+        "二叉树": "tree",
+        "recursion": "backtracking",
+        "回溯": "backtracking",
+        "递归": "backtracking",
+        "permutation": "backtracking",
+        "permutations": "backtracking",
+        "priority_queue": "heap",
+        "堆": "heap",
+        "trie_prefix": "trie",
+        "前缀树": "trie",
+        "linkedlist": "linked_list",
+        "linked_list_reverse": "linked_list",
+        "linked": "linked_list",
+        "链表": "linked_list",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _family_contract_string_list(contract: dict[str, Any], key: str) -> list[str]:
+    raw = contract.get(key)
+    if not isinstance(raw, list):
+        return []
+    return [item.strip() for item in raw if isinstance(item, str) and item.strip()]
+
+
+def _validate_family_contract_string(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    expected_tables = _family_contract_string_list(contract, "expected_tables")
+    if not expected_tables:
+        expected_tables = ["pi"] if _normalize_family_contract_submode(contract) == "kmp" else []
+    if not any(_state_has_string_pointer_pair(event.state or {}) for event in trace.events):
+        errors.append("Family contract string 缺少 text/pattern 指针")
+    if expected_tables and not any(any(table in (event.state or {}) for table in expected_tables) for event in trace.events):
+        errors.append(f"Family contract string 缺少表结构：{', '.join(expected_tables)}")
+    elif not expected_tables and not any(_state_has_any(event.state or {}, ("pi", "prefix", "lps", "next", "z", "radius", "p", "hash", "hashes", "window_hash", "window_hashes", "count", "window_counts")) for event in trace.events):
+        errors.append("Family contract string 缺少表结构")
+    if not _trace_has_string_reason_event(trace):
+        errors.append("Family contract string 缺少失配/扩展或窗口移动原因")
+    if not any(_event_refs_include_prefix(event, ("text[", "pattern[")) for event in trace.events):
+        errors.append("Family contract string 缺少 text[i] / pattern[j] 字符 target")
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "string"))
+    return errors
+
+
+def _normalize_family_contract_submode(contract: dict[str, Any]) -> str:
+    value = contract.get("submode")
+    return value.strip().lower().replace("-", "_").replace(" ", "_") if isinstance(value, str) else ""
+
+
+def _state_has_string_pointer_pair(state: dict[str, Any]) -> bool:
+    has_text = isinstance(state.get("text"), str)
+    has_pattern = isinstance(state.get("pattern"), str)
+    has_text_pointer = any(isinstance(state.get(key), int) for key in ("i", "text_index", "text_pos", "window_start"))
+    has_pattern_pointer = any(isinstance(state.get(key), int) for key in ("j", "pattern_index", "pattern_pos"))
+    return has_text and has_pattern and has_text_pointer and has_pattern_pointer
+
+
+def _state_has_any(state: dict[str, Any], keys: Iterable[str]) -> bool:
+    return any(key in state for key in keys)
+
+
+def _trace_has_string_reason_event(trace: SemanticTrace) -> bool:
+    reason_tokens = ("失配", "回退", "扩展", "窗口", "fallback", "mismatch", "extend", "expand", "window")
+    state_keys = ("fallback_reason", "mismatch_reason", "expand_reason", "extension_reason", "window_reason", "move_reason")
+    for event in trace.events:
+        state = event.state or {}
+        reason = " ".join(str(part) for part in (event.reason, state.get("reason"), *(state.get(key, "") for key in state_keys)))
+        if any(token in reason for token in reason_tokens):
+            return True
+    return False
+
+
+def _event_refs_include_prefix(event, prefixes: tuple[str, ...]) -> bool:
+    refs = _event_target_ids(event) | _event_dep_ids(event)
+    return any(ref.startswith(prefixes) for ref in refs)
+
+
+def _validate_family_contract_tree(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not any(isinstance((event.state or {}).get("tree"), dict) for event in trace.events):
+        errors.append("Family contract tree 缺少 tree state")
+    if not any((event.state or {}).get("current") is not None for event in trace.events):
+        errors.append("Family contract tree 缺少当前节点 current")
+    if not _trace_has_frame_enter_exit(trace):
+        errors.append("Family contract tree 缺少 enter/exit 递归 frame")
+    if not any(_tree_state_has_return_value(event.state or {}) for event in trace.events):
+        errors.append("Family contract tree 缺少子树返回值或聚合结果")
+    missing_nodes = _family_contract_missing_targets(trace, contract, "expected_nodes", prefix="node:")
+    if missing_nodes:
+        errors.append(f"Family contract tree 缺少 expected_nodes 覆盖：{', '.join(missing_nodes[:6])}")
+    missing_frames = _family_contract_missing_exact_refs(trace, contract, "expected_frames")
+    if missing_frames:
+        errors.append(f"Family contract tree 缺少 expected_frames 覆盖：{', '.join(missing_frames[:6])}")
+    return errors
+
+
+def _trace_has_frame_enter_exit(trace: SemanticTrace) -> bool:
+    has_enter = any(event.op == SemanticOp.ENTER and any(ref.startswith("frame:") for ref in _event_target_ids(event)) for event in trace.events)
+    has_exit = any(event.op == SemanticOp.EXIT and any(ref.startswith("frame:") for ref in _event_target_ids(event)) for event in trace.events)
+    return has_enter and has_exit
+
+
+def _tree_state_has_return_value(state: dict[str, Any]) -> bool:
+    return any(
+        key in state and state.get(key) not in (None, {}, [])
+        for key in ("return_values", "return_value", "subtree_return", "aggregate", "height", "diameter", "dp_take", "dp_skip")
+    )
+
+
+def _family_contract_missing_targets(trace: SemanticTrace, contract: dict[str, Any], key: str, *, prefix: str = "") -> list[str]:
+    expected = _family_contract_string_list(contract, key)
+    if not expected:
+        return []
+    refs = _trace_ref_ids(trace)
+    missing = []
+    for item in expected:
+        target = item if item.startswith(prefix) else f"{prefix}{item}"
+        if target not in refs:
+            missing.append(item)
+    return missing
+
+
+def _family_contract_missing_exact_refs(trace: SemanticTrace, contract: dict[str, Any], key: str) -> list[str]:
+    expected = _family_contract_string_list(contract, key)
+    if not expected:
+        return []
+    refs = _trace_ref_ids(trace)
+    return [item for item in expected if item not in refs]
+
+
+def _trace_ref_ids(trace: SemanticTrace) -> set[str]:
+    refs: set[str] = set()
+    for event in trace.events:
+        refs.update(_event_target_ids(event))
+        refs.update(_event_dep_ids(event))
+    return refs
+
+
+def _validate_family_contract_backtracking(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not any(isinstance((event.state or {}).get("recursion_tree"), dict) or isinstance((event.state or {}).get("search_tree"), dict) for event in trace.events):
+        errors.append("Family contract backtracking 缺少 recursion_tree/search_tree state")
+    if not any("path" in (event.state or {}) for event in trace.events):
+        errors.append("Family contract backtracking 缺少 path state")
+    if not any("used" in (event.state or {}) for event in trace.events):
+        errors.append("Family contract backtracking 缺少 used state")
+    if not _trace_has_backtracking_choose(trace):
+        errors.append("Family contract backtracking 缺少 choose 事件")
+    if not _trace_has_backtracking_record(trace):
+        errors.append("Family contract backtracking 缺少 record 事件")
+    if not _trace_has_backtracking_undo(trace):
+        errors.append("Family contract backtracking 缺少 undo 事件")
+    errors.extend(_validate_backtracking_state_continuity(trace))
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "backtracking"))
+    return errors
+
+
+def _trace_has_backtracking_choose(trace: SemanticTrace) -> bool:
+    return any(
+        event.op in {SemanticOp.PUSH, SemanticOp.MARK, SemanticOp.SET, SemanticOp.ENTER}
+        and _event_has_role_or_reason(event, ("choose", "选择"))
+        for event in trace.events
+    )
+
+
+def _trace_has_backtracking_record(trace: SemanticTrace) -> bool:
+    return any(
+        (event.role == "answer" or _event_has_role_or_reason(event, ("record", "记录")))
+        and "answer" in (event.state or {})
+        for event in trace.events
+    )
+
+
+def _trace_has_backtracking_undo(trace: SemanticTrace) -> bool:
+    return any(
+        event.op in {SemanticOp.POP, SemanticOp.UNMARK, SemanticOp.EXIT, SemanticOp.SET}
+        and _event_has_role_or_reason(event, ("undo", "撤销", "回溯"))
+        for event in trace.events
+    )
+
+
+def _event_has_role_or_reason(event, tokens: tuple[str, ...]) -> bool:
+    text = " ".join(str(part) for part in (event.role, event.reason, (event.state or {}).get("action"), (event.state or {}).get("phase")))
+    lowered = text.lower()
+    return any(token.lower() in lowered for token in tokens)
+
+
+def _validate_backtracking_state_continuity(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    previous_path: list[Any] | None = None
+    previous_used: list[Any] | None = None
+    for event in trace.events:
+        state = event.state or {}
+        path = state.get("path")
+        used = state.get("used")
+        if isinstance(path, list) and previous_path is not None and abs(len(path) - len(previous_path)) > 1:
+            errors.append(f"第 {event.step} 步 Family contract backtracking path 跳变")
+        if isinstance(used, list) and previous_used is not None:
+            diff = sum(1 for left, right in zip(previous_used, used) if left != right) + abs(len(used) - len(previous_used))
+            if diff > 1:
+                errors.append(f"第 {event.step} 步 Family contract backtracking used 跳变")
+        previous_path = path if isinstance(path, list) else previous_path
+        previous_used = used if isinstance(used, list) else previous_used
+    return errors
+
+
+def _validate_family_contract_heap(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    heap_events = [event for event in trace.events if isinstance((event.state or {}).get("heap"), list)]
+    if not heap_events:
+        errors.append("Family contract heap 缺少 heap state")
+        return errors
+    if not any(event.op == SemanticOp.PUSH for event in heap_events):
+        errors.append("Family contract heap 缺少 push 事件")
+    if "pop" in _family_contract_string_list(contract, "expected_events") and not any(event.op == SemanticOp.POP for event in heap_events):
+        errors.append("Family contract heap 缺少 pop 事件")
+    if not any("heap_top" in (event.state or {}) or _has_heap_zero_target(event) for event in heap_events if (event.state or {}).get("heap")):
+        errors.append("Family contract heap 缺少 heap_top 或 heap[0] 证据")
+    for event in heap_events:
+        heap = (event.state or {}).get("heap")
+        if isinstance(heap, list) and heap:
+            top = (event.state or {}).get("heap_top")
+            if top is not None and heap[0] != top:
+                errors.append(f"第 {event.step} 步 Family contract heap heap_top 应等于 heap[0]")
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "heap"))
+    return errors
+
+
+def _has_heap_zero_target(event) -> bool:
+    return "heap[0]" in (_event_target_ids(event) | _event_dep_ids(event))
+
+
+def _validate_family_contract_trie(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    trie_events = [event for event in trace.events if isinstance((event.state or {}).get("trie"), dict)]
+    if not trie_events:
+        errors.append("Family contract trie 缺少 trie state")
+        return errors
+    if not any(event.op in {SemanticOp.LINK, SemanticOp.SET, SemanticOp.MARK} and any(ref.startswith("node:") for ref in _event_target_ids(event)) for event in trie_events):
+        errors.append("Family contract trie 缺少字符路径节点创建/访问事件")
+    if not any(_trie_state_has_terminal(event.state or {}) for event in trie_events):
+        errors.append("Family contract trie 缺少 terminal 标记")
+    if not any(_trie_state_has_count(event.state or {}) for event in trie_events):
+        errors.append("Family contract trie 缺少 count / prefix_count 证据")
+    if not any(_trie_state_has_char_signal(event.state or {}) or _event_refs_include_prefix(event, ("text[", "pattern[", "words[")) for event in trie_events):
+        errors.append("Family contract trie 缺少字符路径证据")
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "trie"))
+    return errors
+
+
+def _trie_state_has_terminal(state: dict[str, Any]) -> bool:
+    trie = state.get("trie")
+    if not isinstance(trie, dict):
+        return False
+    for node in trie.get("nodes") or []:
+        if isinstance(node, dict):
+            meta = node.get("meta") if isinstance(node.get("meta"), dict) else {}
+            if node.get("terminal") is True or meta.get("terminal") is True or meta.get("is_word") is True:
+                return True
+    return False
+
+
+def _trie_state_has_count(state: dict[str, Any]) -> bool:
+    if any(key in state for key in ("count", "prefix_count", "terminal_count")):
+        return True
+    trie = state.get("trie")
+    if not isinstance(trie, dict):
+        return False
+    for node in trie.get("nodes") or []:
+        if isinstance(node, dict):
+            meta = node.get("meta") if isinstance(node.get("meta"), dict) else {}
+            if any(key in node for key in ("count", "prefix_count")) or any(key in meta for key in ("count", "prefix_count", "pass_count")):
+                return True
+    return False
+
+
+def _trie_state_has_char_signal(state: dict[str, Any]) -> bool:
+    return any(isinstance(state.get(key), str) and state.get(key) for key in ("char", "current_char", "ch"))
+
+
+def _validate_family_contract_linked_list(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    linked_events = [event for event in trace.events if isinstance((event.state or {}).get("linked_list"), dict)]
+    if not linked_events:
+        errors.append("Family contract linked_list 缺少 linked_list state")
+        return errors
+    if not any(_linked_state_has_pointer(event.state or {}) or _event_refs_include_prefix(event, ("pointer:",)) for event in linked_events):
+        errors.append("Family contract linked_list 缺少 pointer/current/prev/next 证据")
+    if not any(event.op in {SemanticOp.LINK, SemanticOp.UNLINK, SemanticOp.SET} and _event_refs_include_prefix(event, ("edge:",)) for event in linked_events):
+        errors.append("Family contract linked_list 缺少 next/prev 改变事件")
+    if not any(_linked_state_has_next_prev(event.state or {}) for event in linked_events):
+        errors.append("Family contract linked_list 缺少 next/prev 状态")
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "linked_list"))
+    return errors
+
+
+def _linked_state_has_pointer(state: dict[str, Any]) -> bool:
+    return any(key in state for key in ("current", "prev", "next", "head", "tail"))
+
+
+def _linked_state_has_next_prev(state: dict[str, Any]) -> bool:
+    if any(key in state for key in ("next", "prev")):
+        return True
+    linked = state.get("linked_list")
+    if not isinstance(linked, dict):
+        return False
+    for node in linked.get("nodes") or []:
+        if isinstance(node, dict):
+            meta = node.get("meta") if isinstance(node.get("meta"), dict) else {}
+            if any(key in node for key in ("next", "prev")) or any(key in meta for key in ("next", "prev")):
+                return True
+    return False
+
+
+def _validate_family_contract_expected_events(trace: SemanticTrace, contract: dict[str, Any], family: str) -> list[str]:
+    errors: list[str] = []
+    expected = _family_contract_string_list(contract, "expected_events")
+    if not expected:
+        return errors
+    present = _family_contract_present_event_tokens(trace)
+    missing = [token for token in expected if token not in present]
+    if missing:
+        errors.append(f"Family contract {family} 缺少关键事件：{', '.join(missing[:6])}")
+    return errors
+
+
+def _family_contract_present_event_tokens(trace: SemanticTrace) -> set[str]:
+    tokens: set[str] = set()
+    for event in trace.events:
+        tokens.add(event.op.value)
+        text = " ".join(str(part) for part in (event.role, event.reason, (event.state or {}).get("action"), (event.state or {}).get("phase"))).lower()
+        mapping = {
+            "choose": ("choose", "选择"),
+            "record": ("record", "记录", "答案"),
+            "undo": ("undo", "撤销", "回溯"),
+            "compare": ("compare", "比较"),
+            "fallback": ("fallback", "回退", "失配"),
+            "create_node": ("create_node", "创建", "新节点"),
+            "terminal": ("terminal", "is_word", "单词结束"),
+            "prefix_count": ("prefix_count", "count", "计数"),
+            "move_pointer": ("move_pointer", "移动", "pointer"),
+            "link_change": ("link_change", "next", "prev", "指针"),
+        }
+        for token, needles in mapping.items():
+            if any(needle in text for needle in needles):
+                tokens.add(token)
+        if event.op == SemanticOp.LINK and any(ref.startswith("node:") for ref in _event_target_ids(event)):
+            tokens.add("create_node")
+        if event.op in {SemanticOp.LINK, SemanticOp.UNLINK} and any(ref.startswith("edge:") for ref in _event_target_ids(event)):
+            tokens.add("link_change")
+        if event.op == SemanticOp.MOVE and any(ref.startswith("pointer:") for ref in _event_target_ids(event)):
+            tokens.add("move_pointer")
+        state = event.state or {}
+        if _trie_state_has_terminal(state):
+            tokens.add("terminal")
+        if _trie_state_has_count(state):
+            tokens.add("prefix_count")
+    return tokens
 
 
 def _run_error_only_checks(
@@ -1042,7 +2149,7 @@ def _looks_like_binary_search(trace: SemanticTrace) -> bool:
         if {"left", "right", "mid"} <= set(state):
             return True
         refs = _event_target_ids(event) | _event_dep_ids(event)
-        if refs & {"pointer:left", "pointer:right", "pointer:mid"}:
+        if "pointer:mid" in refs:
             return True
     return False
 
@@ -1064,6 +2171,9 @@ def _validate_binary_search_window(trace: SemanticTrace) -> list[str]:
         if isinstance(left, int) and isinstance(right, int) and left <= right and isinstance(mid, int):
             if not (left <= mid <= right):
                 errors.append(f"第 {event.step} 步 mid 不在 [left,right] 内")
+            expected_mid = (left + right) // 2
+            if mid != expected_mid:
+                errors.append(f"第 {event.step} 步 二分 mid 应为 {expected_mid}")
         if event.op == SemanticOp.COMPARE and isinstance(left, int) and isinstance(right, int) and isinstance(mid, int) and 0 <= mid < len(nums):
             last_compare = {"left": left, "right": right, "mid": mid, "mid_value": nums[mid]}
             continue
@@ -2056,11 +3166,14 @@ def _validate_complete_knapsack(trace: SemanticTrace) -> list[str]:
     mode = _knapsack_mode(trace)
     if mode not in {"complete_min", "complete_count"}:
         return errors
-    expected = _complete_knapsack_expected(coins, amount, mode)
     for event in trace.events:
-        dp = (event.state or {}).get("dp")
+        state = event.state or {}
+        dp = state.get("dp")
         if not isinstance(dp, list) or len(dp) != amount + 1:
             continue
+        item_index = state.get("i")
+        active_coins = coins[: item_index + 1] if isinstance(item_index, int) and item_index >= 0 else coins
+        expected = _complete_knapsack_expected(active_coins, amount, mode)
         if event.op != SemanticOp.SET:
             continue
         for target in event.targets:
@@ -2135,6 +3248,144 @@ def _validate_interval_dp(trace: SemanticTrace) -> list[str]:
             if dp[i][j] != expected:
                 errors.append(f"第 {event.step} 步 dp[{i}][{j}] 不满足区间 DP 转移")
     return errors
+
+
+def _validate_bounded_knapsack(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    weights = input_data.get("weights")
+    values = input_data.get("values")
+    counts = input_data.get("counts")
+    capacity = input_data.get("capacity")
+    if (
+        not isinstance(weights, list)
+        or not isinstance(values, list)
+        or not isinstance(counts, list)
+        or not isinstance(capacity, int)
+        or len(weights) != len(values)
+        or len(weights) != len(counts)
+        or not all(isinstance(item, int) and item > 0 for item in weights)
+        or not all(isinstance(item, int) for item in values)
+        or not all(isinstance(item, int) and item >= 0 for item in counts)
+        or capacity < 0
+    ):
+        return errors
+    if not _has_dp_subfamily_signal(trace, "bounded_knapsack", "multiple_knapsack", "bounded"):
+        return errors
+    for event in trace.events:
+        state = event.state or {}
+        dp = state.get("dp")
+        if not isinstance(dp, list) or len(dp) != capacity + 1:
+            continue
+        item_index = state.get("i")
+        if not isinstance(item_index, int) or item_index < 0:
+            continue
+        expected = _bounded_knapsack_expected(weights[: item_index + 1], values[: item_index + 1], counts[: item_index + 1], capacity)
+        if event.op != SemanticOp.SET:
+            continue
+        for target in event.targets:
+            parsed = parse_target(target.id)
+            if parsed.kind == "indexed" and parsed.name == "dp" and len(parsed.indices) == 1:
+                j = parsed.indices[0]
+                if 0 <= j <= capacity and isinstance(dp[j], int) and dp[j] != expected[j]:
+                    errors.append(f"第 {event.step} 步多重背包 dp[{j}] 应为 {expected[j]}")
+    return errors
+
+
+def _bounded_knapsack_expected(weights: list[int], values: list[int], counts: list[int], capacity: int) -> list[int]:
+    dp = [0] * (capacity + 1)
+    for weight, value, count in zip(weights, values, counts):
+        prev = dp[:]
+        for cap in range(capacity + 1):
+            best = prev[cap]
+            max_take = min(count, cap // weight)
+            for take in range(1, max_take + 1):
+                best = max(best, prev[cap - take * weight] + take * value)
+            dp[cap] = best
+    return dp
+
+
+def _validate_digit_dp(trace: SemanticTrace) -> list[str]:
+    errors: list[str] = []
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    n = input_data.get("n")
+    if not isinstance(n, int) or n < 0:
+        return errors
+    if not _has_dp_subfamily_signal(trace, "digit_dp", "digit"):
+        return errors
+    forbidden_digit = _digit_dp_forbidden_digit(trace)
+    include_zero = _digit_dp_include_zero(trace)
+    expected_answer = _count_without_digit(n, forbidden_digit=forbidden_digit, include_zero=include_zero)
+    expected_by_prefix = _digit_dp_prefix_counts(n, forbidden_digit=forbidden_digit, include_zero=include_zero)
+    for event in trace.events:
+        state = event.state or {}
+        dp = state.get("dp")
+        if not isinstance(dp, list):
+            continue
+        if event.op == SemanticOp.SET:
+            for target in event.targets:
+                parsed = parse_target(target.id)
+                if parsed.kind != "indexed" or parsed.name != "dp" or len(parsed.indices) != 1:
+                    continue
+                index = parsed.indices[0]
+                if 0 <= index < len(dp) and index < len(expected_by_prefix) and isinstance(dp[index], int) and dp[index] != expected_by_prefix[index]:
+                    errors.append(f"第 {event.step} 步数位 DP dp[{index}] 应为 {expected_by_prefix[index]}")
+        if event.role == "answer":
+            answer = state.get("answer", event.value)
+            if isinstance(answer, int) and answer != expected_answer:
+                errors.append(f"第 {event.step} 步数位 DP answer 应为 {expected_answer}")
+    return errors
+
+
+def _has_dp_subfamily_signal(trace: SemanticTrace, *subfamilies: str) -> bool:
+    wanted = {item.lower().replace("-", "_").replace(" ", "_") for item in subfamilies}
+    for event in trace.events:
+        contract = (event.state or {}).get("dp_contract")
+        if isinstance(contract, dict):
+            raw = contract.get("subfamily")
+            if isinstance(raw, str) and raw.strip().lower().replace("-", "_").replace(" ", "_") in wanted:
+                return True
+    algorithm = (trace.algorithm or "").lower().replace("-", "_").replace(" ", "_")
+    return any(item in algorithm for item in wanted)
+
+
+def _digit_dp_forbidden_digit(trace: SemanticTrace) -> int:
+    for event in trace.events:
+        value = (event.state or {}).get("forbidden_digit")
+        if isinstance(value, int) and 0 <= value <= 9:
+            return value
+    return 7
+
+
+def _digit_dp_include_zero(trace: SemanticTrace) -> bool:
+    for event in trace.events:
+        state = event.state or {}
+        if "include_zero" in state:
+            return state.get("include_zero") is True
+        count_range = state.get("count_range")
+        if count_range == "0_to_n":
+            return True
+        if count_range == "1_to_n":
+            return False
+    return False
+
+
+def _digit_dp_prefix_counts(n: int, *, forbidden_digit: int, include_zero: bool) -> list[int]:
+    digits = [int(ch) for ch in str(n)]
+    counts = [1]
+    prefix_value = 0
+    for digit in digits:
+        prefix_value = prefix_value * 10 + digit
+        counts.append(_count_without_digit(prefix_value, forbidden_digit=forbidden_digit, include_zero=include_zero))
+    return counts
+
+
+def _count_without_digit(n: int, *, forbidden_digit: int, include_zero: bool) -> int:
+    start = 0 if include_zero else 1
+    if n < start:
+        return 0
+    forbidden = str(forbidden_digit)
+    return sum(1 for value in range(start, n + 1) if forbidden not in str(value))
 
 
 def _validate_bst_order(trace: SemanticTrace) -> list[str]:

@@ -56,6 +56,7 @@ def _known_targets_from_trace(trace: SemanticTrace) -> set[str]:
             known.add(key)
             if _is_matrix(value):
                 for r, row in enumerate(value):
+                    known.add(f"{key}[{r}]")
                     for c, _ in enumerate(row):
                         known.add(f"{key}[{r}][{c}]")
             elif _is_scalar_list(value):

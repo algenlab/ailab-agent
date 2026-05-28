@@ -4,6 +4,8 @@
 
 本文档定义 AlgoLab 自动版 VisuAlgo 中可复用的视觉原语。新增算法应优先映射到这些原语，而不是手写专用页面。
 
+V1 之后的短期重点是算法族正确性，不是视觉 polish。视觉原语的责任是稳定承载语义对象、依赖关系和过程证据，保证后续能做教学页面。新增算法族时，先确认答案正确、过程正确和演示语义正确，再增强动画和布局。
+
 每个视觉原语都应说明：
 
 - 适用算法。
@@ -69,6 +71,30 @@ V1 的算法覆盖目标是尽可能覆盖经典算法教学场景。算法族�
 - 能用稳定布局表达时，不新增 target 前缀。
 - 新 target 前缀不得只写进文档，必须同步实现和测试。
 - renderer 不按算法名猜页面，只按 SceneGraph 对象和 layout meta 渲染。
+- benchmark 扩算法覆盖时，优先补 trace contract、state 字段、deps 和 process validator；只有现有原语无法承载语义对象时才扩 renderer。
+- 视觉效果不足不能作为跳过过程校验的理由。可以先用稳定原语朴素展示，但不能让 trace 缺关键状态。
+
+## 1.3 算法族扩展时的视觉决策
+
+执行 AI 新增算法族或子模式前，按下面顺序判断：
+
+1. 现有原语能否表达主状态。
+2. 现有 target 语法能否定位关键对象。
+3. `deps` 能否表达依赖关系。
+4. SceneGraph 是否能生成对象、mark、arrow 和 state。
+5. 如果视觉不够美观，是否可以先用现有布局降级展示。
+6. 只有语义对象无法稳定定位时，才新增 parser/compiler/renderer 能力。
+
+常见决策：
+
+| 算法族需求 | 优先做法 | 不要做 |
+|---|---|---|
+| 区间覆盖 | 用 `segment_tree` nodes/edges、`bit[i]`、`st[i][j]` 和 node meta | 直接引入未实现的 `range:` target |
+| 网络流容量 | 用 `edge:A->B`、`cap[A->B]`、`flow[A->B]` 和 state map | 直接引入未实现的 `flow:` target |
+| 数字状态 | 用 `mask`、`bits[i]`、`factor[i]`、`table[i][j]` | 直接引入未实现的 `number:` target |
+| 链表 | 暂用 nodes/edges + pointer + map 表达 | 为某道链表题写专用页面 |
+| 贪心区间 | 先用 array/matrix 表达区间起止和排序顺序 | 在 trace 里使用未实现的 `interval:` target |
+| 字符串对齐 | 先用 string + array + pointer 表达 | 让 renderer 按算法名猜 KMP/Z/Manacher |
 
 ## 2. array + pointer
 
