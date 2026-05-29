@@ -182,6 +182,9 @@ DP trace contract 要求：
 - 链表使用：
   {"family": "linked_list", "submode": "reverse", "expected_events": ["move_pointer", "link_change"]}
   必须记录 linked_list nodes/edges、current/prev/next 或 pointer:*，以及 link/unlink 或 next/prev 改变事件；不能只给最终链。
+- 哈希 Two Sum 使用 state["hash_contract"] = {"submode": "two_sum"}；必须记录 seen map、need、exists、seen[key] 写入，以及命中前 seen[key] 依赖。
+- 插入排序使用 state["sorting_contract"] = {"submode": "insertion_sort"}；必须记录 nums、i/j/key、比较、右移和写回，不能只给最终有序数组。
+- 跳跃游戏贪心使用 state["greedy_contract"] = {"submode": "jump_game"}；必须记录 previous_reach、candidate_reach 和 reach 更新依据。
 
 teaching 字段要求：
 - 每个关键事件必须提供 teaching 字段，至少包含 what 和 why 两个非空简体中文字符串。
@@ -206,7 +209,12 @@ teaching 字段要求：
   "prompt": "下一步应该选择哪个值？",
   "options": ["1", "2", "3"],
   "answer": "2",
-  "explanation": "因为它满足当前转移条件。"
+  "explanation": "因为它满足当前转移条件。",
+  "wrong_explanation": "错误选项的解释必须来自当前 trace / teaching 证据，不要让 renderer 猜算法逻辑。",
+  "option_explanations": {
+    "1": "1 没有包含当前依赖项。",
+    "3": "3 多计算了一次当前项。"
+  }
 }
 
 输出 JSON 顶层格式必须是：

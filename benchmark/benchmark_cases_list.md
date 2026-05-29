@@ -1,4 +1,4 @@
-# Benchmark 47 题清单
+# Benchmark 69 题清单
 
 ## 1. 打家劫舍 (`house_robber`)
 
@@ -349,7 +349,189 @@ LeetCode 62. 不同路径。一个机器人位于 m x n 网格左上角，每次
 - sample 0: input = `{'graph': {'A': ['B', 'C'], 'B': ['D'], 'C': ['D'], 'D': []}, 'start': 'A'}`, expected = `{'A': 0, 'B': 1, 'C': 1, 'D': 2}`
 - sample 1: input = `{'graph': {'1': ['2'], '2': ['3'], '3': [], '4': []}, 'start': '1'}`, expected = `{'1': 0, '2': 1, '3': 2}`
 
-## 19. KMP 字符串匹配 (`kmp`)
+## 19. 图 DFS 遍历 (`graph_dfs_traversal`)
+
+- 算法族：BFS/DFS 基础图
+- 解法：递归 DFS
+- 思路：进入递归帧时标记访问，按邻接表顺序深度优先探索未访问邻居。
+- 输入契约：输入邻接表 graph 和起点 start。
+- 复杂度：O(V+E) / O(V)
+- 视觉形态：graph, stack
+
+题目描述：
+
+给定无权图邻接表 graph 和起点 start，使用递归 DFS 返回首次访问顺序。
+
+输入样例：
+
+- sample 0: input = `{'graph': {'A': ['B', 'C'], 'B': ['D'], 'C': [], 'D': []}, 'start': 'A'}`, expected = `['A', 'B', 'D', 'C']`
+- sample 1: input = `{'graph': {'1': ['2'], '2': ['3'], '3': [], '4': []}, 'start': '1'}`, expected = `['1', '2', '3']`
+- sample 2: input = `{'graph': {'S': ['A', 'B'], 'A': ['C'], 'B': ['C'], 'C': []}, 'start': 'S'}`, expected = `['S', 'A', 'C', 'B']`
+- sample 3: input = `{'graph': {'X': []}, 'start': 'X'}`, expected = `['X']`
+- sample 4: input = `{'graph': {'0': ['1'], '1': ['0', '2'], '2': []}, 'start': '0'}`, expected = `['0', '1', '2']`
+
+## 20. 图连通分量 (`graph_connected_components`)
+
+- 算法族：BFS/DFS 基础图
+- 解法：DFS 收集连通分量
+- 思路：从每个未访问节点开始 DFS，把同一连通块中的节点收集成一个分量。
+- 输入契约：输入无向图邻接表 graph。
+- 复杂度：O(V+E) / O(V)
+- 视觉形态：graph, map
+
+题目描述：
+
+给定无向图邻接表 graph，返回所有连通分量，每个分量内节点按字典序排列。
+
+输入样例：
+
+- sample 0: input = `{'graph': {'A': ['B'], 'B': ['A'], 'C': []}}`, expected = `[['A', 'B'], ['C']]`
+- sample 1: input = `{'graph': {'1': ['2'], '2': ['1', '3'], '3': ['2'], '4': ['5'], '5': ['4']}}`, expected = `[['1', '2', '3'], ['4', '5']]`
+- sample 2: input = `{'graph': {'X': []}}`, expected = `[['X']]`
+- sample 3: input = `{'graph': {'A': ['B', 'C'], 'B': ['A'], 'C': ['A'], 'D': []}}`, expected = `[['A', 'B', 'C'], ['D']]`
+- sample 4: input = `{'graph': {'0': ['1'], '1': ['0'], '2': [], '3': ['4'], '4': ['3']}}`, expected = `[['0', '1'], ['2'], ['3', '4']]`
+
+## 21. 拓扑排序 (`graph_topological_sort`)
+
+- 算法族：BFS/DFS 基础图
+- 解法：Kahn 入度队列
+- 思路：维护入度表和零入度队列，每弹出一个节点就删除它的出边。
+- 输入契约：输入 DAG 邻接表 graph。
+- 复杂度：O(V+E) / O(V)
+- 视觉形态：graph, queue, map
+
+题目描述：
+
+给定有向无环图 graph，返回一个合法拓扑序。
+
+输入样例：
+
+- sample 0: input = `{'graph': {'A': ['B', 'C'], 'B': ['D'], 'C': ['D'], 'D': []}}`, expected = `['A', 'B', 'C', 'D']`
+- sample 1: input = `{'graph': {'1': ['3'], '2': ['3'], '3': []}}`, expected = `['1', '2', '3']`
+- sample 2: input = `{'graph': {'S': ['A'], 'A': ['B'], 'B': []}}`, expected = `['S', 'A', 'B']`
+- sample 3: input = `{'graph': {'X': []}}`, expected = `['X']`
+- sample 4: input = `{'graph': {'0': ['1', '2'], '1': ['3'], '2': ['3'], '3': ['4'], '4': []}}`, expected = `['0', '1', '2', '3', '4']`
+
+## 22. 二分图染色 (`graph_bipartite_coloring`)
+
+- 算法族：BFS/DFS 基础图
+- 解法：BFS 二分图染色
+- 思路：每个未染色连通块从颜色 0 开始，相邻节点染成相反颜色。
+- 输入契约：输入无向二分图邻接表 graph。
+- 复杂度：O(V+E) / O(V)
+- 视觉形态：graph, queue, map
+
+题目描述：
+
+给定无向二分图 graph，使用 BFS 染色返回每个节点的 0/1 颜色。
+
+输入样例：
+
+- sample 0: input = `{'graph': {'A': ['B', 'D'], 'B': ['A', 'C'], 'C': ['B', 'D'], 'D': ['A', 'C']}}`, expected = `{'A': 0, 'B': 1, 'D': 1, 'C': 0}`
+- sample 1: input = `{'graph': {'1': ['2'], '2': ['1', '3'], '3': ['2']}}`, expected = `{'1': 0, '2': 1, '3': 0}`
+- sample 2: input = `{'graph': {'X': []}}`, expected = `{'X': 0}`
+- sample 3: input = `{'graph': {'L1': ['R1', 'R2'], 'L2': ['R2'], 'R1': ['L1'], 'R2': ['L1', 'L2']}}`, expected = `{'L1': 0, 'R1': 1, 'R2': 1, 'L2': 0}`
+- sample 4: input = `{'graph': {'A': ['B'], 'B': ['A'], 'C': ['D'], 'D': ['C']}}`, expected = `{'A': 0, 'B': 1, 'C': 0, 'D': 1}`
+
+## 23. Dijkstra 最短路 (`dijkstra_shortest_path`)
+
+- 算法族：最短路 / MST
+- 解法：堆优化 Dijkstra
+- 思路：最小堆按当前候选距离弹出节点，用非负权边松弛邻居。
+- 输入契约：输入 weighted_graph 邻接表和 start。
+- 复杂度：O((V+E) log V) / O(V)
+- 视觉形态：graph, heap, map
+
+题目描述：
+
+给定非负权有向图 weighted_graph 和起点 start，返回所有可达点最短距离。
+
+输入样例：
+
+- sample 0: input = `{'weighted_graph': {'A': [['B', 2], ['C', 5]], 'B': [['C', 1]], 'C': []}, 'start': 'A'}`, expected = `{'A': 0, 'B': 2, 'C': 3}`
+- sample 1: input = `{'weighted_graph': {'S': [['A', 1], ['B', 4]], 'A': [['B', 2], ['T', 6]], 'B': [['T', 1]], 'T': []}, 'start': 'S'}`, expected = `{'S': 0, 'A': 1, 'B': 3, 'T': 4}`
+- sample 2: input = `{'weighted_graph': {'1': [['2', 3]], '2': [], '3': []}, 'start': '1'}`, expected = `{'1': 0, '2': 3}`
+- sample 3: input = `{'weighted_graph': {'X': []}, 'start': 'X'}`, expected = `{'X': 0}`
+
+## 24. Bellman-Ford 最短路 (`bellman_ford_shortest_path`)
+
+- 算法族：最短路 / MST
+- 解法：Bellman-Ford 边松弛
+- 思路：最多 V-1 轮扫描所有边，允许负权边但不包含负环。
+- 输入契约：输入 edges=[u,v,w] 和 start。
+- 复杂度：O(VE) / O(V)
+- 视觉形态：graph, map
+
+题目描述：
+
+给定带权有向边列表 edges 和起点 start，返回所有可达点最短距离。
+
+输入样例：
+
+- sample 0: input = `{'edges': [['A', 'B', 4], ['A', 'C', 5], ['B', 'C', -2]], 'start': 'A'}`, expected = `{'A': 0, 'B': 4, 'C': 2}`
+- sample 1: input = `{'edges': [['S', 'A', 1], ['S', 'B', 4], ['A', 'B', -1], ['B', 'T', 2]], 'start': 'S'}`, expected = `{'S': 0, 'A': 1, 'B': 0, 'T': 2}`
+- sample 2: input = `{'edges': [['1', '2', 3], ['3', '4', -5]], 'start': '1'}`, expected = `{'1': 0, '2': 3}`
+- sample 3: input = `{'edges': [['X', 'Y', 0]], 'start': 'X'}`, expected = `{'X': 0, 'Y': 0}`
+
+## 25. Floyd-Warshall 全源最短路 (`floyd_warshall_all_pairs`)
+
+- 算法族：最短路 / MST
+- 解法：Floyd 中转点 DP
+- 思路：按 k 阶段枚举中转点，更新任意 i 到 j 的距离。
+- 输入契约：输入 dist 方阵，使用 100000000 表示不可达。
+- 复杂度：O(n^3) / O(n^2)
+- 视觉形态：matrix, graph
+
+题目描述：
+
+给定距离矩阵 dist，使用 Floyd-Warshall 返回所有点对最短距离。
+
+输入样例：
+
+- sample 0: input = `{'dist': [[0, 2, 9], [2, 0, 3], [9, 3, 0]]}`, expected = `[[0, 2, 5], [2, 0, 3], [5, 3, 0]]`
+- sample 1: input = `{'dist': [[0, 1, 100000000], [100000000, 0, 2], [4, 100000000, 0]]}`, expected = `[[0, 1, 3], [6, 0, 2], [4, 5, 0]]`
+- sample 2: input = `{'dist': [[0, 7], [7, 0]]}`, expected = `[[0, 7], [7, 0]]`
+- sample 3: input = `{'dist': [[0, 5, 1], [5, 0, 1], [1, 1, 0]]}`, expected = `[[0, 2, 1], [2, 0, 1], [1, 1, 0]]`
+
+## 26. 0-1 BFS 最短路 (`zero_one_bfs_shortest_path`)
+
+- 算法族：最短路 / MST
+- 解法：双端队列 0-1 BFS
+- 思路：权重 0 的松弛节点进入队首，权重 1 的松弛节点进入队尾。
+- 输入契约：输入 0/1 weighted_graph 和 start。
+- 复杂度：O(V+E) / O(V)
+- 视觉形态：graph, deque, map
+
+题目描述：
+
+给定边权只为 0 或 1 的有向图 weighted_graph 和起点 start，返回最短距离。
+
+输入样例：
+
+- sample 0: input = `{'weighted_graph': {'A': [['B', 0], ['C', 1]], 'B': [['C', 0]], 'C': []}, 'start': 'A'}`, expected = `{'A': 0, 'B': 0, 'C': 0}`
+- sample 1: input = `{'weighted_graph': {'S': [['A', 1], ['B', 0]], 'A': [['T', 0]], 'B': [['A', 0], ['T', 1]], 'T': []}, 'start': 'S'}`, expected = `{'S': 0, 'B': 0, 'A': 0, 'T': 0}`
+- sample 2: input = `{'weighted_graph': {'1': [['2', 1]], '2': [], '3': []}, 'start': '1'}`, expected = `{'1': 0, '2': 1}`
+
+## 27. Kruskal 最小生成树 (`kruskal_mst_weight`)
+
+- 算法族：最短路 / MST
+- 解法：Kruskal + 并查集
+- 思路：按权重排序边，只有连接不同集合的边才加入 MST。
+- 输入契约：输入 edges=[u,v,w]。
+- 复杂度：O(E log E) / O(V)
+- 视觉形态：graph, union_find
+
+题目描述：
+
+给定无向带权边列表 edges，使用 Kruskal 返回最小生成树总权重。
+
+输入样例：
+
+- sample 0: input = `{'edges': [['A', 'B', 1], ['B', 'C', 2], ['A', 'C', 3]]}`, expected = `3`
+- sample 1: input = `{'edges': [['A', 'B', 1], ['B', 'C', 1], ['C', 'D', 2], ['A', 'D', 4], ['B', 'D', 3]]}`, expected = `4`
+- sample 2: input = `{'edges': [['X', 'Y', 5]]}`, expected = `5`
+
+## 28. KMP 字符串匹配 (`kmp`)
 
 - 算法族：字符串高级算法
 - 解法：前缀表匹配
@@ -368,7 +550,7 @@ LeetCode 62. 不同路径。一个机器人位于 m x n 网格左上角，每次
 - sample 1: input = `{'text': 'aaaaa', 'pattern': 'bba'}`, expected = `-1`
 - sample 2: input = `{'text': 'abc', 'pattern': ''}`, expected = `0`
 
-## 20. Rabin-Karp 字符串匹配 (`rabin_karp`)
+## 29. Rabin-Karp 字符串匹配 (`rabin_karp`)
 
 - 算法族：字符串高级算法
 - 解法：滚动哈希匹配
@@ -387,7 +569,7 @@ LeetCode 62. 不同路径。一个机器人位于 m x n 网格左上角，每次
 - sample 1: input = `{'text': 'aaaaa', 'pattern': 'aa'}`, expected = `0`
 - sample 2: input = `{'text': 'abc', 'pattern': 'abcd'}`, expected = `-1`
 
-## 21. Z Algorithm 前缀匹配表 (`z_algorithm`)
+## 30. Z Algorithm 前缀匹配表 (`z_algorithm`)
 
 - 算法族：字符串高级算法
 - 解法：Z-box 线性扫描
@@ -406,7 +588,7 @@ LeetCode 62. 不同路径。一个机器人位于 m x n 网格左上角，每次
 - sample 1: input = `{'text': 'aaaaa'}`, expected = `[0, 4, 3, 2, 1]`
 - sample 2: input = `{'text': 'abc'}`, expected = `[0, 0, 0]`
 
-## 22. Manacher 最长回文子串长度 (`manacher`)
+## 31. Manacher 最长回文子串长度 (`manacher`)
 
 - 算法族：字符串高级算法
 - 解法：回文半径扩展
@@ -425,7 +607,45 @@ LeetCode 62. 不同路径。一个机器人位于 m x n 网格左上角，每次
 - sample 1: input = `{'text': 'cbbd'}`, expected = `2`
 - sample 2: input = `{'text': 'abc'}`, expected = `1`
 
-## 23. 两数之和 (`two_sum`)
+## 32. 字符串滑动窗口最长无重复子串 (`string_sliding_window_unique`)
+
+- 算法族：字符串高级算法
+- 解法：无重复滑动窗口
+- 思路：右端逐字符扩张窗口，遇到重复字符时移动左端并维护 window_counts。
+- 输入契约：输入 text 字符串。
+- 复杂度：O(n) / O(字符集大小)
+- 视觉形态：string, map
+
+题目描述：
+
+给定字符串 text，返回不含重复字符的最长子串长度；过程需要展示窗口左右端和字符计数。
+
+输入样例：
+
+- sample 0: input = `{'text': 'abcabcbb'}`, expected = `3`
+- sample 1: input = `{'text': 'bbbbb'}`, expected = `1`
+- sample 2: input = `{'text': ''}`, expected = `0`
+
+## 33. Trie 前缀匹配字符串路径 (`trie_prefix_match_string`)
+
+- 算法族：字符串高级算法
+- 解法：Trie 前缀路径匹配
+- 思路：构建 Trie 并在每个节点维护 prefix_count，再沿 prefix 字符路径读取计数。
+- 输入契约：输入 words 和 prefix。
+- 复杂度：O(总字符数) / O(总字符数)
+- 视觉形态：trie, string
+
+题目描述：
+
+给定字符串数组 words 和前缀 prefix，沿 Trie 的字符路径统计以 prefix 开头的单词数量。
+
+输入样例：
+
+- sample 0: input = `{'words': ['apple', 'app', 'ape', 'bat'], 'prefix': 'ap'}`, expected = `3`
+- sample 1: input = `{'words': ['dog', 'door', 'deer'], 'prefix': 'doo'}`, expected = `1`
+- sample 2: input = `{'words': ['cat', 'car'], 'prefix': 'z'}`, expected = `0`
+
+## 34. 两数之和 (`two_sum`)
 
 - 算法族：哈希表 / map
 - 解法：哈希表一次遍历
@@ -444,26 +664,7 @@ LeetCode 1. 两数之和。给定整数数组 nums 和整数 target，请返回�
 - sample 1: input = `{'nums': [3, 2, 4], 'target': 6}`, expected = `[1, 2]`
 - sample 2: input = `{'nums': [1, 2, 3], 'target': 7}`, expected = `[]`
 
-## 24. 每日温度 (`daily_temperatures`)
-
-- 算法族：栈 / 队列 / 单调栈
-- 解法：单调栈
-- 思路：维护温度单调递减的下标栈，遇到更高温度时弹栈并写答案。
-- 输入契约：输入 temperatures 数组。
-- 复杂度：O(n) / O(n)
-- 视觉形态：array, stack
-
-题目描述：
-
-LeetCode 739. 每日温度。给定整数数组 temperatures，返回每一天需要等几天才会出现更高温度；如果之后没有更高温度，则为 0。
-
-输入样例：
-
-- sample 0: input = `{'temperatures': [73, 74, 75, 71, 69, 72, 76, 73]}`, expected = `[1, 1, 4, 2, 1, 1, 0, 0]`
-- sample 1: input = `{'temperatures': [30, 40, 50, 60]}`, expected = `[1, 1, 1, 0]`
-- sample 2: input = `{'temperatures': [30, 60, 90]}`, expected = `[1, 1, 0]`
-
-## 25. 插入排序 (`insertion_sort`)
+## 35. 插入排序 (`insertion_sort`)
 
 - 算法族：排序
 - 解法：插入排序
@@ -482,7 +683,64 @@ LeetCode 739. 每日温度。给定整数数组 temperatures，返回每一天�
 - sample 1: input = `{'nums': [1, 2, 3]}`, expected = `[1, 2, 3]`
 - sample 2: input = `{'nums': [3, -1, 0, 3]}`, expected = `[-1, 0, 3, 3]`
 
-## 26. 二叉树中序遍历 (`binary_tree_inorder`)
+## 36. 反转链表 (`reverse_linked_list`)
+
+- 算法族：链表与缓存
+- 解法：迭代三指针反转
+- 思路：维护 prev/current/next，逐个把 current.next 指向 prev。
+- 输入契约：输入 values 数组，按顺序表示链表节点值。
+- 复杂度：O(n) / O(1)
+- 视觉形态：tree
+
+题目描述：
+
+给定链表节点值 values，按迭代指针重连过程反转链表并返回反转后的值序列。
+
+输入样例：
+
+- sample 0: input = `{'values': [1, 2, 3]}`, expected = `[3, 2, 1]`
+- sample 1: input = `{'values': [5]}`, expected = `[5]`
+- sample 2: input = `{'values': []}`, expected = `[]`
+
+## 37. 跳跃游戏 (`jump_game`)
+
+- 算法族：贪心
+- 解法：最远可达贪心
+- 思路：从左到右维护最远可达位置 reach，若当前下标超过 reach 则失败。
+- 输入契约：输入 nums 数组。
+- 复杂度：O(n) / O(1)
+- 视觉形态：array
+
+题目描述：
+
+LeetCode 55. 给定非负整数数组 nums，每个位置表示最大跳跃长度，判断能否到达最后一个下标。
+
+输入样例：
+
+- sample 0: input = `{'nums': [2, 3, 1, 1, 4]}`, expected = `True`
+- sample 1: input = `{'nums': [3, 2, 1, 0, 4]}`, expected = `False`
+- sample 2: input = `{'nums': [0]}`, expected = `True`
+
+## 38. 每日温度 (`daily_temperatures`)
+
+- 算法族：栈 / 队列 / 单调栈
+- 解法：单调栈
+- 思路：维护温度单调递减的下标栈，遇到更高温度时弹栈并写答案。
+- 输入契约：输入 temperatures 数组。
+- 复杂度：O(n) / O(n)
+- 视觉形态：array, stack
+
+题目描述：
+
+LeetCode 739. 每日温度。给定整数数组 temperatures，返回每一天需要等几天才会出现更高温度；如果之后没有更高温度，则为 0。
+
+输入样例：
+
+- sample 0: input = `{'temperatures': [73, 74, 75, 71, 69, 72, 76, 73]}`, expected = `[1, 1, 4, 2, 1, 1, 0, 0]`
+- sample 1: input = `{'temperatures': [30, 40, 50, 60]}`, expected = `[1, 1, 1, 0]`
+- sample 2: input = `{'temperatures': [30, 60, 90]}`, expected = `[1, 1, 0]`
+
+## 39. 二叉树中序遍历 (`binary_tree_inorder`)
 
 - 算法族：树 / BST / LCA
 - 解法：递归中序遍历
@@ -499,8 +757,11 @@ LeetCode 739. 每日温度。给定整数数组 temperatures，返回每一天�
 
 - sample 0: input = `{'tree': {'nodes': [{'id': '1'}, {'id': '2'}, {'id': '3'}, {'id': '4'}, {'id': '5'}], 'edges': [['1', '2'], ['1', '3'], ['2', '4'], ['2', '5']]}}`, expected = `['4', '2', '5', '1', '3']`
 - sample 1: input = `{'tree': {'nodes': [{'id': 'A'}, {'id': 'B'}, {'id': 'C'}], 'edges': [['A', 'B'], ['A', 'C']]}}`, expected = `['B', 'A', 'C']`
+- sample 2: input = `{'tree': {'nodes': [{'id': 'R'}, {'id': 'L'}, {'id': 'LL'}, {'id': 'LR'}], 'edges': [['R', 'L'], ['L', 'LL'], ['L', 'LR']]}}`, expected = `['LL', 'L', 'LR', 'R']`
+- sample 3: input = `{'tree': {'nodes': [{'id': 'X'}], 'edges': []}}`, expected = `['X']`
+- sample 4: input = `{'tree': {'nodes': [{'id': '1'}, {'id': '2'}, {'id': '3'}, {'id': '4'}, {'id': '5'}, {'id': '6'}], 'edges': [['1', '2'], ['2', '3'], ['3', '4'], ['4', '5'], ['5', '6']]}}`, expected = `['6', '5', '4', '3', '2', '1']`
 
-## 27. 二叉树最近公共祖先 (`lca`)
+## 40. 二叉树最近公共祖先 (`lca`)
 
 - 算法族：树 / BST / LCA
 - 解法：后序 DFS
@@ -515,10 +776,13 @@ LeetCode 739. 每日温度。给定整数数组 temperatures，返回每一天�
 
 输入样例：
 
-- sample 0: input = `{'tree': {'nodes': [{'id': '3'}, {'id': '5'}, {'id': '1'}, {'id': '6'}, {'id': '2'}, {'id': '0'}, {'id': '8'}, {'id': '7'}, {'id': '4'}], 'edges': [['3', '5'], ['3', '1'], ['5', '6'], ['5', '2'], ['1', '0'], ['1', '8'], ['2', '7'], ['2', '4']]}, 'p': '5', 'q': '1'}`, expected = `'3'`
-- sample 1: input = `{'tree': {'nodes': [{'id': '3'}, {'id': '5'}, {'id': '1'}, {'id': '6'}, {'id': '2'}, {'id': '7'}, {'id': '4'}], 'edges': [['3', '5'], ['3', '1'], ['5', '6'], ['5', '2'], ['2', '7'], ['2', '4']]}, 'p': '7', 'q': '4'}`, expected = `'2'`
+- sample 0: input = `{'tree': {'nodes': [{'id': '3'}, {'id': '5'}, {'id': '1'}, {'id': '6'}, {'id': '2'}, {'id': '0'}, {'id': '8'}, {'id': '7'}, {'id': '4'}], 'edges': [['3', '5'], ['3', '1'], ['5', '6'], ['5', '2'], ['1', '0'], ['1', '8'], ['2', '7'], ['2', '4']]}, 'p': '5', 'q': '1'}`, expected = `3`
+- sample 1: input = `{'tree': {'nodes': [{'id': '3'}, {'id': '5'}, {'id': '1'}, {'id': '6'}, {'id': '2'}, {'id': '7'}, {'id': '4'}], 'edges': [['3', '5'], ['3', '1'], ['5', '6'], ['5', '2'], ['2', '7'], ['2', '4']]}, 'p': '7', 'q': '4'}`, expected = `2`
+- sample 2: input = `{'tree': {'nodes': [{'id': '3'}, {'id': '5'}, {'id': '1'}, {'id': '6'}, {'id': '2'}, {'id': '7'}, {'id': '4'}], 'edges': [['3', '5'], ['3', '1'], ['5', '6'], ['5', '2'], ['2', '7'], ['2', '4']]}, 'p': '6', 'q': '4'}`, expected = `5`
+- sample 3: input = `{'tree': {'nodes': [{'id': 'A'}, {'id': 'B'}, {'id': 'C'}, {'id': 'D'}], 'edges': [['A', 'B'], ['B', 'C'], ['C', 'D']]}, 'p': 'B', 'q': 'D'}`, expected = `B`
+- sample 4: input = `{'tree': {'nodes': [{'id': 'A'}, {'id': 'B'}, {'id': 'C'}, {'id': 'D'}, {'id': 'E'}], 'edges': [['A', 'B'], ['A', 'C'], ['C', 'D'], ['C', 'E']]}, 'p': 'D', 'q': 'E'}`, expected = `C`
 
-## 28. 二叉树直径 (`tree_diameter`)
+## 41. 二叉树直径 (`tree_diameter`)
 
 - 算法族：树 / BST / LCA
 - 解法：后序高度聚合
@@ -535,8 +799,10 @@ LeetCode 739. 每日温度。给定整数数组 temperatures，返回每一天�
 
 - sample 0: input = `{'tree': {'nodes': [{'id': '1'}, {'id': '2'}, {'id': '3'}, {'id': '4'}, {'id': '5'}], 'edges': [['1', '2'], ['1', '3'], ['2', '4'], ['2', '5']]}}`, expected = `3`
 - sample 1: input = `{'tree': {'nodes': [{'id': '1'}, {'id': '2'}, {'id': '3'}, {'id': '4'}], 'edges': [['1', '2'], ['2', '3'], ['3', '4']]}}`, expected = `3`
+- sample 2: input = `{'tree': {'nodes': [{'id': 'A'}], 'edges': []}}`, expected = `0`
+- sample 3: input = `{'tree': {'nodes': [{'id': '1'}, {'id': '2'}, {'id': '3'}, {'id': '4'}, {'id': '5'}, {'id': '6'}], 'edges': [['1', '2'], ['1', '3'], ['2', '4'], ['4', '5'], ['3', '6']]}}`, expected = `5`
 
-## 29. 树形 DP 最大独立集 (`tree_max_independent_set`)
+## 42. 树形 DP 最大独立集 (`tree_max_independent_set`)
 
 - 算法族：树形 DP
 - 解法：树形 DP take/skip
@@ -553,8 +819,10 @@ LeetCode 739. 每日温度。给定整数数组 temperatures，返回每一天�
 
 - sample 0: input = `{'tree': {'nodes': [{'id': '1', 'value': 3}, {'id': '2', 'value': 2}, {'id': '3', 'value': 1}, {'id': '4', 'value': 10}, {'id': '5', 'value': 1}], 'edges': [['1', '2'], ['1', '3'], ['2', '4'], ['2', '5']]}}`, expected = `14`
 - sample 1: input = `{'tree': {'nodes': [{'id': 'A', 'value': 5}, {'id': 'B', 'value': 4}, {'id': 'C', 'value': 6}], 'edges': [['A', 'B'], ['A', 'C']]}}`, expected = `10`
+- sample 2: input = `{'tree': {'nodes': [{'id': 'R', 'value': 1}, {'id': 'L', 'value': 10}, {'id': 'M', 'value': 1}, {'id': 'N', 'value': 10}], 'edges': [['R', 'L'], ['R', 'M'], ['M', 'N']]}}`, expected = `20`
+- sample 3: input = `{'tree': {'nodes': [{'id': 'X', 'value': 7}], 'edges': []}}`, expected = `7`
 
-## 30. 数组中的第 K 个最大元素 (`kth_largest`)
+## 43. 数组中的第 K 个最大元素 (`kth_largest`)
 
 - 算法族：堆 / TopK / Huffman
 - 解法：小顶堆 TopK
@@ -571,8 +839,14 @@ LeetCode 215. 给定整数数组 nums 和整数 k，返回数组中第 k 个最�
 
 - sample 0: input = `{'nums': [3, 2, 1, 5, 6, 4], 'k': 2}`, expected = `5`
 - sample 1: input = `{'nums': [3, 2, 3, 1, 2, 4, 5, 5, 6], 'k': 4}`, expected = `4`
+- sample 2: input = `{'nums': [1], 'k': 1}`, expected = `1`
+- sample 3: input = `{'nums': [-1, -3, 2, 0], 'k': 2}`, expected = `0`
+- sample 4: input = `{'nums': [7, 7, 7], 'k': 2}`, expected = `7`
+- sample 5: input = `{'nums': [9, 1, 8, 2, 7, 3], 'k': 3}`, expected = `7`
+- sample 6: input = `{'nums': [10, 4, 6, 8], 'k': 4}`, expected = `4`
+- sample 7: input = `{'nums': [5, -2, 11, 11, 0], 'k': 1}`, expected = `11`
 
-## 31. Trie 前缀计数 (`trie_prefix`)
+## 44. Trie 前缀计数 (`trie_prefix`)
 
 - 算法族：Trie
 - 解法：Trie 插入与前缀统计
@@ -589,8 +863,14 @@ LeetCode 215. 给定整数数组 nums 和整数 k，返回数组中第 k 个最�
 
 - sample 0: input = `{'words': ['apple', 'app', 'ape', 'bat'], 'prefix': 'ap'}`, expected = `3`
 - sample 1: input = `{'words': ['dog', 'door', 'deer'], 'prefix': 'doo'}`, expected = `1`
+- sample 2: input = `{'words': ['cat', 'car', 'dog'], 'prefix': 'z'}`, expected = `0`
+- sample 3: input = `{'words': ['a'], 'prefix': 'a'}`, expected = `1`
+- sample 4: input = `{'words': ['same', 'same', 'sample'], 'prefix': 'sam'}`, expected = `3`
+- sample 5: input = `{'words': ['team', 'tear', 'tea', 'to'], 'prefix': 'tea'}`, expected = `3`
+- sample 6: input = `{'words': ['alpha', 'beta'], 'prefix': ''}`, expected = `2`
+- sample 7: input = `{'words': ['prefix', 'pre', 'prevent', 'post'], 'prefix': 'pre'}`, expected = `3`
 
-## 32. 省份数量 (`provinces`)
+## 45. 省份数量 (`provinces`)
 
 - 算法族：并查集
 - 解法：并查集合并
@@ -608,7 +888,7 @@ LeetCode 547. 省份数量。给定城市连通矩阵 isConnected，如果两个
 - sample 0: input = `{'isConnected': [[1, 1, 0], [1, 1, 0], [0, 0, 1]]}`, expected = `2`
 - sample 1: input = `{'isConnected': [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}`, expected = `3`
 
-## 33. 全排列 (`permutations`)
+## 46. 全排列 (`permutations`)
 
 - 算法族：回溯 / 递归
 - 解法：回溯搜索树
@@ -625,8 +905,18 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 
 - sample 0: input = `{'nums': [1, 2, 3]}`, expected = `[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]`
 - sample 1: input = `{'nums': [0, 1]}`, expected = `[[0, 1], [1, 0]]`
+- sample 2: input = `{'nums': [1]}`, expected = `[[1]]`
+- sample 3: input = `{'nums': [6]}`, expected = `[[6]]`
+- sample 4: input = `{'nums': [-1, 2]}`, expected = `[[-1, 2], [2, -1]]`
+- sample 5: input = `{'nums': [1, 2]}`, expected = `[[1, 2], [2, 1]]`
+- sample 6: input = `{'nums': [2, 3, 4]}`, expected = `[[2, 3, 4], [2, 4, 3], [3, 2, 4], [3, 4, 2], [4, 2, 3], [4, 3, 2]]`
+- sample 7: input = `{'nums': [4, 5]}`, expected = `[[4, 5], [5, 4]]`
+- sample 8: input = `{'nums': [7, 8]}`, expected = `[[7, 8], [8, 7]]`
+- sample 9: input = `{'nums': [9]}`, expected = `[[9]]`
+- sample 10: input = `{'nums': [0]}`, expected = `[[0]]`
+- sample 11: input = `{'nums': [-2]}`, expected = `[[-2]]`
 
-## 34. 凸包 (`convex_hull`)
+## 47. 凸包 (`convex_hull`)
 
 - 算法族：几何 / 扫描线
 - 解法：Andrew 单调链
@@ -644,7 +934,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'points': [[0, 0], [1, 1], [2, 0], [1, 2]]}`, expected = `[[0, 0], [2, 0], [1, 2]]`
 - sample 1: input = `{'points': [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]}`, expected = `[[0, 0], [1, 0], [1, 1], [0, 1]]`
 
-## 35. 线段树区间和 (`segment_tree_range_sum`)
+## 48. 线段树区间和 (`segment_tree_range_sum`)
 
 - 算法族：区间结构
 - 解法：线段树区间和 + 单点更新
@@ -662,7 +952,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'nums': [2, 1, 4, 5], 'query': [1, 3], 'update': [2, 6]}`, expected = `{'before': 10, 'after': 12}`
 - sample 1: input = `{'nums': [3, -1, 2, 7, 4], 'query': [0, 2], 'update': [1, 5]}`, expected = `{'before': 4, 'after': 10}`
 
-## 36. 树状数组前缀和 (`fenwick_tree_prefix_sum`)
+## 49. 树状数组前缀和 (`fenwick_tree_prefix_sum`)
 
 - 算法族：区间结构
 - 解法：树状数组前缀和 + 单点增量
@@ -680,7 +970,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'nums': [1, 2, 3, 4, 5], 'query': [1, 3], 'update': [2, 4]}`, expected = `{'before': 9, 'after': 13}`
 - sample 1: input = `{'nums': [5, -2, 6, 1], 'query': [0, 2], 'update': [1, 3]}`, expected = `{'before': 9, 'after': 12}`
 
-## 37. 稀疏表区间最小值 (`sparse_table_range_min`)
+## 50. 稀疏表区间最小值 (`sparse_table_range_min`)
 
 - 算法族：区间结构
 - 解法：稀疏表 RMQ
@@ -698,7 +988,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'nums': [5, 2, 7, 3, 6, 1], 'query': [1, 4]}`, expected = `2`
 - sample 1: input = `{'nums': [8, 4, 9, 0, 3], 'query': [2, 4]}`, expected = `0`
 
-## 38. 最大公约数 (`gcd_euclid`)
+## 51. 最大公约数 (`gcd_euclid`)
 
 - 算法族：数学与位运算
 - 解法：Euclid 辗转相除
@@ -717,7 +1007,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 1: input = `{'a': 270, 'b': 192}`, expected = `6`
 - sample 2: input = `{'a': 17, 'b': 0}`, expected = `17`
 
-## 39. 快速幂取模 (`fast_power_mod`)
+## 52. 快速幂取模 (`fast_power_mod`)
 
 - 算法族：数学与位运算
 - 解法：二进制快速幂
@@ -736,7 +1026,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 1: input = `{'base': 2, 'exponent': 10, 'mod': 1000}`, expected = `24`
 - sample 2: input = `{'base': 7, 'exponent': 0, 'mod': 5}`, expected = `1`
 
-## 40. 埃氏筛 (`sieve_primes`)
+## 53. 埃氏筛 (`sieve_primes`)
 
 - 算法族：数学与位运算
 - 解法：倍数标记筛法
@@ -755,7 +1045,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 1: input = `{'n': 10}`, expected = `[2, 3, 5, 7]`
 - sample 2: input = `{'n': 1}`, expected = `[]`
 
-## 41. 组合数 (`combinations_pascal`)
+## 54. 组合数 (`combinations_pascal`)
 
 - 算法族：数学与位运算
 - 解法：Pascal DP 表
@@ -774,7 +1064,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 1: input = `{'n': 6, 'k': 3}`, expected = `20`
 - sample 2: input = `{'n': 4, 'k': 0}`, expected = `1`
 
-## 42. 位掩码枚举子集 (`bitmask_subsets`)
+## 55. 位掩码枚举子集 (`bitmask_subsets`)
 
 - 算法族：数学与位运算
 - 解法：二进制子集枚举
@@ -792,7 +1082,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'nums': [1, 2, 3]}`, expected = `[[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]]`
 - sample 1: input = `{'nums': [0, 1]}`, expected = `[[], [0], [1], [0, 1]]`
 
-## 43. lowbit 分解 (`lowbit_decomposition`)
+## 56. lowbit 分解 (`lowbit_decomposition`)
 
 - 算法族：数学与位运算
 - 解法：lowbit 拆位
@@ -811,7 +1101,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 1: input = `{'n': 13}`, expected = `[1, 4, 8]`
 - sample 2: input = `{'n': 0}`, expected = `[]`
 
-## 44. Tarjan 强连通分量 (`tarjan_scc`)
+## 57. Tarjan 强连通分量 (`tarjan_scc`)
 
 - 算法族：图高级
 - 解法：Tarjan SCC
@@ -829,7 +1119,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'graph': {'A': ['B'], 'B': ['C', 'D'], 'C': ['A'], 'D': ['E'], 'E': ['D']}}`, expected = `[['E', 'D'], ['C', 'B', 'A']]`
 - sample 1: input = `{'graph': {'1': ['2'], '2': ['3'], '3': ['1'], '4': []}}`, expected = `[['3', '2', '1'], ['4']]`
 
-## 45. 割点和桥 (`articulation_bridges`)
+## 58. 割点和桥 (`articulation_bridges`)
 
 - 算法族：图高级
 - 解法：Tarjan 割点和桥
@@ -847,7 +1137,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'graph': {'A': ['B'], 'B': ['A', 'C', 'D'], 'C': ['B', 'D'], 'D': ['B', 'C', 'E'], 'E': ['D']}}`, expected = `{'articulation': ['B', 'D'], 'bridges': [['D', 'E'], ['A', 'B']]}`
 - sample 1: input = `{'graph': {'1': ['2'], '2': ['1', '3'], '3': ['2']}}`, expected = `{'articulation': ['2'], 'bridges': [['2', '3'], ['1', '2']]}`
 
-## 46. 二分图匹配 (`bipartite_matching`)
+## 59. 二分图匹配 (`bipartite_matching`)
 
 - 算法族：图高级
 - 解法：DFS 增广路径匹配
@@ -865,7 +1155,7 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 - sample 0: input = `{'graph': {'L1': ['R1', 'R2'], 'L2': ['R1'], 'L3': ['R2']}, 'left': ['L1', 'L2', 'L3'], 'right': ['R1', 'R2']}`, expected = `{'L1': 'R2', 'L2': 'R1'}`
 - sample 1: input = `{'graph': {'A': ['X'], 'B': ['X', 'Y']}, 'left': ['A', 'B'], 'right': ['X', 'Y']}`, expected = `{'A': 'X', 'B': 'Y'}`
 
-## 47. Edmonds-Karp 最大流 (`edmonds_karp`)
+## 60. Edmonds-Karp 最大流 (`edmonds_karp`)
 
 - 算法族：图高级
 - 解法：BFS 增广路径最大流
@@ -882,3 +1172,193 @@ LeetCode 46. 全排列。给定不含重复数字的数组 nums，返回所有�
 
 - sample 0: input = `{'graph': {'S': ['A', 'B'], 'A': ['T'], 'B': ['T'], 'T': []}, 'capacity': {'S->A': 2, 'S->B': 1, 'A->T': 2, 'B->T': 1}, 'source': 'S', 'sink': 'T'}`, expected = `3`
 - sample 1: input = `{'graph': {'S': ['A'], 'A': ['B', 'T'], 'B': ['T'], 'T': []}, 'capacity': {'S->A': 3, 'A->B': 2, 'A->T': 1, 'B->T': 2}, 'source': 'S', 'sink': 'T'}`, expected = `3`
+
+## 61. 跳跃游戏扩展样例 (`jump_game_expansion`)
+
+- 算法族：贪心
+- 解法：最远可达贪心
+- 思路：从左到右维护最远可达位置 reach，若当前下标超过 reach 则失败。
+- 输入契约：输入 nums 数组。
+- 复杂度：O(n) / O(1)
+- 视觉形态：array
+- Gate layer：expansion
+
+题目描述：
+
+给定非负整数数组 nums，每个位置表示最大跳跃长度，判断能否到达最后一个下标。
+
+输入样例：
+
+- sample 0: input = `{'nums': [1, 0, 1]}`, expected = `False`
+- sample 1: input = `{'nums': [2, 0, 0]}`, expected = `True`
+- sample 2: input = `{'nums': [1, 1, 0, 1]}`, expected = `False`
+- sample 3: input = `{'nums': [4, 0, 0, 0, 0]}`, expected = `True`
+- sample 4: input = `{'nums': [0, 1]}`, expected = `False`
+
+## 62. Dijkstra 最短路扩展样例 (`dijkstra_shortest_path_expansion`)
+
+- 算法族：最短路 / MST
+- 解法：堆优化 Dijkstra
+- 思路：最小堆按当前候选距离弹出节点，用非负权边松弛邻居。
+- 输入契约：输入 weighted_graph 邻接表和 start。
+- 复杂度：O((V+E) log V) / O(V)
+- 视觉形态：graph, heap, map
+- Gate layer：expansion
+
+题目描述：
+
+给定非负权有向图 weighted_graph 和起点 start，返回所有可达点最短距离。
+
+输入样例：
+
+- sample 0: input = `{'weighted_graph': {'A': [['B', 1]], 'B': [['C', 2]], 'C': []}, 'start': 'A'}`, expected = `{'A': 0, 'B': 1, 'C': 3}`
+- sample 1: input = `{'weighted_graph': {'S': [['A', 2], ['B', 2]], 'A': [['T', 5]], 'B': [['T', 1]], 'T': []}, 'start': 'S'}`, expected = `{'S': 0, 'A': 2, 'B': 2, 'T': 3}`
+- sample 2: input = `{'weighted_graph': {'0': [['1', 0], ['2', 4]], '1': [['2', 1]], '2': []}, 'start': '0'}`, expected = `{'0': 0, '1': 0, '2': 1}`
+- sample 3: input = `{'weighted_graph': {'A': [['B', 3]], 'B': [], 'C': [['D', 1]], 'D': []}, 'start': 'C'}`, expected = `{'C': 0, 'D': 1}`
+
+## 63. 第 K 大扩展样例 (`kth_largest_expansion`)
+
+- 算法族：堆 / TopK / Huffman
+- 解法：小顶堆 TopK
+- 思路：维护容量为 k 的小顶堆，堆顶就是当前第 k 大。
+- 输入契约：输入 nums 数组和 k。
+- 复杂度：O(n log k) / O(k)
+- 视觉形态：array, heap
+- Gate layer：expansion
+
+题目描述：
+
+给定整数数组 nums 和整数 k，返回数组中第 k 个最大的元素，使用容量为 k 的小顶堆。
+
+输入样例：
+
+- sample 0: input = `{'nums': [9, 8, 7, 6], 'k': 1}`, expected = `9`
+- sample 1: input = `{'nums': [4, 1, 4, 2, 8], 'k': 3}`, expected = `4`
+- sample 2: input = `{'nums': [-5, -1, -3], 'k': 2}`, expected = `-3`
+- sample 3: input = `{'nums': [10, 20], 'k': 2}`, expected = `10`
+
+## 64. Trie 前缀计数扩展样例 (`trie_prefix_expansion`)
+
+- 算法族：Trie
+- 解法：Trie 插入与前缀统计
+- 思路：把所有单词插入 Trie，再沿前缀路径统计匹配数量。
+- 输入契约：输入 words 和 prefix。
+- 复杂度：O(总字符数) / O(总字符数)
+- 视觉形态：trie
+- Gate layer：expansion
+
+题目描述：
+
+给定字符串数组 words 和前缀 prefix，使用 Trie 思路统计有多少单词以 prefix 开头。
+
+输入样例：
+
+- sample 0: input = `{'words': ['', 'a', 'ab'], 'prefix': ''}`, expected = `3`
+- sample 1: input = `{'words': ['flow', 'flower', 'flight'], 'prefix': 'fl'}`, expected = `3`
+- sample 2: input = `{'words': ['car', 'cart', 'dog'], 'prefix': 'car'}`, expected = `2`
+- sample 3: input = `{'words': ['a', 'b'], 'prefix': 'c'}`, expected = `0`
+
+## 65. 全排列扩展样例 (`permutations_expansion`)
+
+- 算法族：回溯 / 递归
+- 解法：回溯搜索树
+- 思路：用 path 保存当前选择，递归选择未使用数字，返回时撤销选择。
+- 输入契约：输入 nums 数组。
+- 复杂度：O(n! n) / O(n)
+- 视觉形态：array, recursion_tree
+- Gate layer：expansion
+
+题目描述：
+
+给定不含重复数字的数组 nums，返回所有可能的排列。
+
+输入样例：
+
+- sample 0: input = `{'nums': [1, 2]}`, expected = `[[1, 2], [2, 1]]`
+- sample 1: input = `{'nums': [3]}`, expected = `[[3]]`
+- sample 2: input = `{'nums': [1, 2, 3]}`, expected = `[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]`
+- sample 3: input = `{'nums': [-1, 0]}`, expected = `[[-1, 0], [0, -1]]`
+
+## 66. 最大公约数扩展样例 (`gcd_euclid_expansion`)
+
+- 算法族：数学与位运算
+- 解法：Euclid 辗转相除
+- 思路：反复使用 gcd(a,b)=gcd(b,a mod b)，直到余数为 0。
+- 输入契约：输入整数 a 和 b。
+- 复杂度：O(log min(a,b)) / O(1)
+- 视觉形态：array
+- Gate layer：expansion
+
+题目描述：
+
+给定两个非负整数 a 和 b，使用 Euclid 算法返回它们的最大公约数。
+
+输入样例：
+
+- sample 0: input = `{'a': 54, 'b': 24}`, expected = `6`
+- sample 1: input = `{'a': 0, 'b': 5}`, expected = `5`
+- sample 2: input = `{'a': 81, 'b': 27}`, expected = `27`
+- sample 3: input = `{'a': 14, 'b': 15}`, expected = `1`
+
+## 67. 凸包扩展样例 (`convex_hull_expansion`)
+
+- 算法族：几何 / 扫描线
+- 解法：Andrew 单调链
+- 思路：按坐标排序点集，分别维护上下凸壳，使用 orientation/cross 判断转向。
+- 输入契约：输入 points 二维点数组。
+- 复杂度：O(n log n) / O(n)
+- 视觉形态：geometry
+- Gate layer：expansion
+
+题目描述：
+
+给定二维点集 points，返回这些点的凸包顶点，按 Andrew 单调链算法的输出顺序排列。
+
+输入样例：
+
+- sample 0: input = `{'points': [[0, 0], [2, 0], [1, 1]]}`, expected = `[[0, 0], [2, 0], [1, 1]]`
+- sample 1: input = `{'points': [[0, 0], [1, 1], [2, 2]]}`, expected = `[[0, 0], [2, 2]]`
+- sample 2: input = `{'points': [[0, 0], [2, 0], [2, 2], [0, 2], [1, 1]]}`, expected = `[[0, 0], [2, 0], [2, 2], [0, 2]]`
+- sample 3: input = `{'points': [[0, 0], [3, 0], [3, 1], [0, 1], [1, 0]]}`, expected = `[[0, 0], [3, 0], [3, 1], [0, 1]]`
+
+## 68. 反转链表扩展样例 (`reverse_linked_list_expansion`)
+
+- 算法族：链表与缓存
+- 解法：迭代三指针反转
+- 思路：维护 prev/current/next，逐个把 current.next 指向 prev。
+- 输入契约：输入 values 数组，按顺序表示链表节点值。
+- 复杂度：O(n) / O(1)
+- 视觉形态：tree
+- Gate layer：expansion
+
+题目描述：
+
+给定链表节点值 values，按迭代指针重连过程反转链表并返回反转后的值序列。
+
+输入样例：
+
+- sample 0: input = `{'values': [1, 2]}`, expected = `[2, 1]`
+- sample 1: input = `{'values': [10, 20, 30, 40]}`, expected = `[40, 30, 20, 10]`
+- sample 2: input = `{'values': [-1, 0, 1]}`, expected = `[1, 0, -1]`
+- sample 3: input = `{'values': [7]}`, expected = `[7]`
+
+## 69. Edmonds-Karp 扩展样例 (`edmonds_karp_expansion`)
+
+- 算法族：图高级
+- 解法：BFS 增广路径最大流
+- 思路：在残量网络中 BFS 寻找最短增广路径，再按瓶颈容量增加 flow。
+- 输入契约：输入 graph、capacity、source、sink。
+- 复杂度：O(VE^2) / O(E)
+- 视觉形态：graph, queue, map
+- Gate layer：expansion
+
+题目描述：
+
+给定有向网络的 graph、capacity、source 和 sink，使用 Edmonds-Karp 教学版返回最大流。
+
+输入样例：
+
+- sample 0: input = `{'graph': {'S': ['A', 'B'], 'A': ['T'], 'B': ['T'], 'T': []}, 'capacity': {'S->A': 2, 'S->B': 2, 'A->T': 1, 'B->T': 2}, 'source': 'S', 'sink': 'T'}`, expected = `3`
+- sample 1: input = `{'graph': {'S': ['A'], 'A': ['B', 'T'], 'B': ['T'], 'T': []}, 'capacity': {'S->A': 5, 'A->B': 3, 'A->T': 2, 'B->T': 4}, 'source': 'S', 'sink': 'T'}`, expected = `5`
+- sample 2: input = `{'graph': {'S': ['A'], 'A': ['T'], 'T': []}, 'capacity': {'S->A': 1, 'A->T': 1}, 'source': 'S', 'sink': 'T'}`, expected = `1`
+- sample 3: input = `{'graph': {'S': ['A', 'B'], 'A': ['B', 'T'], 'B': ['T'], 'T': []}, 'capacity': {'S->A': 2, 'S->B': 3, 'A->B': 1, 'A->T': 1, 'B->T': 2}, 'source': 'S', 'sink': 'T'}`, expected = `3`

@@ -13,6 +13,7 @@ from algolab.schemas.correctness import CorrectnessContract
 from algolab.schemas.semantic_trace import SolutionVariant
 from algolab.schemas.validation import BuildArtifact
 from algolab.schemas.visual_plan import VisualPlan
+from algolab.generation.repair import build_solution_repair_prompt
 from algolab.verification.repair_context import build_repair_context
 
 
@@ -156,17 +157,12 @@ def _string_list(value: Any) -> list[str]:
 
 
 def repair_solution_spec(request: ProblemInput, previous: dict[str, Any], errors: list[str]) -> dict[str, Any]:
-    repair_context = build_repair_context(errors)
-    prompt = "\n\n".join(
-        [
-            _build_user_prompt(request),
-            "上一次 JSON：",
-            json.dumps(previous, ensure_ascii=False, indent=2),
-            "结构化错误上下文：",
-            json.dumps(repair_context, ensure_ascii=False, indent=2),
-            "错误信息：",
-            "\n".join(errors),
-        ]
+    repair_context = build_repair_context(errors, request=request, previous=previous)
+    prompt = build_solution_repair_prompt(
+        request_prompt=_build_user_prompt(request),
+        previous=previous,
+        errors=errors,
+        repair_context=repair_context,
     )
     return normalize_solution_spec(chat_json(_prompt_text("repair_system.txt"), prompt))
 

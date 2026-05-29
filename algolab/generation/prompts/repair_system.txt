@@ -34,7 +34,17 @@
     - process_error：优先修复指定 step 的算法过程、不变量或依赖。
     - coverage_error：补齐缺失关键步骤，不要只改最终结果。
     - scene_error：修复 state / targets，使 SceneGraph 能产生可见对象。
+    - demo_missing_reason / demo_missing_deps / demo_missing_state / demo_state_jump / demo_algorithm_mismatch：补齐演示证据、deps、state、阶段和教学解释，不能把 Debug 信息当教学解释。
     如果上下文给出 step 或 target，必须优先定位该事件或对象。
+    如果上下文给出 repair_category，必须按分类修复：
+    - answer_correctness：修 solve、trace.result、verify、expected 一致性。
+    - trace_schema：修 semantic-trace-v1 顶层和事件字段。
+    - trace_step_jump：补中间关键步骤或解释状态跳变，不能直接从初始化跳到答案。
+    - target_or_deps：修 target / deps / state 可见对象绑定。
+    - process_invariant：修算法过程、value、deps 和 state 中的不变量证据。
+    - demo_readiness：修 reason、teaching、state、deps 和阶段覆盖。
+    如果上下文给出 family 和 family_guidance，必须优先遵守族级合同。例如 DP 保持 dp_contract，图保持 graph_contract，字符串 / 树 / 回溯保持 family_contract。
+    禁止按照 repair 请求直接生成 HTML、CSS、JS、坐标、动画或 renderer 代码。
 21. 如果错误包含“小 DP 表缺少逐帧状态转移”：tracker 必须在真实循环中对每个需要更新的 DP 单元输出一个 set 事件，例如不同路径的每个内部 dp[i][j] 都要单独记录；不要用 len(events) 抽样，不要直接跳到最终格。
 22. 如果 tracker_code 直接手写 events.append、跳过中间状态、或错误包含“缺少逐帧状态转移 / trace coverage”，必须改写为 Tracer API：使用 tracer.set / tracer.push / tracer.move / tracer.compare 记录真实算法操作，最后 return tracer.to_trace()。
 23. 不要输出 markdown。

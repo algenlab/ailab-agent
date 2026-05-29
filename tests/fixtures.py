@@ -44,6 +44,11 @@ def house_robber_trace() -> SemanticTrace:
                         "options": ["9", "11", "12"],
                         "answer": "11",
                         "explanation": "max(7, 2 + 9) = 11。",
+                        "wrong_explanation": "错误值通常来自忘记比较“不偷当前房间”的收益，或把相邻房间同时选入。",
+                        "option_explanations": {
+                            "9": "只取当前房屋 9，漏掉了可与它共存的 dp[0]。",
+                            "12": "12 会把相邻房屋的收益混在一起，违反不能偷相邻房屋的约束。",
+                        },
                     },
                 },
                 {
@@ -127,6 +132,11 @@ def bfs_trace() -> SemanticTrace:
                         "options": ["0", "1", "2"],
                         "answer": "1",
                         "explanation": "B 和 C 由距离为 0 的 A 扩展得到，所以距离是 1。",
+                        "wrong_explanation": "BFS 首次访问的距离必须等于来源节点距离再加一。",
+                        "option_explanations": {
+                            "0": "0 只属于起点 A，B 和 C 至少经过一条边。",
+                            "2": "2 会跳过 A 到 B/C 的直接边，和当前依赖边不一致。",
+                        },
                     },
                 },
                 {
@@ -299,6 +309,11 @@ def binary_search_trace() -> SemanticTrace:
                         "options": ["left = mid + 1", "right = mid - 1", "返回 mid"],
                         "answer": "left = mid + 1",
                         "explanation": "中点值偏小，左侧和中点都可以排除。",
+                        "wrong_explanation": "错误边界会丢掉目标所在的右半区间，或在未命中时提前返回。",
+                        "option_explanations": {
+                            "right = mid - 1": "nums[mid] 小于 target，右移 right 会丢掉可能包含目标的右半区间。",
+                            "返回 mid": "当前 nums[mid] 是 3，不等于 target 9，还不能返回 mid。",
+                        },
                     },
                 },
                 {
@@ -1039,6 +1054,249 @@ def manacher_trace() -> SemanticTrace:
     )
 
 
+def graph_relax_trace() -> SemanticTrace:
+    graph = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": []}
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Dijkstra 松弛可视模式",
+            "input_data": {"graph": graph, "start": "A"},
+            "result": {"D": 3},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "node:A"}],
+                    "state": {"graph": graph, "dist": {"A": 0}, "frontier": ["A"], "weights": {"A->B": 1, "A->C": 4, "B->D": 2}},
+                    "role": "current",
+                    "reason": "起点进入 frontier。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "node:B"}, {"id": "dist[B]"}],
+                    "deps": [{"id": "node:A"}, {"id": "edge:A->B"}, {"id": "dist[A]"}],
+                    "before": None,
+                    "after": 1,
+                    "state": {
+                        "graph": graph,
+                        "dist": {"A": 0, "B": 1},
+                        "frontier": ["B", "C"],
+                        "weights": {"A->B": 1, "A->C": 4, "B->D": 2},
+                        "path_edges": ["A->B"],
+                        "formula": "dist[B] = dist[A] + w(A,B)",
+                    },
+                    "role": "visited",
+                    "reason": "用 A->B 松弛 B 的距离。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
+def string_alignment_trace() -> SemanticTrace:
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "字符串匹配对齐可视模式",
+            "input_data": {"text": "ababc", "pattern": "abc"},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "text"}, {"id": "pattern"}],
+                    "state": {"text": "ababc", "pattern": "abc", "i": 0, "j": 0, "window": [0, 3]},
+                    "reason": "展示文本串、模式串和初始窗口。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "compare",
+                    "targets": [{"id": "text[3]"}, {"id": "pattern[1]"}],
+                    "deps": [{"id": "pattern[2]"}],
+                    "state": {
+                        "text": "ababc",
+                        "pattern": "abc",
+                        "i": 3,
+                        "j": 1,
+                        "window": [2, 5],
+                        "fallback_from": 2,
+                        "fallback_to": 0,
+                    },
+                    "role": "candidate",
+                    "reason": "窗口右移后继续比较，并展示失败函数回退。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
+def tree_return_trace() -> SemanticTrace:
+    tree = {
+        "nodes": [{"id": "4"}, {"id": "2"}, {"id": "7"}, {"id": "1"}, {"id": "3"}],
+        "edges": [["4", "2"], ["4", "7"], ["2", "1"], ["2", "3"]],
+    }
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "树递归返回值可视模式",
+            "input_data": {"tree": tree},
+            "result": 3,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "enter",
+                    "targets": [{"id": "node:2"}],
+                    "deps": [{"id": "node:4"}],
+                    "state": {"tree": tree, "stack": ["dfs(4)", "dfs(2)"]},
+                    "role": "current",
+                    "reason": "进入左子树递归帧。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "exit",
+                    "targets": [{"id": "node:2"}],
+                    "deps": [{"id": "node:1"}, {"id": "node:3"}],
+                    "state": {"tree": tree, "stack": ["dfs(4)"], "return_values": {"2": 3}, "return_value": 3},
+                    "role": "answer",
+                    "reason": "子树 2 返回聚合值 3。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
+def backtracking_choice_undo_trace() -> SemanticTrace:
+    search_tree = {
+        "nodes": [
+            {"id": "root", "label": "[]"},
+            {"id": "choose1", "label": "[1]"},
+            {"id": "choose12", "label": "[1,2]"},
+        ],
+        "edges": [["root", "choose1"], ["choose1", "choose12"]],
+    }
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "回溯选择撤销可视模式",
+            "input_data": {"nums": [1, 2]},
+            "result": [[1, 2]],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "node:choose12"}],
+                    "deps": [{"id": "node:choose1"}],
+                    "state": {"recursion_tree": search_tree, "stack": ["dfs([])", "dfs([1])", "dfs([1,2])"], "path": ["root", "choose1", "choose12"]},
+                    "role": "current",
+                    "reason": "做出选择 2，进入叶子分支。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "exit",
+                    "targets": [{"id": "node:choose12"}],
+                    "deps": [{"id": "node:choose1"}],
+                    "state": {"recursion_tree": search_tree, "stack": ["dfs([])", "dfs([1])"], "path": ["root", "choose1"]},
+                    "role": "current",
+                    "reason": "叶子处理完成，撤销选择 2。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
+def segment_tree_visual_trace() -> SemanticTrace:
+    segment_tree = {
+        "nodes": [
+            {"id": "1", "label": "[0,3]", "meta": {"range": [0, 3]}},
+            {"id": "2", "label": "[0,1]", "meta": {"range": [0, 1]}},
+            {"id": "3", "label": "[2,3]", "meta": {"range": [2, 3]}},
+        ],
+        "edges": [["1", "2"], ["1", "3"]],
+    }
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "线段树 query/update 可视模式",
+            "input_data": {"nums": [1, 3, 5, 7]},
+            "result": 4,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "segment_tree"}],
+                    "state": {"segment_tree": segment_tree},
+                    "reason": "建立区间树节点。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "mark",
+                    "targets": [{"id": "node:2"}],
+                    "deps": [{"id": "node:1"}],
+                    "state": {"segment_tree": segment_tree, "query_path": ["1", "2"], "update_path": ["1", "3"], "cover_path": ["2"]},
+                    "role": "answer",
+                    "reason": "查询覆盖左区间，同时展示一次更新路径。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
+def network_flow_trace() -> SemanticTrace:
+    graph = {"s": ["a"], "a": ["t"], "t": []}
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Edmonds-Karp 残量网络可视模式",
+            "input_data": {"edges": [["s", "a", 3], ["a", "t", 2]]},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "node:s"}],
+                    "state": {
+                        "graph": graph,
+                        "capacity": {"s->a": 3, "a->t": 2},
+                        "flow": {"s->a": 0, "a->t": 0},
+                        "residual_capacity": {"s->a": 3, "a->t": 2},
+                        "frontier": ["s"],
+                    },
+                    "role": "current",
+                    "reason": "初始化残量网络。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "edge:s->a"}, {"id": "edge:a->t"}],
+                    "deps": [{"id": "node:s"}, {"id": "edge:s->a"}, {"id": "edge:a->t"}],
+                    "state": {
+                        "graph": graph,
+                        "capacity": {"s->a": 3, "a->t": 2},
+                        "flow": {"s->a": 2, "a->t": 2},
+                        "residual_capacity": {"s->a": 1, "a->t": 0},
+                        "augmenting_path": ["s", "a", "t"],
+                    },
+                    "role": "answer",
+                    "reason": "沿增广路推送 2 单位流量。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
 def geometry_trace() -> SemanticTrace:
     geometry = {
         "points": [
@@ -1354,6 +1612,94 @@ def golden_visual_artifact() -> BuildArtifact:
         scenes=scenes,
         validation=ValidationReport(
             checks=["golden visual matrix fixture"],
+            release_gate=ReleaseGate(
+                artifact_ready=True,
+                process_ready=True,
+                trace_ready=True,
+                visual_ready=True,
+                multi_solution_ready=True,
+                release_ready=True,
+            ),
+        ),
+    )
+
+
+def phase17_visual_pattern_matrix() -> list[dict[str, object]]:
+    return [
+        {
+            "id": "dp_formula",
+            "name": "DP 公式代入",
+            "trace": unique_paths_trace(),
+            "patterns": ("dp_formula_substitution", "dp_dependency_arrow"),
+        },
+        {
+            "id": "graph_relax",
+            "name": "图 relax / frontier / path",
+            "trace": graph_relax_trace(),
+            "patterns": ("graph_frontier", "graph_relax_edge", "graph_path_highlight"),
+        },
+        {
+            "id": "string_alignment",
+            "name": "字符串双行对齐",
+            "trace": string_alignment_trace(),
+            "patterns": ("string_alignment", "string_window", "string_fallback_arc"),
+        },
+        {
+            "id": "tree_return",
+            "name": "树递归返回值",
+            "trace": tree_return_trace(),
+            "patterns": ("tree_return_value",),
+        },
+        {
+            "id": "backtracking_choice",
+            "name": "回溯选择撤销",
+            "trace": backtracking_choice_undo_trace(),
+            "patterns": ("backtracking_choice", "backtracking_undo"),
+        },
+        {
+            "id": "range_structure",
+            "name": "区间结构路径",
+            "trace": segment_tree_visual_trace(),
+            "patterns": ("range_structure", "range_query_path", "range_update_path"),
+        },
+        {
+            "id": "network_flow",
+            "name": "网络流边标签",
+            "trace": network_flow_trace(),
+            "patterns": ("network_flow_edge_label", "network_flow_augmenting_path"),
+        },
+    ]
+
+
+def phase17_visual_pattern_artifact() -> BuildArtifact:
+    variants = []
+    scenes = {}
+    for item in phase17_visual_pattern_matrix():
+        trace = item["trace"]
+        assert isinstance(trace, SemanticTrace)
+        variant_id = str(item["id"])
+        variants.append(
+            {
+                "id": variant_id,
+                "name": str(item["name"]),
+                "strategy": "P17.1 族级视觉模式 fixture，验证通用 SceneGraph meta 和 renderer 映射。",
+                "time_complexity": "fixture",
+                "space_complexity": "fixture",
+                "code": "def solve(input_data):\n    return None",
+                "tracker_code": "def trace(input_data):\n    return {}",
+                "result": trace.result,
+                "trace": trace.model_dump(),
+            }
+        )
+        scenes[variant_id] = compile_scene(trace)
+    return BuildArtifact(
+        problem_title="P17.1 族级视觉模式矩阵",
+        input_contract="覆盖 DP、图、字符串、树递归、回溯、区间结构和网络流。",
+        input_data={"fixture": "phase17_visual_patterns"},
+        variants=variants,
+        scenes=scenes,
+        validation=ValidationReport(
+            checks=["phase17 visual pattern fixture"],
             release_gate=ReleaseGate(
                 artifact_ready=True,
                 process_ready=True,

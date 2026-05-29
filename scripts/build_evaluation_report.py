@@ -20,6 +20,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.build_evaluation_manifest import build_manifest
+from algolab.verification.degradation import (
+    DEGRADATION_TYPES,
+    degradation_entries_for_result,
+    empty_degradation_counts,
+)
 
 
 MetricValue = int | float | str | None
@@ -51,6 +56,8 @@ def build_evaluation_report(
     family_rows = family_summary(manifest=manifest, dashboard=dashboard, llm_report=llm_report)
     condition_rows = condition_summary(llm_report)
     failure_rows = failure_type_summary(llm_report)
+    style_rows = case_style_summary(llm_report)
+    degradation_rows = degradation_summary(llm_report, family_gate)
     comparisons = comparison_protocols()
     report = {
         "schema_version": "evaluation-report-v1",
@@ -69,6 +76,8 @@ def build_evaluation_report(
         "family_release_gate": family_release_gate_summary(family_gate),
         "condition_summary": condition_rows,
         "failure_type_summary": failure_rows,
+        "case_style_summary": style_rows,
+        "degradation_summary": degradation_rows,
         "comparisons": comparisons,
         "core_case_rows": case_rows,
     }
@@ -81,6 +90,8 @@ def build_evaluation_report(
     _write_family_summary_csv(output_dir / "evaluation_family_summary.csv", family_rows)
     _write_condition_summary_csv(output_dir / "evaluation_condition_summary.csv", condition_rows)
     _write_failure_type_summary_csv(output_dir / "evaluation_failure_types.csv", failure_rows)
+    _write_case_style_summary_csv(output_dir / "evaluation_case_styles.csv", style_rows)
+    _write_degradation_summary_csv(output_dir / "evaluation_degradations.csv", degradation_rows)
     (output_dir / "evaluation_report.md").write_text(_render_markdown(report), encoding="utf-8")
     return json_path
 
@@ -207,7 +218,55 @@ def family_release_gate_summary(family_gate: dict[str, Any] | None) -> dict[str,
         "process_fallback_cases": summary.get("process_fallback_cases", 0),
         "process_uncovered_cases": summary.get("process_uncovered_cases", 0),
         "degraded_family_count": summary.get("degraded_family_count", 0),
+        "degradation_summary": summary.get("degradation_summary") or _family_gate_degradation_counts(summary),
     }
+
+
+def degradation_summary(llm_report: dict[str, Any] | None, family_gate: dict[str, Any] | None) -> dict[str, Any]:
+    by_source = {
+        "llm_report": empty_degradation_counts(),
+        "family_release_gate": empty_degradation_counts(),
+    }
+    llm_items = []
+    if llm_report:
+        for item in llm_report.get("results") or []:
+            for entry in degradation_entries_for_result(item):
+                by_source["llm_report"][entry.type] += 1
+                llm_items.append(
+                    {
+                        "type": entry.type,
+                        "case_id": item.get("case_id", ""),
+                        "source": entry.source,
+                        "reason": entry.reason,
+                    }
+                )
+    family_counts = _family_gate_degradation_counts((family_gate or {}).get("summary") or {})
+    by_source["family_release_gate"].update(family_counts)
+    total = empty_degradation_counts()
+    for source_counts in by_source.values():
+        for degradation_type, count in source_counts.items():
+            total[degradation_type] += count
+    return {
+        "types": list(DEGRADATION_TYPES),
+        "total": total,
+        "by_source": by_source,
+        "llm_items": llm_items,
+    }
+
+
+def _family_gate_degradation_counts(summary: dict[str, Any]) -> dict[str, int]:
+    counts = empty_degradation_counts()
+    raw = summary.get("degradation_summary")
+    if isinstance(raw, dict):
+        for degradation_type in DEGRADATION_TYPES:
+            item = raw.get(degradation_type)
+            if isinstance(item, dict):
+                counts[degradation_type] = int(item.get("cases") or 0)
+            elif isinstance(item, int):
+                counts[degradation_type] = item
+    counts["process_fallback"] = max(counts["process_fallback"], int(summary.get("process_fallback_cases") or 0))
+    counts["process_uncovered"] = max(counts["process_uncovered"], int(summary.get("process_uncovered_cases") or 0))
+    return counts
 
 
 def condition_summary(llm_report: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -265,6 +324,48 @@ def failure_type_summary(llm_report: dict[str, Any] | None) -> dict[str, int]:
         failure_type = _failure_type_for_result(item)
         summary[failure_type] = summary.get(failure_type, 0) + 1
     return dict(sorted(summary.items()))
+
+
+def case_style_summary(llm_report: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not llm_report:
+        return []
+
+    rows: dict[tuple[str, str], dict[str, Any]] = {}
+    for item in llm_report.get("results") or []:
+        case_set = str(item.get("case_set") or "deterministic")
+        case_style = str(item.get("case_style") or "unknown")
+        key = (case_set, case_style)
+        row = rows.setdefault(
+            key,
+            {
+                "case_set": case_set,
+                "case_style": case_style,
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "pass_rate": None,
+                "failure_types": {},
+            },
+        )
+        row["total"] += 1
+        if item.get("ok"):
+            row["passed"] += 1
+        else:
+            row["failed"] += 1
+            failure_type = _failure_type_for_result(item)
+            row["failure_types"][failure_type] = row["failure_types"].get(failure_type, 0) + 1
+
+    result = []
+    for key, row in sorted(rows.items()):
+        total = row["total"]
+        result.append(
+            {
+                **row,
+                "pass_rate": round(row["passed"] / total, 6) if total else None,
+                "failure_types": dict(sorted(row["failure_types"].items())),
+            }
+        )
+    return result
 
 
 def _condition_from_config(llm_report: dict[str, Any]) -> str:
@@ -711,6 +812,42 @@ def _write_failure_type_summary_csv(path: Path, rows: dict[str, int]) -> None:
             writer.writerow({"failure_type": failure_type, "count": count})
 
 
+def _write_case_style_summary_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    fields = ["case_set", "case_style", "total", "passed", "failed", "pass_rate", "failure_types"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            item = dict(row)
+            item["failure_types"] = json.dumps(item["failure_types"], ensure_ascii=False, sort_keys=True)
+            writer.writerow(item)
+
+
+def _write_degradation_summary_csv(path: Path, summary: dict[str, Any]) -> None:
+    fields = ["source", "degradation_type", "count"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for source, counts in (summary.get("by_source") or {}).items():
+            for degradation_type in DEGRADATION_TYPES:
+                writer.writerow(
+                    {
+                        "source": source,
+                        "degradation_type": degradation_type,
+                        "count": int((counts or {}).get(degradation_type) or 0),
+                    }
+                )
+        total = summary.get("total") or {}
+        for degradation_type in DEGRADATION_TYPES:
+            writer.writerow(
+                {
+                    "source": "total",
+                    "degradation_type": degradation_type,
+                    "count": int(total.get(degradation_type) or 0),
+                }
+            )
+
+
 def _render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# AlgoLab Evaluation Report",
@@ -764,6 +901,18 @@ def _render_markdown(report: dict[str, Any]) -> str:
             f"- Fallback / uncovered cases: {family_gate.get('process_fallback_cases', 'N/A')} / {family_gate.get('process_uncovered_cases', 'N/A')}",
         ]
     )
+    degradation = report.get("degradation_summary") or {}
+    if degradation:
+        lines.extend(["", "## Degradation Summary", "", "| Type | Total | LLM Report | Family Gate |", "|---|---:|---:|---:|"])
+        by_source = degradation.get("by_source") or {}
+        llm_counts = by_source.get("llm_report") or {}
+        family_counts = by_source.get("family_release_gate") or {}
+        total_counts = degradation.get("total") or {}
+        for degradation_type in DEGRADATION_TYPES:
+            lines.append(
+                f"| {degradation_type} | {total_counts.get(degradation_type, 0)} | "
+                f"{llm_counts.get(degradation_type, 0)} | {family_counts.get(degradation_type, 0)} |"
+            )
     lines.extend(
         [
             "",
@@ -781,6 +930,22 @@ def _render_markdown(report: dict[str, Any]) -> str:
         lines.extend(["", "## Failure Types", "", "| Failure Type | Count |", "|---|---:|"])
         for failure_type, count in report["failure_type_summary"].items():
             lines.append(f"| {failure_type} | {count} |")
+    if report.get("case_style_summary"):
+        lines.extend(
+            [
+                "",
+                "## Seen / Unseen Style Summary",
+                "",
+                "| Case Set | Style | Pass Rate | Passed | Failed | Failure Types |",
+                "|---|---|---:|---:|---:|---|",
+            ]
+        )
+        for row in report["case_style_summary"]:
+            pass_rate = "N/A" if row["pass_rate"] is None else row["pass_rate"]
+            failures = json.dumps(row["failure_types"], ensure_ascii=False, sort_keys=True)
+            lines.append(
+                f"| {row['case_set']} | {row['case_style']} | {pass_rate} | {row['passed']} | {row['failed']} | {failures} |"
+            )
     lines.extend(["", "## Comparisons", "", "| Baseline | Primary Metrics | Evidence |", "|---|---|---|"])
     for row in report["comparisons"]:
         metrics = ", ".join(row["primary_metrics"])

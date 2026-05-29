@@ -13,6 +13,8 @@ import multiprocessing as mp
 import queue
 import sys
 import time
+from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -26,24 +28,272 @@ from algolab.pipeline import BuildError, _try_materialize
 from algolab.renderer.export import save_html
 from algolab.schemas.input import ProblemInput
 from algolab.schemas.validation import BuildArtifact
+from algolab.verification.demo_readiness import DEMO_FAILURE_TYPES
 from algolab.verification.process_validator import process_failure_type_for_message
 from algolab.verification.repair_context import repair_failure_types, summarize_repair_failure_types
 from llm_client import _model_name, llm_config
 from tests.benchmark_cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 
 
-def selected_cases(ids: set[str] | None = None) -> tuple[BenchmarkCase, ...]:
-    cases = benchmark_cases()
-    if not ids:
-        return cases
-    found = tuple(case for case in cases if case.id in ids)
-    missing = ids - {case.id for case in found}
+LLM_FAMILY_SETS_PATH = ROOT / "benchmark" / "llm_family_sets.json"
+UNSEEN_FAMILY_CASES_PATH = ROOT / "benchmark" / "unseen_family_cases.json"
+FAMILY_CAPABILITIES_PATH = ROOT / "benchmark" / "family_capabilities.json"
+FORBIDDEN_UNSEEN_CASE_FIELDS = {"code", "tracker_code", "verifier_code"}
+
+
+@dataclass(frozen=True)
+class UnseenBenchmarkCase:
+    id: str
+    title: str
+    problem: str
+    family: str
+    strategy: str
+    samples: tuple[BenchmarkInput, ...]
+    family_id: str
+    subfamily_id: str
+    gate_layer: str
+    support_level: str
+    process_profile: str
+
+
+def load_llm_family_sets(path: Path | None = None) -> dict[str, Any]:
+    family_sets_path = path or LLM_FAMILY_SETS_PATH
+    if not family_sets_path.exists():
+        return {
+            "schema_version": "llm-family-sets-v1",
+            "families": [],
+            "default_sample_styles": {"seen_style": [0], "unseen_style": [1]},
+            "remaining_sample_style": "unseen_style",
+        }
+    return json.loads(family_sets_path.read_text(encoding="utf-8"))
+
+
+def _family_set_entries(family_sets: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    entries: dict[str, dict[str, Any]] = {}
+    for entry in family_sets.get("families") or []:
+        family_id = entry.get("family_id")
+        if isinstance(family_id, str) and family_id:
+            entries[family_id] = entry
+    return entries
+
+
+def validate_llm_family_sets(family_sets: dict[str, Any], cases: tuple[BenchmarkCase, ...] | None = None) -> list[str]:
+    benchmark = cases or benchmark_cases()
+    entries = _family_set_entries(family_sets)
+    errors: list[str] = []
+    family_ids = sorted({case.family_id for case in benchmark})
+    for family_id in family_ids:
+        family_cases = [case for case in benchmark if case.family_id == family_id]
+        entry = entries.get(family_id)
+        if not entry:
+            errors.append(f"llm_family_sets 缺少 family_id={family_id}")
+            continue
+        configured = set(entry.get("case_ids") or [])
+        actual = {case.id for case in family_cases}
+        missing_cases = actual - configured
+        unknown_cases = configured - actual
+        if missing_cases:
+            errors.append(f"llm_family_sets family_id={family_id} 缺少 case：{', '.join(sorted(missing_cases))}")
+        if unknown_cases:
+            errors.append(f"llm_family_sets family_id={family_id} 包含未知或跨族 case：{', '.join(sorted(unknown_cases))}")
+        styles = {case_style_for_sample(case, index, family_sets) for case in family_cases for index, _sample in enumerate(case.samples)}
+        for required_style in ("seen_style", "unseen_style"):
+            if required_style not in styles:
+                errors.append(f"llm_family_sets family_id={family_id} 缺少 {required_style} 样本")
+    return errors
+
+
+def load_unseen_family_cases(path: Path | None = None) -> dict[str, Any]:
+    unseen_path = path or UNSEEN_FAMILY_CASES_PATH
+    if not unseen_path.exists():
+        return {"schema_version": "unseen-family-cases-v1", "cases": []}
+    return json.loads(unseen_path.read_text(encoding="utf-8"))
+
+
+def load_family_capabilities(path: Path | None = None) -> dict[str, Any]:
+    capabilities_path = path or FAMILY_CAPABILITIES_PATH
+    if not capabilities_path.exists():
+        return {"schema_version": "family-capabilities-v1", "families": []}
+    return json.loads(capabilities_path.read_text(encoding="utf-8"))
+
+
+def strong_family_ids_from_capabilities(capabilities: dict[str, Any] | None = None) -> set[str]:
+    config = capabilities or load_family_capabilities()
+    return {
+        str(entry.get("family_id"))
+        for entry in config.get("families") or []
+        if entry.get("current_level") == "strong" and isinstance(entry.get("family_id"), str)
+    }
+
+
+def validate_unseen_family_cases(
+    config: dict[str, Any],
+    *,
+    deterministic_cases: tuple[BenchmarkCase, ...] | None = None,
+    capabilities: dict[str, Any] | None = None,
+) -> list[str]:
+    errors: list[str] = []
+    if config.get("schema_version") != "unseen-family-cases-v1":
+        errors.append("unseen_family_cases schema_version 必须是 unseen-family-cases-v1")
+    cases = config.get("cases")
+    if not isinstance(cases, list):
+        return [*errors, "unseen_family_cases.cases 必须是列表"]
+
+    deterministic_ids = {case.id for case in (deterministic_cases or benchmark_cases())}
+    capabilities_config = capabilities or load_family_capabilities()
+    capability_by_family = {
+        str(entry.get("family_id")): entry
+        for entry in capabilities_config.get("families") or []
+        if isinstance(entry.get("family_id"), str)
+    }
+    strong_family_ids = strong_family_ids_from_capabilities(capabilities_config)
+    seen_case_ids: set[str] = set()
+    covered_strong_families: set[str] = set()
+
+    for index, item in enumerate(cases):
+        if not isinstance(item, dict):
+            errors.append(f"unseen case #{index} 必须是对象")
+            continue
+        forbidden = sorted(FORBIDDEN_UNSEEN_CASE_FIELDS & set(item))
+        if forbidden:
+            errors.append(f"unseen case #{index} 不能包含 deterministic 代码字段：{', '.join(forbidden)}")
+        case_id = item.get("id")
+        if not isinstance(case_id, str) or not case_id:
+            errors.append(f"unseen case #{index} 缺少 id")
+        elif case_id in seen_case_ids:
+            errors.append(f"unseen case id 重复：{case_id}")
+        elif case_id in deterministic_ids:
+            errors.append(f"unseen case id 不能与 deterministic fixture 重名：{case_id}")
+        if isinstance(case_id, str):
+            seen_case_ids.add(case_id)
+
+        family_id = item.get("family_id")
+        if not isinstance(family_id, str) or not family_id:
+            errors.append(f"unseen case {case_id or index} 缺少 family_id")
+            continue
+        if family_id not in capability_by_family:
+            errors.append(f"unseen case {case_id or index} 使用未知 family_id={family_id}")
+        elif capability_by_family[family_id].get("current_level") != "strong":
+            errors.append(f"unseen case {case_id or index} 只允许覆盖 strong family，当前 family_id={family_id}")
+        else:
+            covered_strong_families.add(family_id)
+
+        for field in ("title", "problem", "family", "subfamily_id", "gate_layer", "support_level", "process_profile", "strategy"):
+            if not isinstance(item.get(field), str) or not item.get(field):
+                errors.append(f"unseen case {case_id or index} 缺少 {field}")
+        if item.get("gate_layer") != "llm_eval":
+            errors.append(f"unseen case {case_id or index} gate_layer 必须是 llm_eval")
+        if item.get("support_level") != "strong":
+            errors.append(f"unseen case {case_id or index} support_level 必须是 strong")
+
+        samples = item.get("samples")
+        if not isinstance(samples, list) or not samples:
+            errors.append(f"unseen case {case_id or index} 至少需要 1 个 sample")
+            continue
+        for sample_index, sample in enumerate(samples):
+            if not isinstance(sample, dict):
+                errors.append(f"unseen case {case_id or index} sample {sample_index} 必须是对象")
+                continue
+            forbidden_sample = sorted(FORBIDDEN_UNSEEN_CASE_FIELDS & set(sample))
+            if forbidden_sample:
+                errors.append(
+                    f"unseen case {case_id or index} sample {sample_index} 不能包含代码字段：{', '.join(forbidden_sample)}"
+                )
+            if "input_data" not in sample:
+                errors.append(f"unseen case {case_id or index} sample {sample_index} 缺少 input_data")
+            if "expected" not in sample:
+                errors.append(f"unseen case {case_id or index} sample {sample_index} 缺少 expected")
+
+    missing = strong_family_ids - covered_strong_families
     if missing:
-        raise SystemExit(f"未知 benchmark case：{', '.join(sorted(missing))}")
+        errors.append(f"unseen_family_cases 缺少 strong family：{', '.join(sorted(missing))}")
+    return errors
+
+
+def unseen_cases_from_config(config: dict[str, Any]) -> tuple[UnseenBenchmarkCase, ...]:
+    cases: list[UnseenBenchmarkCase] = []
+    for item in config.get("cases") or []:
+        samples = tuple(
+            BenchmarkInput(input_data=sample["input_data"], expected=sample.get("expected"))
+            for sample in item.get("samples") or []
+        )
+        cases.append(
+            UnseenBenchmarkCase(
+                id=item["id"],
+                title=item["title"],
+                problem=item["problem"],
+                family=item["family"],
+                strategy=item["strategy"],
+                samples=samples,
+                family_id=item["family_id"],
+                subfamily_id=item["subfamily_id"],
+                gate_layer=item["gate_layer"],
+                support_level=item["support_level"],
+                process_profile=item["process_profile"],
+            )
+        )
+    return tuple(cases)
+
+
+def case_style_for_sample(case: BenchmarkCase, sample_index: int, family_sets: dict[str, Any] | None = None) -> str:
+    config = family_sets or load_llm_family_sets()
+    entry = _family_set_entries(config).get(case.family_id, {})
+    sample_styles = entry.get("sample_styles") or config.get("default_sample_styles") or {}
+    for style, indices in sample_styles.items():
+        if isinstance(indices, list) and sample_index in indices:
+            return str(style)
+    return str(entry.get("remaining_sample_style") or config.get("remaining_sample_style") or "unseen_style")
+
+
+def selected_cases(
+    ids: set[str] | None = None,
+    *,
+    families: set[str] | None = None,
+    gate_layers: set[str] | None = None,
+    family_sets: dict[str, Any] | None = None,
+    case_set: str = "deterministic",
+    unseen_cases_config: dict[str, Any] | None = None,
+) -> tuple[BenchmarkCase | UnseenBenchmarkCase, ...]:
+    if case_set == "unseen":
+        cases: tuple[BenchmarkCase | UnseenBenchmarkCase, ...] = unseen_cases_from_config(
+            unseen_cases_config or load_unseen_family_cases()
+        )
+    elif case_set == "deterministic":
+        cases = benchmark_cases()
+    else:
+        raise SystemExit(f"未知 case set：{case_set}")
+    if not ids:
+        found = cases
+    else:
+        found = tuple(case for case in cases if case.id in ids)
+        missing = ids - {case.id for case in found}
+        if missing:
+            raise SystemExit(f"未知 benchmark case：{', '.join(sorted(missing))}")
+    if families:
+        allowed = set(families)
+        known = {case.family_id for case in cases} | {case.family for case in cases}
+        unknown = allowed - known
+        if unknown:
+            raise SystemExit(f"未知 family：{', '.join(sorted(unknown))}")
+        found = tuple(case for case in found if case.family_id in allowed or case.family in allowed)
+    if gate_layers:
+        allowed_layers = set(gate_layers)
+        found = tuple(case for case in found if case.gate_layer in allowed_layers)
+    if family_sets is not None and case_set == "deterministic":
+        configured_case_ids = {
+            case_id
+            for entry in (family_sets.get("families") or [])
+            for case_id in (entry.get("case_ids") or [])
+            if isinstance(case_id, str)
+        }
+        if configured_case_ids:
+            found = tuple(case for case in found if case.id in configured_case_ids)
+    if not found:
+        raise SystemExit("没有匹配的 LLM benchmark case")
     return found
 
 
-def selected_samples(case: BenchmarkCase, args: argparse.Namespace) -> tuple[tuple[int, BenchmarkInput], ...]:
+def selected_samples(case: BenchmarkCase | UnseenBenchmarkCase, args: argparse.Namespace) -> tuple[tuple[int, BenchmarkInput], ...]:
     if args.sample is not None:
         if args.sample < 0 or args.sample >= len(case.samples):
             raise SystemExit(f"{case.id} 不存在 sample {args.sample}，可用范围 0..{len(case.samples) - 1}")
@@ -52,7 +302,44 @@ def selected_samples(case: BenchmarkCase, args: argparse.Namespace) -> tuple[tup
     return tuple(enumerate(samples))
 
 
-def make_request(case: BenchmarkCase, sample: BenchmarkInput, *, solutions: int) -> ProblemInput:
+def selected_tasks(
+    cases: tuple[BenchmarkCase | UnseenBenchmarkCase, ...],
+    args: argparse.Namespace,
+) -> tuple[tuple[BenchmarkCase | UnseenBenchmarkCase, int, BenchmarkInput], ...]:
+    tasks = tuple(
+        (case, sample_index, sample)
+        for case in cases
+        for sample_index, sample in selected_samples(case, args)
+    )
+    return _limit_tasks_per_family(tasks, getattr(args, "limit_per_family", 0) or 0)
+
+
+def _limit_tasks_per_family(
+    tasks: tuple[tuple[BenchmarkCase | UnseenBenchmarkCase, int, BenchmarkInput], ...],
+    limit_per_family: int,
+) -> tuple[tuple[BenchmarkCase | UnseenBenchmarkCase, int, BenchmarkInput], ...]:
+    if limit_per_family <= 0:
+        return tasks
+    grouped: OrderedDict[str, OrderedDict[str, list[tuple[BenchmarkCase | UnseenBenchmarkCase, int, BenchmarkInput]]]] = OrderedDict()
+    for task in tasks:
+        case = task[0]
+        grouped.setdefault(case.family_id, OrderedDict()).setdefault(case.subfamily_id, []).append(task)
+
+    limited: list[tuple[BenchmarkCase | UnseenBenchmarkCase, int, BenchmarkInput]] = []
+    for subfamilies in grouped.values():
+        selected = 0
+        while selected < limit_per_family and any(queue for queue in subfamilies.values()):
+            for queue in subfamilies.values():
+                if not queue:
+                    continue
+                limited.append(queue.pop(0))
+                selected += 1
+                if selected >= limit_per_family:
+                    break
+    return tuple(limited)
+
+
+def make_request(case: BenchmarkCase | UnseenBenchmarkCase, sample: BenchmarkInput, *, solutions: int) -> ProblemInput:
     return ProblemInput(
         problem=case.problem,
         input_data=sample.input_data,
@@ -69,8 +356,23 @@ def benchmark_condition(args: argparse.Namespace) -> str:
 ProgressCallback = Callable[[dict[str, Any]], None]
 
 
+def result_metadata(case: BenchmarkCase | UnseenBenchmarkCase, sample_index: int, args: argparse.Namespace) -> dict[str, Any]:
+    family_sets = getattr(args, "family_sets_config", None)
+    case_set = getattr(args, "case_set", "deterministic")
+    case_style = "unseen_style" if case_set == "unseen" else case_style_for_sample(case, sample_index, family_sets)
+    return {
+        "family_id": case.family_id,
+        "subfamily_id": case.subfamily_id,
+        "gate_layer": case.gate_layer,
+        "support_level": case.support_level,
+        "process_profile": case.process_profile,
+        "case_set": case_set,
+        "case_style": case_style,
+    }
+
+
 def run_one(
-    case: BenchmarkCase,
+    case: BenchmarkCase | UnseenBenchmarkCase,
     sample: BenchmarkInput,
     sample_index: int,
     args: argparse.Namespace,
@@ -82,6 +384,7 @@ def run_one(
     output_html = args.output_dir / f"{output_stem}.html"
     phase_log: list[dict[str, Any]] = []
     repair_types: list[str] = []
+    metadata = result_metadata(case, sample_index, args)
 
     def record_progress(event: dict[str, Any]) -> None:
         phase_log.append(event)
@@ -113,6 +416,7 @@ def run_one(
             "case_id": case.id,
             "title": case.title,
             "family": case.family,
+            **metadata,
             "sample_index": sample_index,
             "input_data": sample.input_data,
             "expected": sample.expected,
@@ -137,6 +441,7 @@ def run_one(
             "case_id": case.id,
             "title": case.title,
             "family": case.family,
+            **metadata,
             "sample_index": sample_index,
             "input_data": sample.input_data,
             "expected": sample.expected,
@@ -281,17 +586,29 @@ def last_phase_elapsed_s(phase_log: list[dict[str, Any]], now: float | None = No
     return round(max(0.0, now - started_at), 3)
 
 
-def _run_one_worker(case: BenchmarkCase, sample: BenchmarkInput, sample_index: int, args: argparse.Namespace, queue: mp.Queue):
+def _run_one_worker(
+    case: BenchmarkCase | UnseenBenchmarkCase,
+    sample: BenchmarkInput,
+    sample_index: int,
+    args: argparse.Namespace,
+    queue: mp.Queue,
+):
     def progress(event: dict[str, Any]) -> None:
         queue.put({"type": "progress", "event": event})
 
     queue.put({"type": "result", "result": run_one(case, sample, sample_index, args, progress=progress)})
 
 
-def run_one_with_timeout(case: BenchmarkCase, sample: BenchmarkInput, sample_index: int, args: argparse.Namespace) -> dict[str, Any]:
+def run_one_with_timeout(
+    case: BenchmarkCase | UnseenBenchmarkCase,
+    sample: BenchmarkInput,
+    sample_index: int,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
     if args.timeout_s <= 0:
         return run_one(case, sample, sample_index, args)
     started = time.time()
+    metadata = result_metadata(case, sample_index, args)
     result_queue: mp.Queue = mp.Queue()
     process = mp.Process(target=_run_one_worker, args=(case, sample, sample_index, args, result_queue))
     process.start()
@@ -311,6 +628,7 @@ def run_one_with_timeout(case: BenchmarkCase, sample: BenchmarkInput, sample_ind
             "case_id": case.id,
             "title": case.title,
             "family": case.family,
+            **metadata,
             "sample_index": sample_index,
             "input_data": sample.input_data,
             "expected": sample.expected,
@@ -328,6 +646,7 @@ def run_one_with_timeout(case: BenchmarkCase, sample: BenchmarkInput, sample_ind
         "case_id": case.id,
         "title": case.title,
         "family": case.family,
+        **metadata,
         "sample_index": sample_index,
         "input_data": sample.input_data,
         "expected": sample.expected,
@@ -361,6 +680,9 @@ def drain_worker_queue(result_queue: mp.Queue, phase_log: list[dict[str, Any]]) 
 
 def classify_failure(message: str) -> str:
     text = message.lower()
+    explicit = _explicit_failure_type(message)
+    if explicit in DEMO_FAILURE_TYPES:
+        return explicit
     if "algolab_llm_api_key" in text or "api_key" in text or "环境变量" in message or "api key" in text:
         return "configuration"
     if "timeout" in text or "超时" in message or "超过" in message:
@@ -383,6 +705,14 @@ def classify_failure(message: str) -> str:
     return "generation"
 
 
+def _explicit_failure_type(message: str) -> str:
+    marker = "failure_type="
+    if marker not in message:
+        return ""
+    value = message.split(marker, 1)[1]
+    return value.split(":", 1)[0].split(";", 1)[0].strip()
+
+
 def summarize_failures(results: list[dict[str, Any]]) -> dict[str, int]:
     summary: dict[str, int] = {}
     for item in results:
@@ -392,6 +722,155 @@ def summarize_failures(results: list[dict[str, Any]]) -> dict[str, int]:
         item["failure_type"] = failure_type
         summary[failure_type] = summary.get(failure_type, 0) + 1
     return summary
+
+
+def summarize_field_counts(results: list[dict[str, Any]], field: str, default: str = "unknown") -> dict[str, int]:
+    summary: dict[str, int] = {}
+    for item in results:
+        value = str(item.get(field) or default)
+        summary[value] = summary.get(value, 0) + 1
+    return dict(sorted(summary.items()))
+
+
+def build_family_summary(
+    results: list[dict[str, Any]],
+    *,
+    args: argparse.Namespace,
+    started_at: str,
+    ended_at: str,
+) -> dict[str, Any]:
+    condition = benchmark_condition(args)
+    rows: dict[str, dict[str, Any]] = {}
+    for item in results:
+        family_id = str(item.get("family_id") or item.get("family") or "unknown")
+        row = rows.setdefault(
+            family_id,
+            {
+                "family_id": family_id,
+                "family": item.get("family") or family_id,
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "failure_types": {},
+                "repair_failure_types": {},
+                "repair_attempted": 0,
+                "repair_successes": 0,
+                "subfamilies": {},
+                "gate_layers": {},
+                "case_sets": {},
+                "case_styles": {},
+                "cases": {},
+            },
+        )
+        row["family"] = row["family"] or item.get("family") or family_id
+        row["total"] += 1
+        if item.get("ok"):
+            row["passed"] += 1
+        else:
+            row["failed"] += 1
+            failure_type = item.get("failure_type") or classify_failure(item.get("error") or "; ".join(item.get("errors", [])))
+            item["failure_type"] = failure_type
+            row["failure_types"][failure_type] = row["failure_types"].get(failure_type, 0) + 1
+
+        if _result_attempted_repair(item):
+            row["repair_attempted"] += 1
+            if item.get("ok"):
+                row["repair_successes"] += 1
+        for failure_type in item.get("repair_failure_types") or []:
+            row["repair_failure_types"][failure_type] = row["repair_failure_types"].get(failure_type, 0) + 1
+
+        subfamily_id = str(item.get("subfamily_id") or "unknown")
+        sub = row["subfamilies"].setdefault(subfamily_id, {"subfamily_id": subfamily_id, "total": 0, "passed": 0, "failed": 0})
+        sub["total"] += 1
+        if item.get("ok"):
+            sub["passed"] += 1
+        else:
+            sub["failed"] += 1
+
+        gate_layer = str(item.get("gate_layer") or "unknown")
+        row["gate_layers"][gate_layer] = row["gate_layers"].get(gate_layer, 0) + 1
+        case_set = str(item.get("case_set") or "deterministic")
+        row["case_sets"][case_set] = row["case_sets"].get(case_set, 0) + 1
+        case_style = str(item.get("case_style") or "unknown")
+        row["case_styles"][case_style] = row["case_styles"].get(case_style, 0) + 1
+        case_id = str(item.get("case_id") or "unknown")
+        row["cases"][case_id] = row["cases"].get(case_id, 0) + 1
+
+    families: list[dict[str, Any]] = []
+    for row in rows.values():
+        total = row["total"]
+        repair_attempted = row["repair_attempted"]
+        subfamilies = []
+        for sub in row["subfamilies"].values():
+            sub_total = sub["total"]
+            subfamilies.append(
+                {
+                    **sub,
+                    "pass_rate": round(sub["passed"] / sub_total, 6) if sub_total else None,
+                }
+            )
+        families.append(
+            {
+                "family_id": row["family_id"],
+                "family": row["family"],
+                "total": total,
+                "passed": row["passed"],
+                "failed": row["failed"],
+                "generation_success_rate": round(row["passed"] / total, 6) if total else None,
+                "repair_attempted": repair_attempted,
+                "repair_successes": row["repair_successes"],
+                "repair_success_rate": round(row["repair_successes"] / repair_attempted, 6) if repair_attempted else None,
+                "failure_types": dict(sorted(row["failure_types"].items())),
+                "repair_failure_types": dict(sorted(row["repair_failure_types"].items())),
+                "subfamilies": sorted(subfamilies, key=lambda item: item["subfamily_id"]),
+                "gate_layers": dict(sorted(row["gate_layers"].items())),
+                "case_sets": dict(sorted(row["case_sets"].items())),
+                "case_styles": dict(sorted(row["case_styles"].items())),
+                "cases": dict(sorted(row["cases"].items())),
+            }
+        )
+    families.sort(key=lambda item: item["family_id"])
+    total = len(results)
+    passed = sum(1 for item in results if item.get("ok"))
+    return {
+        "kind": "llm_family_summary",
+        "schema_version": "llm-family-summary-v1",
+        "started_at": started_at,
+        "ended_at": ended_at,
+        "condition": condition,
+        "config": {
+            "family": getattr(args, "family", []),
+            "gate_layer": getattr(args, "gate_layer", []),
+            "limit_per_family": getattr(args, "limit_per_family", 0),
+            "all_samples": getattr(args, "all_samples", False),
+            "sample": getattr(args, "sample", None),
+            "case_set": getattr(args, "case_set", "deterministic"),
+            "family_sets": str(getattr(args, "family_sets", LLM_FAMILY_SETS_PATH)),
+            "unseen_cases": str(getattr(args, "unseen_cases", UNSEEN_FAMILY_CASES_PATH)),
+        },
+        "summary": {
+            "family_count": len(families),
+            "total": total,
+            "passed": passed,
+            "failed": total - passed,
+            "generation_success_rate": round(passed / total, 6) if total else None,
+            "failure_types": summarize_failures(results),
+            "repair_failure_types": summarize_repair_failure_types(results),
+            "case_sets": summarize_field_counts(results, "case_set", "deterministic"),
+            "case_styles": summarize_field_counts(results, "case_style"),
+        },
+        "families": families,
+    }
+
+
+def _result_attempted_repair(item: dict[str, Any]) -> bool:
+    if item.get("repair_failure_types"):
+        return True
+    for phase in item.get("phase_timings") or []:
+        name = phase.get("phase") if isinstance(phase, dict) else ""
+        if isinstance(name, str) and name.startswith("repair_round_"):
+            return True
+    return False
 
 
 def browser_smoke_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -454,6 +933,9 @@ def write_report(
     failure_summary = summarize_failures(results)
     repair_failure_summary = summarize_repair_failure_types(results)
     phase_summary = summarize_phase_timings(results)
+    family_summary = build_family_summary(results, args=args, started_at=started_at, ended_at=ended_at)
+    family_summary_path = output_dir / "family_summary.json"
+    family_summary_path.write_text(json.dumps(family_summary, ensure_ascii=False, indent=2), encoding="utf-8")
     report = {
         "kind": "llm_benchmark_report",
         "cached": False,
@@ -470,6 +952,12 @@ def write_report(
             "browser_smoke": args.browser_smoke,
             "write_each": args.write_each,
             "concurrency": getattr(args, "concurrency", 1),
+            "family": getattr(args, "family", []),
+            "gate_layer": getattr(args, "gate_layer", []),
+            "limit_per_family": getattr(args, "limit_per_family", 0),
+            "case_set": getattr(args, "case_set", "deterministic"),
+            "family_sets": str(getattr(args, "family_sets", LLM_FAMILY_SETS_PATH)),
+            "unseen_cases": str(getattr(args, "unseen_cases", UNSEEN_FAMILY_CASES_PATH)),
             "benchmark_condition": benchmark_condition(args),
             "llm": llm_config(),
             "model": _model_name(),
@@ -481,6 +969,10 @@ def write_report(
         "avg_duration_s": average_duration(results),
         "failure_summary": failure_summary,
         "repair_failure_summary": repair_failure_summary,
+        "case_set_summary": summarize_field_counts(results, "case_set", "deterministic"),
+        "case_style_summary": summarize_field_counts(results, "case_style"),
+        "family_summary_path": str(family_summary_path),
+        "family_summary": family_summary["families"],
         "phase_summary": phase_summary,
         "browser_smoke": browser_checks or [],
         "results": results,
@@ -498,11 +990,12 @@ def write_report(
         f"- 失败：{total - passed}",
         f"- 通过率：{passed / total:.2%}" if total else "- 通过率：N/A",
         f"- 平均耗时：{average_duration(results)}s/case",
+        f"- Case set：{getattr(args, 'case_set', 'deterministic')}",
         f"- 严格 warning：{'开启' if args.strict_warnings else '关闭'}",
         f"- 浏览器检查：{'开启' if args.browser_smoke else '关闭'}",
         "",
-        "| Case | Sample | Family | Status | Failure | Duration | Last Phase | Artifact |",
-        "|---|---:|---|---|---|---:|---|---|",
+        "| Case | Sample | Family | Case Set | Style | Status | Failure | Duration | Last Phase | Artifact |",
+        "|---|---:|---|---|---|---|---|---:|---|---|",
     ]
     for item in results:
         status = "PASS" if item.get("ok") else "FAIL"
@@ -512,13 +1005,34 @@ def write_report(
         elapsed = item.get("last_phase_elapsed_s")
         last_phase_text = f"{last} ({elapsed}s)" if elapsed else str(last)
         lines.append(
-            f"| {item['case_id']} | {item['sample_index']} | {item['family']} | {status} | "
+            f"| {item['case_id']} | {item['sample_index']} | {item['family']} | "
+            f"{item.get('case_set', 'deterministic')} | {item.get('case_style', '')} | {status} | "
             f"{failure} | {item.get('duration_s', 0)}s | {last_phase_text} | {artifact} |"
         )
     if phase_summary:
         lines.extend(["", "## Phase Timings", "", "| Phase | Count | Avg | Max |", "|---|---:|---:|---:|"])
         for phase, stat in phase_summary.items():
             lines.append(f"| {phase} | {stat['count']} | {stat['avg_s']}s | {stat['max_s']}s |")
+    if family_summary["families"]:
+        lines.extend(
+            [
+                "",
+                "## Family Summary",
+                "",
+                "| Family | Total | Pass Rate | Repair Success | Failure Types | Case Sets | Styles |",
+                "|---|---:|---:|---:|---|---|---|",
+            ]
+        )
+        for family in family_summary["families"]:
+            repair_rate = family["repair_success_rate"]
+            repair_text = "N/A" if repair_rate is None else f"{repair_rate:.2%}"
+            failure_text = ", ".join(f"{key}:{value}" for key, value in family["failure_types"].items())
+            set_text = ", ".join(f"{key}:{value}" for key, value in family["case_sets"].items())
+            style_text = ", ".join(f"{key}:{value}" for key, value in family["case_styles"].items())
+            lines.append(
+                f"| {family['family']} | {family['total']} | {family['generation_success_rate']:.2%} | "
+                f"{repair_text} | {failure_text} | {set_text} | {style_text} |"
+            )
     if browser_checks:
         lines.extend(["", "## Browser Smoke", "", "| HTML | Status | Canvas Chars |", "|---|---|---:|"])
         for item in browser_checks:
@@ -541,6 +1055,23 @@ def main() -> int:
     parser.add_argument("--fail-fast", action="store_true", help="遇到第一个失败立即退出")
     parser.add_argument("--write-each", action=argparse.BooleanOptionalAction, default=True, help="每个样例结束后立即写入当前 report")
     parser.add_argument("--concurrency", type=int, default=1, help="并发运行的样例数；每个样例仍有独立 timeout")
+    parser.add_argument("--family", action="append", default=[], help="只运行指定 family_id 或中文 family 名，可重复传入")
+    parser.add_argument(
+        "--gate-layer",
+        action="append",
+        default=[],
+        choices=["smoke", "family_core", "expansion", "property", "llm_eval"],
+        help="只运行指定 gate layer，可重复传入",
+    )
+    parser.add_argument("--limit-per-family", type=int, default=0, help="每个 family 最多运行多少个样例；0 表示不限制")
+    parser.add_argument(
+        "--case-set",
+        default="deterministic",
+        choices=["deterministic", "unseen"],
+        help="选择 deterministic fixture 或独立 unseen family case registry。",
+    )
+    parser.add_argument("--family-sets", type=Path, default=LLM_FAMILY_SETS_PATH, help="LLM benchmark family split 配置")
+    parser.add_argument("--unseen-cases", type=Path, default=UNSEEN_FAMILY_CASES_PATH, help="unseen family case 配置")
     parser.add_argument(
         "--condition",
         default="algolab_full",
@@ -548,16 +1079,31 @@ def main() -> int:
         help="写入 report 的实验条件标签；不改变主 pipeline 行为。",
     )
     args = parser.parse_args()
+    if args.limit_per_family < 0:
+        raise SystemExit("--limit-per-family 不能为负数")
+    args.family_sets_config = load_llm_family_sets(args.family_sets)
+    family_set_errors = validate_llm_family_sets(args.family_sets_config)
+    if family_set_errors:
+        raise SystemExit("LLM family sets 配置无效：\n" + "\n".join(family_set_errors))
+    args.unseen_cases_config = None
+    if args.case_set == "unseen":
+        args.unseen_cases_config = load_unseen_family_cases(args.unseen_cases)
+        unseen_errors = validate_unseen_family_cases(args.unseen_cases_config)
+        if unseen_errors:
+            raise SystemExit("Unseen family cases 配置无效：\n" + "\n".join(unseen_errors))
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     started_at = datetime.now().isoformat(timespec="seconds")
     results: list[dict[str, Any]] = []
-    cases = selected_cases(set(args.case) if args.case else None)
-    tasks = [
-        (case, sample_index, sample)
-        for case in cases
-        for sample_index, sample in selected_samples(case, args)
-    ]
+    cases = selected_cases(
+        set(args.case) if args.case else None,
+        families=set(args.family) if args.family else None,
+        gate_layers=set(args.gate_layer) if args.gate_layer else None,
+        family_sets=args.family_sets_config,
+        case_set=args.case_set,
+        unseen_cases_config=args.unseen_cases_config,
+    )
+    tasks = selected_tasks(cases, args)
 
     def handle_result(result: dict[str, Any]) -> bool:
         results.append(result)

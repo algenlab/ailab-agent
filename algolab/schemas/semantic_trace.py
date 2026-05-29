@@ -61,6 +61,29 @@ class Interaction(BaseModel):
     options: list[str] = Field(default_factory=list)
     answer: Any = None
     explanation: str = ""
+    wrong_explanation: str = ""
+    option_explanations: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("prompt", "explanation", "wrong_explanation", mode="before")
+    @classmethod
+    def none_text_to_empty(cls, value: Any) -> Any:
+        if value is None:
+            return ""
+        return value
+
+    @field_validator("prompt", "explanation", "wrong_explanation")
+    @classmethod
+    def strip_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("option_explanations", mode="before")
+    @classmethod
+    def normalize_option_explanations(cls, value: Any) -> Any:
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            return value
+        return {str(key): str(item).strip() for key, item in value.items() if item is not None}
 
 
 class TeachingStep(BaseModel):

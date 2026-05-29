@@ -47,6 +47,24 @@ def string_find_reference(input_data: dict[str, Any]) -> int:
     return input_data["text"].find(input_data["pattern"])
 
 
+def string_unique_window_reference(input_data: dict[str, Any]) -> int:
+    text = input_data["text"]
+    best = 0
+    for left in range(len(text) + 1):
+        seen: set[str] = set()
+        for right in range(left, len(text)):
+            if text[right] in seen:
+                break
+            seen.add(text[right])
+            best = max(best, right - left + 1)
+    return best
+
+
+def trie_prefix_count_reference(input_data: dict[str, Any]) -> int:
+    prefix = input_data["prefix"]
+    return sum(1 for word in input_data["words"] if word.startswith(prefix))
+
+
 def sorted_property_reference(input_data: dict[str, Any]) -> dict[str, Any]:
     nums = list(input_data["nums"])
     return {

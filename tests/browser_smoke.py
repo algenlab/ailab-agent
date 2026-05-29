@@ -15,6 +15,8 @@ from tests.fixtures import (
     fixture_artifact,
     golden_visual_artifact,
     golden_visual_matrix,
+    phase17_visual_pattern_artifact,
+    phase17_visual_pattern_matrix,
 )
 
 
@@ -366,6 +368,7 @@ def _check_golden_visual_matrix_page(page, path: Path):
     _check_dependency_click_details(page, path)
     _check_regeneration_and_variant_entry(page, path)
     _check_variant_comparison_entry(page, path)
+    _check_phase17_interaction_learning_enhancements(page, path)
     for example in golden_visual_matrix():
         page.locator("#tabs .tab").filter(has_text=example["name"]).first.click()
         page.wait_for_timeout(120)
@@ -393,6 +396,103 @@ def _check_golden_visual_matrix_page(page, path: Path):
             assert page.locator("#canvas").inner_text().strip(), f"{path}: {example['id']} 切换后主画布为空"
             page.locator("#range").evaluate("(el) => { el.value = 0; el.dispatchEvent(new Event('input', { bubbles: true })); }")
             page.wait_for_timeout(80)
+
+
+def _check_phase17_interaction_learning_enhancements(page, path: Path):
+    page.set_viewport_size({"width": 1365, "height": 900})
+    page.goto(path.resolve().as_uri())
+    page.wait_for_timeout(500)
+
+    page.locator("#tabs .tab").filter(has_text="不同路径").first.click()
+    page.wait_for_timeout(80)
+    formula_index = page.evaluate(
+        """() => frames().findIndex(f => f.teaching && f.teaching.formula && (f.evidence?.deps || []).length)"""
+    )
+    assert formula_index >= 0, f"{path}: 找不到可展开公式帧"
+    before_trace = page.evaluate("() => JSON.stringify(frames())")
+    page.evaluate("(i) => go(i)", formula_index)
+    page.wait_for_timeout(80)
+    details = page.locator("#teaching .formula-expander").first
+    assert details.count() == 1, f"{path}: 缺少公式展开控件"
+    assert details.get_attribute("data-source") == "teaching/evidence/SceneGraph", f"{path}: 公式展开来源标记异常"
+    details.locator("summary").click()
+    page.wait_for_timeout(80)
+    formula_text = details.inner_text()
+    for phrase in ("公式", "目标", "依赖", "来源", "只读当前 trace"):
+        assert phrase in formula_text, f"{path}: 公式展开缺少 {phrase}: {formula_text}"
+    assert page.evaluate("() => JSON.stringify(frames())") == before_trace, f"{path}: 公式展开修改了 trace"
+
+    page.locator("#tabs .tab").filter(has_text="二分查找").first.click()
+    page.wait_for_timeout(80)
+    choice_info = page.evaluate(
+        """() => {
+            const index = frames().findIndex(f => {
+                const interaction = f.interaction || {};
+                return interaction.type === 'choice'
+                    && interaction.option_explanations
+                    && Object.keys(interaction.option_explanations).length;
+            });
+            const interaction = frames()[index].interaction;
+            const wrong = (interaction.options || []).find(option => String(option) !== String(interaction.answer));
+            return { index, wrong, text: interaction.option_explanations[String(wrong)] };
+        }"""
+    )
+    assert choice_info["index"] >= 0 and choice_info["wrong"], f"{path}: 找不到带错误选项解释的 choice"
+    before_choice_trace = page.evaluate("() => JSON.stringify(frames())")
+    page.evaluate("(i) => go(i)", choice_info["index"])
+    page.wait_for_timeout(80)
+    page.locator("#interaction button").filter(has_text=choice_info["wrong"]).first.click()
+    page.wait_for_timeout(80)
+    feedback = page.locator("#feedback")
+    feedback_text = feedback.inner_text()
+    assert "错误选项解释" in feedback_text, f"{path}: 错误反馈没有明确错误选项解释: {feedback_text}"
+    assert str(choice_info["text"]) in feedback_text, f"{path}: 错误反馈未使用 trace 中的 option_explanations: {feedback_text}"
+    assert feedback.get_attribute("data-source") == "interaction.option_explanations", (
+        f"{path}: 错误反馈来源不是 interaction.option_explanations"
+    )
+    assert feedback.get_attribute("data-correct") == "false", f"{path}: 错误反馈未标记 data-correct=false"
+    assert page.evaluate("() => JSON.stringify(frames())") == before_choice_trace, f"{path}: 错误选项反馈修改了 trace"
+
+
+def _check_phase17_visual_pattern_page(page, path: Path):
+    _check_page(page, path)
+    page.set_viewport_size({"width": 1365, "height": 900})
+    page.wait_for_timeout(80)
+    required_selectors = {
+        "dp_formula": (".dp-formula-substitution", ".dependency-flow"),
+        "graph_relax": (".graph-visual-pattern", ".edge-label"),
+        "string_alignment": (".string-alignment-card", ".string-row", ".visual-char.window"),
+        "tree_return": (".tree-return-pattern", ".return-bubble"),
+        "backtracking_choice": (".backtracking-pattern",),
+        "range_structure": (".range-structure-pattern",),
+        "network_flow": (".network-flow-pattern", ".edge-label"),
+    }
+    for item in phase17_visual_pattern_matrix():
+        variant_id = str(item["id"])
+        page.locator("#tabs .tab").filter(has_text=str(item["name"])).first.click()
+        page.wait_for_timeout(100)
+        lookup_patterns = [pattern for pattern in item["patterns"] if pattern != "range_structure"] or list(item["patterns"])
+        frame_index = page.evaluate(
+            """(patterns) => {
+                const wanted = new Set(patterns);
+                const allFrames = typeof frames === 'function' ? frames() : [];
+                return allFrames.findIndex(frame => (frame.objects || []).some(obj => {
+                    const meta = obj.meta || {};
+                    const raw = Array.isArray(meta.visual_patterns) ? meta.visual_patterns : (meta.visual_patterns ? [meta.visual_patterns] : []);
+                    if (meta.visual_pattern) raw.push(meta.visual_pattern);
+                    return raw.some(item => wanted.has(String(item)));
+                }));
+            }""",
+            lookup_patterns,
+        )
+        assert frame_index >= 0, f"{path}: {variant_id} 找不到视觉模式帧"
+        page.evaluate("(i) => go(i)", frame_index)
+        page.wait_for_timeout(100)
+        assert page.locator("#canvas .visual-patterns").count() >= 1, f"{path}: {variant_id} 缺少族级视觉模式面板"
+        for selector in required_selectors[variant_id]:
+            assert page.locator(f"#canvas {selector}").count() >= 1, f"{path}: {variant_id} 缺少 {selector}"
+        if variant_id == "string_alignment":
+            assert page.locator("#canvas .string-row").count() >= 2, f"{path}: 字符串双行对齐行数不足"
 
 
 def _check_algorithm_family_page(page, path: Path):
@@ -541,8 +641,18 @@ def _check_demo_dashboard_filtering_and_links(page, index: Path, report: dict):
     page.wait_for_timeout(300)
     assert page.locator("#family-coverage").count() == 1, f"{index}: 缺少算法族覆盖区"
     coverage_text = page.locator("#family-coverage").inner_text()
-    for phrase in ("算法族覆盖", "HTML 链接", "artifact 链接"):
+    for phrase in (
+        "算法族能力等级",
+        "Answer",
+        "Process",
+        "Demo",
+        "Scene",
+        "HTML",
+        "Fallback / uncovered",
+        "artifact 链接",
+    ):
         assert phrase in coverage_text, f"{index}: 算法族覆盖区缺少 {phrase}: {coverage_text}"
+    assert page.locator("#support-level").count() == 1, f"{index}: 缺少 support level 过滤器"
     assert report.get("family_coverage"), f"{index}: dashboard.json 缺少 family_coverage"
 
     target_family = report["demos"][0]["family"]
@@ -563,6 +673,32 @@ def _check_demo_dashboard_filtering_and_links(page, index: Path, report: dict):
     assert all(item["artifactLinks"] >= 1 for item in visible), f"{index}: 可见卡片缺少 artifact 链接 {visible}"
 
     page.select_option("#family", "")
+    page.wait_for_timeout(100)
+    target_support_level = report["demos"][0]["support_level"]
+    expected_support_visible = sum(1 for demo in report["demos"] if demo["support_level"] == target_support_level)
+    page.select_option("#support-level", target_support_level)
+    page.wait_for_timeout(100)
+    support_visible = page.locator(".demo").evaluate_all(
+        """cards => cards
+            .filter(card => getComputedStyle(card).display !== 'none')
+            .map(card => ({
+                supportLevel: card.dataset.supportLevel,
+                links: Array.from(card.querySelectorAll('a')).map(link => link.getAttribute('href') || '')
+            }))"""
+    )
+    assert len(support_visible) == expected_support_visible, f"{index}: support level 筛选数量异常 {support_visible}"
+    assert all(item["supportLevel"] == target_support_level for item in support_visible), (
+        f"{index}: support level 筛选泄漏其他卡片 {support_visible}"
+    )
+    for item in support_visible:
+        links = item["links"]
+        assert any(link.endswith("artifact.json") for link in links), f"{index}: 缺少 artifact.json 链接 {links}"
+        assert any(link.endswith("validation_report.json") for link in links), f"{index}: 缺少 validation_report.json 链接 {links}"
+        assert any(link.endswith("demo_readiness_report.json") for link in links), (
+            f"{index}: 缺少 demo_readiness_report.json 链接 {links}"
+        )
+
+    page.select_option("#support-level", "")
     page.wait_for_timeout(100)
     visible_count = page.locator(".demo").evaluate_all(
         "cards => cards.filter(card => getComputedStyle(card).display !== 'none').length"
@@ -722,6 +858,7 @@ def run_all():
         family_path = save_html(algorithm_family_coverage_artifact(), Path(d) / "algorithm_family_coverage.html")
         benchmark_path = save_html(benchmark_coverage_artifact(), Path(d) / "benchmark_coverage.html")
         golden_path = save_html(golden_visual_artifact(), Path(d) / "golden_visual_matrix.html")
+        phase17_path = save_html(phase17_visual_pattern_artifact(), Path(d) / "phase17_visual_patterns.html")
         spatial_family = algorithm_family_coverage_artifact().model_copy(deep=True)
         from algolab.schemas.render_report import RenderReport
 
@@ -742,6 +879,7 @@ def run_all():
         paths.append(family_path)
         paths.append(benchmark_path)
         paths.append(golden_path)
+        paths.append(phase17_path)
         rerendered_static_dir = Path(d) / "rerendered_static"
 
         with sync_playwright() as p:
@@ -756,6 +894,8 @@ def run_all():
                 elif html.name == "golden_visual_matrix.html":
                     _check_golden_visual_matrix_page(page, check_html)
                     _check_golden_prediction_interactions(page, check_html)
+                elif html.name == "phase17_visual_patterns.html":
+                    _check_phase17_visual_pattern_page(page, check_html)
                 else:
                     _check_page(page, check_html, require_p1_layout=html.parent != Path("output"))
                 page.close()

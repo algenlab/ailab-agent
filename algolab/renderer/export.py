@@ -124,6 +124,10 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .conflict {{ border-color:var(--red)!important; background:#fef2f2!important; }}
 .matrix {{ display:grid; gap:4px; width:fit-content; max-width:100%; overflow:auto; }}
 .mcell {{ width:44px; height:34px; border:1px solid var(--line); border-radius:5px; background:#fff; display:grid; place-items:center; font-size:12px; font-weight:620; }}
+.mcell.pattern-dp-formula-substitution.role-dp-target {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
+.mcell.pattern-dp-formula-substitution.role-dp-dependency {{ border-color:#f59e0b; background:#fffbeb; }}
+.cell.pattern-string-window {{ border-color:#f59e0b; background:#fffbeb; }}
+.cell.pattern-string-alignment.role-cursor {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
 .stack {{ width:min(360px,100%); display:flex; flex-direction:column-reverse; gap:6px; }}
 .queue {{ max-width:100%; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }}
 .stack-item {{ border:1px solid var(--line); border-radius:6px; padding:9px 10px; background:#fff; }}
@@ -135,6 +139,15 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .node.hot circle {{ fill:#dbeafe; stroke:var(--blue); stroke-width:3; }}
 .node.dep circle {{ fill:#fffbeb; stroke:var(--amber); }}
 .node.answer circle {{ fill:#dcfce7; stroke:var(--green); }}
+.node.pattern-graph-frontier circle {{ stroke:#0f766e; stroke-width:3; }}
+.node.pattern-graph-path-highlight circle,.node.pattern-backtracking-choice circle {{ stroke:#16a34a; stroke-width:3; }}
+.node.pattern-backtracking-undo circle {{ stroke:#dc2626; stroke-dasharray:4 3; }}
+.edge.hot,.edge.dep,.edge.pattern-graph-relax-edge {{ stroke:#f59e0b; stroke-width:3; }}
+.edge.answer,.edge.pattern-graph-path-highlight,.edge.pattern-network-flow-augmenting-path {{ stroke:#16a34a; stroke-width:3; }}
+.edge.pattern-network-flow-edge-label {{ stroke:#2563eb; stroke-width:2.4; }}
+.edge-label {{ fill:#334155; font-size:12px; font-weight:700; paint-order:stroke; stroke:#fff; stroke-width:3px; }}
+.return-bubble rect {{ fill:#f0fdf4; stroke:#16a34a; stroke-width:1.2; rx:7; }}
+.return-bubble text {{ fill:#166534; font-size:11px; font-weight:700; }}
 .tree-svg,.geometry-svg {{ width:100%; min-height:330px; border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
 .geo-axis {{ stroke:#e5e7eb; stroke-width:1; }}
 .geo-segment {{ stroke:#64748b; stroke-width:2; fill:none; }}
@@ -152,6 +165,18 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .dependency-detail {{ border:1px solid #c7d2fe; border-radius:7px; background:#eef2ff; color:#312e81; padding:9px 10px; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }}
 .dependency-detail strong {{ display:block; margin-bottom:5px; color:#1e1b4b; font-size:12px; }}
 .dependency-detail p {{ margin:3px 0; }}
+.visual-patterns {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:8px; margin-top:10px; min-width:0; }}
+.visual-card {{ border:1px solid #dbeafe; border-radius:7px; background:#eff6ff; padding:9px 10px; color:#172033; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }}
+.visual-card strong {{ display:block; margin-bottom:5px; color:#1e3a8a; font-size:12px; }}
+.visual-card code {{ display:block; margin-top:4px; color:#1e3a8a; white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; }}
+.visual-chip-row {{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }}
+.visual-chip {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; padding:2px 7px; color:#1d4ed8; font-size:11px; }}
+.string-alignment {{ display:grid; gap:4px; overflow-x:auto; padding-bottom:2px; }}
+.string-row {{ display:flex; gap:4px; align-items:center; min-height:28px; }}
+.string-row-label {{ width:52px; flex:0 0 52px; color:#475569; font-weight:700; }}
+.visual-char {{ width:26px; height:24px; border:1px solid #cbd5e1; border-radius:5px; background:#fff; display:grid; place-items:center; font-weight:700; }}
+.visual-char.window {{ border-color:#f59e0b; background:#fffbeb; }}
+.visual-char.cursor {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
 .clickable-object {{ cursor:pointer; }}
 .clickable-object:hover {{ outline:2px solid #60a5fa; outline-offset:1px; }}
 .code {{ max-height:370px; background:#101827; color:#dbeafe; border-radius:7px; overflow:auto; }}
@@ -168,6 +193,9 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .interaction {{ border-left:3px solid var(--violet); background:#f5f3ff; padding:10px; border-radius:6px; }}
 .interaction button {{ display:block; width:100%; margin:6px 0; border:1px solid #ddd6fe; background:#fff; border-radius:6px; padding:8px; text-align:left; cursor:pointer; }}
 .feedback {{ margin-top:8px; color:#4c1d95; font-size:13px; }}
+.feedback.correct {{ color:#166534; }}
+.feedback.wrong {{ color:#991b1b; }}
+.feedback-source {{ display:block; margin-top:4px; color:var(--muted); font-size:11px; }}
 .teaching {{ display:grid; gap:8px; }}
 .teach-row {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; }}
 .teach-row.formula {{ border-color:#bfdbfe; background:#eff6ff; }}
@@ -177,6 +205,13 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .teach-row strong {{ display:block; margin-bottom:4px; color:#374151; font-size:12px; }}
 .teach-row p {{ margin:0; color:#172033; font-size:13px; line-height:1.45; }}
 .teach-row code {{ display:block; color:#1e3a8a; white-space:pre-wrap; overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.45; }}
+.formula-expander summary {{ cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px; list-style:none; }}
+.formula-expander summary::-webkit-details-marker {{ display:none; }}
+.formula-expander summary span {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; color:#1d4ed8; padding:2px 7px; font-size:11px; }}
+.formula-expansion {{ display:grid; gap:5px; margin-top:7px; }}
+.formula-expansion-row {{ display:grid; grid-template-columns:minmax(74px,110px) minmax(0,1fr); gap:7px; align-items:start; color:#172033; font-size:12px; line-height:1.4; }}
+.formula-expansion-row span:first-child {{ color:#475569; font-weight:700; }}
+.formula-expansion-row code {{ color:#1e3a8a; }}
 .change-summary {{ border:1px solid #bbf7d0; border-radius:6px; padding:8px; background:#f0fdf4; }}
 .change-summary strong {{ display:block; margin-bottom:5px; color:#166534; font-size:12px; }}
 .change-row {{ display:grid; gap:3px; padding:5px 0; border-top:1px solid #dcfce7; font-size:12px; line-height:1.4; }}
@@ -459,6 +494,7 @@ function renderTeachingCanvas(f) {{
   }} else {{
     html += renderLooseObjects(f.objects || [], f.marks || []);
   }}
+  html += renderVisualPatternPanel(f);
   html += renderDependencyFlow(f);
   html += '<div id="dependency-detail" class="dependency-detail">点击当前对象或依赖对象，查看它依赖谁、影响谁。</div>';
   html += '</div>';
@@ -471,6 +507,101 @@ function renderPrimitivePanel(c, children, marks) {{
 function primitivePanelClass(c) {{
   const layout = c && c.meta && c.meta.layout || 'generic';
   return `primitive-${{String(layout).replace(/[^a-zA-Z0-9_-]/g, '-')}}`;
+}}
+function renderVisualPatternPanel(f) {{
+  const cards = [
+    renderFormulaSubstitutionPattern(f),
+    renderGraphVisualPattern(f),
+    renderStringAlignmentPattern(f),
+    renderTreeReturnPattern(f),
+    renderBacktrackingPattern(f),
+    renderRangeStructurePattern(f),
+    renderNetworkFlowPattern(f),
+  ].filter(Boolean);
+  if (!cards.length) return '';
+  return `<section class="visual-patterns" aria-label="族级视觉模式">${{cards.join('')}}</section>`;
+}}
+function renderFormulaSubstitutionPattern(f) {{
+  const targets = objectsWithPattern(f, 'dp_formula_substitution').filter(o => o.meta && o.meta.pattern_role === 'dp_target');
+  const arrows = objectsWithPattern(f, 'dp_dependency_arrow');
+  if (!targets.length && !arrows.length) return '';
+  const formula = textOrEmpty(f.teaching && f.teaching.formula) || textOrEmpty((targets[0] && targets[0].meta && targets[0].meta.formula) || '');
+  const substitution = textOrEmpty((targets[0] && targets[0].meta && targets[0].meta.substitution) || '');
+  const chips = targets.map(o => visualChip(o.id)).join('') + arrows.slice(0, 4).map(o => visualChip(`${{o.source}} → ${{o.target}}`)).join('');
+  return `<article class="visual-card dp-formula-substitution" data-visual-pattern="dp_formula_substitution"><strong>DP 依赖代入</strong>${{formula ? `<code>${{esc(formula)}}</code>` : ''}}${{substitution ? `<code>${{esc(substitution)}}</code>` : ''}}<div class="visual-chip-row">${{chips}}</div></article>`;
+}}
+function renderGraphVisualPattern(f) {{
+  const frontier = objectsWithPattern(f, 'graph_frontier');
+  const relax = objectsWithPattern(f, 'graph_relax_edge');
+  const path = objectsWithPattern(f, 'graph_path_highlight');
+  if (!frontier.length && !relax.length && !path.length) return '';
+  return `<article class="visual-card graph-visual-pattern" data-visual-pattern="graph_relax"><strong>图 frontier / relax / path</strong><div class="visual-chip-row">${{frontier.slice(0, 6).map(o => visualChip(`frontier ${{o.id}}`)).join('')}}${{relax.slice(0, 6).map(o => visualChip(`relax ${{edgeDisplayLabel(o) || o.id}}`)).join('')}}${{path.slice(0, 6).map(o => visualChip(`path ${{o.id}}`)).join('')}}</div></article>`;
+}}
+function renderStringAlignmentPattern(f) {{
+  const rows = objectsWithPattern(f, 'string_alignment').filter(o => o.type === 'container' && o.meta && o.meta.layout === 'string');
+  if (rows.length < 2) return '';
+  const body = rows.map(row => {{
+    const cells = (f.objects || []).filter(o => o.parent === row.id && o.type === 'cell').sort((a,b)=>(a.index??0)-(b.index??0));
+    const offset = Math.max(0, Number(row.meta && row.meta.alignment_offset) || 0);
+    const spacer = offset ? `<span style="width:${{offset * 30}}px;flex:0 0 ${{offset * 30}}px"></span>` : '';
+    return `<div class="string-row" data-row-role="${{esc(row.meta && row.meta.row_role || row.id)}}"><span class="string-row-label">${{esc(row.label || row.id)}}</span>${{spacer}}${{cells.map(cell => `<span class="visual-char ${{objectMetaClass(cell)}} ${{objectPatterns(cell).includes('string_window') ? 'window' : ''}} ${{objectPatterns(cell).includes('string_alignment') ? 'cursor' : ''}}" data-object-id="${{esc(cell.id)}}">${{esc(cell.value)}}</span>`).join('')}}</div>`;
+  }}).join('');
+  const fallback = objectsWithPattern(f, 'string_fallback_arc').map(o => visualChip(`${{o.source}} ↩ ${{o.target}}`)).join('');
+  return `<article class="visual-card string-alignment-card" data-visual-pattern="string_alignment"><strong>字符串双行对齐 / 窗口</strong><div class="string-alignment">${{body}}</div>${{fallback ? `<div class="visual-chip-row">${{fallback}}</div>` : ''}}</article>`;
+}}
+function renderTreeReturnPattern(f) {{
+  const nodes = objectsWithPattern(f, 'tree_return_value').filter(o => o.meta && o.meta.return_value !== undefined);
+  if (!nodes.length) return '';
+  return `<article class="visual-card tree-return-pattern" data-visual-pattern="tree_return_value"><strong>树递归返回值</strong><div class="visual-chip-row">${{nodes.slice(0, 8).map(o => visualChip(`${{o.id}} = ${{compactValue(o.meta.return_value)}}`)).join('')}}</div></article>`;
+}}
+function renderBacktrackingPattern(f) {{
+  const choices = objectsWithPattern(f, 'backtracking_choice');
+  const undo = objectsWithPattern(f, 'backtracking_undo');
+  if (!choices.length && !undo.length) return '';
+  return `<article class="visual-card backtracking-pattern" data-visual-pattern="backtracking_choice"><strong>回溯选择 / 撤销</strong><div class="visual-chip-row">${{choices.slice(0, 6).map(o => visualChip(`选择 ${{o.id}}`)).join('')}}${{undo.slice(0, 6).map(o => visualChip(`撤销 ${{o.id}}`)).join('')}}</div></article>`;
+}}
+function renderRangeStructurePattern(f) {{
+  const query = objectsWithPattern(f, 'range_query_path');
+  const update = objectsWithPattern(f, 'range_update_path');
+  const cover = objectsWithPattern(f, 'range_cover_path');
+  if (!query.length && !update.length && !cover.length) return '';
+  return `<article class="visual-card range-structure-pattern" data-visual-pattern="range_structure"><strong>区间结构 query / update 路径</strong><div class="visual-chip-row">${{query.slice(0, 8).map(o => visualChip(`query ${{o.id}}`)).join('')}}${{update.slice(0, 8).map(o => visualChip(`update ${{o.id}}`)).join('')}}${{cover.slice(0, 8).map(o => visualChip(`cover ${{o.id}}`)).join('')}}</div></article>`;
+}}
+function renderNetworkFlowPattern(f) {{
+  const edges = objectsWithPattern(f, 'network_flow_edge_label').filter(o => o.type === 'edge');
+  if (!edges.length) return '';
+  return `<article class="visual-card network-flow-pattern" data-visual-pattern="network_flow_edge_label"><strong>网络流 residual / capacity</strong><div class="visual-chip-row">${{edges.slice(0, 8).map(o => visualChip(`${{o.id}} ${{edgeDisplayLabel(o)}}`)).join('')}}</div></article>`;
+}}
+function objectsWithPattern(f, pattern) {{
+  return (f.objects || []).filter(o => objectPatterns(o).includes(pattern));
+}}
+function objectPatterns(o) {{
+  const meta = o && o.meta || {{}};
+  const raw = Array.isArray(meta.visual_patterns) ? [...meta.visual_patterns] : (meta.visual_patterns ? [meta.visual_patterns] : []);
+  if (meta.visual_pattern) raw.push(meta.visual_pattern);
+  return [...new Set(raw.map(String).filter(Boolean))];
+}}
+function objectMetaClass(o) {{
+  const patternClasses = objectPatterns(o).map(value => `pattern-${{cssToken(value)}}`);
+  const role = o && o.meta && o.meta.pattern_role ? [`role-${{cssToken(o.meta.pattern_role)}}`] : [];
+  return [...patternClasses, ...role].join(' ');
+}}
+function cssToken(value) {{
+  return String(value || '').replace(/_/g, '-').replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase();
+}}
+function visualChip(value) {{
+  return `<span class="visual-chip">${{esc(value)}}</span>`;
+}}
+function edgeDisplayLabel(edge) {{
+  if (!edge) return '';
+  const meta = edge.meta || {{}};
+  if (edge.label) return String(edge.label);
+  if (meta.edge_label) return String(meta.edge_label);
+  const parts = [];
+  if (meta.flow !== undefined || meta.capacity !== undefined) parts.push(`${{meta.flow ?? 0}}/${{meta.capacity ?? '?'}}`);
+  if (meta.residual !== undefined) parts.push(`res ${{meta.residual}}`);
+  if (meta.weight !== undefined) parts.push(String(meta.weight));
+  return parts.join(' · ');
 }}
 function renderDependencyFlow(f) {{
   const edges = dependencyEdges(f);
@@ -847,7 +978,7 @@ function renderArray(c, cells, marks) {{
     if (!pointerByIndex.has(p.index)) pointerByIndex.set(p.index, []);
     pointerByIndex.get(p.index).push(p);
   }}
-  const cellHtml = cells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('');
+  const cellHtml = cells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('');
   const pointerHtml = cells.map(o => `<div class="pointer-slot">${{(pointerByIndex.get(o.index) || []).map(p => `<span class="pointer-tag clickable-object" ${{clickableAttrs(p.id)}}>${{esc(p.label || p.id.replace('pointer:',''))}}</span>`).join('')}}</div>`).join('');
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="array-wrap"><div class="array">${{cellHtml}}</div><div class="pointer-row" style="grid-template-columns:repeat(${{Math.max(cells.length,1)}},42px)">${{pointerHtml}}</div></div></div>`;
 }}
@@ -858,7 +989,7 @@ function renderMatrix(c, cells, marks) {{
   let body = '';
   for (let r=0; r<rows; r++) for (let col=0; col<cols; col++) {{
     const o = by.get(`${{r}},${{col}}`) || {{id:'', value:''}};
-    body += `<div class="mcell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}>${{esc(o.value)}}</div>`;
+    body += `<div class="mcell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}>${{esc(o.value)}}</div>`;
   }}
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="matrix" style="grid-template-columns:repeat(${{Math.max(cols,1)}},44px)">${{body}}</div></div>`;
 }}
@@ -872,7 +1003,7 @@ function renderHeap(c, cells, marks) {{
   while (idx < cells.length) {{
     const count = Math.pow(2, level);
     const levelCells = cells.slice(idx, idx + count);
-    html += `<div class="heap-level">${{levelCells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('')}}</div>`;
+    html += `<div class="heap-level">${{levelCells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('')}}</div>`;
     idx += count; level += 1;
   }}
   html += '</div></div>';
@@ -880,23 +1011,23 @@ function renderHeap(c, cells, marks) {{
 }}
 function renderStack(c, cells, marks) {{
   cells.sort((a,b)=>(a.index??0)-(b.index??0));
-  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="stack">${{cells.map(o => `<div class="stack-item clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}>${{esc(o.value)}}</div>`).join('')}}</div></div>`;
+  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="stack">${{cells.map(o => `<div class="stack-item clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}>${{esc(o.value)}}</div>`).join('')}}</div></div>`;
 }}
 function renderQueue(c, cells, marks) {{
   cells.sort((a,b)=>(a.index??0)-(b.index??0));
-  const body = cells.map((o,i) => `<div class="cell clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{i===0?'头':i===cells.length-1?'尾':o.index}}</span>${{esc(o.value)}}</div>`).join('');
+  const body = cells.map((o,i) => `<div class="cell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{i===0?'头':i===cells.length-1?'尾':o.index}}</span>${{esc(o.value)}}</div>`).join('');
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="queue">${{body}}</div></div>`;
 }}
 function renderMap(c, children, marks) {{
   const rows = children.filter(o => o.id !== c.id && o.type !== 'arrow');
-  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="mapgrid">${{rows.map(o => `<div class="maprow clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(typeof o.value === 'object' ? JSON.stringify(o.value) : o.value)}}</span></div>`).join('')}}</div></div>`;
+  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="mapgrid">${{rows.map(o => `<div class="maprow clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(typeof o.value === 'object' ? JSON.stringify(o.value) : o.value)}}</span></div>`).join('')}}</div></div>`;
 }}
 function renderML(c, children, marks) {{
   const rows = children.filter(o => o.id !== c.id && o.type !== 'arrow' && o.type !== 'edge');
   const body = rows.map(o => {{
-    if (o.type === 'loss_curve') return `<div class="mlitem clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || 'loss')}}</strong>${{renderSparkline(o.value)}}</div>`;
+    if (o.type === 'loss_curve') return `<div class="mlitem clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || 'loss')}}</strong>${{renderSparkline(o.value)}}</div>`;
     const shape = o.meta && Array.isArray(o.meta.shape) && o.meta.shape.length ? `shape ${{o.meta.shape.join('×')}} · ` : '';
-    return `<div class="mlitem clickable-object ${{markClass(o.id, marks)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(shape + compactValue(o.value))}}</span></div>`;
+    return `<div class="mlitem clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><strong>${{esc(o.label || o.id)}}</strong><span>${{esc(shape + compactValue(o.value))}}</span></div>`;
   }}).join('');
   return `<div><h3 class="view-title">${{esc(c.label || 'ML state')}}</h3><div class="mlgrid">${{body}}</div></div>`;
 }}
@@ -924,13 +1055,18 @@ function renderGraph(c, children, marks) {{
   nodes.forEach((n,i)=>{{ const a=-Math.PI/2 + 2*Math.PI*i/Math.max(1,nodes.length); pos[n.id]=[cx+r*Math.cos(a),cy+r*Math.sin(a)]; }});
   const edgeSvg = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
-    return `<line class="edge clickable-object" ${{clickableAttrs(e.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+    const cls = `${{markClass(e.id, marks)}} ${{objectMetaClass(e)}}`;
+    return `<line class="edge clickable-object ${{cls}}" ${{clickableAttrs(e.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+  }}).join('');
+  const edgeLabels = edges.map(e => {{
+    const a=pos[e.source], b=pos[e.target], label=edgeDisplayLabel(e); if(!a||!b||!label) return '';
+    return `<text class="edge-label ${{objectMetaClass(e)}}" x="${{(a[0]+b[0])/2}}" y="${{(a[1]+b[1])/2 - 6}}" text-anchor="middle">${{esc(label)}}</text>`;
   }}).join('');
   const nodeSvg = nodes.map(n => {{
-    const p=pos[n.id]; const cls=markClass(n.id, marks);
+    const p=pos[n.id]; const cls=`${{markClass(n.id, marks)}} ${{objectMetaClass(n)}}`;
     return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="23"></circle><text text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text></g>`;
   }}).join('');
-  return `<div><h3 class="view-title">${{esc(c.label || '图')}}</h3><svg class="graph-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{nodeSvg}}</svg></div>`;
+  return `<div><h3 class="view-title">${{esc(c.label || '图')}}</h3><svg class="graph-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{edgeLabels}}${{nodeSvg}}</svg></div>`;
 }}
 function renderTree(c, children, marks, layout) {{
   const nodes = children.filter(o => o.type === 'node');
@@ -949,14 +1085,20 @@ function renderTree(c, children, marks, layout) {{
   nodes.forEach((n, i) => {{ if (!pos[n.id]) pos[n.id]=[(i+1)*w/(nodes.length+1), h-45]; }});
   const edgeSvg = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
-    return `<line class="edge clickable-object" ${{clickableAttrs(e.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+    const cls = `${{markClass(e.id, marks)}} ${{objectMetaClass(e)}}`;
+    return `<line class="edge clickable-object ${{cls}}" ${{clickableAttrs(e.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+  }}).join('');
+  const edgeLabels = edges.map(e => {{
+    const a=pos[e.source], b=pos[e.target], label=edgeDisplayLabel(e); if(!a||!b||!label) return '';
+    return `<text class="edge-label ${{objectMetaClass(e)}}" x="${{(a[0]+b[0])/2}}" y="${{(a[1]+b[1])/2 - 6}}" text-anchor="middle">${{esc(label)}}</text>`;
   }}).join('');
   const nodeSvg = nodes.map(n => {{
-    const p=pos[n.id]; const cls=markClass(n.id, marks);
-    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="22"></circle><text text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text></g>`;
+    const p=pos[n.id]; const cls=`${{markClass(n.id, marks)}} ${{objectMetaClass(n)}}`;
+    const bubble = n.meta && n.meta.return_value !== undefined ? `<g class="return-bubble" transform="translate(17,-34)"><rect x="-4" y="-12" width="${{Math.max(34, String(compactValue(n.meta.return_value)).length * 7 + 10)}}" height="20" rx="7"></rect><text x="3" y="2">${{esc(compactValue(n.meta.return_value))}}</text></g>` : '';
+    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="22"></circle><text text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text>${{bubble}}</g>`;
   }}).join('');
   const label = layout === 'trie' ? 'Trie' : layout === 'union_find' ? '并查集' : layout === 'recursion_tree' ? '递归树' : '树';
-  return `<div><h3 class="view-title">${{esc(c.label || label)}}</h3><svg class="tree-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{nodeSvg}}</svg></div>`;
+  return `<div><h3 class="view-title">${{esc(c.label || label)}}</h3><svg class="tree-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{edgeLabels}}${{nodeSvg}}</svg></div>`;
 }}
 function inferRoots(nodes, edges) {{
   const targets = new Set(edges.map(e => e.target));
@@ -1068,6 +1210,7 @@ function renderEvidence() {{
   const checks = validation.checks || [];
   const warnings = validation.warnings || [];
   const errors = validation.errors || [];
+  const degradations = validation.degradations || [];
   const renderReport = ARTIFACT.render_report || {{}};
   const testPassed = tests.filter(t => t.ok).length;
   const answerRows = [
@@ -1091,6 +1234,9 @@ function renderEvidence() {{
   }}
   debugHtml += `<div class="evidence-block"><strong>Contract tests</strong>${{tests.length ? evidenceLine('passed', `${{testPassed}}/${{tests.length}}`) + `<ul class="evidence-list">${{tests.slice(0, 6).map(renderContractTest).join('')}}${{tests.length > 6 ? `<li>还有 ${{tests.length - 6}} 条已省略</li>` : ''}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">当前 artifact 没有 contract 多输入测试。</p>'}}</div>`;
   debugHtml += `<div class="evidence-block"><strong>Pipeline checks</strong>${{checks.length ? `<ul class="evidence-list">${{checks.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">无 checks。</p>'}}</div>`;
+  if (degradations.length) {{
+    debugHtml += `<div class="evidence-block"><strong>Degradation policy</strong><ul class="evidence-list">${{degradations.map(item => `<li><span class="chip warn">${{esc(item.type || 'degraded')}}</span> ${{esc(item.reason || '')}}${{item.source ? ` <code>${{esc(item.source)}}</code>` : ''}}</li>`).join('')}}</ul></div>`;
+  }}
   if (warnings.length || errors.length) {{
     debugHtml += `<div class="evidence-block"><strong>Warnings / errors</strong><ul class="evidence-list">${{errors.map(x => `<li>错误：${{esc(x)}}</li>`).join('')}}${{warnings.map(x => `<li>警告：${{esc(x)}}</li>`).join('')}}</ul></div>`;
   }}
@@ -1260,22 +1406,61 @@ function teachingFieldRows(f) {{
     {{ key:'hint', label:'提示', value:teaching.hint || '', code:false }},
   ].filter(row => String(row.value || '').trim());
 }}
-function renderTeachingField(row) {{
+function renderTeachingField(row, f) {{
+  if (row.key === 'formula') return renderFormulaExpansion(f, row);
   const value = esc(row.value);
   const body = row.code ? `<code>${{value}}</code>` : `<p>${{value}}</p>`;
   return `<div class="teach-row ${{esc(row.key)}}"><strong>${{esc(row.label)}}</strong>${{body}}</div>`;
+}}
+function renderFormulaExpansion(f, row) {{
+  const evidence = f && f.evidence || {{}};
+  const process = evidence.process || {{}};
+  const targets = Array.isArray(evidence.targets) ? evidence.targets.filter(Boolean) : [];
+  const deps = Array.isArray(evidence.deps) ? evidence.deps.filter(Boolean) : [];
+  const rows = [
+    formulaExpansionRow('公式', row.value),
+    formulaExpansionRow('代入', formulaSubstitutionForFrame(f)),
+    formulaExpansionRow('目标', targets.join(', ')),
+    formulaExpansionRow('依赖', deps.join(', ')),
+    formulaExpansionRow('事件值', formulaValueSummary(evidence)),
+    formulaExpansionRow('过程核对', process.summary || ''),
+  ].filter(Boolean);
+  const checks = Array.isArray(process.checks) && process.checks.length
+    ? `<div class="formula-expansion-row"><span>检查项</span><code>${{esc(process.checks.map(item => [item.label, item.text].filter(Boolean).join('：')).join('；'))}}</code></div>`
+    : '';
+  return `<details class="teach-row formula formula-expander" data-trace-step="${{esc(f && f.step)}}" data-source="teaching/evidence/SceneGraph"><summary><strong>${{esc(row.label)}}</strong><span>展开</span></summary><code>${{esc(row.value)}}</code><div class="formula-expansion">${{rows.join('')}}${{checks}}<div class="formula-expansion-row"><span>来源</span><code>SceneGraph frame.teaching / frame.evidence / visual object meta，只读当前 trace。</code></div></div></details>`;
+}}
+function formulaExpansionRow(label, value) {{
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  return `<div class="formula-expansion-row"><span>${{esc(label)}}</span><code>${{esc(text)}}</code></div>`;
+}}
+function formulaSubstitutionForFrame(f) {{
+  const candidates = objectsWithPattern(f || {{}}, 'dp_formula_substitution')
+    .map(o => o.meta && o.meta.substitution)
+    .filter(value => String(value ?? '').trim());
+  if (candidates.length) return String(candidates[0]);
+  const teaching = f && f.teaching || {{}};
+  return teaching.substitution || '';
+}}
+function formulaValueSummary(evidence) {{
+  const parts = [];
+  if (evidence.before !== undefined) parts.push(`before=${{compactValue(evidence.before)}}`);
+  if (evidence.after !== undefined) parts.push(`after=${{compactValue(evidence.after)}}`);
+  if (evidence.value !== undefined) parts.push(`value=${{compactValue(evidence.value)}}`);
+  return parts.join(' · ');
 }}
 function teachingRows(f) {{
   const rows = teachingFieldRows(f);
   return rows.length ? rows : [{{ key:'what', label:'当前步骤', value:frameDescription(f) || frameTitle(f) || '继续执行算法步骤。', code:false }}];
 }}
 function renderTeaching(f) {{
-  $('teaching').innerHTML = `<div class="teaching">${{teachingRows(f).map(renderTeachingField).join('')}}${{renderChangeSummary(f)}}</div>`;
+  $('teaching').innerHTML = `<div class="teaching">${{teachingRows(f).map(row => renderTeachingField(row, f)).join('')}}${{renderChangeSummary(f)}}</div>`;
 }}
 function renderInteraction(interaction) {{
   if (!interaction) {{ $('interaction').innerHTML = '<p style="color:var(--muted);margin:0;">当前步骤没有交互题。</p>'; return; }}
   const opts = Array.isArray(interaction.options) ? interaction.options : [];
-  const choiceHtml = interaction.type === 'choice' ? opts.map(o => `<button onclick="checkChoice('${{encodeURIComponent(String(o))}}')">${{esc(o)}}</button>`).join('') : '';
+  const choiceHtml = interaction.type === 'choice' ? opts.map(o => `<button data-option="${{esc(o)}}" onclick="checkChoice('${{encodeURIComponent(String(o))}}')">${{esc(o)}}</button>`).join('') : '';
   const inputHtml = interaction.type === 'input' ? '<input id="free-answer" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"><button onclick="checkInput()">检查</button>' : '';
   const judgeHtml = interaction.type === 'judge' ? '<button onclick="checkJudge(true)">正确</button><button onclick="checkJudge(false)">错误</button>' : '';
   $('interaction').innerHTML = `<div class="interaction" data-interaction-type="${{esc(interaction.type || '')}}" data-trace-step="${{frame().step}}"><strong>${{esc(interaction.prompt || '思考题')}}</strong>${{choiceHtml}}${{inputHtml}}${{judgeHtml}}<div id="feedback" class="feedback"></div></div>`;
@@ -1284,17 +1469,56 @@ function checkChoice(encoded) {{
   const value = decodeURIComponent(encoded);
   const ans = frame().interaction.answer;
   const ok = Array.isArray(ans) ? ans.map(String).includes(value) : String(ans) === value;
-  $('feedback').textContent = (ok ? '正确。' : '再想想。') + (frame().interaction.explanation || '');
+  setFeedback(ok, ok ? correctFeedback(value) : wrongFeedback(value), value);
 }}
 function checkInput() {{
   const value = $('free-answer').value.trim();
   const ans = String(frame().interaction.answer ?? '').trim();
-  $('feedback').textContent = (value === ans ? '正确。' : `参考答案：${{ans}}。`) + (frame().interaction.explanation || '');
+  const ok = value === ans;
+  setFeedback(ok, ok ? correctFeedback(value) : `参考答案：${{ans}}。${{wrongFeedback(value)}}`, value);
 }}
 function checkJudge(value) {{
   const ans = frame().interaction.answer;
   const expected = ans === true || String(ans).toLowerCase() === 'true' || String(ans) === '正确';
-  $('feedback').textContent = (value === expected ? '正确。' : '再想想。') + (frame().interaction.explanation || '');
+  setFeedback(value === expected, value === expected ? correctFeedback(value) : wrongFeedback(value), value);
+}}
+function correctFeedback(value) {{
+  const interaction = frame().interaction || {{}};
+  const optionText = optionExplanation(interaction, value);
+  return optionText || interaction.explanation || '';
+}}
+function wrongFeedback(value) {{
+  const interaction = frame().interaction || {{}};
+  const teaching = frame().teaching || {{}};
+  return optionExplanation(interaction, value)
+    || interaction.wrong_explanation
+    || teaching.common_mistake
+    || interaction.explanation
+    || '这一步没有提供针对该错误选项的解释。';
+}}
+function optionExplanation(interaction, value) {{
+  const explanations = interaction && interaction.option_explanations || {{}};
+  const key = String(value);
+  if (Object.prototype.hasOwnProperty.call(explanations, key)) return String(explanations[key] || '');
+  return '';
+}}
+function feedbackSource(value, ok) {{
+  const interaction = frame().interaction || {{}};
+  const teaching = frame().teaching || {{}};
+  const explanations = interaction.option_explanations || {{}};
+  if (Object.prototype.hasOwnProperty.call(explanations, String(value))) return 'interaction.option_explanations';
+  if (!ok && interaction.wrong_explanation) return 'interaction.wrong_explanation';
+  if (!ok && teaching.common_mistake) return 'teaching.common_mistake';
+  return 'interaction.explanation';
+}}
+function setFeedback(ok, message, value) {{
+  const node = $('feedback');
+  if (!node) return;
+  const source = feedbackSource(value, ok);
+  node.className = `feedback ${{ok ? 'correct' : 'wrong'}}`;
+  node.dataset.source = source;
+  node.dataset.correct = ok ? 'true' : 'false';
+  node.innerHTML = `${{ok ? '正确。' : '错误选项解释：'}}${{esc(message || '')}}<span class="feedback-source">来源：${{esc(source)}}，只读当前 SceneGraph interaction / teaching。</span>`;
 }}
 function renderCode(code, info) {{
   const lines = String(code || '').split('\\n');

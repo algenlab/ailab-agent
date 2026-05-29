@@ -353,9 +353,10 @@ seen['2']           -> seen[2]
 字段含义：
 
 - `submode`：必填，当前支持 `bfs`、`dfs`、`dijkstra`、`topological_sort`、`mst`、`tarjan`、`network_flow`。
+- P13.3 后基础图和最短路/MST 的强校验还支持 `connected_components`、`bipartite_coloring`、`bellman_ford`、`floyd_warshall`、`zero_one_bfs`。
 - `source` / `sink`：源点和汇点，BFS/DFS/Dijkstra/网络流使用。
 - `expected_nodes`：小图 full-trace 必须覆盖的节点。
-- `expected_relax_edges`：Dijkstra 必须记录 relax 的边。
+- `expected_relax_edges`：Dijkstra、Bellman-Ford、0-1 BFS 必须记录 relax 的边。
 - `expected_edges`：MST 必须记录选择或拒绝的边。
 - `expected_paths`：网络流必须记录的增广路径。
 
@@ -363,10 +364,13 @@ seen['2']           -> seen[2]
 
 - BFS：起点入队、出队、检查边、首次访问、距离更新。
 - DFS：进入节点、检查边、递归进入、退出节点。
+- 连通分量：每个未访问起点开启新分量，节点只能进入一个分量，分量覆盖必须等于图中节点集合。
+- 二分图染色：每个未染色连通块从颜色 0 开始，边两端颜色必须相反，重复访问不能改色。
 - 拓扑：入度变化、入队原因、弹出顺序。
 - Dijkstra：堆弹出、忽略过期项、relax 前后距离。
 - Bellman-Ford：轮次、边松弛、是否变化。
 - Floyd：`k` 阶段和 `dist[i][k] + dist[k][j]` 依赖。
+- 0-1 BFS：双端队列 frontier，0 权边松弛进队首，1 权边松弛进队尾，dist 只能按 0/1 权重更新。
 - Kruskal：排序边、查找根、选边/弃边原因。
 - Tarjan：`dfn`、`low`、stack、SCC 形成。
 - 网络流：增广路径、瓶颈、flow/capacity 更新。
@@ -375,7 +379,12 @@ seen['2']           -> seen[2]
 
 - BFS 缺少 queue/frontier、pop、边检查、首次访问，或出现重复首次访问、错误 dist、queue 跳变。
 - DFS 缺少 stack / recursion frame frontier，或缺少 `frame:*` 的 enter/exit。
+- 连通分量缺少分量开始/收集事件、同一节点进入多个分量，或最终分量集合与图不一致。
+- 二分图染色缺少 color state、相邻点同色，或重复访问时颜色不连续。
 - Dijkstra 缺少 heap/frontier、edge relax、`old_dist`、`new_dist`、parent/predecessor，或对负权输入没有拒绝 / 降级说明。
+- Bellman-Ford 缺少 round/iteration、relax 前后距离，或边松弛结果与 `old_dist + weight` 不一致。
+- Floyd-Warshall 缺少 `k` 阶段、矩阵 state 或 `dist[i][k] + dist[k][j]` 依赖。
+- 0-1 BFS 缺少 deque/frontier、0/1 权重约束、relax 前后距离或 deque 方向证据。
 - 拓扑排序缺少 indegree 变化或入队原因。
 - MST 缺少选边 / 弃边原因或 union-find 状态。
 - Tarjan 缺少 dfn、low、stack 更新或 SCC component 弹栈事件。
@@ -536,7 +545,50 @@ seen['2']           -> seen[2]
 - union-find 不记录 parent 变化。
 - 链表只给最终 next 关系。
 
-### 8.8 数学、位运算和几何
+### 8.8 哈希、排序和贪心
+
+适用：
+
+- Two Sum、频次统计、前缀和计数、插入排序、快速排序分区、快速选择、跳跃游戏、区间贪心。
+
+必须记录：
+
+- 哈希表：`seen` / `count` 等 map 当前状态，当前 key、命中状态、写入事件和答案依赖。
+- 排序：当前数组、`i` / `j` / `key` 等指针，比较、移动、写回事件，以及有序前缀证据。
+- 贪心：当前扫描位置、局部选择依据、当前最优状态和候选状态，例如跳跃游戏的 `reach`、`previous_reach`、`candidate_reach`。
+
+推荐哈希 `hash_contract`：
+
+```json
+{"submode": "two_sum"}
+```
+
+推荐排序 `sorting_contract`：
+
+```json
+{"submode": "insertion_sort"}
+```
+
+推荐贪心 `greedy_contract`：
+
+```json
+{"submode": "jump_game"}
+```
+
+启用这些合同后，process validator 会阻塞以下情况：
+
+- 哈希命中 `seen[key]` 前没有在 state map 中写入该 key。
+- Two Sum 的 `need`、命中状态或答案依赖与当前 `nums` / `target` 不一致。
+- 插入排序的有序前缀不升序，或最终结果不保持输入多重集。
+- 跳跃游戏的 `candidate_reach` / `reach` 不满足 `max(previous_reach, i + nums[i])`。
+
+禁止：
+
+- 哈希表只在自然语言中声明命中，不记录 `seen`。
+- 排序只给最终有序数组，缺少中间移动或比较。
+- 贪心只给最终布尔值，不记录局部选择依据。
+
+### 8.9 数学、位运算和几何
 
 适用：
 

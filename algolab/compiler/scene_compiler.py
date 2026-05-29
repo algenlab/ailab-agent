@@ -58,20 +58,24 @@ def compile_frame(
             )
         )
 
-    title = _title_for_event(event)
     teaching = _teaching_for_event(event)
+    objects = _dedupe_objects(objects)
+    _apply_visual_pattern_metadata(objects, event, state, teaching)
+    evidence = _evidence_for_event(event, previous_state or {}, state, teaching, total_steps=total_steps)
+    evidence["visual_patterns"] = _visual_patterns_for_frame(objects)
+    title = _title_for_event(event)
     return SceneFrame(
         step=event.step,
         title=title,
         description=event.reason,
         operation=event.op.value,
         code_line=event.code_line,
-        objects=_dedupe_objects(objects),
+        objects=objects,
         marks=marks,
         state=state,
         interaction=event.interaction.model_dump() if event.interaction else None,
         teaching=teaching,
-        evidence=_evidence_for_event(event, previous_state or {}, state, teaching, total_steps=total_steps),
+        evidence=evidence,
     )
 
 
@@ -656,7 +660,7 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
         elif _is_points_like(key, value):
             objects.extend(_points_objects(key, value))
         elif isinstance(value, str) and _is_string_view_key(key):
-            objects.extend(_string_objects(key, value))
+            objects.extend(_string_objects(key, value, state))
         elif _is_matrix(value):
             objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "matrix"}))
             for r, row in enumerate(value):
@@ -690,13 +694,19 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
                 objects.append(SceneObject(id=f"node:{node}", type=SceneObjectType.NODE, label=str(node), parent=key))
                 if isinstance(neighbors, list):
                     for nei in neighbors:
+                        edge_id = _neighbor_id(nei)
+                        if not edge_id:
+                            continue
+                        edge_meta = _edge_meta_for_state(state, str(node), edge_id)
                         objects.append(
                             SceneObject(
-                                id=f"edge:{node}->{nei}",
+                                id=f"edge:{node}->{edge_id}",
                                 type=SceneObjectType.EDGE,
                                 source=f"node:{node}",
-                                target=f"node:{nei}",
+                                target=f"node:{edge_id}",
                                 parent=key,
+                                label=str(edge_meta.get("edge_label", "")),
+                                meta=edge_meta,
                             )
                         )
         elif isinstance(value, dict):
@@ -801,10 +811,28 @@ def _dependency_arrows(event: SemanticEvent) -> list[SceneObject]:
     arrows: list[SceneObject] = []
     if not event.deps or not event.targets:
         return arrows
+    formula = _formula_for_event(event)
     for target in event.targets:
         for dep in event.deps:
             if dep.id.startswith("pointer:") or target.id.startswith("pointer:"):
                 continue
+            meta = {"visual_pattern": "dependency_flow", "visual_patterns": ["dependency_flow"]}
+            if _is_matrix_target(target.id) and _is_matrix_target(dep.id):
+                meta.update(
+                    {
+                        "visual_pattern": "dp_dependency",
+                        "visual_patterns": ["dependency_flow", "dp_dependency", "formula_substitution"],
+                        "formula": formula,
+                    }
+                )
+            elif dep.id.startswith("edge:") or (target.id.startswith("node:") and _has_graph_visual_state(event.state or {})):
+                meta.update(
+                    {
+                        "visual_pattern": "graph_relax",
+                        "visual_patterns": ["dependency_flow", "graph_relax"],
+                        "formula": formula,
+                    }
+                )
             arrows.append(
                 SceneObject(
                     id=f"arrow:{dep.id}->{target.id}:{event.step}",
@@ -812,9 +840,479 @@ def _dependency_arrows(event: SemanticEvent) -> list[SceneObject]:
                     source=dep.id,
                     target=target.id,
                     role="dependency",
+                    meta=meta,
                 )
             )
     return arrows
+
+
+def _has_graph_visual_state(state: dict[str, Any]) -> bool:
+    return (
+        isinstance(state.get("graph"), dict)
+        or isinstance(state.get("adjacency"), dict)
+        or isinstance(state.get("dist"), dict)
+        or isinstance(state.get("distance"), dict)
+        or _has_flow_state(state)
+    )
+
+
+def _apply_visual_pattern_metadata(
+    objects: list[SceneObject],
+    event: SemanticEvent,
+    state: dict[str, Any],
+    teaching: dict[str, Any],
+) -> None:
+    by_id = {obj.id: obj for obj in objects}
+    _tag_dp_visuals(by_id, event, state, teaching)
+    _tag_graph_visuals(objects, by_id, event, state)
+    _tag_string_visuals(objects, by_id, event, state)
+    _tag_tree_visuals(objects, by_id, event, state)
+    _tag_range_visuals(objects, by_id, event, state)
+    _tag_network_flow_visuals(objects, state)
+
+
+def _tag_dp_visuals(
+    by_id: dict[str, SceneObject],
+    event: SemanticEvent,
+    state: dict[str, Any],
+    teaching: dict[str, Any],
+) -> None:
+    targets = [target.id for target in event.targets if _is_matrix_target(target.id)]
+    deps = [dep.id for dep in event.deps if _is_matrix_target(dep.id)]
+    if not targets or not deps:
+        return
+    formula = _formula_for_event(event, teaching)
+    substitution = _dependency_values_text(state, deps)
+    for target in targets:
+        _add_visual_pattern(
+            by_id.get(target),
+            "dp_formula_substitution",
+            "dp_target",
+            formula=formula,
+            substitution=substitution,
+        )
+    for dep in deps:
+        _add_visual_pattern(
+            by_id.get(dep),
+            "dp_formula_substitution",
+            "dp_dependency",
+            formula=formula,
+        )
+    for arrow in by_id.values():
+        if arrow.type == SceneObjectType.ARROW and arrow.target in targets and arrow.source in deps:
+            _add_visual_pattern(arrow, "dp_dependency_arrow", "dependency", formula=formula, substitution=substitution)
+
+
+def _tag_graph_visuals(
+    objects: list[SceneObject],
+    by_id: dict[str, SceneObject],
+    event: SemanticEvent,
+    state: dict[str, Any],
+) -> None:
+    frontier = _frontier_nodes(state)
+    visited = _visited_nodes(state)
+    current = _current_node(state)
+    for node_id in frontier:
+        _add_visual_pattern(by_id.get(f"node:{node_id}"), "graph_frontier", "frontier")
+    for node_id in visited:
+        _add_visual_pattern(by_id.get(f"node:{node_id}"), "graph_visit_state", "visited")
+    if current:
+        _add_visual_pattern(by_id.get(f"node:{current}"), "graph_current_node", "current")
+
+    graphish = isinstance(state.get("dist"), dict) or isinstance(state.get("distance"), dict) or bool(frontier)
+    for dep in event.deps:
+        if dep.id.startswith("edge:") and graphish:
+            _add_visual_pattern(by_id.get(dep.id), "graph_relax_edge", "relax")
+    for target in event.targets:
+        if target.id.startswith("node:") and graphish:
+            _add_visual_pattern(by_id.get(target.id), "graph_relax_target", event.role or "target")
+
+    for edge_id in _path_edge_ids(state):
+        _add_visual_pattern(by_id.get(edge_id), "graph_path_highlight", "path")
+    for node_id in _path_node_ids(state):
+        _add_visual_pattern(by_id.get(f"node:{node_id}"), "graph_path_highlight", "path")
+
+    for obj in objects:
+        if obj.type != SceneObjectType.EDGE:
+            continue
+        if obj.meta.get("edge_label") or obj.meta.get("weight") is not None:
+            _add_visual_pattern(obj, "graph_edge_label", "edge_label")
+
+
+def _tag_string_visuals(
+    objects: list[SceneObject],
+    by_id: dict[str, SceneObject],
+    event: SemanticEvent,
+    state: dict[str, Any],
+) -> None:
+    string_containers = [obj for obj in objects if obj.type == SceneObjectType.CONTAINER and obj.meta.get("layout") == "string"]
+    if len(string_containers) >= 2:
+        for obj in string_containers:
+            _add_visual_pattern(obj, "string_alignment", str(obj.meta.get("row_role") or obj.id))
+    for target in [*(target.id for target in event.targets), *(dep.id for dep in event.deps)]:
+        if target.startswith(("text[", "pattern[", "s[", "t[", "string[")):
+            _add_visual_pattern(by_id.get(target), "string_alignment", "cursor")
+    for raw_id in _string_window_ids(state):
+        _add_visual_pattern(by_id.get(raw_id), "string_window", "window")
+    fallback = _string_fallback_edge(state)
+    if fallback:
+        src, dst = fallback
+        if src in by_id and dst in by_id:
+            objects.append(
+                SceneObject(
+                    id=f"arrow:{src}->{dst}:fallback:{event.step}",
+                    type=SceneObjectType.ARROW,
+                    source=src,
+                    target=dst,
+                    role="fallback",
+                    meta={
+                        "visual_pattern": "string_fallback_arc",
+                        "visual_patterns": ["string_alignment", "string_fallback_arc"],
+                    },
+                )
+            )
+
+
+def _tag_tree_visuals(
+    objects: list[SceneObject],
+    by_id: dict[str, SceneObject],
+    event: SemanticEvent,
+    state: dict[str, Any],
+) -> None:
+    return_values = _return_value_map(state)
+    for node_key, value in return_values.items():
+        obj = by_id.get(f"node:{node_key}") or by_id.get(str(node_key))
+        if obj is not None:
+            _add_visual_pattern(obj, "tree_return_value", "return_value", return_value=value)
+
+    if "return_value" in state:
+        for target in event.targets:
+            if target.id.startswith("node:"):
+                _add_visual_pattern(by_id.get(target.id), "tree_return_value", "return_value", return_value=state.get("return_value"))
+
+    recursion_nodes = {
+        obj.id
+        for obj in objects
+        if obj.type == SceneObjectType.NODE and _container_layout(by_id, obj.parent) == "recursion_tree"
+    }
+    if not recursion_nodes:
+        return
+    if event.op in {SemanticOp.MARK, SemanticOp.ENTER, SemanticOp.PUSH, SemanticOp.LINK}:
+        action = "choose"
+        pattern = "backtracking_choice"
+    elif event.op in {SemanticOp.UNMARK, SemanticOp.EXIT, SemanticOp.POP, SemanticOp.UNLINK}:
+        action = "undo"
+        pattern = "backtracking_undo"
+    else:
+        action = ""
+        pattern = ""
+    if not pattern:
+        return
+    for target in event.targets:
+        if target.id in recursion_nodes:
+            _add_visual_pattern(by_id.get(target.id), pattern, action, backtracking_action=action)
+
+
+def _tag_range_visuals(
+    objects: list[SceneObject],
+    by_id: dict[str, SceneObject],
+    event: SemanticEvent,
+    state: dict[str, Any],
+) -> None:
+    range_containers = [obj for obj in objects if obj.id in {"segment_tree", "fenwick_tree", "bit", "st"}]
+    if not range_containers and "segment_tree" not in state:
+        return
+    for container in range_containers:
+        _add_visual_pattern(container, "range_structure", "container")
+    for key, pattern, role in (
+        ("query_path", "range_query_path", "query"),
+        ("update_path", "range_update_path", "update"),
+        ("cover_path", "range_cover_path", "cover"),
+    ):
+        for node_id in _as_string_list(state.get(key)):
+            obj = by_id.get(node_id) or by_id.get(f"node:{node_id}") or by_id.get(f"bit[{node_id}]")
+            _add_visual_pattern(obj, pattern, role)
+    target_nodes = [target.id for target in event.targets if target.id.startswith("node:")]
+    dep_ids = [dep.id for dep in event.deps]
+    reason = event.reason or ""
+    if target_nodes and (any(dep.startswith("query[") for dep in dep_ids) or "查询" in reason):
+        for target in target_nodes:
+            _add_visual_pattern(by_id.get(target), "range_query_path", "query")
+            if event.op == SemanticOp.MARK or "覆盖" in reason:
+                _add_visual_pattern(by_id.get(target), "range_cover_path", "cover")
+    if target_nodes and (any(dep.startswith("update[") for dep in dep_ids) or "更新路径" in reason):
+        for target in target_nodes:
+            _add_visual_pattern(by_id.get(target), "range_update_path", "update")
+
+
+def _tag_network_flow_visuals(objects: list[SceneObject], state: dict[str, Any]) -> None:
+    if not _has_flow_state(state):
+        return
+    for obj in objects:
+        if obj.type != SceneObjectType.EDGE:
+            continue
+        if obj.meta.get("capacity") is not None or obj.meta.get("flow") is not None or obj.meta.get("residual") is not None:
+            _add_visual_pattern(obj, "network_flow_edge_label", "flow_edge")
+    for obj in objects:
+        if obj.id in _path_edge_ids(state):
+            _add_visual_pattern(obj, "network_flow_augmenting_path", "augmenting_path")
+
+
+def _visual_patterns_for_frame(objects: list[SceneObject]) -> list[dict[str, Any]]:
+    by_pattern: dict[str, dict[str, Any]] = {}
+    for obj in objects:
+        for pattern in _meta_patterns(obj.meta):
+            item = by_pattern.setdefault(pattern, {"pattern": pattern, "objects": [], "roles": []})
+            item["objects"].append(obj.id)
+            role = obj.meta.get("pattern_role")
+            if role:
+                item["roles"].append(str(role))
+    result = []
+    for item in by_pattern.values():
+        item["objects"] = sorted(set(item["objects"]))
+        item["roles"] = sorted(set(item["roles"]))
+        result.append(item)
+    return sorted(result, key=lambda item: item["pattern"])
+
+
+def _add_visual_pattern(obj: SceneObject | None, pattern: str, role: str = "", **extra: Any) -> None:
+    if obj is None or not pattern:
+        return
+    patterns = set(_meta_patterns(obj.meta))
+    patterns.add(pattern)
+    obj.meta["visual_patterns"] = sorted(patterns)
+    obj.meta.setdefault("visual_pattern", pattern)
+    if role:
+        obj.meta["pattern_role"] = role
+    for key, value in extra.items():
+        if value not in ("", None, []):
+            obj.meta[key] = value
+
+
+def _meta_patterns(meta: dict[str, Any]) -> list[str]:
+    patterns: list[str] = []
+    raw = meta.get("visual_patterns")
+    if isinstance(raw, list):
+        patterns.extend(str(item) for item in raw if str(item).strip())
+    elif isinstance(raw, str) and raw.strip():
+        patterns.append(raw.strip())
+    single = meta.get("visual_pattern")
+    if isinstance(single, str) and single.strip():
+        patterns.append(single.strip())
+    return patterns
+
+
+def _container_layout(by_id: dict[str, SceneObject], container_id: str) -> str:
+    container = by_id.get(container_id)
+    return str(container.meta.get("layout") or "") if container is not None else ""
+
+
+def _formula_for_event(event: SemanticEvent, teaching: dict[str, Any] | None = None) -> str:
+    if teaching and isinstance(teaching.get("formula"), str) and teaching.get("formula", "").strip():
+        return str(teaching.get("formula")).strip()
+    if event.teaching is not None and event.teaching.formula:
+        return event.teaching.formula
+    value = (event.state or {}).get("formula")
+    return str(value).strip() if isinstance(value, str) else ""
+
+
+def _frontier_nodes(state: dict[str, Any]) -> set[str]:
+    result: set[str] = set()
+    for key in ("frontier", "queue", "deque", "heap", "open_set"):
+        result.update(_as_string_list(state.get(key)))
+    return result
+
+
+def _visited_nodes(state: dict[str, Any]) -> set[str]:
+    visited = state.get("visited")
+    if isinstance(visited, dict):
+        return {str(key) for key, value in visited.items() if value}
+    return set(_as_string_list(visited))
+
+
+def _current_node(state: dict[str, Any]) -> str:
+    for key in ("current", "node", "u"):
+        value = state.get(key)
+        if value not in (None, ""):
+            return str(value)
+    return ""
+
+
+def _path_node_ids(state: dict[str, Any]) -> list[str]:
+    for key in ("path", "current_path", "augmenting_path"):
+        values = _as_string_list(state.get(key))
+        if values and not any("->" in value for value in values):
+            return values
+    return []
+
+
+def _path_edge_ids(state: dict[str, Any]) -> set[str]:
+    result: set[str] = set()
+    for key in ("path_edges", "relax_path", "augmenting_edges"):
+        for value in _as_string_list(state.get(key)):
+            result.add(value if value.startswith("edge:") else f"edge:{value}")
+    for key in ("path", "current_path", "augmenting_path"):
+        raw = state.get(key)
+        values = _as_string_list(raw)
+        if not values:
+            continue
+        if any("->" in value for value in values):
+            result.update(value if value.startswith("edge:") else f"edge:{value}" for value in values)
+        else:
+            result.update(f"edge:{src}->{dst}" for src, dst in zip(values, values[1:]))
+    return result
+
+
+def _as_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        if "nodes" in value:
+            return _as_string_list(value.get("nodes"))
+        if "path" in value:
+            return _as_string_list(value.get("path"))
+        if "from" in value and "to" in value:
+            return [f"{value.get('from')}->{value.get('to')}"]
+        return [str(key) for key, enabled in value.items() if enabled]
+    if isinstance(value, (list, tuple, set)):
+        result: list[str] = []
+        for item in value:
+            if isinstance(item, dict) and "from" in item and "to" in item:
+                result.append(f"{item.get('from')}->{item.get('to')}")
+            elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                result.append(f"{item[0]}->{item[1]}")
+            else:
+                result.append(str(item))
+        return result
+    return [str(value)]
+
+
+def _string_window_ids(state: dict[str, Any]) -> list[str]:
+    text_key = "text" if "text" in state else "s" if "s" in state else "string" if "string" in state else ""
+    if not text_key:
+        return []
+    bounds = _window_bounds(state)
+    if not bounds:
+        return []
+    start, end = bounds
+    return [f"{text_key}[{idx}]" for idx in range(max(0, start), max(start, end))]
+
+
+def _window_bounds(state: dict[str, Any]) -> tuple[int, int] | None:
+    raw = state.get("window")
+    if isinstance(raw, dict):
+        start = _as_int(raw.get("start", raw.get("left")))
+        end = _as_int(raw.get("end", raw.get("right")))
+        if start is not None and end is not None:
+            return start, end + 1 if "right" in raw and "end" not in raw else end
+    if isinstance(raw, (list, tuple)) and len(raw) >= 2:
+        start, end = _as_int(raw[0]), _as_int(raw[1])
+        if start is not None and end is not None:
+            return start, end
+    start = _as_int(state.get("window_start", state.get("left")))
+    end = _as_int(state.get("window_end", state.get("right")))
+    if start is None or end is None:
+        return None
+    return start, end + 1 if "right" in state and "window_end" not in state else end
+
+
+def _string_fallback_edge(state: dict[str, Any]) -> tuple[str, str] | None:
+    before = _as_int(state.get("fallback_from", state.get("j_before")))
+    after = _as_int(state.get("fallback_to", state.get("j_after")))
+    if before is None or after is None:
+        return None
+    key = "pattern" if "pattern" in state else "t" if "t" in state else ""
+    if not key:
+        return None
+    return f"{key}[{before}]", f"{key}[{after}]"
+
+
+def _string_cursor_for_key(key: str, state: dict[str, Any]) -> int | None:
+    if key in {"text", "s", "string"}:
+        return _as_int(state.get("i", state.get("text_index")))
+    if key in {"pattern", "t"}:
+        return _as_int(state.get("j", state.get("pattern_index")))
+    return None
+
+
+def _pattern_alignment_offset(state: dict[str, Any]) -> int | None:
+    explicit = _as_int(state.get("alignment_offset"))
+    if explicit is not None:
+        return explicit
+    i = _as_int(state.get("i", state.get("text_index")))
+    j = _as_int(state.get("j", state.get("pattern_index")))
+    if i is None or j is None:
+        return None
+    return i - j
+
+
+def _return_value_map(state: dict[str, Any]) -> dict[str, Any]:
+    for key in ("return_values", "returns", "node_returns"):
+        value = state.get(key)
+        if isinstance(value, dict):
+            return {str(k): v for k, v in value.items()}
+    return {}
+
+
+def _neighbor_id(value: Any) -> str:
+    if isinstance(value, dict):
+        for key in ("to", "target", "id", "node"):
+            if value.get(key) not in (None, ""):
+                return str(value.get(key))
+        return ""
+    if isinstance(value, (list, tuple)) and value:
+        return str(value[0])
+    return str(value)
+
+
+def _edge_meta_for_state(state: dict[str, Any], src: str, dst: str) -> dict[str, Any]:
+    meta: dict[str, Any] = {}
+    weight = _edge_metric_value(state, ("weights", "weight", "cost"), src, dst)
+    capacity = _edge_metric_value(state, ("capacity", "cap", "capacities"), src, dst)
+    flow = _edge_metric_value(state, ("flow", "flows"), src, dst)
+    residual = _edge_metric_value(state, ("residual", "residual_capacity", "residuals"), src, dst)
+    if weight is not None:
+        meta["weight"] = weight
+        meta["edge_label"] = str(weight)
+        meta["visual_pattern"] = "graph_edge_label"
+        meta["visual_patterns"] = ["graph_edge_label"]
+    if capacity is not None or flow is not None or residual is not None:
+        meta["capacity"] = capacity
+        meta["flow"] = flow
+        meta["residual"] = residual
+        label = _flow_label(flow, capacity, residual)
+        if label:
+            meta["edge_label"] = label
+        meta["visual_pattern"] = "network_flow_edge_label"
+        meta["visual_patterns"] = ["graph_edge_label", "network_flow_edge_label"]
+    return {key: value for key, value in meta.items() if value is not None}
+
+
+def _edge_metric_value(state: dict[str, Any], keys: tuple[str, ...], src: str, dst: str) -> Any:
+    for key in keys:
+        mapping = state.get(key)
+        if not isinstance(mapping, dict):
+            continue
+        for candidate in (f"{src}->{dst}", f"{src},{dst}", f"edge:{src}->{dst}"):
+            if candidate in mapping:
+                return mapping[candidate]
+        nested = mapping.get(src)
+        if isinstance(nested, dict) and dst in nested:
+            return nested[dst]
+    return None
+
+
+def _flow_label(flow: Any, capacity: Any, residual: Any) -> str:
+    pieces: list[str] = []
+    if flow is not None or capacity is not None:
+        pieces.append(f"{0 if flow is None else flow}/{capacity if capacity is not None else '?'}")
+    if residual is not None:
+        pieces.append(f"res {residual}")
+    return " · ".join(str(piece) for piece in pieces if str(piece))
+
+
+def _has_flow_state(state: dict[str, Any]) -> bool:
+    return any(isinstance(state.get(key), dict) for key in ("capacity", "cap", "capacities", "flow", "flows", "residual", "residual_capacity", "residuals"))
 
 
 def _slice_target_objects(raw_id: str, name: str, indices: tuple[int, ...]) -> list[SceneObject]:
@@ -1015,10 +1513,26 @@ def _segment_label(segment: Any) -> str:
     return ""
 
 
-def _string_objects(key: str, value: str) -> list[SceneObject]:
-    objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "string"})]
+def _string_objects(key: str, value: str, state: dict[str, Any]) -> list[SceneObject]:
+    container_meta: dict[str, Any] = {"layout": "string", "row_role": key}
+    if key in {"text", "pattern", "s", "t", "string"}:
+        container_meta.update({"visual_pattern": "string_alignment", "visual_patterns": ["string_alignment"]})
+    cursor = _string_cursor_for_key(key, state)
+    if cursor is not None:
+        container_meta["cursor_index"] = cursor
+    if key in {"pattern", "t"}:
+        offset = _pattern_alignment_offset(state)
+        if offset is not None:
+            container_meta["alignment_offset"] = offset
+    objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta=container_meta)]
+    window_ids = set(_string_window_ids(state))
     for i, ch in enumerate(value):
-        objects.append(SceneObject(id=f"{key}[{i}]", type=SceneObjectType.CELL, value=ch, parent=key, index=i))
+        cell_meta: dict[str, Any] = {}
+        if f"{key}[{i}]" in window_ids:
+            cell_meta.update({"visual_pattern": "string_window", "visual_patterns": ["string_window"], "pattern_role": "window"})
+        if cursor == i:
+            cell_meta.update({"visual_pattern": "string_alignment", "visual_patterns": ["string_alignment"], "pattern_role": "cursor"})
+        objects.append(SceneObject(id=f"{key}[{i}]", type=SceneObjectType.CELL, value=ch, parent=key, index=i, meta=cell_meta))
     return objects
 
 

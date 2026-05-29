@@ -13,6 +13,16 @@ from algolab.schemas.correctness import CorrectnessContract, OracleStrategy
 from algolab.schemas.input import ProblemInput
 from algolab.schemas.validation import BuildArtifact, ValidationReport
 from algolab.verification.contract_validator import run_contract_oracle, validate_contract
+from algolab.verification.demo_readiness import (
+    demo_readiness_report_from_variants,
+    validate_variant_demo_readiness,
+)
+from algolab.verification.degradation import (
+    dedupe_degradations,
+    demo_warning_degradation,
+    process_degradation_for_trace,
+    release_state_degradations,
+)
 from algolab.verification.release_gate import compute_release_gate
 from algolab.verification.process_validator import validate_process
 from algolab.verification.scene_validator import validate_scene
@@ -53,6 +63,8 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
 
     verifier_result = None
     verifier_available = False
+    demo_variant_reports = []
+    degradations = []
     verifier_code = str(spec.get("verifier_code") or "")
     if verifier_code.strip():
         try:
@@ -80,6 +92,21 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
             if process_errors:
                 raise ValueError("; ".join(process_errors))
             warnings.extend(f"{materialized.name}: {w}" for w in process_warnings)
+            process_degradation = process_degradation_for_trace(materialized.trace, variant_id=materialized.id)
+            if process_degradation is not None:
+                degradations.append(process_degradation)
+            demo_variant_report = validate_variant_demo_readiness(materialized.id, materialized.name, materialized.trace)
+            demo_variant_reports.append(demo_variant_report)
+            if demo_variant_report.errors:
+                raise ValueError("; ".join(demo_variant_report.errors))
+            warnings.extend(f"{materialized.name}: {w}" for w in demo_variant_report.warnings)
+            if demo_variant_report.status == "warn":
+                degradations.append(
+                    demo_warning_degradation(
+                        reason="; ".join(demo_variant_report.warnings) or "演示可用但存在教学字段缺口。",
+                        variant_id=materialized.id,
+                    )
+                )
             scene = compile_scene(materialized.trace)
             scene_errors, scene_warnings = validate_scene(scene)
             if scene_errors:
@@ -107,6 +134,11 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
         total = len(contract_test_results)
         checks.append(f"contract tests：{passed}/{total} passed")
 
+    demo_readiness = demo_readiness_report_from_variants(demo_variant_reports)
+    errors.extend(demo_readiness.errors)
+    warnings.extend(demo_readiness.warnings)
+    checks.extend(f"demo readiness: {check}" for check in demo_readiness.checks)
+
     gate = compute_release_gate(
         variant_count=len(good_variants),
         scene_count=len(scenes),
@@ -114,13 +146,23 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
         verifier_available=verifier_available,
         expected_available=request.expected_result is not None,
     )
+    degradations.extend(
+        release_state_degradations(
+            gate=gate,
+            errors=errors,
+            verifier_available=verifier_available,
+            expected_available=request.expected_result is not None,
+        )
+    )
 
     report = ValidationReport(
         errors=errors,
         warnings=warnings,
         checks=checks,
+        degradations=dedupe_degradations(degradations),
         contract_validation=contract_report,
         contract_test_results=contract_test_results,
+        demo_readiness=demo_readiness,
         release_gate=gate,
     )
     artifact = BuildArtifact(

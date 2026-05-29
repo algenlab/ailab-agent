@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import py_compile
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -14,8 +15,11 @@ if str(ROOT) not in sys.path:
 
 def compile_all():
     files = [*Path("algolab").rglob("*.py"), Path("cli.py"), Path("app.py")]
-    for file in files:
-        py_compile.compile(str(file), doraise=True)
+    with tempfile.TemporaryDirectory() as directory:
+        cache_dir = Path(directory)
+        for index, file in enumerate(files):
+            pyc_path = cache_dir / f"{index}_{file.name}.pyc"
+            py_compile.compile(str(file), cfile=str(pyc_path), doraise=True)
 
 
 def main():

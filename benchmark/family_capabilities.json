@@ -69,11 +69,23 @@
       "label": "BFS/DFS 基础图",
       "target_level": "strong",
       "current_level": "strong",
-      "core_subfamilies": ["bfs_shortest_layers", "dfs_traversal"],
+      "core_subfamilies": ["bfs_shortest_layers", "dfs_traversal", "connected_components", "topological_sort", "bipartite_coloring"],
       "visual_primitives": ["graph", "queue", "stack", "map"],
       "process_profile": "bfs",
       "gate_layers": ["smoke", "family_core", "expansion"],
-      "benchmark_target": {"min_cases": 1, "min_samples": 2},
+      "benchmark_target": {"min_cases": 5, "min_samples": 22},
+      "fallback_boundaries": []
+    },
+    {
+      "family_id": "shortest_path_mst",
+      "label": "最短路 / MST",
+      "target_level": "strong",
+      "current_level": "strong",
+      "core_subfamilies": ["dijkstra", "bellman_ford", "floyd_warshall", "zero_one_bfs", "kruskal_mst"],
+      "visual_primitives": ["graph", "heap", "queue", "deque", "map", "union_find", "matrix"],
+      "process_profile": "shortest_path_mst",
+      "gate_layers": ["smoke", "family_core", "expansion"],
+      "benchmark_target": {"min_cases": 5, "min_samples": 18},
       "fallback_boundaries": []
     },
     {
@@ -81,24 +93,24 @@
       "label": "字符串高级算法",
       "target_level": "strong",
       "current_level": "strong",
-      "core_subfamilies": ["kmp", "rabin_karp", "z_algorithm", "manacher"],
-      "visual_primitives": ["string", "array"],
+      "core_subfamilies": ["kmp", "rabin_karp", "z_algorithm", "manacher", "string_sliding_window", "trie_prefix_match"],
+      "visual_primitives": ["string", "array", "map", "trie"],
       "process_profile": "string",
       "gate_layers": ["smoke", "family_core", "expansion"],
-      "benchmark_target": {"min_cases": 4, "min_samples": 12},
+      "benchmark_target": {"min_cases": 6, "min_samples": 18},
       "fallback_boundaries": []
     },
     {
       "family_id": "hash_map",
       "label": "哈希表 / map",
       "target_level": "medium_plus",
-      "current_level": "basic",
+      "current_level": "medium_plus",
       "core_subfamilies": ["two_sum", "frequency_count", "prefix_sum_count"],
       "visual_primitives": ["array", "map"],
       "process_profile": "hash",
       "gate_layers": ["smoke", "family_core", "expansion"],
       "benchmark_target": {"min_cases": 1, "min_samples": 3},
-      "fallback_boundaries": ["当前只声明基础 schema / scene / answer gate 和可观测过程证据，暂不声明哈希族 strong process invariant。"]
+      "fallback_boundaries": []
     },
     {
       "family_id": "monotonic_stack",
@@ -116,13 +128,37 @@
       "family_id": "sorting",
       "label": "排序",
       "target_level": "medium_plus",
-      "current_level": "basic",
+      "current_level": "medium_plus",
       "core_subfamilies": ["insertion_sort", "merge_sort", "quick_sort", "heap_sort"],
       "visual_primitives": ["array", "pointer", "heap", "recursion_tree"],
-      "process_profile": "uncovered",
+      "process_profile": "sorting",
       "gate_layers": ["smoke", "family_core", "expansion"],
       "benchmark_target": {"min_cases": 1, "min_samples": 3},
-      "fallback_boundaries": ["当前排序族没有独立 process profile，只依赖基础 schema / scene / answer gate。"]
+      "fallback_boundaries": []
+    },
+    {
+      "family_id": "linked_list_cache",
+      "label": "链表与缓存",
+      "target_level": "medium",
+      "current_level": "medium",
+      "core_subfamilies": ["reverse_linked_list", "merge_list", "cycle_detection", "lru"],
+      "visual_primitives": ["tree", "graph", "map"],
+      "process_profile": "linked_list",
+      "gate_layers": ["smoke", "family_core", "expansion"],
+      "benchmark_target": {"min_cases": 1, "min_samples": 3},
+      "fallback_boundaries": []
+    },
+    {
+      "family_id": "greedy",
+      "label": "贪心",
+      "target_level": "medium_plus",
+      "current_level": "medium_plus",
+      "core_subfamilies": ["jump_game", "interval_scheduling", "merge_intervals", "huffman"],
+      "visual_primitives": ["array", "pointer", "heap", "tree"],
+      "process_profile": "greedy",
+      "gate_layers": ["smoke", "family_core", "expansion"],
+      "benchmark_target": {"min_cases": 1, "min_samples": 3},
+      "fallback_boundaries": []
     },
     {
       "family_id": "tree_bst_lca",
@@ -133,7 +169,7 @@
       "visual_primitives": ["tree", "recursion_tree", "queue"],
       "process_profile": "tree",
       "gate_layers": ["smoke", "family_core", "expansion"],
-      "benchmark_target": {"min_cases": 3, "min_samples": 6},
+      "benchmark_target": {"min_cases": 3, "min_samples": 14},
       "fallback_boundaries": []
     },
     {
@@ -145,32 +181,32 @@
       "visual_primitives": ["tree", "matrix", "recursion_tree"],
       "process_profile": "dp",
       "gate_layers": ["smoke", "family_core", "expansion"],
-      "benchmark_target": {"min_cases": 1, "min_samples": 2},
+      "benchmark_target": {"min_cases": 1, "min_samples": 4},
       "fallback_boundaries": []
     },
     {
       "family_id": "heap_topk_huffman",
       "label": "堆 / TopK / Huffman",
       "target_level": "medium_plus",
-      "current_level": "basic",
+      "current_level": "medium_plus",
       "core_subfamilies": ["topk_min_heap", "huffman"],
       "visual_primitives": ["array", "heap", "tree"],
-      "process_profile": "uncovered",
+      "process_profile": "heap",
       "gate_layers": ["smoke", "family_core", "expansion"],
-      "benchmark_target": {"min_cases": 1, "min_samples": 2},
-      "fallback_boundaries": ["当前堆族缺少独立 process profile，基础结构错误仍由通用过程证据和 scene gate 承担。"]
+      "benchmark_target": {"min_cases": 1, "min_samples": 8},
+      "fallback_boundaries": []
     },
     {
       "family_id": "trie",
       "label": "Trie",
       "target_level": "medium_plus",
-      "current_level": "basic",
+      "current_level": "medium_plus",
       "core_subfamilies": ["prefix_count", "insert_query"],
       "visual_primitives": ["trie", "string", "graph"],
-      "process_profile": "uncovered",
+      "process_profile": "trie",
       "gate_layers": ["smoke", "family_core", "expansion"],
-      "benchmark_target": {"min_cases": 1, "min_samples": 2},
-      "fallback_boundaries": ["当前 Trie 族没有独立 process profile，只声明可视化和答案门禁稳定。"]
+      "benchmark_target": {"min_cases": 1, "min_samples": 8},
+      "fallback_boundaries": []
     },
     {
       "family_id": "union_find",
@@ -188,25 +224,25 @@
       "family_id": "backtracking_recursion",
       "label": "回溯 / 递归",
       "target_level": "medium_plus",
-      "current_level": "basic",
+      "current_level": "medium_plus",
       "core_subfamilies": ["permutations", "combinations", "subsets"],
       "visual_primitives": ["array", "recursion_tree"],
-      "process_profile": "uncovered",
+      "process_profile": "backtracking",
       "gate_layers": ["smoke", "family_core", "expansion"],
-      "benchmark_target": {"min_cases": 1, "min_samples": 2},
-      "fallback_boundaries": ["当前回溯族缺少 enter/choose/undo 的独立 strong process profile。"]
+      "benchmark_target": {"min_cases": 1, "min_samples": 12},
+      "fallback_boundaries": []
     },
     {
       "family_id": "geometry_sweep",
       "label": "几何 / 扫描线",
       "target_level": "medium_plus",
-      "current_level": "basic",
+      "current_level": "medium_plus",
       "core_subfamilies": ["convex_hull", "orientation", "sweep_line"],
       "visual_primitives": ["geometry", "array"],
-      "process_profile": "uncovered",
+      "process_profile": "geometry",
       "gate_layers": ["smoke", "family_core", "expansion"],
       "benchmark_target": {"min_cases": 1, "min_samples": 2},
-      "fallback_boundaries": ["当前几何族没有独立 process profile，凸包过程只由基础过程证据和 visual binding 覆盖。"]
+      "fallback_boundaries": []
     },
     {
       "family_id": "range_structure",

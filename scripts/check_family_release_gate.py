@@ -27,11 +27,13 @@ from scripts.check_family_capabilities import (
 from scripts.check_v1_release_gate import build_v1_release_gate_report
 from algolab.runtime.executor import canonical, execute_variant, run_verifier
 from algolab.schemas.semantic_trace import SolutionVariant
+from algolab.verification.degradation import DEGRADATION_TYPES
 from algolab.verification.process_validator import validate_process
 from tests.benchmark_cases import BenchmarkCase, benchmark_cases
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+CONTAINER_QUALITY_CHECKS = "bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py"
 
 
 def build_family_release_gate_report(capabilities: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -65,7 +67,7 @@ def validate_family_release_gate(
         "commands": {
             "family_release_gate": f"{PYTHON} scripts/check_family_release_gate.py --output-dir output/release_gate",
             "v1_release_gate": f"{PYTHON} scripts/check_v1_release_gate.py --output-dir output/release_gate",
-            "quality_checks": f"{PYTHON} scripts/run_quality_checks.py",
+            "quality_checks": CONTAINER_QUALITY_CHECKS,
         },
         "rules": {
             "v1_preserved": "This report embeds but does not alter the existing V1 release gate conclusion.",
@@ -106,6 +108,9 @@ def _family_row(entry: dict[str, Any], cases: tuple[BenchmarkCase, ...]) -> dict
     sample_count = sum(len(case.samples) for case in cases)
     case_count = len(cases)
     gate_layers = Counter(case.gate_layer for case in cases)
+    gate_layer_samples = Counter()
+    for case in cases:
+        gate_layer_samples[case.gate_layer] += len(case.samples)
     subfamilies = sorted({case.subfamily_id for case in cases})
     errors: list[str] = []
     warnings: list[str] = []
@@ -124,10 +129,23 @@ def _family_row(entry: dict[str, Any], cases: tuple[BenchmarkCase, ...]) -> dict
     uncovered_cases = case_count if process_status == "uncovered" else 0
     fallback_samples = sample_count if process_status == "fallback" else 0
     uncovered_samples = sample_count if process_status == "uncovered" else 0
+    family_core_degradation_cases = sum(
+        1 for case in cases if process_status != "strong" and case.gate_layer in {"smoke", "family_core"}
+    )
+    family_core_degradation_samples = sum(
+        len(case.samples) for case in cases if process_status != "strong" and case.gate_layer in {"smoke", "family_core"}
+    )
+    degradations = _row_degradations(
+        failure_type=failure_type,
+        process_status=process_status,
+        case_count=case_count,
+        sample_count=sample_count,
+        reason=str(entry.get("coverage_rule") or entry.get("label") or ""),
+    )
 
     if current_level == "strong" and process_status != "strong":
         errors.append(
-            "strong family cannot use "
+            "strong family family_core cannot use "
             f"{failure_type}; process_profile={process_profile}"
         )
     if current_level in {"medium_plus", "medium", "basic"} and process_status != "strong":
@@ -162,6 +180,7 @@ def _family_row(entry: dict[str, Any], cases: tuple[BenchmarkCase, ...]) -> dict
         "case_ids": [case.id for case in cases],
         "subfamilies": subfamilies,
         "gate_layers": dict(sorted(gate_layers.items())),
+        "gate_layer_samples": dict(sorted(gate_layer_samples.items())),
         "answer": {
             "status": "pass" if answer_passed_samples == sample_count else "fail",
             "passed_samples": answer_passed_samples,
@@ -190,8 +209,11 @@ def _family_row(entry: dict[str, Any], cases: tuple[BenchmarkCase, ...]) -> dict
             "process_uncovered_cases": uncovered_cases,
             "process_fallback_samples": fallback_samples,
             "process_uncovered_samples": uncovered_samples,
+            "family_core_degradation_cases": family_core_degradation_cases,
+            "family_core_degradation_samples": family_core_degradation_samples,
             "fallback_boundaries": list(entry.get("fallback_boundaries") or []),
         },
+        "degradations": degradations,
         "sample_failures": [item for item in sample_results if item["errors"]],
         "status": status,
         "errors": errors,
@@ -213,6 +235,27 @@ def _process_failure_type(process_profile: str, process_status: str) -> str:
     if process_status == "fallback":
         return "process_fallback"
     return "process_uncovered"
+
+
+def _row_degradations(
+    *,
+    failure_type: str,
+    process_status: str,
+    case_count: int,
+    sample_count: int,
+    reason: str,
+) -> list[dict[str, Any]]:
+    if process_status == "strong" or failure_type not in {"process_fallback", "process_uncovered"}:
+        return []
+    return [
+        {
+            "type": failure_type,
+            "source": "family_capabilities",
+            "reason": reason or f"process_status={process_status}",
+            "case_count": case_count,
+            "sample_count": sample_count,
+        }
+    ]
 
 
 def _sample_results(cases: tuple[BenchmarkCase, ...]) -> list[dict[str, Any]]:
@@ -277,10 +320,17 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     demo_required_cases = sum(row["demo_readiness"]["required_cases"] for row in rows)
     fallback_cases = sum(row["fallback"]["process_fallback_cases"] for row in rows)
     uncovered_cases = sum(row["fallback"]["process_uncovered_cases"] for row in rows)
+    gate_layers: Counter[str] = Counter()
+    gate_layer_samples: Counter[str] = Counter()
+    for row in rows:
+        gate_layers.update(row.get("gate_layers") or {})
+        gate_layer_samples.update(row.get("gate_layer_samples") or {})
     return {
         "family_count": len(rows),
         "case_count": case_count,
         "sample_count": sample_count,
+        "gate_layers": dict(sorted(gate_layers.items())),
+        "gate_layer_samples": dict(sorted(gate_layer_samples.items())),
         "answer_passed_samples": answer_passed_samples,
         "answer_pass_rate": _rate(answer_passed_samples, sample_count),
         "process_passed_samples": process_passed_samples,
@@ -290,6 +340,7 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "demo_readiness_pass_rate": _rate(demo_ready_cases, demo_required_cases),
         "process_fallback_cases": fallback_cases,
         "process_uncovered_cases": uncovered_cases,
+        "degradation_summary": _degradation_summary(rows),
         "strong_family_count": sum(1 for row in rows if row["current_level"] == "strong"),
         "degraded_family_count": sum(1 for row in rows if row["process_status"] != "strong"),
     }
@@ -299,6 +350,24 @@ def _rate(numerator: int, denominator: int) -> float | None:
     if denominator <= 0:
         return None
     return round(numerator / denominator, 6)
+
+
+def _degradation_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    summary = {
+        degradation_type: {"cases": 0, "samples": 0, "reasons": []}
+        for degradation_type in DEGRADATION_TYPES
+    }
+    for row in rows:
+        for entry in row.get("degradations") or []:
+            degradation_type = entry.get("type")
+            if degradation_type not in summary:
+                continue
+            summary[degradation_type]["cases"] += int(entry.get("case_count") or 0)
+            summary[degradation_type]["samples"] += int(entry.get("sample_count") or 0)
+            reason = str(entry.get("reason") or "")
+            if reason and reason not in summary[degradation_type]["reasons"]:
+                summary[degradation_type]["reasons"].append(reason)
+    return summary
 
 
 def write_family_release_gate_report(output_dir: Path) -> Path:
@@ -318,8 +387,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- V1 release gate ready: `{report['v1_release_gate']['overall_ready']}`",
         f"- Cases: `{report['summary']['case_count']}`",
         f"- Samples: `{report['summary']['sample_count']}`",
+        f"- Gate layers: `{json.dumps(report['summary'].get('gate_layers', {}), ensure_ascii=False, sort_keys=True)}`",
+        f"- Gate layer samples: `{json.dumps(report['summary'].get('gate_layer_samples', {}), ensure_ascii=False, sort_keys=True)}`",
         f"- Process fallback cases: `{report['summary']['process_fallback_cases']}`",
         f"- Process uncovered cases: `{report['summary']['process_uncovered_cases']}`",
+        f"- Degradation summary: `{json.dumps(report['summary'].get('degradation_summary', {}), ensure_ascii=False, sort_keys=True)}`",
         "",
         "## Families",
         "",

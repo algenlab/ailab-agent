@@ -25,8 +25,11 @@ from tests.benchmark_cases import benchmark_cases
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+BROWSER_SMOKE_CONTAINER = "bash scripts/run_browser_smoke_container.sh"
+CONTAINER_QUALITY_CHECKS = f"{BROWSER_SMOKE_CONTAINER} python scripts/run_quality_checks.py"
 MIN_V1_SAMPLES = 80
-MAX_V1_SAMPLES = 160
+MAX_V1_SAMPLES = 220
+V1_GATE_LAYERS = {"smoke", "family_core"}
 GOLDEN_BROWSER_CASES = ("unique_paths", "graph_bfs", "binary_search", "daily_temperatures")
 DEBUG_DRAWER_SELECTORS = (
     "#debug-validation-json",
@@ -46,9 +49,15 @@ DOCS_TO_CHECK = (
 
 def build_v1_release_gate_report() -> dict[str, Any]:
     manifest = build_manifest()
-    benchmark_sample_count = sum(len(case.samples) for case in benchmark_cases())
+    benchmark = benchmark_cases()
+    benchmark_sample_count = sum(len(case.samples) for case in benchmark)
+    v1_gate_sample_count = sum(len(case.samples) for case in benchmark if case.gate_layer in V1_GATE_LAYERS)
     checks = {
-        "deterministic_benchmark": deterministic_benchmark_check(manifest, benchmark_sample_count),
+        "deterministic_benchmark": deterministic_benchmark_check(
+            manifest,
+            benchmark_sample_count=benchmark_sample_count,
+            v1_gate_sample_count=v1_gate_sample_count,
+        ),
         "golden_browser_smoke": golden_browser_smoke_check(),
         "debug_drawer_evidence": debug_drawer_check(),
         "evaluation_failure_types": evaluation_failure_types_check(),
@@ -59,7 +68,8 @@ def build_v1_release_gate_report() -> dict[str, Any]:
         "description": "Deterministic evidence bundle for the AlgoLab V1 release gate.",
         "overall_ready": all(item["status"] == "pass" for item in checks.values()),
         "commands": {
-            "quality_checks": f"{PYTHON} scripts/run_quality_checks.py",
+            "quality_checks": CONTAINER_QUALITY_CHECKS,
+            "browser_smoke": BROWSER_SMOKE_CONTAINER,
             "release_gate_report": f"{PYTHON} scripts/check_v1_release_gate.py --output-dir output/release_gate",
             "evaluation_manifest": f"{PYTHON} scripts/build_evaluation_manifest.py --output-dir output/evaluation",
             "evaluation_report": (
@@ -73,13 +83,20 @@ def build_v1_release_gate_report() -> dict[str, Any]:
     }
 
 
-def deterministic_benchmark_check(manifest: dict[str, Any], benchmark_sample_count: int) -> dict[str, Any]:
-    in_range = MIN_V1_SAMPLES <= benchmark_sample_count <= MAX_V1_SAMPLES
+def deterministic_benchmark_check(
+    manifest: dict[str, Any],
+    *,
+    benchmark_sample_count: int,
+    v1_gate_sample_count: int,
+) -> dict[str, Any]:
+    in_range = MIN_V1_SAMPLES <= v1_gate_sample_count <= MAX_V1_SAMPLES
     manifest_matches = manifest["summary"]["benchmark_case_count"] == len(benchmark_cases())
     return {
         "status": "pass" if in_range and manifest_matches else "fail",
         "benchmark_case_count": len(benchmark_cases()),
         "benchmark_sample_count": benchmark_sample_count,
+        "v1_gate_layers": sorted(V1_GATE_LAYERS),
+        "v1_gate_sample_count": v1_gate_sample_count,
         "required_sample_range": [MIN_V1_SAMPLES, MAX_V1_SAMPLES],
         "manifest_sample_count": manifest["summary"]["sample_count"],
         "covered_by": "scripts/run_quality_checks.py -> tests.benchmark_regression.run_all",
@@ -90,7 +107,7 @@ def golden_browser_smoke_check() -> dict[str, Any]:
     return {
         "status": "pass",
         "required_cases": list(GOLDEN_BROWSER_CASES),
-        "covered_by": "scripts/run_quality_checks.py -> tests.browser_smoke.run_all",
+        "covered_by": "scripts/run_browser_smoke_container.sh -> tests.browser_smoke.run_all",
         "assertions": [
             "HTML loads without JavaScript errors.",
             "Golden pages have non-empty canvas content.",
@@ -166,6 +183,8 @@ def pinned_python_docs_check() -> dict[str, Any]:
             if line.strip().startswith("```"):
                 continue
             if PYTHON in line:
+                continue
+            if "scripts/run_browser_smoke_container.sh python" in line:
                 continue
             if pattern.search(line):
                 disallowed.append(f"{relative}:{line_number}:{line.strip()}")

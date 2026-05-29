@@ -23,6 +23,8 @@ from scripts.build_evaluation_manifest import build_manifest
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+CONTAINER_QUALITY_CHECKS = "bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py"
+BROWSER_SMOKE_CONTAINER = "bash scripts/run_browser_smoke_container.sh"
 
 
 def build_reproducibility_package() -> dict[str, Any]:
@@ -45,9 +47,11 @@ def environment_block() -> dict[str, Any]:
         "project_root": str(ROOT),
         "platform": platform.platform(),
         "quality_check_entrypoint": "scripts/run_quality_checks.py",
+        "browser_smoke_entrypoint": "scripts/run_browser_smoke_container.sh",
         "notes": [
             "Run commands from the project root.",
             "Use the pinned Python interpreter shown here for every Python command.",
+            "Run browser smoke and full quality checks through the Playwright container entrypoint.",
             "Deterministic checks do not require network or LLM credentials.",
         ],
     }
@@ -86,7 +90,10 @@ def model_config_block() -> dict[str, Any]:
 
 def command_block() -> dict[str, str]:
     return {
-        "deterministic_quality_check": f"{PYTHON} scripts/run_quality_checks.py",
+        "deterministic_quality_check": CONTAINER_QUALITY_CHECKS,
+        "browser_smoke_container": BROWSER_SMOKE_CONTAINER,
+        "host_offline_regression": f"{PYTHON} -m tests.offline_regression",
+        "host_benchmark_regression": f"{PYTHON} -m tests.benchmark_regression",
         "build_evaluation_manifest": f"{PYTHON} scripts/build_evaluation_manifest.py --output-dir output/evaluation",
         "build_demo_dashboard": f"{PYTHON} scripts/build_demo_dashboard.py --output-dir output/dashboard --style both",
         "build_evaluation_report_deterministic": (

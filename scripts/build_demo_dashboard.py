@@ -36,6 +36,7 @@ from algolab.schemas.render_report import RenderReport
 from algolab.schemas.validation import BuildArtifact
 from algolab.schemas.visual_plan import VisualPlan
 from algolab.verification.visual_plan_validator import validate_visual_plan
+from scripts.check_family_capabilities import known_process_profiles, load_family_capabilities
 from scripts.export_creative_demos import subset_sum_spec
 from tests.benchmark_cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 
@@ -282,12 +283,15 @@ def materialize_demo(definition: DemoDefinition, demo_dir: Path, *, output_dir: 
     spatial_html = ""
     creative_html = ""
     release_ready = bool(artifact and artifact.validation.release_gate.release_ready and not materialize_errors)
+    demo_readiness_report_json = ""
 
     if artifact is not None:
         attach_dashboard_metadata(artifact, definition, release_ready=release_ready, style=style)
         attach_demo_interactions(artifact, definition)
         (demo_dir / "artifact.json").write_text(artifact.model_dump_json(indent=2), encoding="utf-8")
         write_json(demo_dir / "validation_report.json", artifact.validation.model_dump())
+        write_json(demo_dir / "demo_readiness_report.json", artifact.validation.demo_readiness.model_dump())
+        demo_readiness_report_json = relative_url(demo_dir / "demo_readiness_report.json", output_dir)
         if artifact.correctness_contract is not None:
             write_json(demo_dir / "correctness_contract.json", artifact.correctness_contract.model_dump(mode="json"))
         if artifact.visual_plan is not None:
@@ -331,6 +335,16 @@ def materialize_demo(definition: DemoDefinition, demo_dir: Path, *, output_dir: 
         blocking = validation.release_gate.blocking_reasons
     if exception_text:
         errors.append(exception_text)
+    capability = capability_for_definition(definition)
+    process_status = process_status_for_profile(definition.process_profile)
+    process_failure_type = process_failure_type_for_status(definition.process_profile, process_status)
+    layer_statuses = demo_layer_statuses(
+        artifact,
+        release_ready=release_ready,
+        html_links=[stable_html, spatial_html, creative_html],
+        materialize_errors=materialize_errors,
+        exception_text=exception_text,
+    )
 
     return {
         "id": definition.id,
@@ -340,7 +354,12 @@ def materialize_demo(definition: DemoDefinition, demo_dir: Path, *, output_dir: 
         "subfamily_id": definition.subfamily_id,
         "gate_layer": definition.gate_layer,
         "support_level": definition.support_level,
+        "current_level": str(capability.get("current_level") or definition.support_level),
+        "target_level": str(capability.get("target_level") or ""),
         "process_profile": definition.process_profile,
+        "process_status": process_status,
+        "process_failure_type": process_failure_type,
+        "fallback_boundaries": list(capability.get("fallback_boundaries") or []),
         "oracle_type": definition.oracle_type,
         "oracle_risk": definition.oracle_risk,
         "oracle_notes": definition.oracle_notes,
@@ -381,6 +400,7 @@ def materialize_demo(definition: DemoDefinition, demo_dir: Path, *, output_dir: 
         "warnings": warnings,
         "errors": dedupe(errors),
         "blocking_reasons": blocking,
+        "layer_statuses": layer_statuses,
         "bundle_dir": relative_url(demo_dir, output_dir),
         "request_json": relative_url(demo_dir / "request.json", output_dir),
         "generated_spec_json": relative_url(demo_dir / "generated_spec.json", output_dir),
@@ -394,6 +414,7 @@ def materialize_demo(definition: DemoDefinition, demo_dir: Path, *, output_dir: 
         "capabilities_json": relative_url(demo_dir / "capabilities.json", output_dir),
         "artifact_json": relative_url(demo_dir / "artifact.json", output_dir) if artifact else "",
         "validation_report_json": relative_url(demo_dir / "validation_report.json", output_dir),
+        "demo_readiness_report_json": demo_readiness_report_json,
         "repair_log_json": relative_url(demo_dir / "repair_log.json", output_dir),
         "stable_html": stable_html,
         "spatial_html": spatial_html,
@@ -468,6 +489,11 @@ def demo_interactions(definition: DemoDefinition) -> list[dict[str, Any]]:
                 "options": ["left", "mid", "right"],
                 "answer": "mid",
                 "explanation": "中点决定下一轮保留左半区间还是右半区间。",
+                "wrong_explanation": "二分每轮必须先比较 mid，直接看边界无法一次排除半个区间。",
+                "option_explanations": {
+                    "left": "left 只是当前区间左边界，不是本轮比较点。",
+                    "right": "right 只是当前区间右边界，不是本轮比较点。",
+                },
             },
             {
                 "type": "input",
@@ -484,6 +510,11 @@ def demo_interactions(definition: DemoDefinition) -> list[dict[str, Any]]:
                 "options": ["queue", "stack", "heap"],
                 "answer": "queue",
                 "explanation": "先进先出保证按层扩展。",
+                "wrong_explanation": "BFS 的 frontier 必须按先进先出顺序出队，否则会破坏按层扩展。",
+                "option_explanations": {
+                    "stack": "stack 会形成深度优先顺序，不保证先处理较近节点。",
+                    "heap": "heap 用于按优先级取元素，不是无权 BFS 的层序 frontier。",
+                },
             },
             {
                 "type": "judge",
@@ -695,6 +726,82 @@ def scene_layouts(artifact: BuildArtifact | None) -> list[str]:
     return sorted(layouts)
 
 
+def capability_for_definition(definition: DemoDefinition) -> dict[str, Any]:
+    lookup = family_capability_lookup()
+    return lookup.get(definition.family_id) or lookup.get(definition.family) or {}
+
+
+def family_capability_lookup() -> dict[str, dict[str, Any]]:
+    capabilities = load_family_capabilities()
+    lookup: dict[str, dict[str, Any]] = {}
+    for entry in capabilities.get("families") or []:
+        if isinstance(entry, dict):
+            family_id = str(entry.get("family_id") or "")
+            label = str(entry.get("label") or "")
+            if family_id:
+                lookup[family_id] = entry
+            if label:
+                lookup[label] = entry
+    return lookup
+
+
+def process_status_for_profile(process_profile: str) -> str:
+    if process_profile == "uncovered":
+        return "uncovered"
+    return known_process_profiles().get(process_profile, "unknown")
+
+
+def process_failure_type_for_status(process_profile: str, process_status: str) -> str:
+    if process_status == "strong":
+        return ""
+    if process_profile == "uncovered" or process_status == "uncovered":
+        return "process_uncovered"
+    if process_status == "fallback":
+        return "process_fallback"
+    return "process_uncovered"
+
+
+def demo_layer_statuses(
+    artifact: BuildArtifact | None,
+    *,
+    release_ready: bool,
+    html_links: list[str],
+    materialize_errors: list[str],
+    exception_text: str,
+) -> dict[str, dict[str, str]]:
+    if artifact is None:
+        reason = exception_text or "; ".join(materialize_errors) or "artifact is missing"
+        return {
+            "answer": layer_status("fail", reason),
+            "process": layer_status("fail", reason),
+            "demo": layer_status("fail", reason),
+            "scene": layer_status("fail", reason),
+            "html": layer_status("fail", "release gate did not produce HTML"),
+        }
+
+    gate = artifact.validation.release_gate
+    first_variant = artifact.variants[0] if artifact.variants else None
+    answer_ok = bool(first_variant) and gate.artifact_ready
+    if artifact.expected_result is not None and first_variant is not None:
+        answer_ok = answer_ok and first_variant.result == artifact.expected_result
+    process_ok = gate.process_ready and not artifact.validation.errors and not materialize_errors
+    demo_status = artifact.validation.demo_readiness.status
+    scene_ok = gate.visual_ready and bool(artifact.scenes)
+    html_ok = release_ready and any(html_links)
+    return {
+        "answer": layer_status("pass" if answer_ok else "fail", "solve / trace / expected answer evidence"),
+        "process": layer_status("pass" if process_ok else "fail", "process validator and release gate evidence"),
+        "demo": layer_status(demo_status, "demo readiness report"),
+        "scene": layer_status("pass" if scene_ok else "fail", "SceneGraph validation evidence"),
+        "html": layer_status("pass" if html_ok else "fail", "exported HTML artifact"),
+    }
+
+
+def layer_status(status: str, summary: str) -> dict[str, str]:
+    normalized = status if status in {"pass", "warn", "fail"} else "fail"
+    return {"status": normalized, "summary": summary}
+
+
 def contract_test_pass_rate(artifact: BuildArtifact | None) -> str:
     if artifact is None or not artifact.validation.contract_test_results:
         return "0/0"
@@ -737,8 +844,14 @@ def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "family": family,
                 "family_id": str(record.get("family_id") or ""),
                 "gate_layer": gate_layer,
+                "current_level": "",
+                "target_level": "",
                 "support_levels": set(),
                 "process_profiles": set(),
+                "process_statuses": set(),
+                "process_failure_types": set(),
+                "fallback_boundaries": set(),
+                "gate_statuses": {},
                 "total": 0,
                 "passed": 0,
                 "failed": 0,
@@ -752,6 +865,16 @@ def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             row["support_levels"].add(str(record["support_level"]))
         if record.get("process_profile"):
             row["process_profiles"].add(str(record["process_profile"]))
+        if record.get("current_level") and not row["current_level"]:
+            row["current_level"] = str(record["current_level"])
+        if record.get("target_level") and not row["target_level"]:
+            row["target_level"] = str(record["target_level"])
+        if record.get("process_status"):
+            row["process_statuses"].add(str(record["process_status"]))
+        if record.get("process_failure_type"):
+            row["process_failure_types"].add(str(record["process_failure_type"]))
+        row["fallback_boundaries"].update(str(item) for item in record.get("fallback_boundaries", []) if item)
+        row["gate_statuses"] = merge_layer_statuses(row["gate_statuses"], record.get("layer_statuses", {}))
         if record["ok"]:
             row["passed"] += 1
         else:
@@ -769,8 +892,14 @@ def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "family": row["family"],
                 "family_id": row["family_id"],
                 "gate_layer": row["gate_layer"],
+                "current_level": row["current_level"],
+                "target_level": row["target_level"],
                 "support_levels": sorted(row["support_levels"]),
                 "process_profile": ",".join(sorted(row["process_profiles"])),
+                "process_status": ",".join(sorted(row["process_statuses"])),
+                "process_failure_type": ",".join(sorted(row["process_failure_types"])),
+                "fallback_boundaries": sorted(row["fallback_boundaries"]),
+                "gate_statuses": row["gate_statuses"],
                 "total": total,
                 "passed": row["passed"],
                 "failed": row["failed"],
@@ -781,6 +910,29 @@ def family_coverage(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             }
         )
     return result
+
+
+def merge_layer_statuses(
+    current: dict[str, dict[str, str]],
+    incoming: dict[str, dict[str, str]],
+) -> dict[str, dict[str, str]]:
+    result = dict(current)
+    for layer in ("answer", "process", "demo", "scene", "html"):
+        incoming_status = (incoming.get(layer) or {}).get("status", "fail")
+        incoming_summary = (incoming.get(layer) or {}).get("summary", "")
+        if layer not in result:
+            result[layer] = layer_status(incoming_status, incoming_summary)
+            continue
+        result[layer] = worse_layer_status(result[layer], incoming_status, incoming_summary)
+    return result
+
+
+def worse_layer_status(current: dict[str, str], incoming_status: str, incoming_summary: str) -> dict[str, str]:
+    rank = {"pass": 0, "warn": 1, "fail": 2}
+    current_status = current.get("status", "fail")
+    if rank.get(incoming_status, 2) > rank.get(current_status, 2):
+        return layer_status(incoming_status, incoming_summary)
+    return current
 
 
 def write_json(path: Path, data: Any) -> None:
@@ -876,10 +1028,14 @@ def render_dashboard_html(report: dict[str, Any]) -> str:
     demos = report["demos"]
     families = sorted({demo["family"] for demo in demos})
     gate_layers = sorted({str(demo.get("gate_layer") or "") for demo in demos if demo.get("gate_layer")})
+    support_levels = sorted({str(demo.get("support_level") or "") for demo in demos if demo.get("support_level")})
     cards = "\n".join(render_demo_card(demo) for demo in demos)
     coverage = render_family_coverage(report.get("family_coverage", []))
     family_options = "\n".join(f'<option value="{escape(family)}">{escape(family)}</option>' for family in families)
     gate_options = "\n".join(f'<option value="{escape(gate)}">{escape(gate)}</option>' for gate in gate_layers)
+    support_options = "\n".join(
+        f'<option value="{escape(level)}">{escape(level)}</option>' for level in support_levels
+    )
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -912,7 +1068,7 @@ h1 {{ margin:0; font-size:22px; letter-spacing:0; }}
 .main {{ width:min(1320px,100%); margin:0 auto; padding:16px; display:grid; gap:14px; }}
 .toolbar {{
   border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow);
-  padding:12px; display:grid; grid-template-columns:minmax(220px,1fr) minmax(180px,260px) minmax(150px,220px) minmax(120px,170px); gap:10px;
+  padding:12px; display:grid; grid-template-columns:minmax(220px,1fr) minmax(160px,240px) minmax(150px,210px) minmax(140px,190px) minmax(120px,160px); gap:10px;
 }}
 label {{ display:grid; gap:5px; color:#374151; font-size:12px; }}
 input,select {{ width:100%; border:1px solid var(--line); border-radius:6px; padding:8px 9px; background:#fff; color:var(--ink); font:inherit; }}
@@ -926,6 +1082,15 @@ input,select {{ width:100%; border:1px solid var(--line); border-radius:6px; pad
 .coverage-table th,.coverage-table td {{ border-top:1px solid var(--line); padding:8px; text-align:left; vertical-align:top; }}
 .coverage-table th {{ color:var(--muted); font-size:12px; font-weight:650; background:#fbfdff; }}
 .coverage-table td.num,.coverage-table th.num {{ text-align:right; font-variant-numeric:tabular-nums; }}
+.layer-statuses {{ display:flex; flex-wrap:wrap; gap:5px; }}
+.layer {{
+  border:1px solid var(--line); border-radius:999px; padding:3px 7px; background:#fbfdff;
+  font-size:11px; font-weight:650; white-space:nowrap;
+}}
+.layer.pass {{ color:var(--green); background:#f0fdf4; border-color:#bbf7d0; }}
+.layer.warn {{ color:var(--amber); background:#fffbeb; border-color:#fde68a; }}
+.layer.fail {{ color:var(--red); background:#fef2f2; border-color:#fecaca; }}
+.degraded {{ color:var(--red); font-weight:700; }}
 .demo-list {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:14px; align-items:start; }}
 .demo {{
   border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow);
@@ -982,6 +1147,7 @@ pre {{
       <label>搜索<input id="search" type="search" placeholder="题目、算法族、布局"></label>
       <label>算法族<select id="family"><option value="">全部算法族</option>{family_options}</select></label>
       <label>Gate layer<select id="gate-layer"><option value="">全部 gate layer</option>{gate_options}</select></label>
+      <label>Support level<select id="support-level"><option value="">全部 support level</option>{support_options}</select></label>
       <label>状态<select id="status"><option value="">全部状态</option><option value="pass">通过</option><option value="fail">失败</option></select></label>
     </section>
     {coverage}
@@ -996,17 +1162,19 @@ const cards = Array.from(document.querySelectorAll('.demo'));
 const search = document.getElementById('search');
 const family = document.getElementById('family');
 const gateLayer = document.getElementById('gate-layer');
+const supportLevel = document.getElementById('support-level');
 const status = document.getElementById('status');
 const empty = document.getElementById('empty');
 function applyFilters() {{
   const q = search.value.trim().toLowerCase();
   const f = family.value;
   const g = gateLayer.value;
+  const level = supportLevel.value;
   const s = status.value;
   let visible = 0;
   for (const card of cards) {{
     const text = card.dataset.search || '';
-    const ok = (!q || text.includes(q)) && (!f || card.dataset.family === f) && (!g || card.dataset.gateLayer === g) && (!s || card.dataset.status === s);
+    const ok = (!q || text.includes(q)) && (!f || card.dataset.family === f) && (!g || card.dataset.gateLayer === g) && (!level || card.dataset.supportLevel === level) && (!s || card.dataset.status === s);
     card.style.display = ok ? '' : 'none';
     if (ok) visible += 1;
   }}
@@ -1015,6 +1183,7 @@ function applyFilters() {{
 search.addEventListener('input', applyFilters);
 family.addEventListener('change', applyFilters);
 gateLayer.addEventListener('change', applyFilters);
+supportLevel.addEventListener('change', applyFilters);
 status.addEventListener('change', applyFilters);
 </script>
 </body>
@@ -1026,19 +1195,22 @@ def render_family_coverage(rows: list[dict[str, Any]]) -> str:
     if not rows:
         return """<section id="family-coverage" class="coverage">
   <div class="section-head">
-    <h2>算法族覆盖</h2>
+    <h2>算法族能力等级</h2>
     <p class="meta">当前 dashboard 没有可展示的算法族记录。</p>
   </div>
 </section>"""
     body = "\n".join(
         f"""<tr>
   <td>{escape(row["family"])}</td>
+  <td>{escape(row.get("current_level") or "")}</td>
   <td class="num">{row["total"]}</td>
   <td class="num">{row["passed"]}</td>
   <td class="num">{row["failed"]}</td>
   <td>{escape(row["gate_layer"])}</td>
   <td>{render_chips(row["support_levels"])}</td>
-  <td>{escape(row["process_profile"])}</td>
+  <td>{escape(row["process_profile"])} / {escape(row.get("process_status") or "")}</td>
+  <td>{render_layer_statuses(row.get("gate_statuses", {}))}</td>
+  <td>{render_fallback_status(row)}</td>
   <td>{render_chips(row["layouts"])}</td>
   <td class="num">{row["html_links"]}</td>
   <td class="num">{row["artifact_links"]}</td>
@@ -1047,14 +1219,41 @@ def render_family_coverage(rows: list[dict[str, Any]]) -> str:
     )
     return f"""<section id="family-coverage" class="coverage">
   <div class="section-head">
-    <h2>算法族覆盖</h2>
-    <p class="meta">按算法族和 gate layer 汇总黄金样例、发布状态、HTML 链接和 artifact 链接。</p>
+    <h2>算法族能力等级</h2>
+    <p class="meta">算法族覆盖按 support level 和 gate layer 汇总 Answer / Process / Demo / Scene / HTML 发布状态；Fallback / uncovered 单独显示。</p>
   </div>
   <table class="coverage-table">
-    <thead><tr><th>算法族</th><th class="num">Demo</th><th class="num">通过</th><th class="num">失败</th><th>Gate layer</th><th>支持等级</th><th>Process profile</th><th>布局</th><th class="num">HTML 链接</th><th class="num">artifact 链接</th></tr></thead>
+    <thead><tr><th>算法族</th><th>能力等级</th><th class="num">Demo</th><th class="num">通过</th><th class="num">失败</th><th>Gate layer</th><th>支持等级</th><th>Process profile</th><th>Answer / Process / Demo / Scene / HTML</th><th>Fallback / uncovered</th><th>布局</th><th class="num">HTML 链接</th><th class="num">artifact 链接</th></tr></thead>
     <tbody>{body}</tbody>
   </table>
 </section>"""
+
+
+def render_layer_statuses(statuses: dict[str, dict[str, str]]) -> str:
+    labels = {
+        "answer": "Answer",
+        "process": "Process",
+        "demo": "Demo",
+        "scene": "Scene",
+        "html": "HTML",
+    }
+    items = []
+    for key, label in labels.items():
+        status = (statuses.get(key) or {}).get("status", "fail")
+        items.append(f'<span class="layer {escape(status)}">{label}: {escape(status.upper())}</span>')
+    return '<span class="layer-statuses">' + "".join(items) + "</span>"
+
+
+def render_fallback_status(row: dict[str, Any]) -> str:
+    failure_type = str(row.get("process_failure_type") or "")
+    process_status = str(row.get("process_status") or "")
+    boundaries = list(row.get("fallback_boundaries") or [])
+    if failure_type or process_status not in {"", "strong"}:
+        detail = failure_type or process_status
+        if boundaries:
+            detail = f"{detail}: {'; '.join(boundaries)}"
+        return f'<span class="degraded">{escape(detail)}</span>'
+    return '<span class="chip">none</span>'
 
 
 def render_demo_card(demo: dict[str, Any]) -> str:
@@ -1068,7 +1267,11 @@ def render_demo_card(demo: dict[str, Any]) -> str:
             demo["subfamily_id"],
             demo["gate_layer"],
             demo["support_level"],
+            demo["current_level"],
+            demo["target_level"],
             demo["process_profile"],
+            demo["process_status"],
+            demo["process_failure_type"],
             demo["oracle_type"],
             demo["oracle_risk"],
             " ".join(demo["expected_layouts"]),
@@ -1083,10 +1286,12 @@ def render_demo_card(demo: dict[str, Any]) -> str:
             status,
         ]
     ).lower()
+    layers = render_layer_statuses(demo.get("layer_statuses", {}))
     stable = link_or_dash(demo["stable_html"], "稳定版", "action")
     spatial = link_or_dash(demo["spatial_html"], "空间版", "action")
     creative = link_or_dash(demo["creative_html"], "创意版", "action secondary")
     artifact = link_or_dash(demo["artifact_json"], "artifact", "action neutral")
+    demo_readiness = link_or_dash(demo["demo_readiness_report_json"], "demo readiness", "action neutral")
     contract = link_or_dash(demo["correctness_contract_json"], "contract", "action neutral")
     plan = link_or_dash(demo["visual_plan_json"], "VisualPlan", "action neutral")
     render_report = link_or_dash(demo["render_report_json"], "render report", "action neutral")
@@ -1098,7 +1303,7 @@ def render_demo_card(demo: dict[str, Any]) -> str:
     actual = json_preview(demo["actual"])
     errors = demo["errors"] or demo["blocking_reasons"]
     warnings = demo["warnings"]
-    return f"""<article class="demo" data-family="{escape(demo["family"])}" data-gate-layer="{escape(demo["gate_layer"])}" data-status="{status}" data-search="{escape(search_text)}">
+    return f"""<article class="demo" data-family="{escape(demo["family"])}" data-gate-layer="{escape(demo["gate_layer"])}" data-support-level="{escape(demo["support_level"])}" data-status="{status}" data-search="{escape(search_text)}">
   <div class="demo-head">
     <div>
       <h2>{escape(demo["title"])}</h2>
@@ -1110,7 +1315,10 @@ def render_demo_card(demo: dict[str, Any]) -> str:
     <dt>Expected</dt><dd>{escape(expected)}</dd>
     <dt>Actual</dt><dd>{escape(actual)}</dd>
     <dt>Family id</dt><dd>{escape(demo["family_id"])} / {escape(demo["subfamily_id"])}</dd>
+    <dt>能力等级</dt><dd>current={escape(demo["current_level"])} · target={escape(demo["target_level"] or "none")}</dd>
     <dt>Gate layer</dt><dd>{escape(demo["gate_layer"])} · support={escape(demo["support_level"])} · process={escape(demo["process_profile"])}</dd>
+    <dt>五层状态</dt><dd>{layers}</dd>
+    <dt>Fallback</dt><dd>{escape(demo["process_failure_type"] or "none")} · process_status={escape(demo["process_status"])}</dd>
     <dt>Oracle</dt><dd>{escape(demo["oracle_type"])} · risk={escape(demo["oracle_risk"])} · demo_required={escape(str(demo["demo_required"]))}</dd>
     <dt>布局</dt><dd>{render_chips(demo["actual_layouts"])}</dd>
     <dt>Contract</dt><dd>{escape("READY" if demo["contract_gate_ready"] else "MISSING")} · oracle={escape(demo["oracle_strategy"] or "none")} · tests={escape(demo["contract_test_pass_rate"])}</dd>
@@ -1119,7 +1327,7 @@ def render_demo_card(demo: dict[str, Any]) -> str:
     <dt>Baseline</dt><dd>{escape("fallback" if demo["used_baseline_renderer"] else "direct")}</dd>
     <dt>证据</dt><dd>{len(demo["checks"])} checks · {len(warnings)} warnings · {len(errors)} errors</dd>
   </dl>
-  <div class="actions">{stable}{spatial}{creative}{contract}{plan}{render_report}{capabilities}{artifact}{report}{repair}{bundle}</div>
+  <div class="actions">{stable}{spatial}{creative}{contract}{plan}{render_report}{capabilities}{artifact}{report}{demo_readiness}{repair}{bundle}</div>
   <details>
     <summary>校验细节</summary>
     <pre>{escape(json.dumps({"checks": demo["checks"], "warnings": warnings, "errors": errors}, ensure_ascii=False, indent=2))}</pre>

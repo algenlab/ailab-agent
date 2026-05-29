@@ -33,17 +33,20 @@ V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只�
 - `tests/benchmark_cases.py`
 - `benchmark/benchmark_cases_list.md`
 
-当前 V1.1 deterministic benchmark 已有 47 个代表 case、131 个 samples，覆盖：
+当前 V1.2 deterministic benchmark 已有 69 个代表 case、250 个 samples。其中 V1 baseline `family_core` 层保持 60 cases / 213 samples，P16.2 新增 `expansion` 层 9 cases / 37 samples。当前覆盖：
 
 - 一维 DP：打家劫舍。
 - 二维 DP：不同路径。
 - DP 核心扩展：0/1 背包、完全背包、多重背包基础、LCS、编辑距离、区间 DP、状态压缩 DP、数位 DP。
 - 数组指针：二分查找、二分答案、双指针、滑动窗口、前缀和、差分数组、快慢指针。
-- 图搜索：BFS 最短层数。
-- 字符串：KMP、Rabin-Karp、Z Algorithm、Manacher。
+- 图搜索：BFS 最短层数、DFS 遍历、连通分量、拓扑排序、二分图染色。
+- 最短路 / MST：Dijkstra、Bellman-Ford、Floyd-Warshall、0-1 BFS、Kruskal。
+- 字符串：KMP、Rabin-Karp、Z Algorithm、Manacher、字符串滑动窗口、Trie 前缀匹配。
 - 哈希表：Two Sum。
 - 单调栈：每日温度。
 - 排序：插入排序。
+- 链表：反转链表。
+- 贪心：跳跃游戏。
 - 树：中序遍历、LCA、树直径、树形 DP。
 - 堆：第 K 大。
 - Trie：前缀计数。
@@ -53,8 +56,9 @@ V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只�
 - 区间结构：线段树、树状数组、稀疏表。
 - 数学与位运算：GCD、快速幂、筛法、组合数、bitmask、lowbit。
 - 图高级：Tarjan SCC、割点桥、二分图匹配、Edmonds-Karp。
+- Expansion 层：贪心、最短路 / MST、堆、Trie、回溯、数学与位运算、几何、链表与缓存、图高级各至少 1 个 expansion case。
 
-第一阶段 V1 benchmark 门禁范围从 80 到 120 个 deterministic samples 起步；P13.2 后 V1.1 本地确定性门禁范围调整为 80 到 160 个 deterministic samples，用于容纳 DP family core 扩容。后续继续扩容时，应优先通过 family release gate 明确算法族覆盖，而不是只宣传总样例数。
+第一阶段 V1 benchmark 门禁范围从 80 到 120 个 deterministic samples 起步；P13.3 后 V1.1 本地确定性门禁范围调整为 80 到 220 个 V1 baseline deterministic samples，用于容纳 DP family core 和图基础 / 最短路 / MST 扩容。P16.2 后，V1 release gate 只统计 `smoke` / `family_core` 作为 baseline 样本窗口，`expansion` 层进入 family release gate 的总量、分层和过程通过率报告。
 
 完整 V1 的算法族覆盖目标应更广，逐步加入：
 
@@ -342,10 +346,18 @@ P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查�
 当前注册入口：
 
 - `dp`：强校验，覆盖 unique paths、house robber、subset sum、LCS、编辑距离、背包和区间 DP 等 matcher-gated 规则。
-- `bfs`：强校验，无权图 BFS 距离不变量。
+- `bfs`：强校验，无权图 BFS 距离不变量，并覆盖 DFS、连通分量、拓扑排序、二分图染色等基础图 `graph_contract` 子模式。
+- `shortest_path_mst`：强校验，覆盖 Dijkstra、Bellman-Ford、Floyd-Warshall、0-1 BFS relax 和 Kruskal MST 选边 / union-find 不变量。
 - `binary_search`：强校验，搜索窗口边界不变量。
 - `monotonic_stack`：强校验，单调栈结构不变量。
-- `hash`：明确降级，只执行基础 schema / scene / answer gate 和可观测过程证据检查。
+- `hash`：强校验，覆盖 Two Sum 的 map 写入顺序、complement 命中前后关系和答案依赖。
+- `sorting`：强校验，覆盖插入排序的有序前缀、输入多重集保持和最终升序。
+- `linked_list`：强校验，覆盖链表 `family_contract`、current/prev/next 指针证据和 next 指针重连连续性。
+- `greedy`：强校验，覆盖跳跃游戏 reach 局部最优更新和不可达下标判定。
+- `range_structure`：强校验，覆盖线段树节点 meta、树状数组 bit 和稀疏表 st 的 query/update 路径与表值。
+- `geometry`：强校验，覆盖凸包点引用和 hull 一致转向；扫描线与线段相交子模式后续扩展。
+- `math_bit`：强校验，覆盖 Euclid 余数、快速幂平方表、筛法布尔表、组合数表、bitmask 和 lowbit。
+- `advanced_graph`：强校验，覆盖 Tarjan dfn/low、割点桥、二分图匹配和 Edmonds-Karp flow/capacity 不变量。
 - `tree`：强校验入口覆盖 BST / LCA；普通树遍历没有匹配信号时仍按基础门禁处理。
 - `union_find`：强校验，并查集 parent forest 不变量。
 
@@ -362,10 +374,13 @@ P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查�
 - `DP 核心扩展`
 - `二分`
 - `BFS/DFS 基础图`
+- `最短路 / MST`
 - `字符串高级算法`
 - `哈希表 / map`
 - `栈 / 队列 / 单调栈`
 - `排序`
+- `链表与缓存`
+- `贪心`
 - `树 / BST / LCA`
 - `树形 DP`
 - `堆 / TopK / Huffman`
@@ -399,6 +414,7 @@ V1 发布门禁仍由 `scripts/check_v1_release_gate.py` 维护，不改变既�
 报告按 family 汇总：
 
 - case 数和 sample 数。
+- gate layer 的 case 数和 sample 数。
 - answer pass：脚本实际执行 `solve`、`trace`、`verify`，并与 expected 比较。
 - process pass：脚本实际对 trace 运行 `validate_process`。
 - demo readiness：基于 `demo_required` 和 expected layouts 的确定性演示就绪统计。
@@ -409,6 +425,30 @@ V1 发布门禁仍由 `scripts/check_v1_release_gate.py` 维护，不改变既�
 - `current_level=strong` 的算法族如果使用 `process_fallback` 或 `process_uncovered`，family gate 必须失败。
 - `medium_plus`、`medium`、`basic` 算法族可以 fallback 或 uncovered，但报告必须显式列出 failure type、case 数、sample 数和 fallback 边界。
 - family gate 嵌入 V1 release gate 的结论作为证据，但不修改 V1 gate 的含义。
+
+## 7.4 降级策略统计
+
+复杂变体不能强校验时，系统必须显式降级，不能把基础可运行误报为强过程正确。降级不等于放宽 release gate；它是 artifact、Debug Drawer 和 evaluation report 中的结构化证据。
+
+固定降级类型：
+
+- `answer_only`：只有 expected、verifier 或答案侧证据可靠，过程 / scene 还不能发布为精确演示。
+- `schema_scene_only`：SemanticTrace 和 SceneGraph 可用，但缺少 expected、verifier 或多解法交叉校验。
+- `process_fallback`：有基础过程证据，但当前算法族没有可复用 invariant。
+- `process_uncovered`：算法族未覆盖，不能标记为 strong。
+- `demo_warn`：页面可演示，但缺少部分教学字段或存在 demo readiness warning。
+
+输出位置：
+
+- `BuildArtifact.validation.degradations`：写入当前 artifact 的降级类型、原因、来源和 affected variant；稳定 HTML 的 Debug Drawer 会显示这些条目，raw validation JSON 也保留完整字段。
+- `output/release_gate/family_release_gate.json`：`summary.degradation_summary` 按 family capability registry 统计 process fallback / uncovered 的 case 与 sample 数。
+- `output/evaluation/evaluation_report.json`：`degradation_summary` 同时聚合 LLM benchmark result 和 family release gate；`evaluation_degradations.csv` 输出按 source 与 degradation type 拆分的计数。
+
+门禁规则保持不变：
+
+- strong family 的 `smoke` / `family_core` 不允许 `process_fallback` 或 `process_uncovered`。
+- `medium_plus`、`medium`、`basic` 可以降级，但必须在 report 中显示原因和 fallback boundary。
+- 降级证据不得替代 process validator，也不得让 renderer 直接消费 LLM HTML。
 
 ## 8. 必须保留的产物
 
@@ -446,11 +486,53 @@ P9.2 的可复现包由固定脚本生成：
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
+当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。浏览器 smoke 和合并前完整质量检查应在 Playwright 兼容容器中运行：
+
+```bash
+bash scripts/run_browser_smoke_container.sh
+bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+```
+
+宿主机仍用于非浏览器分层验证，例如 offline regression、benchmark regression、family release gate。容器脚本默认使用当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`，并以宿主机 UID/GID 写入仓库，避免 root-owned 输出产物。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖镜像。
+
+容器命令要求能访问 Docker daemon。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`；若两者都不可用，应在有 Docker 权限的 CI 或容器宿主机上运行 browser gate。
+
 LLM benchmark 单独运行，模型配置通过环境变量或本地 ignored settings 文件提供，输出模型配置、repair 轮次和失败分类：
 
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark --condition algolab_full
 ```
+
+P15.1 之后，LLM benchmark 使用 `benchmark/llm_family_sets.json` 做 family / subfamily 分层抽样。该配置覆盖当前 deterministic benchmark 的所有 `family_id`，并把每个 case 的 sample 0 标记为 `seen_style`，sample 1 及之后样例标记为 `unseen_style`，用于在真实 LLM 路径中观察模型对同族不同输入风格的泛化表现。常用过滤参数：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+  --output-dir output/llm_benchmark \
+  --condition algolab_full \
+  --family array_pointer \
+  --gate-layer family_core \
+  --limit-per-family 1
+```
+
+输出除原有 `llm_benchmark_report.json` / `.md` 外，还包含：
+
+- `output/llm_benchmark/family_summary.json`：按 family 统计生成成功率、repair 成功率、失败类型、subfamily、gate layer 和 seen / unseen style 分布。
+
+LLM benchmark 失败不影响 deterministic release gate；它只影响真实产品能力评分和论文实验中的模型生成能力统计。
+
+P15.2 之后，repair context 会保留原始 `failure_type`，并额外暴露 `repair_category`、`family`、`family_guidance` 和禁止动作。repair prompt 必须区分答案错误、trace schema、trace 跳步、target / deps、process invariant、coverage 和 demo readiness，不允许要求 LLM 直接修改 HTML。
+
+P15.3 之后，LLM benchmark 额外支持独立 unseen family case set：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+  --output-dir output/llm_benchmark_unseen \
+  --condition algolab_full \
+  --case-set unseen \
+  --limit-per-family 1
+```
+
+unseen registry 位于 `benchmark/unseen_family_cases.json`，只包含题目描述、family / subfamily 元数据、样例输入和 expected output，不包含 deterministic `code`、`tracker_code` 或 `verifier_code`。运行时仍然必须通过 LLM 生成、repair、sandbox 执行、校验、SceneGraph compiler 和 renderer 链路，不能复用 deterministic tracker。LLM report 和 evaluation report 会输出 `case_set`、`case_style`、`case_set_summary` / `case_style_summary` 以及 `evaluation_case_styles.csv`，用于区分 `seen_style` 和 `unseen_style`。
 
 两条路径必须分开理解：
 
@@ -465,6 +547,8 @@ LLM benchmark 单独运行，模型配置通过环境变量或本地 ignored set
 - `output/evaluation/evaluation_report.json`
 - `output/llm_benchmark/llm_benchmark_report.json`
 - `output/llm_benchmark/llm_benchmark_report.md`
+- `output/llm_benchmark/family_summary.json`
+- `output/evaluation/evaluation_case_styles.csv`
 
 ## 10. V1 发布门禁
 
@@ -482,7 +566,7 @@ P9.3 的 V1 发布门禁由确定性证据报告和完整质量检查共同证�
 
 门禁要求：
 
-- deterministic benchmark 样例数必须位于 80 到 160。
+- V1 baseline deterministic samples（`smoke` / `family_core`）必须位于 80 到 220；`expansion` 层样例通过 family release gate 单独报告。
 - `unique_paths`、`graph_bfs`、`binary_search`、`daily_temperatures` 必须进入 browser smoke。
 - Debug Drawer 必须能展开查看 raw validation、release gate、raw state 和 artifact。
 - evaluation report 必须能输出失败分类 CSV。

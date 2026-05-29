@@ -264,6 +264,132 @@
       ]
     },
     {
+      "case_id": "graph_dfs_traversal",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single-node graph X returns only X"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "node 4 is disconnected from start and is not visited"},
+        {"category": "multiple_solutions", "sample_index": 2, "evidence": "C is reachable from both A and B while DFS records the first path"},
+        {"category": "extreme", "sample_index": 4, "evidence": "undirected edge back to an already visited node exercises cycle avoidance"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "DFS traversal benchmark requires a valid start node"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of neighbors"},
+        {"category": "zero_or_negative", "reason": "node ids are labels, not signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "graph_connected_components",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single isolated node X forms one component"},
+        {"category": "no_solution", "sample_index": 0, "evidence": "node C has no edge to the A-B component and remains isolated"},
+        {"category": "multiple_solutions", "sample_index": 4, "evidence": "graph has three disconnected components"},
+        {"category": "extreme", "sample_index": 1, "evidence": "two multi-node components exercise repeated DFS starts"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty graph is outside current deterministic component samples"},
+        {"category": "duplicate", "reason": "undirected adjacency mirrors edges structurally rather than duplicate input values"},
+        {"category": "zero_or_negative", "reason": "node ids are labels, not signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "graph_topological_sort",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single-node DAG X has topo order [X]"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "nodes 1 and 2 are both initially zero indegree"},
+        {"category": "extreme", "sample_index": 4, "evidence": "larger DAG exercises multiple indegree updates before node 3 becomes ready"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty DAG is outside current deterministic topo samples"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of outgoing edges"},
+        {"category": "zero_or_negative", "reason": "node ids are labels, not signed numeric values"},
+        {"category": "no_solution", "reason": "current topo benchmark only includes DAG inputs with valid topological orders"}
+      ]
+    },
+    {
+      "case_id": "graph_bipartite_coloring",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single isolated node X receives color 0"},
+        {"category": "multiple_solutions", "sample_index": 4, "evidence": "two disconnected bipartite components can be colored independently"},
+        {"category": "extreme", "sample_index": 3, "evidence": "two left nodes share R2 while preserving opposite colors"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty graph is outside current deterministic coloring samples"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of edges"},
+        {"category": "zero_or_negative", "reason": "colors are 0/1 labels and node ids are not signed numeric values"},
+        {"category": "no_solution", "reason": "current deterministic coloring samples are all bipartite"}
+      ]
+    },
+    {
+      "case_id": "dijkstra_shortest_path",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single source node X has distance 0"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "node 3 is unreachable from start 1"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "C has a direct edge and an improved path through B"},
+        {"category": "extreme", "sample_index": 1, "evidence": "four-node graph exercises stale longer candidate S-B before shorter S-A-B path"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "Dijkstra benchmark requires a valid start node"},
+        {"category": "duplicate", "reason": "weighted adjacency entries are treated as unique directed edges"},
+        {"category": "zero_or_negative", "reason": "Dijkstra strong contract only covers non-negative edge weights"}
+      ]
+    },
+    {
+      "case_id": "bellman_ford_shortest_path",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "edge B->C has negative weight -2"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "component 3-4 is unreachable from start 1"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "B has direct S-B edge and improved path S-A-B"},
+        {"category": "extreme", "sample_index": 1, "evidence": "negative edge plus downstream T relaxation requires repeated edge scans"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "Bellman-Ford benchmark requires at least one edge and a start"},
+        {"category": "single", "reason": "single-node no-edge graph is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "edge list is treated as a set of directed weighted edges"}
+      ]
+    },
+    {
+      "case_id": "floyd_warshall_all_pairs",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "two-node matrix is the smallest current all-pairs sample"},
+        {"category": "duplicate", "sample_index": 0, "evidence": "undirected matrix contains symmetric repeated weights"},
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "zero diagonal distances are preserved"},
+        {"category": "multiple_solutions", "sample_index": 3, "evidence": "0 to 1 improves through node 2 and mirrors 1 to 0"},
+        {"category": "extreme", "sample_index": 1, "evidence": "100000000 sentinel represents initially unreachable pairs that become reachable"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty distance matrix is outside current deterministic Floyd samples"},
+        {"category": "no_solution", "reason": "all-pairs distance matrix is always returned; unreachable pairs use the sentinel value"}
+      ]
+    },
+    {
+      "case_id": "zero_one_bfs_shortest_path",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "edge A->B has zero weight and is pushed to deque front"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "node 3 is unreachable from start 1"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "T can be reached through A or B with competing 0/1 costs"},
+        {"category": "extreme", "sample_index": 1, "evidence": "mixed zero and one weights exercise deque front and back pushes"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "0-1 BFS benchmark requires a valid start node"},
+        {"category": "single", "reason": "single-node graph is not in current deterministic 0-1 BFS samples"},
+        {"category": "duplicate", "reason": "weighted adjacency entries are treated as unique directed edges"}
+      ]
+    },
+    {
+      "case_id": "kruskal_mst_weight",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single edge X-Y is the smallest current connected MST sample"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "two MST edges have equal weight 1"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "equal-weight choices require union-find to decide acyclic selections"},
+        {"category": "extreme", "sample_index": 1, "evidence": "five edges over four nodes include both accepted and rejected cycle-forming edges"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty edge list is outside current deterministic MST samples"},
+        {"category": "zero_or_negative", "reason": "current MST samples use positive edge weights"},
+        {"category": "no_solution", "reason": "current deterministic MST samples are connected graphs"}
+      ]
+    },
+    {
       "case_id": "kmp",
       "coverage": [
         {"category": "empty", "sample_index": 2, "evidence": "empty pattern returns index 0"},
@@ -320,6 +446,34 @@
       ]
     },
     {
+      "case_id": "string_sliding_window_unique",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "empty text returns longest unique window length 0"},
+        {"category": "single", "sample_index": 1, "evidence": "all duplicate characters force best window length 1"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "bbbbb repeatedly triggers duplicate-window contraction"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "abcabcbb has several length-3 unique windows"},
+        {"category": "extreme", "sample_index": 0, "evidence": "mixed expansion and contraction across a longer repeated string"}
+      ],
+      "not_applicable": [
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"},
+        {"category": "no_solution", "reason": "longest unique substring is defined for every string, including the empty string"}
+      ]
+    },
+    {
+      "case_id": "trie_prefix_match_string",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 0, "evidence": "apple/app/ape share the ap prefix path"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "prefix z is absent and returns 0"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "three words match prefix ap"},
+        {"category": "extreme", "sample_index": 1, "evidence": "prefix doo follows a deeper path with one matching branch"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty prefix is not in current deterministic Trie prefix-match samples"},
+        {"category": "single", "reason": "single-word dictionary is not in current deterministic samples"},
+        {"category": "zero_or_negative", "reason": "word and prefix inputs are strings, not signed numeric values"}
+      ]
+    },
+    {
       "case_id": "two_sum",
       "coverage": [
         {"category": "no_solution", "sample_index": 2, "evidence": "target 7 has no pair"},
@@ -362,13 +516,41 @@
       ]
     },
     {
+      "case_id": "reverse_linked_list",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "empty values list returns an empty reversed list"},
+        {"category": "single", "sample_index": 1, "evidence": "single-node list exercises no-op pointer boundary"},
+        {"category": "extreme", "sample_index": 0, "evidence": "three-node list exercises multiple next-pointer rewires"}
+      ],
+      "not_applicable": [
+        {"category": "duplicate", "reason": "current deterministic linked-list values are unique"},
+        {"category": "zero_or_negative", "reason": "node ids are generated labels and values are positive in current samples"},
+        {"category": "no_solution", "reason": "reversal is defined for every finite linked list"},
+        {"category": "multiple_solutions", "reason": "reversed linked-list order is unique"}
+      ]
+    },
+    {
+      "case_id": "jump_game",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-position array is already at the target"},
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "zero jump blocks progress in the middle"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "sample cannot reach the final index"},
+        {"category": "extreme", "sample_index": 0, "evidence": "classic reachable sample exercises repeated reach expansion"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty nums is outside the current jump-game input contract"},
+        {"category": "duplicate", "reason": "duplicate jump lengths do not affect the yes/no reachability identity"},
+        {"category": "multiple_solutions", "reason": "current output is a boolean reachability result, not a selected path"}
+      ]
+    },
+    {
       "case_id": "binary_tree_inorder",
       "coverage": [
-        {"category": "extreme", "sample_index": 0, "evidence": "tree has multiple levels and both children"}
+        {"category": "single", "sample_index": 3, "evidence": "single-node tree returns that node"},
+        {"category": "extreme", "sample_index": 4, "evidence": "chain-shaped tree exercises deep recursion"}
       ],
       "not_applicable": [
         {"category": "empty", "reason": "empty tree is outside current deterministic tree traversal samples"},
-        {"category": "single", "reason": "single-node tree is not in current deterministic samples"},
         {"category": "duplicate", "reason": "node ids are unique"},
         {"category": "zero_or_negative", "reason": "node ids are labels"},
         {"category": "no_solution", "reason": "valid tree traversal always returns an order"},
@@ -378,11 +560,11 @@
     {
       "case_id": "lca",
       "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "one query node is an ancestor of the other in a chain"},
         {"category": "extreme", "sample_index": 0, "evidence": "larger tree with deep query nodes"}
       ],
       "not_applicable": [
         {"category": "empty", "reason": "empty tree is outside the LCA input contract"},
-        {"category": "single", "reason": "single-node LCA query is not in current samples"},
         {"category": "duplicate", "reason": "node ids are unique"},
         {"category": "zero_or_negative", "reason": "node ids are labels"},
         {"category": "no_solution", "reason": "queries use existing nodes in a connected tree"},
@@ -392,12 +574,12 @@
     {
       "case_id": "tree_diameter",
       "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-node tree has diameter 0"},
         {"category": "multiple_solutions", "sample_index": 0, "evidence": "two leaves can produce equivalent longest paths through node 2"},
-        {"category": "extreme", "sample_index": 1, "evidence": "chain tree exercises path-shaped diameter"}
+        {"category": "extreme", "sample_index": 3, "evidence": "unbalanced tree exercises diameter across different branches"}
       ],
       "not_applicable": [
         {"category": "empty", "reason": "empty tree is outside current deterministic samples"},
-        {"category": "single", "reason": "single-node tree is not in current deterministic samples"},
         {"category": "duplicate", "reason": "node ids are unique"},
         {"category": "zero_or_negative", "reason": "node ids are labels"},
         {"category": "no_solution", "reason": "valid tree always has a diameter"}
@@ -406,11 +588,11 @@
     {
       "case_id": "tree_max_independent_set",
       "coverage": [
-        {"category": "extreme", "sample_index": 0, "evidence": "weighted tree with a high-value leaf changes optimal choice"}
+        {"category": "single", "sample_index": 3, "evidence": "single-node weighted tree returns that node value"},
+        {"category": "extreme", "sample_index": 2, "evidence": "weighted tree has high-value grandchildren that dominate root choice"}
       ],
       "not_applicable": [
         {"category": "empty", "reason": "empty tree is outside current deterministic tree DP samples"},
-        {"category": "single", "reason": "single-node weighted tree is not in current deterministic samples"},
         {"category": "duplicate", "reason": "node ids are unique and repeated weights do not alter the boundary meaning here"},
         {"category": "zero_or_negative", "reason": "current weights are positive"},
         {"category": "no_solution", "reason": "the empty independent set is always feasible"},
@@ -421,12 +603,12 @@
       "case_id": "kth_largest",
       "coverage": [
         {"category": "duplicate", "sample_index": 1, "evidence": "array contains repeated 2, 3 and 5"},
-        {"category": "extreme", "sample_index": 1, "evidence": "k=4 over nine values exercises heap retention"}
+        {"category": "single", "sample_index": 2, "evidence": "single-element heap with k=1"},
+        {"category": "zero_or_negative", "sample_index": 3, "evidence": "input includes negative and zero values"},
+        {"category": "extreme", "sample_index": 7, "evidence": "k=1 keeps only the maximum value"}
       ],
       "not_applicable": [
         {"category": "empty", "reason": "kth largest requires a non-empty array"},
-        {"category": "single", "reason": "single-element array is not in current deterministic samples"},
-        {"category": "zero_or_negative", "reason": "current samples use positive numbers"},
         {"category": "no_solution", "reason": "k is valid for all deterministic samples"},
         {"category": "multiple_solutions", "reason": "the kth value is unique as a scalar even with duplicate inputs"}
       ]
@@ -434,15 +616,15 @@
     {
       "case_id": "trie_prefix",
       "coverage": [
+        {"category": "empty", "sample_index": 6, "evidence": "empty prefix matches all words"},
+        {"category": "single", "sample_index": 3, "evidence": "single-word dictionary with matching prefix"},
+        {"category": "duplicate", "sample_index": 4, "evidence": "word list contains duplicate same entries"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "prefix z has no matching word"},
         {"category": "multiple_solutions", "sample_index": 0, "evidence": "prefix ap matches three words"},
-        {"category": "extreme", "sample_index": 1, "evidence": "prefix doo is longer than one competing word prefix"}
+        {"category": "extreme", "sample_index": 7, "evidence": "three words share prefix pre while another branch diverges"}
       ],
       "not_applicable": [
-        {"category": "empty", "reason": "empty word set or empty prefix is not in current deterministic samples"},
-        {"category": "single", "reason": "single-word dictionary is not in current deterministic samples"},
-        {"category": "duplicate", "reason": "word list has unique entries"},
-        {"category": "zero_or_negative", "reason": "string keys do not contain signed numeric values"},
-        {"category": "no_solution", "reason": "current deterministic samples both have at least one matching prefix"}
+        {"category": "zero_or_negative", "reason": "string keys do not contain signed numeric values"}
       ]
     },
     {
@@ -462,13 +644,13 @@
     {
       "case_id": "permutations",
       "coverage": [
-        {"category": "zero_or_negative", "sample_index": 1, "evidence": "input includes 0"},
+        {"category": "single", "sample_index": 2, "evidence": "single-element input has one permutation"},
+        {"category": "zero_or_negative", "sample_index": 4, "evidence": "input includes a negative value"},
         {"category": "multiple_solutions", "sample_index": 0, "evidence": "three values produce six permutations"},
         {"category": "extreme", "sample_index": 0, "evidence": "3! output exercises branching"}
       ],
       "not_applicable": [
         {"category": "empty", "reason": "empty permutation input is not in current deterministic samples"},
-        {"category": "single", "reason": "single-element permutation input is not in current deterministic samples"},
         {"category": "duplicate", "reason": "permutation fixture assumes distinct input values"},
         {"category": "no_solution", "reason": "valid finite input always has permutations"}
       ]

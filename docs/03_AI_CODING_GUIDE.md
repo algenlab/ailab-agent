@@ -166,6 +166,32 @@ Renderer 可以改善页面体验，但不能改变语义。
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
+浏览器 smoke 的默认执行环境是已缓存的 Ubuntu 22 / Playwright 兼容容器，不是当前宿主机。当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。涉及 renderer、HTML runtime、dashboard 浏览器交互或合并前完整门禁时，执行 AI 必须使用：
+
+```bash
+bash scripts/run_browser_smoke_container.sh
+```
+
+如果需要在同一容器里运行完整质量检查：
+
+```bash
+bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+```
+
+容器内 Python 使用镜像自带解释器；宿主机上的所有 Python 命令仍必须使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`。容器脚本默认使用宿主机当前 UID/GID 写入挂载目录，避免再次生成 root-owned 输出文件。
+
+默认镜像为 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`，该镜像在当前机器已有缓存并包含 Playwright/Chromium。外部 CI 可以用 `ALGOLAB_PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright/python:v1.59.0-noble ALGOLAB_CONTAINER_INSTALL_DEPS=1` 覆盖为官方 Playwright 镜像。
+
+运行容器命令前必须确认当前用户可以访问 Docker daemon。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`。若两者都失败，这是执行环境权限问题，需要把当前用户加入 `docker` 组、配置免密 `sudo docker`，或切到有 Docker 权限的 CI / 容器宿主机；不要把它当作代码失败。
+
+Phase 17 的 renderer / HTML runtime / 交互改动还必须生成真实浏览器截图证据：
+
+```bash
+bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots
+```
+
+完成汇报必须写出截图 manifest 路径、覆盖的 demo id、desktop/mobile 视口，以及人工查看结论。
+
 如果遇到网络问题，可以先清理代理环境变量，再按项目根目录 AGENTS.md 设置代理。
 
 ## 10. 完成汇报格式
@@ -180,4 +206,3 @@ Renderer 可以改善页面体验，但不能改变语义。
 - 下一步建议。
 
 不能只说“已完成”。
-

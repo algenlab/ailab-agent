@@ -629,7 +629,7 @@ Benchmark 回归：
 浏览器 smoke：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+bash scripts/run_browser_smoke_container.sh
 ```
 
 全部本地检查：
@@ -637,6 +637,14 @@ Benchmark 回归：
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
+
+当前宿主机 glibc 2.17 不能直接运行 Playwright 自带 node；浏览器 smoke 和完整质量门禁使用 Playwright 兼容容器：
+
+```bash
+bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+```
+
+容器命令要求能访问 Docker daemon；脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`。两者都不可用时才是执行环境权限问题，不是代码失败。
 
 这些检查验证系统边界，不等价于证明任意未知题的 LLM 输出永远正确。
 

@@ -93,7 +93,7 @@ SceneGraph
 浏览器烟测：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+bash scripts/run_browser_smoke_container.sh
 ```
 
 全部本地检查：
@@ -101,6 +101,18 @@ SceneGraph
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
+
+当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。涉及浏览器的完整门禁使用容器：
+
+```bash
+bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+```
+
+宿主机上的 Python 命令仍使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`；容器内命令使用镜像自带 Python。
+
+默认镜像为当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖为官方 Playwright 镜像。
+
+运行容器命令需要 Docker daemon 权限。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`；如果两者都不可用，需要把用户加入 `docker` 组、配置免密 `sudo docker`，或在有 Docker 权限的 CI 环境运行。
 
 这些检查覆盖 schema 严格性、trace validator、scene compiler、沙箱超时、renderer HTML 输出和 Playwright 页面加载。它们不证明 LLM 对所有题目都正确，只证明系统的确定性边界和已有样例可重复通过。
 

@@ -58,6 +58,8 @@ from tests.fixtures import (
     monotonic_stack_trace,
     recursion_trace,
     recursion_tree_trace,
+    phase17_visual_pattern_artifact,
+    phase17_visual_pattern_matrix,
     string_trace,
     tree_trace,
     trie_trace,
@@ -1637,7 +1639,10 @@ def test_process_validation_registry_declares_core_families():
     assert process_validation_profile_for_family("二维 DP").family == "dp"
     assert process_validation_profile_for_family("BFS/DFS 基础图").family == "bfs"
     assert process_validation_profile_for_family("栈 / 队列 / 单调栈").family == "monotonic_stack"
-    assert process_validation_profile_for_family("哈希表 / map").status == "fallback"
+    hash_profile = process_validation_profile_for_family("哈希表 / map")
+    assert hash_profile.family == "hash"
+    assert hash_profile.status == "strong"
+    assert "_validate_hash_map_process" in hash_profile.checks
     assert process_validation_profile_for_family("树 / BST / LCA").family == "tree"
     assert process_validation_profile_for_family("并查集").family == "union_find"
 
@@ -2700,6 +2705,13 @@ def test_golden_visual_matrix_declares_prediction_interactions_for_core_examples
                     variant_id,
                     interaction,
                 )
+                wrong_options = {str(option) for option in interaction["options"]} - {str(interaction["answer"])}
+                assert wrong_options, (variant_id, interaction)
+                option_explanations = interaction.get("option_explanations") or {}
+                assert interaction.get("wrong_explanation") or any(
+                    option in option_explanations and str(option_explanations[option]).strip()
+                    for option in wrong_options
+                ), (variant_id, interaction)
 
 
 def test_renderer_declares_readonly_prediction_interactions(tmp_path: Path):
@@ -2710,6 +2722,9 @@ def test_renderer_declares_readonly_prediction_interactions(tmp_path: Path):
     assert "function checkChoice" in html
     assert "function checkInput" in html
     assert "function checkJudge" in html
+    assert "function wrongFeedback" in html
+    assert "option_explanations" in html
+    assert "wrong_explanation" in html
     assert "data-interaction-type" in html
     assert "data-trace-step" in html
 
@@ -2725,6 +2740,33 @@ def test_renderer_declares_readonly_prediction_interactions(tmp_path: Path):
     assert "frames()[" not in checker_block
     assert "scene().frames" not in checker_block
     assert "stepIndex =" not in checker_block
+    assert "algorithm" not in checker_block
+
+
+def test_renderer_declares_phase17_formula_expand_and_structured_wrong_feedback(tmp_path: Path):
+    out = save_html(golden_visual_artifact(), tmp_path / "phase17_interaction_learning.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "function renderFormulaExpansion" in html
+    assert "function formulaSubstitutionForFrame" in html
+    assert "class=\"teach-row formula formula-expander\"" in html
+    assert "SceneGraph frame.teaching / frame.evidence / visual object meta" in html
+    assert "错误选项解释：" in html
+    assert "data-source" in html
+
+    formula_block = html.split("function renderFormulaExpansion", 1)[1].split("function renderInteraction", 1)[0]
+    assert "f && f.evidence" in formula_block
+    assert "f && f.teaching" in formula_block
+    assert "objectsWithPattern" in formula_block
+    assert "ARTIFACT" not in formula_block
+    assert "algorithm" not in formula_block
+
+    feedback_block = html.split("function checkChoice", 1)[1].split("function renderCode", 1)[0]
+    assert "option_explanations" in feedback_block
+    assert "wrong_explanation" in feedback_block
+    assert "teaching.common_mistake" in feedback_block
+    assert "ARTIFACT" not in feedback_block
+    assert "scene().frames" not in feedback_block
 
 
 def test_renderer_declares_regeneration_entry_without_trace_mutation(tmp_path: Path):
@@ -2843,6 +2885,68 @@ def test_renderer_declares_process_evidence_and_preserves_raw_validation_report(
     assert "f.evidence" in process_renderer
     assert "algorithm" not in process_renderer
     assert "problem_title" not in process_renderer
+
+
+def test_phase17_scene_compiler_emits_family_visual_pattern_meta():
+    artifact = phase17_visual_pattern_artifact()
+    expected = {str(item["id"]): set(item["patterns"]) for item in phase17_visual_pattern_matrix()}
+
+    for variant_id, patterns in expected.items():
+        scene = artifact.scenes[variant_id]
+        object_patterns = {
+            pattern
+            for frame in scene.frames
+            for obj in frame.objects
+            for pattern in (obj.meta.get("visual_patterns") or [])
+        }
+        evidence_patterns = {
+            item.get("pattern")
+            for frame in scene.frames
+            for item in frame.evidence.get("visual_patterns", [])
+        }
+        missing = patterns - object_patterns - evidence_patterns
+        assert not missing, (variant_id, missing, object_patterns, evidence_patterns)
+
+    dp_scene = artifact.scenes["dp_formula"]
+    assert any(obj.type.value == "arrow" and "dp_dependency_arrow" in (obj.meta.get("visual_patterns") or []) for frame in dp_scene.frames for obj in frame.objects)
+
+    flow_edges = [
+        obj
+        for frame in artifact.scenes["network_flow"].frames
+        for obj in frame.objects
+        if obj.type.value == "edge" and "network_flow_edge_label" in (obj.meta.get("visual_patterns") or [])
+    ]
+    assert flow_edges
+    assert any(obj.meta.get("capacity") is not None and obj.meta.get("residual") is not None for obj in flow_edges)
+
+
+def test_phase17_renderer_declares_generic_visual_pattern_runtime(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "phase17_visual_patterns.html")
+    html = out.read_text(encoding="utf-8")
+
+    for marker in (
+        "function renderVisualPatternPanel",
+        "function objectsWithPattern",
+        "function objectMetaClass",
+        "function edgeDisplayLabel",
+        "dp-formula-substitution",
+        "graph-visual-pattern",
+        "string-alignment-card",
+        "tree-return-pattern",
+        "backtracking-pattern",
+        "range-structure-pattern",
+        "network-flow-pattern",
+        "edge-label",
+        "return-bubble",
+    ):
+        assert marker in html
+
+    visual_block = html.split("function renderVisualPatternPanel", 1)[1].split("function renderDependencyFlow", 1)[0]
+    assert "problem_title" not in visual_block
+    assert "algorithm" not in visual_block
+    assert "ARTIFACT" not in visual_block
+    assert "objectsWithPattern" in visual_block
+    assert "f.objects" in visual_block
 
 
 def test_ml_primitives_cover_linear_and_logistic_regression(tmp_path: Path):
@@ -3445,6 +3549,7 @@ def run_all():
         test_golden_visual_matrix_compiles_core_examples_without_renderer_branches,
         test_golden_visual_matrix_declares_prediction_interactions_for_core_examples,
         test_scene_compiler_emits_user_readable_process_evidence_for_golden_examples,
+        test_phase17_scene_compiler_emits_family_visual_pattern_meta,
         test_ml_correctness_accepts_linear_regression_gradient_and_loss_curve,
         test_ml_correctness_rejects_bad_linear_regression_gradient_and_loss_curve,
         test_ml_correctness_checks_parameter_update_tolerance_and_random_seed,
@@ -3486,8 +3591,10 @@ def run_all():
         test_renderer_declares_compound_primitive_layout(Path(d))
         test_renderer_declares_generic_change_summary_in_teaching_panel(Path(d))
         test_renderer_declares_readonly_prediction_interactions(Path(d))
+        test_renderer_declares_phase17_formula_expand_and_structured_wrong_feedback(Path(d))
         test_renderer_declares_regeneration_entry_without_trace_mutation(Path(d))
         test_renderer_declares_variant_comparison_without_scene_mixing(Path(d))
+        test_phase17_renderer_declares_generic_visual_pattern_runtime(Path(d))
         test_renderer_writes_html(Path(d))
         test_ml_primitives_cover_linear_and_logistic_regression(Path(d))
 
