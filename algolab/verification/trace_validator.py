@@ -59,6 +59,11 @@ def _known_targets_from_trace(trace: SemanticTrace) -> set[str]:
                     known.add(f"{key}[{r}]")
                     for c, _ in enumerate(row):
                         known.add(f"{key}[{r}][{c}]")
+            elif _is_string_list(value):
+                for r, item in enumerate(value):
+                    known.add(f"{key}[{r}]")
+                    for c, _ in enumerate(item):
+                        known.add(f"{key}[{r}][{c}]")
             elif _is_scalar_list(value):
                 for i, _ in enumerate(value):
                     known.add(f"{key}[{i}]")
@@ -91,23 +96,15 @@ def _known_targets_from_trace(trace: SemanticTrace) -> set[str]:
                     for i, point in enumerate(value.get("points") or []):
                         point_id = str(point.get("id", i) if isinstance(point, dict) else i)
                         known.add(f"point:{point_id}")
-                elif key in {"graph", "adjacency"} or all(isinstance(v, list) for v in value.values()):
-                    for node, neighbors in value.items():
-                        known.add(f"node:{node}")
-                        for nei in neighbors if isinstance(neighbors, list) else []:
-                            known.add(f"node:{nei}")
-                            known.add(f"edge:{node}->{nei}")
+                elif _looks_like_graph_dict(key, value):
+                    _add_graph_targets(known, value)
                 else:
                     for mk in value:
                         known.add(f"{key}[{mk}]")
     if isinstance(trace.input_data, dict):
-        graph = trace.input_data.get("graph") or trace.input_data.get("adjacency")
+        graph = trace.input_data.get("graph") or trace.input_data.get("adjacency") or trace.input_data.get("weighted_graph")
         if isinstance(graph, dict):
-            for node, neighbors in graph.items():
-                known.add(f"node:{node}")
-                for nei in neighbors if isinstance(neighbors, list) else []:
-                    known.add(f"node:{nei}")
-                    known.add(f"edge:{node}->{nei}")
+            _add_graph_targets(known, graph)
         tree = trace.input_data.get("tree")
         if isinstance(tree, dict):
             _add_tree_targets(known, tree)
@@ -117,6 +114,42 @@ def _known_targets_from_trace(trace: SemanticTrace) -> set[str]:
                 known.add(f"points[{i}]")
                 known.add(f"point:{i}")
     return known
+
+
+def _looks_like_graph_dict(key: str, value: dict) -> bool:
+    if key in {"graph", "adjacency", "weighted_graph"}:
+        return True
+    return bool(value) and all(isinstance(v, (dict, list)) for v in value.values())
+
+
+def _add_graph_targets(known: set[str], graph: dict) -> None:
+    for node, neighbors in graph.items():
+        known.add(f"node:{node}")
+        for neighbor in _graph_neighbor_items(neighbors):
+            neighbor_id = _neighbor_id(neighbor)
+            if not neighbor_id:
+                continue
+            known.add(f"node:{neighbor_id}")
+            known.add(f"edge:{node}->{neighbor_id}")
+
+
+def _graph_neighbor_items(neighbors) -> list:
+    if isinstance(neighbors, dict):
+        return list(neighbors.keys())
+    if isinstance(neighbors, list):
+        return neighbors
+    return []
+
+
+def _neighbor_id(value) -> str:
+    if isinstance(value, dict):
+        for key in ("to", "target", "id", "node"):
+            if value.get(key) not in (None, ""):
+                return str(value.get(key))
+        return ""
+    if isinstance(value, (list, tuple)) and value:
+        return str(value[0])
+    return "" if value in (None, "") else str(value)
 
 
 def _add_tree_targets(known: set[str], tree: dict) -> None:
@@ -150,6 +183,10 @@ def _looks_like_legacy_map_target(target_id: str) -> bool:
 
 def _is_scalar_list(value) -> bool:
     return isinstance(value, list) and all(not isinstance(x, (list, dict)) for x in value)
+
+
+def _is_string_list(value) -> bool:
+    return isinstance(value, list) and all(isinstance(x, str) for x in value)
 
 
 def _is_matrix(value) -> bool:

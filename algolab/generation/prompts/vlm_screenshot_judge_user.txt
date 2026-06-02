@@ -1,0 +1,50 @@
+Evaluate this AlgoLab screenshot using only visible content.
+
+Condition: {{condition}}
+Case id: {{case_id}}
+Screenshot path: {{screenshot}}
+Viewport: {{viewport}}
+Screenshot type: {{screenshot_type}}
+HTML path: {{html}}
+Phase: {{phase}}
+
+Rubric version: {{rubric_version}}
+Rubric details:
+{{rubric_json}}
+
+Type-specific focus:
+- dashboard: judge overview readability, benchmark status visibility, table/card density, and desktop/mobile scanability.
+- page: judge algorithm state visibility, step explanation, controls, formula/evidence panels, and desktop/mobile readability.
+- interaction: judge the visible before/after/input/error feedback state and whether the interaction result is clear.
+
+Important boundaries:
+- Do not judge final answer correctness.
+- Do not decide whether the page should pass release gates.
+- Do not reward decorative beauty over teaching clarity.
+- Do not infer anything outside the screenshot.
+- If the screenshot is mobile, include mobile readability in layout_readability.
+
+Return this exact JSON shape:
+{
+  "case_id": "{{case_id}}",
+  "condition": "{{condition}}",
+  "screenshot": "{{screenshot}}",
+  "viewport": "{{viewport}}",
+  "scores": {
+    "layout_readability": 1,
+    "algorithm_state_visibility": 1,
+    "teaching_explanation": 1,
+    "interaction_affordance": 1,
+    "evidence_alignment": 1,
+    "overall_teaching_quality": 1
+  },
+  "confidence": 0.0,
+  "issues": [
+    {
+      "severity": "low|medium|high",
+      "category": "layout|state|explanation|interaction|evidence|other",
+      "message": "short concrete issue"
+    }
+  ],
+  "suggested_caption": "one short paper-friendly caption"
+}

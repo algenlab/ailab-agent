@@ -667,10 +667,13 @@ def _tree_nodes_edges(tree: dict[str, Any]) -> tuple[dict[str, Any], list[tuple[
     edges = []
     for edge in tree.get("edges") or []:
         if isinstance(edge, dict):
-            src, dst = edge.get("from"), edge.get("to")
+            src = edge.get("from", edge.get("source"))
+            dst = edge.get("to", edge.get("target"))
         elif isinstance(edge, (list, tuple)) and len(edge) >= 2:
             src, dst = edge[0], edge[1]
         else:
+            continue
+        if src is None or dst is None:
             continue
         edges.append((str(src), str(dst)))
     return nodes, edges
@@ -849,10 +852,30 @@ def _validate_fenwick_tree(trace: SemanticTrace) -> list[str]:
             errors.append(f"第 {event.step} 步树状数组 bit 长度应为 nums 长度 + 1")
             continue
         expected = _fenwick_expected(nums)
-        for i in range(1, len(expected)):
+        target_indices = _fenwick_target_indices(event)
+        if target_indices:
+            indices = sorted(index for index in target_indices if 1 <= index < len(expected))
+        elif event.role == "answer":
+            indices = list(range(1, len(expected)))
+        elif event.op == SemanticOp.CREATE and any(bit[1:]):
+            indices = list(range(1, len(expected)))
+        else:
+            continue
+        for i in indices:
             if bit[i] != expected[i]:
                 errors.append(f"第 {event.step} 步树状数组 bit[{i}] 应为 {expected[i]}")
     return errors
+
+
+def _fenwick_target_indices(event) -> set[int]:
+    indices: set[int] = set()
+    for target_id in _event_target_ids(event):
+        parsed = parse_target(target_id)
+        if parsed.kind == "indexed" and parsed.name in {"bit", "fenwick"} and len(parsed.indices) == 1:
+            index = parsed.indices[0]
+            if isinstance(index, int):
+                indices.add(index)
+    return indices
 
 
 def _validate_sparse_table(trace: SemanticTrace) -> list[str]:

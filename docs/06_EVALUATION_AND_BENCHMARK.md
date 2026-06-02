@@ -278,6 +278,12 @@ P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查�
 
 正式报告使用 `condition` 区分实验口径。完整系统记为 `algolab_full`；直接 HTML baseline 记为 `direct_html_baseline`。直接 HTML baseline 只能作为外部实验结果进入 `llm_benchmark_report.json`，不进入 AlgoLab 主发布路径，也不能绕过 Renderer 只能消费 SceneGraph / BuildArtifact 的约束。
 
+报告指标必须拆开三类语义：
+
+- `algolab_full_strict_release_gate_pass_rate`：只统计 `condition=algolab_full` 的完整机器 release gate。
+- `correctness_gate_pass_rate`：只聚合具备机器 correctness gate 的 condition；`direct_html_baseline` 属于 browser-only / VLM-only baseline，不进入该分母。
+- `visual_smoke_pass_rate` 与 VLM 平均分：只说明成功产物的浏览器可运行性和截图教学质量，不能替代 strict release gate。
+
 ## 5. Ablation
 
 建议消融：
@@ -301,7 +307,7 @@ P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查�
 - `no_process_validator`：不执行族级 process invariant / coverage rule，仅统计最终答案、schema 和可渲染性，用于衡量过程校验对错误发布风险和失败定位的贡献。
 - `no_scenegraph_compiler`：不经过 SceneGraph compiler 结构化约束，仅作为外部消融结果进入 report，用于衡量视觉结构约束对 HTML 可运行率、交互覆盖和失败定位的贡献。
 
-`scripts/build_evaluation_report.py` 会从 LLM benchmark report 的 `condition`、`experiment_condition`、`benchmark_condition`、`baseline` 或 `ablation` 字段聚合 `condition_summary`，并输出 `evaluation_condition_summary.csv`。每个 condition 必须记录 `total`、`passed`、`failed`、`pass_rate` 和 `failure_types`。
+`scripts/build_evaluation_report.py` 会从 LLM benchmark report 的 `condition`、`experiment_condition`、`benchmark_condition`、`baseline` 或 `ablation` 字段聚合 `condition_summary`，并输出 `evaluation_condition_summary.csv`。每个 condition 必须记录 `machine_correctness_gate_available`、`total`、`passed`、`failed`、`pass_rate` 和 `failure_types`，其中 `direct_html_baseline.machine_correctness_gate_available=false`。
 
 ## 6. 人工评价 Rubric
 

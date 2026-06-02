@@ -266,9 +266,33 @@ def _validate_graph_contract_dfs(trace: SemanticTrace, contract: dict[str, Any])
         errors.append("Graph contract DFS 必须记录 stack 或 recursion frame frontier")
     if not has_frame_event:
         errors.append("Graph contract DFS 缺少 recursion frame enter/exit 事件")
-    if _graph_contract_string_list(contract, "expected_nodes") and not _visited_covers_expected_nodes(trace, contract):
+    if (
+        _graph_contract_string_list(contract, "expected_nodes")
+        and not _looks_like_bipartite_matching_dfs(trace)
+        and not _visited_covers_expected_nodes(trace, contract)
+    ):
         errors.append("Graph contract DFS visited 未覆盖 expected_nodes")
     return errors
+
+
+def _looks_like_bipartite_matching_dfs(trace: SemanticTrace) -> bool:
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    input_has_partitions = _has_bipartite_partitions(input_data)
+    for event in trace.events:
+        state = event.state or {}
+        if "match" not in state:
+            continue
+        if _has_bipartite_partitions(state) or input_has_partitions:
+            return True
+    return False
+
+
+def _has_bipartite_partitions(data: dict[str, Any]) -> bool:
+    return (
+        ("left_nodes" in data and "right_nodes" in data)
+        or ("left" in data and "right" in data)
+        or ("left_partition" in data and "right_partition" in data)
+    )
 
 
 def _validate_graph_contract_connected_components(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
@@ -338,6 +362,12 @@ def _visited_covers_expected_nodes(trace: SemanticTrace, contract: dict[str, Any
             covered = {str(node) for node in visited}
             if expected <= covered:
                 return True
+        for key in ("dfn", "disc"):
+            discovered = (event.state or {}).get(key)
+            if isinstance(discovered, dict):
+                covered = {str(node) for node, value in discovered.items() if value is not None}
+                if expected <= covered:
+                    return True
     return False
 
 
@@ -498,9 +528,9 @@ def _validate_graph_contract_topological(trace: SemanticTrace, contract: dict[st
     if has_edges and not indegree_events:
         errors.append("Graph contract topological_sort 缺少 indegree 变化事件")
     for event in indegree_events:
-        state = event.state or {}
-        if "enqueue_reason" not in state and "入队" not in (event.reason or "") and "zero" not in (event.reason or "").lower():
-            errors.append(f"第 {event.step} 步 Graph contract topological_sort 缺少入队原因")
+        for node in _topological_indegree_target_nodes(event):
+            if _topological_indegree_value(event, node) == 0 and not _has_topological_enqueue_evidence(trace, event, node):
+                errors.append(f"第 {event.step} 步 Graph contract topological_sort 缺少入队原因")
         errors.extend(_validate_topological_indegree_transition(event))
     if _graph_contract_string_list(contract, "expected_nodes"):
         expected = set(_graph_contract_string_list(contract, "expected_nodes"))
@@ -512,6 +542,60 @@ def _validate_graph_contract_topological(trace: SemanticTrace, contract: dict[st
         if not expected <= seen_order:
             errors.append("Graph contract topological_sort topo_order 未覆盖 expected_nodes")
     return errors
+
+
+def _topological_indegree_target_nodes(event) -> list[str]:
+    nodes: list[str] = []
+    for target_id in _event_target_ids(event):
+        parsed = parse_target(target_id)
+        if parsed.kind != "map":
+            continue
+        key, _, node = parsed.name.partition(":")
+        if key == "indegree" and node:
+            nodes.append(node)
+    return nodes
+
+
+def _topological_indegree_value(event, node: str) -> Any:
+    state = event.state or {}
+    indegree = state.get("indegree")
+    if not isinstance(indegree, dict):
+        return None
+    return _dict_lookup(indegree, node)
+
+
+def _has_topological_enqueue_evidence(trace: SemanticTrace, event, node: str) -> bool:
+    if _topological_event_mentions_enqueue(event) and _event_queue_contains(event, node):
+        return True
+    if _topological_event_mentions_enqueue(event) and "enqueue_reason" in (event.state or {}):
+        return True
+    for later in trace.events:
+        if later.step <= event.step:
+            continue
+        if later.op != SemanticOp.PUSH or "queue" not in _event_target_ids(later):
+            continue
+        if str(later.value) != node and not _event_queue_contains(later, node):
+            continue
+        if _topological_event_mentions_enqueue(later):
+            return True
+    return False
+
+
+def _topological_event_mentions_enqueue(event) -> bool:
+    state = event.state or {}
+    reason = (event.reason or "").lower()
+    return (
+        "enqueue_reason" in state
+        or "入队" in (event.reason or "")
+        or "zero" in reason
+        or "==0" in reason
+        or "归零" in (event.reason or "")
+    )
+
+
+def _event_queue_contains(event, node: str) -> bool:
+    queue = (event.state or {}).get("queue")
+    return isinstance(queue, list) and any(str(item) == node for item in queue)
 
 
 def _validate_graph_contract_mst(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
@@ -600,7 +684,7 @@ def _looks_like_bfs(trace: SemanticTrace) -> bool:
 def _validate_bfs_distances(trace: SemanticTrace) -> list[str]:
     errors: list[str] = []
     graph = trace.input_data.get("graph")
-    start = trace.input_data.get("start")
+    start = _bfs_source_for_trace(trace)
     if not isinstance(graph, dict):
         return errors
     expected = _bfs_dist(graph, start)
@@ -619,7 +703,7 @@ def _validate_bfs_distances(trace: SemanticTrace) -> list[str]:
 
 def _validate_bfs_key_step_coverage(trace: SemanticTrace) -> list[str]:
     graph = trace.input_data.get("graph")
-    start = trace.input_data.get("start")
+    start = _bfs_source_for_trace(trace)
     if not isinstance(graph, dict) or not _is_small_bfs_graph(graph):
         return []
     expected = _bfs_dist(graph, start)
@@ -636,6 +720,17 @@ def _validate_bfs_key_step_coverage(trace: SemanticTrace) -> list[str]:
     if missing:
         return [f"failure_type=coverage_error: BFS 小图缺少关键步骤覆盖：{', '.join(missing)}"]
     return []
+
+
+def _bfs_source_for_trace(trace: SemanticTrace) -> Any:
+    contract = _graph_contract_for_trace(trace)
+    if isinstance(contract, dict) and contract.get("source") is not None:
+        return contract.get("source")
+    if isinstance(trace.input_data, dict):
+        if trace.input_data.get("start") is not None:
+            return trace.input_data.get("start")
+        return trace.input_data.get("source")
+    return None
 
 
 def _is_small_bfs_graph(graph: dict[Any, Any]) -> bool:

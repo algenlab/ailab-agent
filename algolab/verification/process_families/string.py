@@ -75,12 +75,27 @@ def _validate_rabin_karp_hashes(trace: SemanticTrace) -> list[str]:
                         if 0 <= i < len(expected_windows) and i < len(hashes) and isinstance(hashes[i], int) and hashes[i] != expected_windows[i]:
                             errors.append(f"第 {event.step} 步 Rabin-Karp {parsed.name}[{i}] 不满足滚动哈希")
         window_hash = state.get("window_hash")
-        window_start = state.get("window_start", state.get("i"))
+        window_start = state.get("window_start")
+        if not isinstance(window_start, int):
+            window_start = _rabin_karp_window_index_from_refs(event)
+        if not isinstance(window_start, int):
+            window_start = state.get("i")
         if isinstance(window_hash, int) and isinstance(window_start, int) and 0 <= window_start < len(expected_windows):
             expected = expected_windows[window_start]
             if window_hash != expected:
                 errors.append(f"第 {event.step} 步 Rabin-Karp window_hash 应为 {expected}")
     return errors
+
+
+def _rabin_karp_window_index_from_refs(event) -> int | None:
+    for refs in (_event_target_ids(event), _event_dep_ids(event)):
+        for ref in sorted(refs):
+            parsed = parse_target(ref)
+            if parsed.kind == "indexed" and parsed.name in {"window_hashes", "hashes"} and len(parsed.indices) == 1:
+                index = parsed.indices[0]
+                if isinstance(index, int):
+                    return index
+    return None
 
 
 def _string_hash(value: str, *, base: int = 257, mod: int = 1_000_000_007) -> int:
@@ -219,6 +234,8 @@ def _validate_string_sliding_window(trace: SemanticTrace) -> list[str]:
 
 
 def _string_window_event_allows_duplicate_before_shrink(event) -> bool:
+    if event.op == SemanticOp.MOVE and "pointer:right" in _event_target_ids(event):
+        return True
     state = event.state or {}
     text = " ".join(
         str(part)

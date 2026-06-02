@@ -39,12 +39,26 @@ def _validate_dp_trace_contract(trace: SemanticTrace) -> list[str]:
                 _target_belongs_to_containers(target_id, containers) for target_id in target_ids
             ):
                 errors.extend(_validate_dp_contract_set_event(event, containers))
-        if answer_position and event.role == "answer" and answer_position in (target_ids | dep_ids):
+        if answer_position and event.role == "answer" and (
+            answer_position in (target_ids | dep_ids)
+            or (
+                answer_position in expected_targets
+                and _is_declared_scalar_answer_target(answer_position, containers)
+                and _dp_answer_mark_has_evidence(event, answer_position)
+            )
+        ):
             answer_position_seen = True
+            if (
+                answer_position in expected_targets
+                and _is_declared_scalar_answer_target(answer_position, containers)
+                and _dp_answer_mark_has_evidence(event, answer_position)
+            ):
+                covered_targets.add(answer_position)
 
     if answer_position and not answer_position_seen:
         errors.append(f"DP contract 答案位置未明确：role=answer 事件必须引用 {answer_position}")
 
+    covered_targets.update(_dp_contract_implicitly_covered_targets(trace, containers, expected_targets))
     missing_targets = [target for target in expected_targets if target not in covered_targets]
     if missing_targets:
         preview = ", ".join(missing_targets[:6])
@@ -73,9 +87,71 @@ def _dp_contract_string_list(contract: dict[str, Any], key: str) -> list[str]:
     return result
 
 
+def _dp_contract_implicitly_covered_targets(
+    trace: SemanticTrace,
+    containers: list[str],
+    expected_targets: list[str],
+) -> set[str]:
+    return _bounded_knapsack_initialized_expected_targets(trace, containers, expected_targets)
+
+
+def _bounded_knapsack_initialized_expected_targets(
+    trace: SemanticTrace,
+    containers: list[str],
+    expected_targets: list[str],
+) -> set[str]:
+    if "dp" not in set(containers) or not _has_dp_subfamily_signal(trace, "bounded_knapsack", "multiple_knapsack", "bounded"):
+        return set()
+    input_data = trace.input_data if isinstance(trace.input_data, dict) else {}
+    weights = input_data.get("weights")
+    capacity = input_data.get("capacity")
+    if (
+        not isinstance(weights, list)
+        or not weights
+        or not all(isinstance(item, int) and item > 0 for item in weights)
+        or not isinstance(capacity, int)
+    ):
+        return set()
+    init_dp = None
+    for event in trace.events:
+        state = event.state or {}
+        dp = state.get("dp")
+        if event.op == SemanticOp.CREATE and isinstance(dp, list):
+            init_dp = dp
+            break
+    if not isinstance(init_dp, list):
+        return set()
+
+    min_weight = min(weights)
+    covered: set[str] = set()
+    for target in expected_targets:
+        parsed = parse_target(target)
+        if parsed.kind != "indexed" or parsed.name != "dp" or len(parsed.indices) != 1:
+            continue
+        index = parsed.indices[0]
+        if isinstance(index, int) and 0 <= index < min_weight and index <= capacity and index < len(init_dp) and init_dp[index] == 0:
+            covered.add(target)
+    return covered
+
+
 def _dp_event_state_has_container(event, containers: list[str]) -> bool:
     state = event.state or {}
     return any(container in state for container in containers)
+
+
+def _dp_answer_mark_has_evidence(event, answer_position: str = "") -> bool:
+    if not event.deps or not event.state:
+        return False
+    if _has_explicit_aux_value(event.value):
+        return True
+    if answer_position and answer_position in event.state:
+        return _has_explicit_aux_value(event.state.get(answer_position))
+    return False
+
+
+def _is_declared_scalar_answer_target(target_id: str, containers: list[str]) -> bool:
+    parsed = parse_target(target_id)
+    return parsed.kind in {"container", "symbol"} and _target_container_name(target_id) in set(containers)
 
 
 def _target_belongs_to_containers(target_id: str, containers: list[str]) -> bool:
@@ -96,9 +172,10 @@ def _target_container_name(target_id: str) -> str:
 
 def _validate_dp_contract_set_event(event, containers: list[str]) -> list[str]:
     errors: list[str] = []
+    tree_dp_state_derived_update = _is_tree_dp_state_derived_update(event, containers)
     if not event.targets:
         errors.append(f"第 {event.step} 步 DP contract 关键更新缺少 targets")
-    if not event.deps:
+    if not event.deps and not tree_dp_state_derived_update:
         errors.append(f"第 {event.step} 步 DP contract 关键更新缺少 deps")
     if not (
         _has_explicit_aux_value(event.value)
@@ -111,12 +188,44 @@ def _validate_dp_contract_set_event(event, containers: list[str]) -> list[str]:
         return errors
     if not any(container in event.state for container in containers):
         errors.append(f"第 {event.step} 步 DP contract state 缺少当前 DP 容器")
-    if not any(key in event.state for key in DP_CONTRACT_LOOP_KEYS):
+    if not _is_scalar_answer_set_event(event, containers) and not any(key in event.state for key in DP_CONTRACT_LOOP_KEYS):
         keys = ", ".join(DP_CONTRACT_LOOP_KEYS)
         errors.append(f"第 {event.step} 步 DP contract state 缺少循环变量：{keys}")
-    if not _dp_event_has_formula(event):
+    if not _dp_event_has_formula(event) and not tree_dp_state_derived_update:
         errors.append(f"第 {event.step} 步 DP contract 转移事件缺少可复原公式")
     return errors
+
+
+def _is_tree_dp_state_derived_update(event, containers: list[str]) -> bool:
+    state = event.state or {}
+    contract = state.get("dp_contract") if isinstance(state.get("dp_contract"), dict) else {}
+    subfamily = str(contract.get("subfamily", "")).lower()
+    if "tree" not in subfamily and not {"dp_take", "dp_skip"}.issubset(set(containers)):
+        return False
+    current = state.get("current")
+    if current is None or not isinstance(state.get("tree"), dict):
+        return False
+    if not isinstance(state.get("dp_take"), dict) or not isinstance(state.get("dp_skip"), dict):
+        return False
+    current_id = str(current)
+    for target_id in _event_target_ids(event):
+        parsed = parse_target(target_id)
+        if parsed.kind != "indexed" or parsed.name not in {"dp_take", "dp_skip"} or len(parsed.indices) != 1:
+            continue
+        if str(parsed.indices[0]) == current_id:
+            return True
+    return False
+
+
+def _is_scalar_answer_set_event(event, containers: list[str]) -> bool:
+    if event.role != "answer" or not event.targets:
+        return False
+    target_ids = _event_target_ids(event)
+    if not target_ids:
+        return False
+    if not all(_is_declared_scalar_answer_target(target_id, containers) for target_id in target_ids):
+        return False
+    return _dp_answer_mark_has_evidence(event)
 
 
 def _dp_event_has_formula(event) -> bool:
@@ -464,9 +573,30 @@ def _validate_bounded_knapsack(trace: SemanticTrace) -> list[str]:
             parsed = parse_target(target.id)
             if parsed.kind == "indexed" and parsed.name == "dp" and len(parsed.indices) == 1:
                 j = parsed.indices[0]
-                if 0 <= j <= capacity and isinstance(dp[j], int) and dp[j] != expected[j]:
+                if (
+                    0 <= j <= capacity
+                    and isinstance(dp[j], int)
+                    and not _bounded_knapsack_target_value_is_acceptable(event, dp[j], expected[j])
+                ):
                     errors.append(f"第 {event.step} 步多重背包 dp[{j}] 应为 {expected[j]}")
     return errors
+
+
+def _bounded_knapsack_target_value_is_acceptable(event, actual: int, expected: int) -> bool:
+    if actual == expected:
+        return True
+    if event.role == "answer":
+        return False
+    state = event.state or {}
+    candidate = state.get("candidate")
+    take = state.get("take", state.get("count_used", state.get("quantity")))
+    old_value = state.get("old_value")
+    has_incremental_evidence = isinstance(candidate, int) and candidate == actual and isinstance(take, int) and take >= 0
+    if not has_incremental_evidence:
+        return False
+    if isinstance(old_value, int) and actual < old_value:
+        return False
+    return actual <= expected
 
 
 def _bounded_knapsack_expected(weights: list[int], values: list[int], counts: list[int], capacity: int) -> list[int]:

@@ -649,6 +649,8 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
             objects.extend(_ml_objects(key, value))
         elif _is_recursion_tree_like(key, value):
             objects.extend(_tree_objects(key, value, layout="recursion_tree"))
+        elif _is_linked_list_like(key, value):
+            objects.extend(_tree_objects(key, value, layout="linked_list"))
         elif _is_tree_like(key, value):
             objects.extend(_tree_objects(key, value))
         elif _is_trie_like(key, value):
@@ -661,6 +663,8 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
             objects.extend(_points_objects(key, value))
         elif isinstance(value, str) and _is_string_view_key(key):
             objects.extend(_string_objects(key, value, state))
+        elif _is_edge_list_like(key, value):
+            objects.extend(_edge_list_objects(key, value, state))
         elif _is_matrix(value):
             objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "matrix"}))
             for r, row in enumerate(value):
@@ -670,6 +674,21 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
                             id=f"{key}[{r}][{c}]",
                             type=SceneObjectType.CELL,
                             value=cell,
+                            parent=key,
+                            row=r,
+                            col=c,
+                        )
+                    )
+        elif key not in {"heap", "stack", "queue", "deque"} and _is_string_list(value):
+            objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "string_list"}))
+            for r, item in enumerate(value):
+                objects.append(SceneObject(id=f"{key}[{r}]", type=SceneObjectType.LABEL, label=str(r), value=item, parent=key, row=r))
+                for c, char in enumerate(item):
+                    objects.append(
+                        SceneObject(
+                            id=f"{key}[{r}][{c}]",
+                            type=SceneObjectType.CELL,
+                            value=char,
                             parent=key,
                             row=r,
                             col=c,
@@ -689,26 +708,7 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
                     )
                 )
         elif isinstance(value, dict) and _looks_like_graph(key, value):
-            objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "graph"}))
-            for node, neighbors in value.items():
-                objects.append(SceneObject(id=f"node:{node}", type=SceneObjectType.NODE, label=str(node), parent=key))
-                if isinstance(neighbors, list):
-                    for nei in neighbors:
-                        edge_id = _neighbor_id(nei)
-                        if not edge_id:
-                            continue
-                        edge_meta = _edge_meta_for_state(state, str(node), edge_id)
-                        objects.append(
-                            SceneObject(
-                                id=f"edge:{node}->{edge_id}",
-                                type=SceneObjectType.EDGE,
-                                source=f"node:{node}",
-                                target=f"node:{edge_id}",
-                                parent=key,
-                                label=str(edge_meta.get("edge_label", "")),
-                                meta=edge_meta,
-                            )
-                        )
+            objects.extend(_graph_objects(key, value, state))
         elif isinstance(value, dict):
             objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "map"}))
             for mk, mv in value.items():
@@ -725,7 +725,7 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
             objects.append(SceneObject(id=key, type=SceneObjectType.LABEL, label=key, value=value))
 
     if isinstance(input_data, dict):
-        graph = input_data.get("graph") or input_data.get("adjacency")
+        graph = input_data.get("graph") or input_data.get("adjacency") or input_data.get("weighted_graph")
         if isinstance(graph, dict) and not any(o.meta.get("layout") == "graph" for o in objects):
             objects.extend(_objects_from_state({"graph": graph}, {}))
 
@@ -1347,6 +1347,99 @@ def _object_score(obj: SceneObject) -> int:
     return score
 
 
+def _graph_objects(key: str, value: dict[str, Any], state: dict[str, Any]) -> list[SceneObject]:
+    objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "graph"})]
+    node_ids: set[str] = set()
+    for node, neighbors in value.items():
+        node_ids.add(str(node))
+        for nei in _graph_neighbor_items(neighbors):
+            edge_id = _neighbor_id(nei)
+            if edge_id:
+                node_ids.add(edge_id)
+    for side_key, side in (("left_nodes", "left"), ("right_nodes", "right")):
+        for node_id in _as_string_list(state.get(side_key)):
+            node_ids.add(node_id)
+            objects.append(SceneObject(id=f"node:{node_id}", type=SceneObjectType.NODE, label=node_id, parent=key, meta={"side": side}))
+    existing_ids = {obj.id for obj in objects}
+    for node_id in sorted(node_ids, key=str):
+        object_id = f"node:{node_id}"
+        if object_id not in existing_ids:
+            objects.append(SceneObject(id=object_id, type=SceneObjectType.NODE, label=str(node_id), parent=key))
+            existing_ids.add(object_id)
+    for node, neighbors in value.items():
+        for nei in _graph_neighbor_items(neighbors):
+            edge_id = _neighbor_id(nei)
+            if not edge_id:
+                continue
+            src = str(node)
+            edge_meta = _edge_meta_for_state(state, src, edge_id)
+            objects.append(
+                SceneObject(
+                    id=f"edge:{src}->{edge_id}",
+                    type=SceneObjectType.EDGE,
+                    source=f"node:{src}",
+                    target=f"node:{edge_id}",
+                    parent=key,
+                    label=str(edge_meta.get("edge_label", "")),
+                    meta=edge_meta,
+                )
+            )
+    return objects
+
+
+def _graph_neighbor_items(neighbors: Any) -> list[Any]:
+    if isinstance(neighbors, dict):
+        return list(neighbors.keys())
+    if isinstance(neighbors, list):
+        return neighbors
+    return []
+
+
+def _edge_list_objects(key: str, value: list[Any], state: dict[str, Any]) -> list[SceneObject]:
+    objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "graph", "source": "edge_list"})]
+    endpoints: list[tuple[str, str, Any]] = []
+    node_ids: set[str] = set()
+    for edge in value:
+        src, dst, label = _edge_list_entry(edge)
+        if not src or not dst:
+            continue
+        endpoints.append((src, dst, label))
+        node_ids.update((src, dst))
+    for node_id in sorted(node_ids, key=str):
+        objects.append(SceneObject(id=f"node:{node_id}", type=SceneObjectType.NODE, label=str(node_id), parent=key))
+    for src, dst, label in endpoints:
+        meta = _edge_meta_for_state(state, src, dst)
+        if label not in (None, "") and "edge_label" not in meta:
+            meta["edge_label"] = str(label)
+            meta["weight"] = label
+            meta["visual_pattern"] = "graph_edge_label"
+            meta["visual_patterns"] = ["graph_edge_label"]
+        objects.append(
+            SceneObject(
+                id=f"edge:{src}->{dst}",
+                type=SceneObjectType.EDGE,
+                source=f"node:{src}",
+                target=f"node:{dst}",
+                parent=key,
+                label=str(meta.get("edge_label", "")),
+                meta=meta,
+            )
+        )
+    return objects
+
+
+def _edge_list_entry(edge: Any) -> tuple[str, str, Any]:
+    if isinstance(edge, dict):
+        src = edge.get("from", edge.get("source", edge.get("u")))
+        dst = edge.get("to", edge.get("target", edge.get("v")))
+        label = edge.get("weight", edge.get("w", edge.get("label", "")))
+        return ("" if src in (None, "") else str(src), "" if dst in (None, "") else str(dst), label)
+    if isinstance(edge, (list, tuple)) and len(edge) >= 2:
+        label = edge[2] if len(edge) >= 3 else ""
+        return str(edge[0]), str(edge[1]), label
+    return "", "", ""
+
+
 def _tree_objects(key: str, value: dict[str, Any], layout: str = "tree") -> list[SceneObject]:
     nodes = value.get("nodes") or []
     edges = value.get("edges") or []
@@ -1358,7 +1451,8 @@ def _tree_objects(key: str, value: dict[str, Any], layout: str = "tree") -> list
         objects.append(SceneObject(id=f"node:{node_id}", type=SceneObjectType.NODE, label=label, parent=key, meta=meta))
     for edge in edges:
         if isinstance(edge, dict):
-            src, dst = str(edge.get("from")), str(edge.get("to"))
+            src = str(edge.get("from", edge.get("source", edge.get("u"))))
+            dst = str(edge.get("to", edge.get("target", edge.get("v"))))
             label = str(edge.get("label", ""))
             meta = dict(edge.get("meta", {})) if isinstance(edge.get("meta"), dict) else {}
         else:
@@ -1428,6 +1522,16 @@ def _points_objects(key: str, value: list[Any]) -> list[SceneObject]:
                 label=label,
                 parent=key,
                 meta={"x": x, "y": y},
+            )
+        )
+        objects.append(
+            SceneObject(
+                id=f"{key}[{i}]",
+                type=SceneObjectType.NODE,
+                label=label,
+                parent=key,
+                index=i,
+                meta={"x": x, "y": y, "alias": f"point:{point_id}"},
             )
         )
     return objects
@@ -1685,6 +1789,10 @@ def _is_scalar_list(value: Any) -> bool:
     return isinstance(value, list) and all(not isinstance(x, (list, dict)) for x in value)
 
 
+def _is_string_list(value: Any) -> bool:
+    return isinstance(value, list) and all(isinstance(x, str) for x in value)
+
+
 def _is_matrix(value: Any) -> bool:
     return (
         isinstance(value, list)
@@ -1694,14 +1802,24 @@ def _is_matrix(value: Any) -> bool:
     )
 
 
+def _is_edge_list_like(key: str, value: Any) -> bool:
+    if key not in {"edges", "weighted_edges", "edge_list", "mst_edges", "tree_edges"} or not isinstance(value, list):
+        return False
+    return any(_edge_list_entry(item)[:2] != ("", "") for item in value)
+
+
 def _looks_like_graph(key: str, value: dict[str, Any]) -> bool:
-    if key in {"graph", "adjacency"}:
+    if key in {"graph", "adjacency", "weighted_graph"}:
         return True
-    return bool(value) and all(isinstance(v, list) for v in value.values())
+    return bool(value) and all(isinstance(v, (dict, list)) for v in value.values())
 
 
 def _is_tree_like(key: str, value: Any) -> bool:
     return isinstance(value, dict) and key in {"tree", "binary_tree", "segment_tree"} and "nodes" in value and "edges" in value
+
+
+def _is_linked_list_like(key: str, value: Any) -> bool:
+    return isinstance(value, dict) and key == "linked_list" and "nodes" in value and "edges" in value
 
 
 def _is_recursion_tree_like(key: str, value: Any) -> bool:

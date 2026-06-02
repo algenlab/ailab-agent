@@ -1,0 +1,89 @@
+{
+  "schema_version": "vlm-screenshot-rubric-v1",
+  "rubric_version": "2026-05-30",
+  "score_range": {
+    "min": 1,
+    "max": 5
+  },
+  "dimensions": [
+    {
+      "name": "layout_readability",
+      "description": "Whether the visible page layout is readable without overlap, clipping, excessive crowding, or mobile unreadability.",
+      "score_5": "The visible layout is clear, key content is readable, and text is not overlapped, clipped, or cramped.",
+      "score_3": "Mostly readable, but some visible areas are cramped, too small, or require effort to interpret.",
+      "score_1": "Blank, severely overlapped, clipped, or unreadable, especially on mobile."
+    },
+    {
+      "name": "algorithm_state_visibility",
+      "description": "Whether the screenshot makes the current data structure, target, processed/unprocessed portions, paths, pointers, intervals, or dependencies visible.",
+      "score_5": "Key algorithm state is clearly visible and distinguishable.",
+      "score_3": "Some state is visible, but important objects require inference or reading much surrounding text.",
+      "score_1": "The current algorithm state is missing or not visually identifiable."
+    },
+    {
+      "name": "teaching_explanation",
+      "description": "Whether visible explanations support learning the current step, including reasons, formulas, before/after state, and boundary feedback.",
+      "score_5": "The visible explanation is concrete and aligned with the current step.",
+      "score_3": "There is an explanation, but it is generic or incomplete.",
+      "score_1": "Explanation is absent, too vague, or visibly mismatched with the state."
+    },
+    {
+      "name": "interaction_affordance",
+      "description": "Whether controls such as play, step, prediction, input, formula expansion, judge, or dependency clicks are visible and their feedback is discoverable.",
+      "score_5": "Interaction entry points and feedback are visible and clear.",
+      "score_3": "Interactions exist but are not prominent or feedback is weak.",
+      "score_1": "Interaction is missing, not discoverable, or feedback is visibly inconsistent."
+    },
+    {
+      "name": "evidence_alignment",
+      "description": "Whether visible evidence, targets, dependencies, formulas, and validation summaries agree with the displayed step. Do not judge algorithm correctness beyond visible alignment.",
+      "score_5": "Visible evidence and displayed state are internally aligned.",
+      "score_3": "Mostly aligned, but evidence is weak or requires inference.",
+      "score_1": "Visible evidence appears absent or inconsistent with the displayed state."
+    },
+    {
+      "name": "overall_teaching_quality",
+      "description": "Whether the screenshot would work as a teaching demo or paper figure based only on visible content.",
+      "score_5": "Strong teaching screenshot that can support understanding the current step.",
+      "score_3": "Usable but needs supplemental explanation.",
+      "score_1": "Not suitable for teaching or paper evidence."
+    }
+  ],
+  "screenshot_types": {
+    "dashboard": "Focus on overview readability, table/card density, status visibility, desktop/mobile scanability, and whether benchmark evidence is visible.",
+    "page": "Focus on algorithm state, explanation, step controls, visible evidence, and desktop/mobile readability.",
+    "interaction": "Focus on the specific interaction state, whether feedback after the interaction is clear, and whether controls remain discoverable."
+  },
+  "low_score_conditions": [
+    "blank or nearly blank screenshot",
+    "empty or invisible canvas where a visual state should appear",
+    "text overlap or severe clipping",
+    "mobile viewport is unreadable",
+    "critical algorithm state is missing",
+    "interaction feedback is not visible or unclear",
+    "visible evidence is missing or contradictory"
+  ],
+  "output_schema": {
+    "case_id": "string",
+    "condition": "string",
+    "screenshot": "string",
+    "viewport": "desktop|mobile",
+    "scores": {
+      "layout_readability": "integer 1-5",
+      "algorithm_state_visibility": "integer 1-5",
+      "teaching_explanation": "integer 1-5",
+      "interaction_affordance": "integer 1-5",
+      "evidence_alignment": "integer 1-5",
+      "overall_teaching_quality": "integer 1-5"
+    },
+    "confidence": "number 0-1",
+    "issues": [
+      {
+        "severity": "low|medium|high",
+        "category": "layout|state|explanation|interaction|evidence|other",
+        "message": "short concrete issue"
+      }
+    ],
+    "suggested_caption": "short paper-friendly caption"
+  }
+}

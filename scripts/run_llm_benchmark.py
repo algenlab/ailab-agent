@@ -31,7 +31,7 @@ from algolab.schemas.validation import BuildArtifact
 from algolab.verification.demo_readiness import DEMO_FAILURE_TYPES
 from algolab.verification.process_validator import process_failure_type_for_message
 from algolab.verification.repair_context import repair_failure_types, summarize_repair_failure_types
-from llm_client import _model_name, llm_config
+from llm_client import _model_name, clear_model_calls, consume_model_calls, llm_config
 from tests.benchmark_cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 
 
@@ -379,6 +379,7 @@ def run_one(
     progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
     started = time.time()
+    clear_model_calls()
     request = make_request(case, sample, solutions=args.solutions)
     output_stem = f"llm_{case.id}_{sample_index}"
     output_html = args.output_dir / f"{output_stem}.html"
@@ -435,6 +436,7 @@ def run_one(
             "duration_s": round(time.time() - started, 3),
             "failure_type": "",
             "repair_failure_types": repair_types,
+            "model_calls": consume_model_calls(),
         }
     except Exception as exc:
         return {
@@ -454,6 +456,7 @@ def run_one(
             "last_phase": last_phase(phase_log),
             "duration_s": round(time.time() - started, 3),
             "repair_failure_types": repair_types,
+            "model_calls": consume_model_calls(),
         }
 
 
@@ -560,6 +563,72 @@ def summarize_phase_timings(results: list[dict[str, Any]]) -> dict[str, dict[str
     }
 
 
+def _model_calls_from_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    calls: list[dict[str, Any]] = []
+    for item in results:
+        for call in item.get("model_calls") or []:
+            if isinstance(call, dict):
+                calls.append(call)
+    return calls
+
+
+def summarize_model_usage(results: list[dict[str, Any]]) -> dict[str, Any]:
+    calls = _model_calls_from_results(results)
+    call_count = len(calls)
+    usage_calls = [call for call in calls if call.get("usage_available") is True]
+    all_usage_available = call_count > 0 and len(usage_calls) == call_count
+    duration_s = round(sum(float(call.get("duration_s") or 0.0) for call in calls), 3)
+    total_tokens = sum(int(call["total_tokens"]) for call in usage_calls) if all_usage_available else None
+    by_kind: dict[str, dict[str, Any]] = {}
+    for call in calls:
+        kind = str(call.get("kind") or "unknown")
+        row = by_kind.setdefault(
+            kind,
+            {
+                "call_count": 0,
+                "usage_available": True,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "duration_s": 0.0,
+            },
+        )
+        row["call_count"] += 1
+        row["duration_s"] = round(float(row["duration_s"]) + float(call.get("duration_s") or 0.0), 3)
+        if call.get("usage_available") is True:
+            row["prompt_tokens"] += int(call.get("prompt_tokens") or 0)
+            row["completion_tokens"] += int(call.get("completion_tokens") or 0)
+            row["total_tokens"] += int(call.get("total_tokens") or 0)
+        else:
+            row["usage_available"] = False
+            row["prompt_tokens"] = None
+            row["completion_tokens"] = None
+            row["total_tokens"] = None
+    for row in by_kind.values():
+        count = row["call_count"]
+        row["avg_duration_s"] = round(row["duration_s"] / count, 6) if count else 0.0
+        row["avg_total_tokens"] = (
+            round(row["total_tokens"] / count, 6)
+            if row.get("usage_available") is True and count
+            else None
+        )
+    return {
+        "usage_available": all_usage_available,
+        "usage_available_rate": (len(usage_calls) / call_count) if call_count else 0.0,
+        "call_count": call_count,
+        "prompt_tokens": sum(int(call["prompt_tokens"]) for call in usage_calls) if all_usage_available else None,
+        "completion_tokens": sum(int(call["completion_tokens"]) for call in usage_calls) if all_usage_available else None,
+        "total_tokens": total_tokens,
+        "duration_s": duration_s,
+        "avg_duration_s": (duration_s / call_count) if call_count else 0.0,
+        "avg_total_tokens": (total_tokens / call_count) if all_usage_available and call_count else None,
+        "by_kind": dict(sorted(by_kind.items())),
+        "estimated_cost": None,
+        "cost_estimation_available": False,
+        "pricing_source": "",
+    }
+
+
 def last_phase(phase_log: list[dict[str, Any]]) -> str:
     for event in reversed(phase_log):
         phase = event.get("phase")
@@ -641,6 +710,7 @@ def run_one_with_timeout(
             "last_phase": last_phase(phase_log),
             "last_phase_elapsed_s": last_phase_elapsed_s(phase_log),
             "duration_s": round(time.time() - started, 3),
+            "model_calls": [],
         }
     return {
         "case_id": case.id,
@@ -659,6 +729,7 @@ def run_one_with_timeout(
         "last_phase": last_phase(phase_log),
         "last_phase_elapsed_s": last_phase_elapsed_s(phase_log),
         "duration_s": round(time.time() - started, 3),
+        "model_calls": [],
     }
 
 
@@ -858,6 +929,7 @@ def build_family_summary(
             "repair_failure_types": summarize_repair_failure_types(results),
             "case_sets": summarize_field_counts(results, "case_set", "deterministic"),
             "case_styles": summarize_field_counts(results, "case_style"),
+            "model_usage": summarize_model_usage(results),
         },
         "families": families,
     }
@@ -933,35 +1005,48 @@ def write_report(
     failure_summary = summarize_failures(results)
     repair_failure_summary = summarize_repair_failure_types(results)
     phase_summary = summarize_phase_timings(results)
+    model_usage = summarize_model_usage(results)
     family_summary = build_family_summary(results, args=args, started_at=started_at, ended_at=ended_at)
     family_summary_path = output_dir / "family_summary.json"
     family_summary_path.write_text(json.dumps(family_summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    config = {
+        "cases": args.case,
+        "sample": args.sample,
+        "all_samples": args.all_samples,
+        "solutions": args.solutions,
+        "max_rounds": args.max_rounds,
+        "timeout_s": args.timeout_s,
+        "strict_warnings": args.strict_warnings,
+        "browser_smoke": args.browser_smoke,
+        "write_each": args.write_each,
+        "concurrency": getattr(args, "concurrency", 1),
+        "family": getattr(args, "family", []),
+        "gate_layer": getattr(args, "gate_layer", []),
+        "limit_per_family": getattr(args, "limit_per_family", 0),
+        "case_set": getattr(args, "case_set", "deterministic"),
+        "family_sets": str(getattr(args, "family_sets", LLM_FAMILY_SETS_PATH)),
+        "unseen_cases": str(getattr(args, "unseen_cases", UNSEEN_FAMILY_CASES_PATH)),
+        "benchmark_condition": benchmark_condition(args),
+        "llm": llm_config(),
+        "model": _model_name(),
+    }
+    for key in (
+        "baseline",
+        "ablation",
+        "process_validator_enabled",
+        "scenegraph_compiler_enabled",
+        "direct_html_baseline",
+        "trace_only_renderer_enabled",
+    ):
+        if hasattr(args, key):
+            config[key] = getattr(args, key)
+
     report = {
         "kind": "llm_benchmark_report",
         "cached": False,
         "started_at": started_at,
         "ended_at": ended_at,
-        "config": {
-            "cases": args.case,
-            "sample": args.sample,
-            "all_samples": args.all_samples,
-            "solutions": args.solutions,
-            "max_rounds": args.max_rounds,
-            "timeout_s": args.timeout_s,
-            "strict_warnings": args.strict_warnings,
-            "browser_smoke": args.browser_smoke,
-            "write_each": args.write_each,
-            "concurrency": getattr(args, "concurrency", 1),
-            "family": getattr(args, "family", []),
-            "gate_layer": getattr(args, "gate_layer", []),
-            "limit_per_family": getattr(args, "limit_per_family", 0),
-            "case_set": getattr(args, "case_set", "deterministic"),
-            "family_sets": str(getattr(args, "family_sets", LLM_FAMILY_SETS_PATH)),
-            "unseen_cases": str(getattr(args, "unseen_cases", UNSEEN_FAMILY_CASES_PATH)),
-            "benchmark_condition": benchmark_condition(args),
-            "llm": llm_config(),
-            "model": _model_name(),
-        },
+        "config": config,
         "total": total,
         "passed": passed,
         "failed": total - passed,
@@ -974,6 +1059,7 @@ def write_report(
         "family_summary_path": str(family_summary_path),
         "family_summary": family_summary["families"],
         "phase_summary": phase_summary,
+        "model_usage": model_usage,
         "browser_smoke": browser_checks or [],
         "results": results,
     }
@@ -990,6 +1076,8 @@ def write_report(
         f"- 失败：{total - passed}",
         f"- 通过率：{passed / total:.2%}" if total else "- 通过率：N/A",
         f"- 平均耗时：{average_duration(results)}s/case",
+        f"- LLM calls：{model_usage['call_count']}",
+        f"- Token usage：{model_usage['total_tokens'] if model_usage['usage_available'] else 'usage_available=false'}",
         f"- Case set：{getattr(args, 'case_set', 'deterministic')}",
         f"- 严格 warning：{'开启' if args.strict_warnings else '关闭'}",
         f"- 浏览器检查：{'开启' if args.browser_smoke else '关闭'}",
@@ -1075,7 +1163,7 @@ def main() -> int:
     parser.add_argument(
         "--condition",
         default="algolab_full",
-        choices=["algolab_full", "direct_html_baseline", "no_process_validator", "no_scenegraph_compiler"],
+        choices=["algolab_full", "direct_html_baseline", "no_process_validator", "no_scenegraph_compiler", "no_repair"],
         help="写入 report 的实验条件标签；不改变主 pipeline 行为。",
     )
     args = parser.parse_args()

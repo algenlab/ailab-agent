@@ -2,485 +2,576 @@
 
 ## 1. 文档定位
 
-本文档定义 AlgoLab 自动版 VisuAlgo 中可复用的视觉原语。新增算法应优先映射到这些原语，而不是手写专用页面。
+本文档记录当前代码真实支持的视觉原语、target 规范、SceneGraph 编译规则和页面模式。
 
-V1 之后的短期重点是算法族正确性，不是视觉 polish。视觉原语的责任是稳定承载语义对象、依赖关系和过程证据，保证后续能做教学页面。新增算法族时，先确认答案正确、过程正确和演示语义正确，再增强动画和布局。
+当前系统还不是最终版。视觉层的阶段性目标是支撑实验指标提升：
 
-每个视觉原语都应说明：
+- 答案正确：视觉不能伪造答案，必须只展示 BuildArtifact 中通过 gate 的结果。
+- 步骤正确：targets、deps、state 和 visual marks 必须能对应 trace 的真实事件。
+- 过程解释可信：页面讲解必须来自 `frame.teaching`、`frame.evidence`、`reason`、`deps` 和 `state`。
+- 可视化效果：同一类语义对象稳定映射到固定 layout，不让 LLM 自由写页面。
+- 交互性：优先支持能被 trace 证据支撑的交互，而不是纯前端猜算法。
 
-- 适用算法。
-- 输入 state 格式。
-- target id 格式。
-- 默认布局。
-- 支持的高亮方式。
-- 支持的交互。
-- 典型页面效果。
+新增算法族时，先判断现有视觉原语能否承载语义对象。只有现有 target / state / layout 无法表达关键过程时，才扩展 parser、compiler、renderer 和测试。
 
-V1 的算法覆盖目标是尽可能覆盖经典算法教学场景。算法族可以很多，但视觉原语必须收敛。新增算法优先进入以下通用形态：
+## 2. 当前视觉链路
 
-- 线性结构：array、linked list、stack、queue、deque。
-- 表格结构：matrix、DP table、prefix table。
-- 图结构：graph、tree、trie、union-find forest、recursion tree。
-- 优先级结构：heap、priority queue。
-- 区间结构：segment tree、Fenwick tree、sparse table。
-- 文本结构：string、pattern、prefix function。
-- 数学结构：number line、bit mask、factor table、mod table。
-- 几何结构：point set、line segment、polygon、sweep line。
+真实视觉链路：
 
-## 1.1 覆盖矩阵
+```text
+SemanticTrace event
+  -> target_parser.parse_target()
+  -> scene_compiler.compile_frame()
+  -> SceneFrame.objects / marks / evidence / teaching / interaction
+  -> renderer.export.render_html()
+  -> 固定单文件中文 HTML runtime
+```
 
-新增算法族实施前，先按下表选择视觉原语。表中“当前可落地”表示可以用现有 target parser、scene compiler 和 renderer 的基础能力表达；“需扩展”表示文档允许规划，但实施前必须补 parser / validator / compiler / renderer / tests。
+核心原则：
 
-表中的 `i`、`j`、`key`、`A` 是说明占位符。真正写入 trace 时必须替换成具体 id，例如 `nums[3]`、`dp[1][2]`、`seen[7]`、`node:A`。
+- LLM 不生成 HTML / CSS / JS。
+- Renderer 不理解具体算法题，只根据 SceneGraph 对象、layout meta、marks、evidence 渲染。
+- 视觉对象必须来自 state、targets、deps 或 input_data。
+- 页面中的讲解、交互反馈、公式展开和过程证据只能读当前 artifact / SceneGraph。
 
-| 算法族 | 推荐视觉原语 | 当前可落地表达 | 需扩展项 |
-|---|---|---|---|
-| 数组基础、前缀和、差分、前缀积、原地标记 | array + pointer、matrix | `nums[3]`、`prefix[3]`、`product[3]`、`diff[3]`、`grid[1][2]` | 二维前缀的区域框选可先用 deps 多格表达，后续可加区间高亮 |
-| 二分、二分答案、双指针、滑动窗口、快慢指针、荷兰国旗 | array + pointer | `nums[3]`、`pointer:left`、`pointer:right`、`pointer:mid`、`pointer:slow`、`pointer:fast`、`nums[2:5]` | 指针样式和窗口带状高亮可继续增强 |
-| 排序与选择、分治排序、快速选择 | array + pointer、heap、recursion_tree | `nums[3]`、`pointer:i`、`pointer:j`、`heap[0]`、`frame:sort(0,4)` | 归并分治可组合 recursion_tree；稳定分区动画需增强 |
-| 栈、队列、双端队列、单调结构、MinStack、队列实现栈、栈实现队列 | stack / queue / deque、array | `stack`、`queue`、`deque`、`min_stack`、`nums[3]` | 容器元素到原数组下标的联动样式需增强 |
-| 哈希表与集合 | map / hash table、array | `seen[7]`、`count[x]`、`dist[A]` | 集合可用 map value 为 true 表达 |
-| 链表与 LRU / LFU 链表部分 | linked list、map | 当前用 `nodes` + `edges` 映射到 graph/tree 风格，`pointer:head` 等指针可表达 | 需要正式 linked_list layout、next/prev 专用边样式 |
-| 字符串匹配、KMP、Rabin-Karp、Z、Manacher | string、array、matrix | `text[3]`、`pattern[1]`、`pi[2]`、`z[4]`、`radius[5]` | 双行对齐、回退弧线和哈希窗口可增强 |
-| 动态规划 | matrix / DP table、array、tree、recursion_tree、math / bit | `dp[3]`、`dp[1][2]`、`tree`、`frames`、`bits[2]` | 状态压缩 DP 可先用 bit 数组表达，后续加 bitmask 原语 |
-| 贪心、区间调度、活动选择、跳跃游戏、分发糖果、合并区间、最少箭数、Huffman | array + pointer、heap、geometry、tree | `intervals[3]` 可先用数组 / matrix，`jump[3]`、`candy[3]`、`heap[0]` | interval 专用条带图可扩展；Huffman 树可用 tree |
-| 图遍历、连通性、拓扑、环检测、二分图、欧拉路径 | graph、queue、stack、map | `node:A`、`edge:A->B`、`queue`、`stack`、`color[A]`、`indegree[A]` | 欧拉路径的边消耗顺序可先用 role 标记，后续加 path trail |
-| SCC、割点、桥、Tarjan | graph、stack、map | `node:A`、`edge:A->B`、`dfn[A]`、`low[A]`、`stack` | lowlink 专用面板需规范字段 |
-| 最短路、SPFA、0-1 BFS、A*、差分约束 | graph、heap、queue、map | `dist[A]`、`heap[0]`、`queue`、`edge:A->B`、`node:A`、`relax_count[A]` | A* 的启发式 `h/f/g` 可用 map 表达；差分约束用 shortest-path 视图 |
-| MST、匹配、网络流入门 | graph、union-find、queue、map | `edge:A->B`、`node:A`、`union_find`、`parent[A]`、`match[A]`、`cap[A->B]`、`flow[A->B]` | residual capacity、flow/capacity 边标签需要 renderer 增强 |
-| 树与二叉树 | tree、recursion_tree、queue | `tree` 的 nodes/edges、`node:3`、`edge:3->5`、`frame:dfs(3)` | 多返回值气泡和子树聚合视图可增强 |
-| 堆与优先队列 | heap、array、tree | `heap`、`heap[0]` | 双堆中位数需要两个 heap 容器并排布局 |
-| Trie 与自动机 | trie、string、graph | `trie` nodes/edges、`text[3]`、`node:abc` | fail 指针可用 `edge:u->v` + role 表达，后续加虚线边 |
-| 并查集 | union-find、array、graph | `union_find`、`parent[1]`、`node:1`、`edge:1->0` | parent 为 list 时先用 array，forest 视图需要 dict parent |
-| 回溯、递归、分治、汉诺塔、主定理示例 | recursion_tree、array、tree | `frame:dfs(2)`、`frames`、`path[1]`、`used[1]`、`tower[0]` | 分治区间可先用数组切片，后续加区间节点 |
-| 位运算、数论、组合数学、GCD、快速幂、筛法、扩展欧几里得、Brian Kernighan | math / bit、array、matrix | `bits[2]`、`factor[2]`、`table[3][4]`、`mask`、`a`、`b`、`gcd` | 不使用 `number:` 前缀；数字线是规划增强 |
-| 计算几何、扫描线 | geometry、array、queue | `point:3`、`points[3]`；线段由 state 中的 `segments` 生成 | `segment:` 只由 scene compiler 生成，不建议 tracker 直接引用 |
-| 线段树、树状数组、稀疏表 | range structure、tree、array、matrix | `segment_tree` nodes/edges、`bit[4]`、`st[2][3]` | 不使用 `range:` 前缀；区间覆盖用 node label/meta 表达 |
-| 缓存与设计题 | linked list、map、stack / queue | `cache[7]`、`node:7`、`edge:7->9`、`queue` | LRU 双向链表需要 linked_list layout 增强 |
+## 3. 当前 target parser 支持范围
 
-## 1.2 当前实现状态
+`algolab/compiler/target_parser.py` 当前支持：
 
-现有稳定布局来自 runtime capabilities 和 Scene Compiler：
-
-- 稳定：array、matrix、graph、queue、stack、map、tree、heap、trie、union_find、recursion_tree、string、geometry。
-- 可组合但还不是独立布局：linked list、range structure、math / bit。
-- 扩展方向：ML primitives、number line、interval timeline、residual network、bitmask board。
-
-实施原则：
-
-- 能用稳定布局表达时，不新增 target 前缀。
-- 新 target 前缀不得只写进文档，必须同步实现和测试。
-- renderer 不按算法名猜页面，只按 SceneGraph 对象和 layout meta 渲染。
-- benchmark 扩算法覆盖时，优先补 trace contract、state 字段、deps 和 process validator；只有现有原语无法承载语义对象时才扩 renderer。
-- 视觉效果不足不能作为跳过过程校验的理由。可以先用稳定原语朴素展示，但不能让 trace 缺关键状态。
-
-## 1.3 算法族扩展时的视觉决策
-
-执行 AI 新增算法族或子模式前，按下面顺序判断：
-
-1. 现有原语能否表达主状态。
-2. 现有 target 语法能否定位关键对象。
-3. `deps` 能否表达依赖关系。
-4. SceneGraph 是否能生成对象、mark、arrow 和 state。
-5. 如果视觉不够美观，是否可以先用现有布局降级展示。
-6. 只有语义对象无法稳定定位时，才新增 parser/compiler/renderer 能力。
-
-常见决策：
-
-| 算法族需求 | 优先做法 | 不要做 |
+| target 写法 | parse kind | 说明 |
 |---|---|---|
-| 区间覆盖 | 用 `segment_tree` nodes/edges、`bit[i]`、`st[i][j]` 和 node meta | 直接引入未实现的 `range:` target |
-| 网络流容量 | 用 `edge:A->B`、`cap[A->B]`、`flow[A->B]` 和 state map | 直接引入未实现的 `flow:` target |
-| 数字状态 | 用 `mask`、`bits[i]`、`factor[i]`、`table[i][j]` | 直接引入未实现的 `number:` target |
-| 链表 | 暂用 nodes/edges + pointer + map 表达 | 为某道链表题写专用页面 |
-| 贪心区间 | 先用 array/matrix 表达区间起止和排序顺序 | 在 trace 里使用未实现的 `interval:` target |
-| 字符串对齐 | 先用 string + array + pointer 表达 | 让 renderer 按算法名猜 KMP/Z/Manacher |
+| `nums[3]` | `indexed` | 一维索引，数字下标 |
+| `dp[1][2]` | `indexed` | 二维索引，数字下标 |
+| `nums[1:4]` | `slice` | 半开切片，要求 state 中存在对应元素 |
+| `dist[A]` | `map` | 非数字 key 的 map bracket |
+| `seen[2]` | `indexed` | 数字 key 会先被当成 indexed；state 中仍可用 dict 暴露 `seen[2]` 对象 |
+| `node:A` | `node` | 图、树、Trie、并查集、几何等节点 |
+| `edge:A->B` | `edge` | 有向边，必须包含 `->` |
+| `pointer:left` | `pointer` | 指针，位置来自 event.value 或 state 中同名变量 |
+| `frame:dfs(2)` | `frame` | 递归帧 / 调用帧 |
+| `point:3` | `point` | 几何点 |
+| `char:x` | `char` | 字符引用，当前较少使用 |
+| `stack`、`queue`、`deque`、`heap`、`tree`、`trie`、`frames`、`points`、`string` | `container` | 容器 target |
+| 其它字符串 | `symbol` | 标量 label 或兜底符号 |
 
-## 2. array + pointer
+不建议当前使用：
+
+- `range:1-3`
+- `number:n`
+- `interval:0-2`
+- `flow:A->B`
+- `segment:A->B`
+
+这些前缀没有完整 parser / validator / compiler / renderer / test 链路。需要表达时，优先放进 state，并使用现有 target：
+
+- 区间：`query`、`update_path`、`node:seg(1,4)`、`bit[4]`、`st[2][3]`
+- 数字：`n`、`mask`、`bits[0]`、`factor[2]`、`table[3][4]`
+- 网络流：`edge:A->B`、`cap[A->B]`、`flow[A->B]`、`residual[A->B]`
+- 线段：geometry state 中的 `segments`，由 Scene Compiler 生成 `segment:*` 对象
+
+## 4. Scene Compiler 的对象生成规则
+
+`scene_compiler.py::_objects_from_state()` 当前按 state 类型生成对象。
+
+| state 形态 | 当前生成 |
+|---|---|
+| 标量 `int/float/str/bool/None` | `LABEL` |
+| 一维标量 list | `CONTAINER(layout=array)` + `CELL` |
+| key 为 `stack/queue/deque/heap` 的一维 list | 对应 layout 的 container + cell |
+| 二维 list | `CONTAINER(layout=matrix)` + 二维 cell |
+| 普通 dict | `CONTAINER(layout=map)` + key-value label |
+| `graph` / `adjacency` 或所有 value 是 list 的 dict | `CONTAINER(layout=graph)` + node / edge |
+| `tree` / `binary_tree` / `segment_tree` 且含 nodes/edges | `CONTAINER(layout=tree)` |
+| `recursion_tree` / `call_tree` / `search_tree` 且含 nodes/edges | `CONTAINER(layout=recursion_tree)` |
+| `trie` 且含 nodes/edges | `CONTAINER(layout=trie)` |
+| `union_find` / `dsu` 且含 dict parent | `CONTAINER(layout=union_find)` |
+| `points` list | `CONTAINER(layout=geometry)` + point nodes |
+| `geometry` / `plane` / `sweep` 且含 points | geometry points / segments / hull / sweep |
+| `text` / `pattern` / `s` / `t` / `string` | `CONTAINER(layout=string)` + char cells |
+| ML-like dict | `CONTAINER(layout=ml)` 和 tensor / batch / parameter 等对象 |
+
+`_objects_from_refs()` 会从 targets / deps 补充 node、edge、pointer、frame、point、char、slice、map、container、symbol 等对象。
+注意：补充对象只能保证页面有可显示对象，不代表 target 一定语义正确；语义正确仍依赖 trace validator 和 process validator。
+
+## 5. Renderer 支持的 layout
+
+`algolab/renderer/layout_registry.py` 当前 layout 映射：
+
+| layout | renderer |
+|---|---|
+| `array` | array |
+| `matrix` | matrix |
+| `string` | string |
+| `heap` | heap |
+| `queue` | queue |
+| `deque` | queue |
+| `stack` | stack |
+| `graph` | graph |
+| `tree` | tree |
+| `trie` | tree |
+| `union_find` | tree |
+| `recursion_tree` | tree |
+| `geometry` | geometry |
+| `ml` / `tensor` / `batch` / `parameter` / `loss_curve` / `gradient_vector` / `decision_boundary` / `training_epoch` / `prediction` | ml |
+| `computational_graph` | graph |
+| `map` | map |
+| `generic` | map |
+
+`capabilities.py` 还声明了 `teaching_2d`、`creative`、`spatial_3d` 为 stable，`hybrid_2_5d` 为 planned。主实验和主页面仍应以 `teaching_2d` 的稳定 SceneGraph renderer 为准。
+
+## 6. SceneFrame 中的视觉证据
+
+每个 `SceneFrame` 当前包含：
+
+- `objects`：可渲染对象。
+- `marks`：target role 标记。
+- `state`：当前公开 state，去掉 `_` 开头字段。
+- `interaction`：choice / input / judge。
+- `teaching`：what / why / formula / invariant / common_mistake / hint。
+- `evidence`：operation、targets、deps、value、before、after、changes、timeline、process、visual_patterns。
+
+页面右侧的“讲解”“系统校验”“本步证据”“当前状态”“交互”“代码”都读取这些字段。
+
+## 7. 当前 visual patterns
+
+`scene_compiler.py` 会给对象附加 `meta.visual_pattern` / `meta.visual_patterns`，renderer 用 CSS 和辅助面板展示。
+
+当前主要 pattern：
+
+| pattern | 触发条件 | 用途 |
+|---|---|---|
+| `dependency_flow` | event 同时有 deps 和 targets | 依赖对象到目标对象的通用流向 |
+| `dp_dependency` | matrix target + matrix deps | DP 表依赖箭头 |
+| `formula_substitution` | DP 依赖且有 formula / value | 公式替换和本步证据 |
+| `dp_formula_substitution` | DP target / deps | 高亮当前格与依赖格 |
+| `dp_dependency_arrow` | DP dep -> target arrow | 表格内依赖箭头 |
+| `graph_frontier` | state 中 queue / frontier / heap / open_set | 图 frontier |
+| `graph_visit_state` | state.visited | 已访问节点 |
+| `graph_current_node` | state.current / node / u | 当前节点 |
+| `graph_relax_edge` | deps 中 edge 且有图状态 | 当前松弛 / 访问边 |
+| `graph_relax_target` | target 是 node 且有图状态 | 松弛目标节点 |
+| `graph_path_highlight` | state.path / path_edges | 路径高亮 |
+| `graph_edge_label` | edge 有 weight / label | 边权 / 标签 |
+| `string_alignment` | text / pattern / s / t / string | 字符串双行对齐和 cursor |
+| `string_window` | state.window / left/right | 字符串窗口 |
+| `string_fallback_arc` | j_before/j_after 或 fallback_from/to | KMP 等回退弧线 |
+| `tree_return_value` | state.return_values / return_value | 树递归返回值 |
+| `backtracking_choice` | recursion_tree 上 MARK/ENTER/PUSH/LINK | 回溯选择 |
+| `backtracking_undo` | recursion_tree 上 UNMARK/EXIT/POP/UNLINK | 回溯撤销 |
+| `range_structure` | segment_tree / bit / st | 区间结构容器 |
+| `range_query_path` | state.query_path 或查询相关 target | 查询路径 |
+| `range_update_path` | state.update_path 或更新相关 target | 更新路径 |
+| `range_cover_path` | state.cover_path 或覆盖相关 target | 覆盖区间 |
+| `network_flow_edge_label` | capacity / flow / residual | 网络流边标签 |
+| `network_flow_augmenting_path` | augmenting_path / augmenting_edges | 增广路径 |
+
+这些 pattern 是提升“过程解释可信”和“可视化效果”的主要抓手。后续优化应优先补 pattern，而不是新增自由页面。
+
+## 8. 页面模式
+
+当前固定页面不是单一播放器，而是“四区一线一抽屉”：
+
+- 顶部任务与可信度区：题目、输出、当前解法、badge。
+- 左侧题目与输入区：题目描述、输入、expected、解法、解法对比、重新生成 payload。
+- 中间主可视化区：SceneGraph objects、controls、语义时间线。
+- 右侧教学与证据区：讲解、系统校验、本步证据、状态、交互、代码。
+- 底部 / 中部时间线：每帧 phase、keyframe、operation。
+- Debug Drawer：raw validation、raw state、release gate、artifact JSON。
+
+页面允许增强：
+
+- 更清晰的 layout。
+- 更好的 formula 展示。
+- 更强的 deps 点击联动。
+- 更好的移动端布局。
+- 更细的 visual pattern 样式。
+- 更稳定的 Playwright 检查。
+
+页面不允许：
+
+- 前端重新计算答案并覆盖 artifact 结果。
+- 前端修改 trace 伪装成重新生成。
+- 用动画掩盖 process validator 失败。
+- 读取 LLM 直接生成的 HTML 作为主链路内容。
+
+## 9. 原语总览
+
+| 原语 | 当前状态 | 主要 state | 主要 target | 主要指标贡献 |
+|---|---|---|---|---|
+| array + pointer | 稳定 | `nums`、`left/right/mid` | `nums[i]`、`pointer:left` | 步骤正确、交互性 |
+| matrix / DP table | 稳定 | `dp`、`grid`、`i/j` | `dp[i][j]` | 步骤正确、解释可信 |
+| graph | 稳定 | `graph`、`queue`、`dist`、`visited` | `node:A`、`edge:A->B` | 步骤正确、可视化效果 |
+| stack / queue / deque | 稳定 | `stack`、`queue`、`deque` | `stack`、`queue` | 步骤正确、交互性 |
+| map / hash table | 稳定 | `seen`、`count`、`dist` | `seen[x]`、`dist[A]` | 答案正确、步骤正确 |
+| tree | 稳定 | `tree.nodes/edges` | `node:x`、`edge:x->y` | 过程解释可信 |
+| heap | 稳定 | `heap` | `heap`、`heap[0]` | 步骤正确 |
+| trie | 稳定，使用 tree renderer | `trie.nodes/edges` | `node:abc`、`edge:a->ab` | 步骤正确 |
+| union-find | 稳定，使用 tree renderer | `union_find.parent` | `node:x`、`edge:x->root` | 步骤正确 |
+| recursion_tree | 稳定，使用 tree renderer | `recursion_tree.nodes/edges` | `frame:*`、`node:*` | 解释可信、交互性 |
+| string | 稳定 | `text`、`pattern`、`i/j` | `text[i]`、`pattern[j]` | 步骤正确、视觉效果 |
+| geometry | 稳定基础版 | `points`、`geometry` | `point:i` | 视觉效果 |
+| range structure | 可组合，不是独立 renderer | `segment_tree`、`bit`、`st` | `node:*`、`bit[i]`、`st[i][j]` | 步骤正确 |
+| math / bit | 可组合，不是独立 renderer | `bits`、`table`、`mask` | `bits[i]`、`table[i][j]` | 解释可信 |
+| linked list | 可组合，不是独立 renderer | `tree/nodes/edges` 或 graph-like | `node:*`、`edge:*`、`pointer:*` | 视觉效果待增强 |
+| ML primitives | 扩展方向 | `ml` / `training` | `parameter:*` 等 | 非主路径 |
+
+## 10. array + pointer
 
 适用：
 
-- 二分查找。
-- 二分答案。
+- 二分查找 / 二分答案。
 - 双指针。
 - 滑动窗口。
 - 快慢指针。
-- 插入排序。
-- 快速排序分区。
-- 快速选择。
-- 前缀和 / 差分数组。
-- Two Sum 的数组扫描。
+- 前缀和 / 差分。
+- 排序扫描。
 
-state：
+推荐 state：
 
 ```json
-{"nums": [1, 3, 5], "left": 0, "right": 2, "mid": 1}
+{
+  "nums": [1, 3, 5, 7],
+  "left": 0,
+  "right": 3,
+  "mid": 1,
+  "array_contract": {
+    "submode": "binary_answer",
+    "expected_targets": ["pointer:left", "pointer:right", "pointer:mid"]
+  }
+}
 ```
 
-target：
+推荐 target：
 
 - `nums[0]`
 - `nums[2]`
+- `nums[1:3]`
 - `pointer:left`
 - `pointer:right`
 - `pointer:mid`
 
-默认布局：
+当前实现：
 
-- 水平数组。
-- 指针显示在单元格上方或下方。
-- 当前窗口用带状背景标出。
+- 一维 list 自动生成 array。
+- pointer 位置来自 event.value 或 state 中同名变量。
+- slice 生成 highlight 和 slice cell 对象。
+- timeline 会把 move / compare / set 组织成主循环或关键转移。
 
-交互：
+注意：
 
-- 点击单元格查看当前值和角色。
-- 点击指针查看移动原因。
-- 二分可预测下一次区间。
+- 指针 target 本身不是数组元素，pointer 移动时仍要在 state 中保留数组和指针值。
+- 二分 compare 事件中的 left/right/mid 应对应比较前窗口，移动 pointer 的事件再更新区间。
 
-## 3. matrix / DP table
+## 11. matrix / DP table
 
 适用：
 
-- 不同路径。
-- LCS。
-- 编辑距离。
+- 一维 / 二维 DP。
 - 背包。
-- 省份数量的邻接矩阵辅助视图。
+- LCS / 编辑距离。
 - 区间 DP。
-- 数位 DP 表。
 - Floyd-Warshall。
-- 二维前缀和。
 - 稀疏表。
+- 表格型数学过程。
 
-state：
+推荐 state：
 
 ```json
-{"dp": [[1, 1, 1], [1, 2, 3]], "i": 1, "j": 2}
+{
+  "dp": [[1, 1, 1], [1, 2, 3]],
+  "i": 1,
+  "j": 2,
+  "formula": "dp[i][j] = dp[i-1][j] + dp[i][j-1]",
+  "dp_contract": {
+    "containers": ["dp"],
+    "answer_position": "dp[1][2]",
+    "expected_targets": ["dp[1][1]", "dp[1][2]"],
+    "subfamily": "2d"
+  }
+}
 ```
 
-target：
+推荐 target / deps：
 
-- `dp[1][2]`
-- `grid[0][3]`
-- `isConnected[2][1]`
+- target：`dp[1][2]`
+- deps：`dp[0][2]`、`dp[1][1]`
 
-默认布局：
+当前实现：
 
-- 二维表格。
-- 当前格高亮。
-- deps 格子用次级高亮。
-- 依赖箭头从 deps 指向当前格。
-- 公式显示在表格旁或下方。
+- 二维 list 自动生成 matrix。
+- matrix deps 到 matrix target 会生成 dependency arrow。
+- 对象会附加 `dp_formula_substitution`、`dp_dependency_arrow` 等 pattern。
+- 右侧本步证据会展示 deps、formula、value、state change。
 
-交互：
+指标意义：
 
-- 预测下一格。
-- 点击依赖格显示来源。
-- 展开当前转移公式。
+- `process_pass_rate` 依赖每个关键 DP set 事件的 target / deps / value / state。
+- `process_faithfulness` 依赖 formula、teaching.why、invariant 与 deps 一致。
 
-典型页面效果：
+注意：
 
-```text
-dp[i][j] = dp[i-1][j] + dp[i][j-1]
-```
+- 小 DP 表不要抽样跳格。当前 `Tracer.expect_updates()` 可帮助记录 coverage。
+- 不要只在最后给完整 dp 表；必须逐步 set 关键单元。
 
-## 4. graph
+## 12. graph
 
 适用：
 
-- BFS。
-- DFS。
-- 拓扑排序。
-- Dijkstra 基础版本。
-- Bellman-Ford。
-- Floyd-Warshall 的节点松弛视图。
-- 0-1 BFS。
-- A* 基础演示。
+- BFS / DFS。
 - 连通分量。
-- 二分图染色。
-- 强连通分量。
-- 割点和桥。
+- 拓扑排序。
+- Dijkstra / Bellman-Ford / 0-1 BFS。
 - Kruskal / Prim。
-- 二分图匹配和增广路径。
-- Edmonds-Karp 网络流教学版。
+- Tarjan。
+- 网络流 / 匹配教学版。
 
-state：
+推荐 state：
 
 ```json
-{"graph": {"A": ["B", "C"]}, "queue": ["B", "C"], "dist": {"A": 0, "B": 1}}
+{
+  "graph": {"A": ["B", "C"], "B": ["D"], "C": []},
+  "queue": ["B", "C"],
+  "dist": {"A": 0, "B": 1, "C": 1},
+  "visited": {"A": true, "B": true},
+  "current": "A",
+  "graph_contract": {
+    "submode": "bfs",
+    "source": "A",
+    "expected_nodes": ["A", "B", "C"]
+  }
+}
 ```
 
-target：
+推荐 target：
 
 - `node:A`
 - `edge:A->B`
+- `dist[B]`
+- `queue`
 
-默认布局：
+当前实现：
 
-- 节点-边图。
-- 当前节点高亮。
-- frontier / queue 节点使用统一角色色。
-- 当前边加粗或闪烁。
+- graph dict 自动生成 nodes / edges。
+- input_data 中的 graph 也可补充基础图对象。
+- state.queue / frontier / heap / open_set 会标记 frontier。
+- state.visited 会标记已访问节点。
+- state.current / node / u 会标记当前节点。
+- path / path_edges / augmenting_path 会高亮路径。
+- weights / capacity / flow / residual 会显示边标签。
 
-交互：
+注意：
 
-- 点击节点查看距离、访问状态和父节点。
-- 点击边查看是否被松弛或访问。
-- BFS 可预测下一个出队节点。
+- 加权边如果 state.graph 的邻居是 dict / tuple，Scene Compiler 会从邻居中取目标 id，但权重标签主要来自 state.weights / capacity / flow 等 map。
+- Dijkstra、网络流等不要只展示最终 dist / flow，必须记录 relax / augmenting path。
 
-## 5. stack / queue / deque
+## 13. stack / queue / deque
 
 适用：
 
 - 单调栈。
 - BFS 队列。
-- 括号匹配。
-- 滑动窗口候选队列。
 - 单调队列。
+- 括号匹配。
 - 表达式求值。
-- 循环队列。
 
-state：
+推荐 state：
 
 ```json
-{"stack": [0, 1, 5], "i": 6, "temperatures": [73, 74]}
+{
+  "nums": [73, 74, 75],
+  "stack": [0, 1],
+  "i": 2,
+  "answer": [1, 1, 0],
+  "family_contract": {
+    "family": "monotonic_stack",
+    "submode": "daily_temperatures"
+  }
+}
 ```
 
-target：
+推荐 target：
 
 - `stack`
 - `queue`
 - `deque`
+- `answer[1]`
+- `nums[2]`
 
-默认布局：
+当前实现：
 
-- 栈垂直显示，顶部明确。
-- 队列水平显示，head / tail 明确。
-- 与数组视图联动显示下标。
+- key 为 stack / queue / deque 的一维 list 会使用专用 layout。
+- 可以和 array 同帧组合。
+- 单调栈的过程证据在特定 pop / answer 场景下会生成 stack pop evidence。
 
-交互：
+注意：
 
-- 点击元素显示原数组下标。
-- 弹出时显示为什么不再需要该候选。
-- 入栈 / 入队时显示维护的不变量。
+- 栈中如果存的是原数组下标，teaching 和 state 应明确说明。
+- 需要让 deps 指向导致 pop / answer 写入的当前元素和被弹出的候选。
 
-## 6. map / hash table
+## 14. map / hash table
 
 适用：
 
 - Two Sum。
 - 频次统计。
 - 前缀和计数。
-- BFS / Dijkstra 的距离表。
-- 分组异位词。
-- 去重集合。
-- LRU / LFU 的 key 到节点映射。
+- 图 dist / parent / indegree。
+- Trie / LRU 的辅助映射。
 
-state：
+推荐 state：
 
 ```json
-{"seen": {"2": 0, "7": 1}, "i": 1, "target": 9}
+{
+  "nums": [2, 7, 11],
+  "seen": {"2": 0},
+  "need": 2,
+  "i": 1
+}
 ```
 
-target：
+推荐 target：
 
 - `seen[2]`
-- `dist[B]`
 - `count[x]`
+- `dist[A]`
+- `parent[B]`
 
-默认布局：
+当前实现：
 
-- key-value 表。
-- 当前查询 key 高亮。
-- 命中或未命中状态明确。
+- 普通 dict 会生成 map layout。
+- map row id 形如 `key[item]`。
+- 非数字 key 在 parser 中是 map；数字 key 可能被 parse 为 indexed，但只要 state 暴露对应对象，trace validator 和 renderer 仍可定位。
 
-交互：
+注意：
 
-- 点击 key 查看来源下标或更新步骤。
-- Two Sum 可显示 complement 查找过程。
+- 不要使用 `seen:2`、`dist:A`、`map:seen`。
+- map key 最好在 state 中统一转成字符串，避免 Python int key 和 JSON string key 造成对齐问题。
 
-## 7. tree
+## 15. tree / trie / union-find / recursion_tree
+
+### tree
 
 适用：
 
-- 二叉树 DFS。
-- BST。
+- 二叉树遍历。
 - LCA。
-- 路径和。
 - 树直径。
 - 树形 DP。
 - 层序遍历。
-- 序列化 / 反序列化。
-- 平衡树判断。
 
-state：
+推荐 state：
 
 ```json
-{"tree": {"nodes": [{"id": "3"}], "edges": [["3", "5"]]}, "current": "5"}
+{
+  "tree": {
+    "nodes": [{"id": "3", "label": "3"}, {"id": "5", "label": "5"}],
+    "edges": [["3", "5"]]
+  },
+  "current": "5",
+  "return_values": {"5": 2}
+}
 ```
 
-target：
+当前实现：
 
-- `node:3`
-- `edge:3->5`
+- `tree` / `binary_tree` / `segment_tree` 且含 nodes / edges 会进入 tree layout。
+- `return_values` 和 `return_value` 会触发 `tree_return_value` pattern。
 
-默认布局：
+### trie
 
-- 层级树布局。
-- 当前递归路径高亮。
-- 返回值可显示在节点旁。
+推荐 state：
 
-交互：
+```json
+{
+  "trie": {
+    "nodes": [{"id": "root"}, {"id": "root/a"}],
+    "edges": [{"from": "root", "to": "root/a", "label": "a"}]
+  },
+  "word": "app",
+  "pos": 1
+}
+```
 
-- 点击节点查看左右子树返回值。
-- 展开递归调用栈。
+当前实现：
 
-## 8. heap
+- trie 使用 tree renderer，但 container layout 为 `trie`。
+- 终止节点、prefix_count 等应放在 node meta 或 state map 中。
+
+### union-find
+
+推荐 state：
+
+```json
+{
+  "union_find": {
+    "parent": {"0": "0", "1": "0", "2": "2"},
+    "rank": {"0": 1, "1": 0, "2": 0}
+  }
+}
+```
+
+当前实现：
+
+- `union_find` / `dsu` 需要 dict parent。
+- 会生成 node 和 parent edge。
+- list parent 只会作为普通 array 展示，不会自动生成 forest。
+
+### recursion_tree
+
+推荐 state：
+
+```json
+{
+  "recursion_tree": {
+    "nodes": [{"id": "root", "label": "[]"}, {"id": "choose1", "label": "[1]"}],
+    "edges": [["root", "choose1"]]
+  },
+  "path": [1],
+  "used": [true, false]
+}
+```
+
+当前实现：
+
+- recursion_tree 使用 tree renderer。
+- choice / undo 会通过 op 触发 `backtracking_choice` / `backtracking_undo`。
+
+## 16. heap
 
 适用：
 
 - TopK。
 - 堆排序。
+- Dijkstra frontier。
 - Huffman。
 - 合并 K 路链表。
-- 数据流中位数。
-- 任务调度。
-- Dijkstra 优先队列。
 
-state：
+推荐 state：
 
 ```json
-{"heap": [4, 5, 6], "k": 3, "x": 7}
+{
+  "heap": [3, 5, 8],
+  "k": 3,
+  "current": 9
+}
 ```
 
-target：
+推荐 target：
 
 - `heap`
 - `heap[0]`
 
-默认布局：
+当前实现：
 
-- 堆数组和树形视图双视图。
-- 堆顶突出显示。
-- push / pop 时显示调整路径。
+- key 为 `heap` 的一维 list 使用 heap layout。
+- renderer 会展示堆层级。
 
-交互：
+注意：
 
-- 点击堆节点查看数组下标。
-- TopK 可显示“为什么丢弃或保留当前元素”。
+- Python heapq 的数组顺序不是排序数组。teaching 应说明 heap invariant，而不是把它讲成有序列表。
+- 如果是 Dijkstra，heap 中元素建议结构化为简单 label 或同步在 state 中提供 dist map。
 
-## 9. trie
-
-适用：
-
-- 前缀树插入。
-- 前缀查询。
-- 单词统计。
-- 自动补全。
-- Aho-Corasick 多模式匹配教学版。
-
-state：
-
-```json
-{"trie": {"root": {"children": {"a": {}}}}, "word": "app", "pos": 2}
-```
-
-target：
-
-- `trie`
-- `node:a`
-- `edge:a->p`
-
-默认布局：
-
-- 树形字符节点。
-- 当前字符路径高亮。
-- 终止节点有标记。
-
-交互：
-
-- 点击路径显示前缀。
-- 查询时显示匹配或断裂位置。
-
-## 10. union-find
-
-适用：
-
-- 省份数量。
-- 连通分量。
-- 最小生成树辅助过程。
-- 冗余连接。
-- 岛屿数量变体。
-- 路径压缩。
-- 按秩合并。
-
-state：
-
-```json
-{"parent": [0, 0, 2], "rank": [1, 0, 0]}
-```
-
-如果需要 forest 视图，当前实现更推荐使用 dict parent：
-
-```json
-{"union_find": {"parent": {"0": "0", "1": "0", "2": "2"}, "rank": {"0": 1, "1": 0, "2": 0}}}
-```
-
-target：
-
-- `parent[1]`
-- `node:1`
-- `edge:1->0`
-
-默认布局：
-
-- parent 数组。
-- forest 视图。
-- union 时显示两个根。
-
-交互：
-
-- 点击节点查看根节点。
-- 路径压缩时显示 parent 改写。
-
-## 11. recursion_tree
-
-适用：
-
-- 全排列。
-- 组合。
-- 子集。
-- N 皇后。
-- 数独。
-- 括号生成。
-- 分割回文串。
-- DFS 搜索树。
-- 回溯。
-
-state：
-
-```json
-{"path": [1, 2], "used": [true, true, false], "depth": 2}
-```
-
-target：
-
-- `frame:dfs(2)`
-- `frames`
-- `nums[1]`
-
-默认布局：
-
-- 递归树或调用栈。
-- 当前 path 高亮。
-- 选择和撤销分别显示。
-
-交互：
-
-- 展开 / 折叠递归层。
-- 点击 frame 查看局部变量。
-
-## 12. string
+## 17. string
 
 适用：
 
@@ -488,207 +579,259 @@ target：
 - Rabin-Karp。
 - Z Algorithm。
 - Manacher。
-- 基础字符串匹配。
-- 字符串哈希。
-- 最长回文子串。
+- 滑动窗口字符串。
+- 基础匹配。
 
-state：
+推荐 state：
 
 ```json
-{"text": "ababc", "pattern": "abc", "i": 4, "j": 2, "pi": [0, 0, 1]}
+{
+  "text": "ababc",
+  "pattern": "abc",
+  "i": 3,
+  "j": 1,
+  "pi": [0, 0, 1],
+  "window": {"left": 1, "right": 3},
+  "family_contract": {
+    "family": "string",
+    "submode": "kmp"
+  }
+}
 ```
 
-target：
+推荐 target：
 
 - `text[3]`
-- `pattern[2]`
+- `pattern[1]`
 - `pi[2]`
 
-默认布局：
+当前实现：
 
-- text 和 pattern 分两行。
-- 当前比较字符对齐。
-- 前缀表作为数组显示。
+- text / pattern / s / t / string 生成 string layout。
+- i / j 会作为 cursor。
+- pattern 可以根据 i-j 生成 alignment offset。
+- window / left/right 会触发 `string_window`。
+- fallback_from / fallback_to 或 j_before / j_after 会触发 fallback arc。
 
-交互：
+注意：
 
-- 点击字符查看匹配关系。
-- 失配时显示 j 回退来源。
+- 字符串算法的 deps 应指向字符和表项，例如 `text[i]`、`pattern[j]`、`pi[j-1]`。
+- 不能只记录最终匹配位置。
 
-## 13. geometry
+## 18. geometry
 
 适用：
 
 - 凸包。
 - 扫描线。
-- 点线面基础算法。
-- 叉积与方向判断。
+- 方向判断。
 - 线段相交。
-- 最近点对教学版。
 
-state：
+推荐 state：
 
 ```json
-{"points": [[0, 0], [1, 2]], "hull": [[0, 0]], "current": 1}
+{
+  "geometry": {
+    "points": [
+      {"id": "0", "x": 0, "y": 0},
+      {"id": "1", "x": 1, "y": 2}
+    ],
+    "hull": ["0", "1"],
+    "segments": [{"from": "0", "to": "1", "label": "候选边"}],
+    "sweep_x": 1
+  }
+}
 ```
 
-target：
+推荐 target：
 
 - `point:0`
 - `points`
 
-默认布局：
+当前实现：
 
-- 坐标平面。
-- 当前点高亮。
-- hull 边连线。
-- orientation / cross 结果显示。
+- `points` list 或 geometry.points 生成 geometry layout。
+- segments、hull、sweep_x / sweep_y 会生成附加对象。
+- segment 对象由 compiler 生成，不建议 tracker 直接引用 `segment:*` target。
 
-交互：
-
-- 点击点查看坐标。
-- 点击边查看加入或弹出原因。
-
-## 14. ML primitives
-
-适用：
-
-- 参数更新演示。
-- loss curve。
-- 梯度下降。
-- 简单决策边界。
-
-对象类型：
-
-- `tensor`
-- `batch`
-- `parameter`
-- `loss_curve`
-- `gradient_vector`
-- `decision_boundary`
-- `training_epoch`
-- `prediction`
-
-约束：
-
-- ML primitive 属于扩展方向，不是 V1 算法题主路径。
-- 不应影响经典算法页面稳定性。
-
-## 15. linked list
-
-适用：
-
-- 反转链表。
-- 合并两个有序链表。
-- 合并 K 路链表的链表视图。
-- 快慢指针判环。
-- 删除倒数第 N 个节点。
-- 链表相交。
-- LRU 的双向链表。
-
-state：
-
-```json
-{"nodes": [{"id": "a", "value": 1}, {"id": "b", "value": 2}], "head": "a", "slow": "a", "fast": "b"}
-```
-
-target：
-
-- `node:a`
-- `edge:a->b`
-- `pointer:slow`
-- `pointer:fast`
-- `pointer:head`
-
-默认布局：
-
-- 水平链表。
-- next 边用箭头表示。
-- 指针显示在节点上方。
-- 断链和重连用 before / after 对比。
-
-交互：
-
-- 点击节点查看 value 和 next。
-- 反转时显示当前边被改向。
-- 判环时显示 slow / fast 相遇过程。
-
-## 16. range structure
+## 19. range structure
 
 适用：
 
 - 线段树。
 - 树状数组。
 - 稀疏表。
-- 区间最值。
-- 区间和。
-- 区间更新教学版。
+- 区间查询 / 更新。
 
-state：
+推荐表达：
+
+- 线段树：`segment_tree` 使用 nodes / edges，target 用 `node:*`。
+- 树状数组：`bit` 使用 array，target 用 `bit[i]`。
+- 稀疏表：`st` 使用 matrix，target 用 `st[i][j]`。
+
+推荐 state：
 
 ```json
-{"tree": [0, 10, 4, 6], "query": [1, 3], "index": 2}
+{
+  "segment_tree": {
+    "nodes": [{"id": "1", "label": "[0,3] sum=10"}],
+    "edges": []
+  },
+  "query": [1, 3],
+  "query_path": ["node:1"],
+  "cover_path": ["node:1"]
+}
 ```
 
-target：
+当前实现：
 
-- `tree[1]`
-- `bit[4]`
-- `node:seg(1,4)`
-- `segment_tree[1]`
-- `st[2][3]`
+- `segment_tree` 会按 tree layout 展示。
+- `bit` 是普通 array。
+- `st` 是 matrix。
+- query_path / update_path / cover_path 会触发 range visual patterns。
 
-注意：不要在当前实现里使用 `range:1-3` 这类新前缀。区间语义应先放在 state 的 `query`、节点 label 或 node meta 里；如果要把 `range:` 变成正式 target，必须同步扩展 target parser、trace validator、scene compiler、renderer 和测试。
+注意：
 
-默认布局：
+- 不要使用未实现的 `range:` target。
+- 区间范围应写在 node label、state.query 或 node meta 中。
 
-- 线段树用区间树展示。
-- 树状数组用数组加 lowbit 覆盖区间展示。
-- 稀疏表用二维表展示。
-
-交互：
-
-- 点击节点显示它覆盖的区间。
-- query 时高亮被拆分出来的区间。
-- update 时显示向上或向后传播路径。
-
-## 17. math / bit
+## 20. math / bit
 
 适用：
 
-- 最大公约数。
+- GCD。
 - 快速幂。
-- 埃氏筛。
-- 质因数分解。
+- 筛法。
 - 组合数。
-- 模运算。
-- 位掩码 DP。
-- 子集枚举。
+- bitmask。
 - lowbit。
 
-state：
+推荐 state：
 
 ```json
-{"n": 13, "mask": 5, "bits": [1, 0, 1], "answer": 8}
+{
+  "n": 13,
+  "mask": 5,
+  "bits": [1, 0, 1],
+  "table": [[1, 1], [1, 2]],
+  "answer": 8
+}
 ```
 
-target：
+推荐 target：
 
 - `bits[0]`
+- `table[1][1]`
 - `mask`
-- `factor[2]`
-- `table[3][4]`
+- `answer`
 
-注意：不要在当前实现里使用 `number:n` 这类新前缀。当前可先用 `n`、`mask`、`bits[0]`、`factor[2]`、`table[3][4]` 表达；如果要把 `number:` 变成正式 target，必须同步扩展 target parser、trace validator、scene compiler、renderer 和测试。
+当前实现：
 
-默认布局：
+- `bits` 是 array。
+- `table` 是 matrix。
+- `mask`、`answer` 是 label。
 
-- 数字线或位图。
-- 当前位、当前因子、当前指数高亮。
-- 表格型数学过程使用 matrix。
+注意：
 
-交互：
+- 不要使用 `number:n`。
+- 如果要表达二进制贡献，优先用 `bits[i]` 加 teaching.formula。
 
-- 点击 bit 查看贡献值。
-- 快速幂显示指数折半。
-- 筛法显示倍数标记过程。
+## 21. linked list
+
+当前 linked list 不是独立 renderer。建议暂用 tree / graph-like nodes + edges 表达：
+
+```json
+{
+  "tree": {
+    "nodes": [{"id": "a", "label": "1"}, {"id": "b", "label": "2"}],
+    "edges": [{"from": "a", "to": "b", "label": "next"}]
+  },
+  "current": "a",
+  "prev": null,
+  "next": "b"
+}
+```
+
+推荐 target：
+
+- `node:a`
+- `edge:a->b`
+- `pointer:current`
+- `pointer:prev`
+
+限制：
+
+- 当前没有正式 linked_list layout。
+- 双向链表、LRU 的 prev/next 样式需要 renderer 增强。
+- 反转链表要显式记录 unlink / link 或 state 中边方向变化，不能只展示最终链。
+
+## 22. ML primitives
+
+ML primitive 是扩展方向，不是当前算法题主路径。
+
+当前 compiler 能识别：
+
+- `ml`
+- `model`
+- `training`
+- `linear_regression`
+- `logistic_regression`
+
+以及字段：
+
+- tensor / features / weights / matrix / activations
+- batch
+- parameters
+- loss / loss_curve / loss_history
+- gradient / gradients
+- computational_graph
+- decision_boundary
+- epoch
+- prediction
+
+除非实验专门评估 ML demo，否则不要让 ML primitive 影响经典算法 benchmark。
+
+## 23. 交互模式
+
+`Interaction` schema 支持：
+
+- `choice`
+- `input`
+- `judge`
+
+字段：
+
+- `prompt`
+- `options`
+- `answer`
+- `explanation`
+- `wrong_explanation`
+- `option_explanations`
+
+renderer 当前会：
+
+- 为 choice 渲染多个按钮。
+- 为 input 渲染输入框和检查按钮。
+- 为 judge 渲染正确 / 错误按钮。
+- 展示反馈，并说明反馈来源来自 interaction 字段。
+
+交互设计原则：
+
+- 交互答案必须能从当前 frame 的 state / deps / teaching 得到。
+- 不要让 renderer 自行推理下一步。
+- 预测下一步、公式填空、判断依赖是否正确，是当前最适合提升教学性指标的交互。
+
+## 24. 新增原语的实施清单
+
+新增视觉原语前必须同步完成：
+
+1. `target_parser.py` 支持新 target。
+2. `trace_validator.py` 能判断 target 是否存在。
+3. `scene_compiler.py` 能从 state 生成对象。
+4. `scene_compiler.py` 能生成必要 visual pattern / evidence。
+5. `layout_registry.py` 映射 layout。
+6. `export.py` renderer 能展示 layout。
+7. `tests/` 中加入 deterministic fixture。
+8. benchmark report 能区分新增原语导致的 scene/html failure。
+
+未完成以上步骤时，新算法族应优先用现有原语降级表达。

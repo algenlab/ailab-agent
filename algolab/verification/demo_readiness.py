@@ -281,6 +281,11 @@ def _family_contract_family(trace: SemanticTrace) -> str:
     return str(family).lower() if family is not None else ""
 
 
+def _family_contract_submode(trace: SemanticTrace) -> str:
+    submode = _family_contract(trace).get("submode")
+    return str(submode).lower().replace("-", "_").replace(" ", "_") if submode is not None else ""
+
+
 def _graph_contract_submode(trace: SemanticTrace) -> str:
     submode = _state_contract(trace, "graph_contract").get("submode")
     return str(submode).lower() if submode is not None else ""
@@ -377,13 +382,16 @@ def _dp_demo_errors(trace: SemanticTrace) -> list[str]:
     transition_events = [
         event
         for event in trace.events
-        if event.op == SemanticOp.SET and any(target.startswith("dp[") for target in _target_ids(event))
+        if event.op == SemanticOp.SET and any(_dp_demo_target_in_containers(target, containers) for target in _target_ids(event))
     ]
     expected_targets = contract.get("expected_targets")
-    requires_transition = bool(expected_targets) or any(event.op == SemanticOp.COMPARE and any(target.startswith("dp[") for target in _target_ids(event)) for event in trace.events)
+    requires_transition = bool(expected_targets) or any(
+        event.op == SemanticOp.COMPARE and any(_dp_demo_target_in_containers(target, containers) for target in _target_ids(event))
+        for event in trace.events
+    )
     if requires_transition and not transition_events:
         errors.append(_demo_error("demo_key_step_missing", "DP 演示缺少状态转移写入帧"))
-    elif any(not event.deps for event in transition_events):
+    elif any(not _dp_demo_transition_has_deps_or_state_evidence(event, containers) for event in transition_events):
         errors.append(_demo_error("demo_missing_deps", "DP 转移帧缺少来源 deps"))
 
     if requires_transition and not _has_formula_evidence(trace):
@@ -393,6 +401,38 @@ def _dp_demo_errors(trace: SemanticTrace) -> list[str]:
     if answer_position and not _has_answer_reference(trace, answer_position):
         errors.append(_demo_error("demo_algorithm_mismatch", f"DP 答案帧没有引用 answer_position={answer_position}"))
     return errors
+
+
+def _dp_demo_target_in_containers(target: str, containers: list[object]) -> bool:
+    for raw in containers:
+        if not isinstance(raw, str) or not raw:
+            continue
+        if target == raw or target.startswith(f"{raw}["):
+            return True
+    return False
+
+
+def _dp_demo_transition_has_deps_or_state_evidence(event: SemanticEvent, containers: list[object]) -> bool:
+    if event.deps:
+        return True
+    return _dp_demo_is_tree_state_derived_update(event, containers)
+
+
+def _dp_demo_is_tree_state_derived_update(event: SemanticEvent, containers: list[object]) -> bool:
+    state = event.state or {}
+    contract = state.get("dp_contract") if isinstance(state.get("dp_contract"), dict) else {}
+    subfamily = str(contract.get("subfamily", "")).lower()
+    container_names = {raw for raw in containers if isinstance(raw, str)}
+    if "tree" not in subfamily and not {"dp_take", "dp_skip"}.issubset(container_names):
+        return False
+    current = state.get("current")
+    if current is None or not isinstance(state.get("tree"), dict):
+        return False
+    if not isinstance(state.get("dp_take"), dict) or not isinstance(state.get("dp_skip"), dict):
+        return False
+    current_id = str(current)
+    current_targets = {f"dp_take[{current_id}]", f"dp_skip[{current_id}]"}
+    return any(target in current_targets for target in _target_ids(event))
 
 
 def _looks_like_graph(trace: SemanticTrace) -> bool:
@@ -471,7 +511,7 @@ def _array_pointer_demo_errors(trace: SemanticTrace) -> list[str]:
             errors.append(_demo_error("demo_key_step_missing", "二分演示缺少 mid 比较帧"))
         errors.extend(_binary_state_jump_errors(trace))
     elif "sliding_window" in submode or "滑动窗口" in text:
-        if not _has_state_key(trace, "left", "right", "window_sum", "window_counts"):
+        if not _has_state_key(trace, "left", "right", "window_sum", "window_counts", "window_hash", "window_hashes", "hashes"):
             errors.append(_demo_error("demo_algorithm_mismatch", "窗口演示缺少窗口边界或聚合状态"))
     return errors
 
@@ -529,11 +569,33 @@ def _looks_like_string(trace: SemanticTrace) -> bool:
 
 def _string_demo_errors(trace: SemanticTrace) -> list[str]:
     errors: list[str] = []
-    if _family_contract_family(trace) == "trie" or _has_state_key(trace, "trie"):
+    family = _family_contract_family(trace)
+    submode = _family_contract_submode(trace)
+    if family == "trie" or submode in {"trie_prefix_match", "trie_prefix", "prefix_match"} or _has_state_key(trace, "trie"):
         if not _has_state_key(trace, "trie", "prefix_count"):
             errors.append(_demo_error("demo_algorithm_mismatch", "Trie 字符串演示缺少 trie 或 prefix_count 状态"))
         return errors
     if _is_degenerate_string_short_path(trace):
+        return errors
+    if submode in {"z_algorithm", "z"}:
+        if not (_has_state_key(trace, "i", "left", "right") or any(_event_has_target_prefix(event, "text[", "s[") for event in trace.events)):
+            errors.append(_demo_error("demo_algorithm_mismatch", "Z Algorithm 演示缺少 i/l/r 或 text[i] 指针"))
+        if not _has_state_key(trace, "z"):
+            errors.append(_demo_error("demo_algorithm_mismatch", "Z Algorithm 演示缺少 z 表"))
+        return errors
+    if submode in {"manacher", "palindrome_radius"}:
+        if not (_has_state_key(trace, "center", "i", "left", "right") or any(_event_has_target_prefix(event, "text[", "s[") for event in trace.events)):
+            errors.append(_demo_error("demo_algorithm_mismatch", "Manacher 演示缺少 center/i 或 text[i] 指针"))
+        if not _has_state_key(trace, "radius", "p"):
+            errors.append(_demo_error("demo_algorithm_mismatch", "Manacher 演示缺少 radius / p 半径表"))
+        return errors
+    if submode in {"rabin_karp", "rolling_hash"}:
+        if not (_has_state_key(trace, "i", "j", "window_start", "window_end") or any(_event_has_target_prefix(event, "text[", "pattern[") for event in trace.events)):
+            errors.append(_demo_error("demo_algorithm_mismatch", "Rabin-Karp 演示缺少文本/模式指针或窗口起点"))
+        if not _has_state_key(trace, "pattern_hash"):
+            errors.append(_demo_error("demo_algorithm_mismatch", "Rabin-Karp 演示缺少 pattern_hash"))
+        if not _has_state_key(trace, "window_hash", "window_hashes", "hashes"):
+            errors.append(_demo_error("demo_algorithm_mismatch", "Rabin-Karp 演示缺少 window_hash / window_hashes"))
         return errors
     has_pointer = _has_state_key(trace, "i", "j", "left", "right") or any(
         _event_has_target_prefix(event, "text[", "pattern[") for event in trace.events
@@ -599,14 +661,31 @@ def _looks_like_heap(trace: SemanticTrace) -> bool:
 
 def _heap_demo_errors(trace: SemanticTrace) -> list[str]:
     errors: list[str] = []
-    if not _has_state_key(trace, "heap_type"):
+    if not _has_heap_type_evidence(trace):
         errors.append(_demo_error("demo_algorithm_mismatch", "堆演示缺少 heap_type 不变量"))
     for event in trace.events:
         if event.op in {SemanticOp.PUSH, SemanticOp.POP} and "heap" not in event.state:
             errors.append(_demo_error("demo_algorithm_mismatch", f"step {event.step} 堆结构变化后缺少 heap state"))
-    if any(event.op in {SemanticOp.PUSH, SemanticOp.POP} for event in trace.events) and not _has_state_key(trace, "heap_top"):
+    if any(event.op in {SemanticOp.PUSH, SemanticOp.POP} for event in trace.events) and not _has_heap_top_evidence(trace):
         errors.append(_demo_error("demo_algorithm_mismatch", "堆演示缺少 heap_top 或等价结构不变量"))
     return errors
+
+
+def _has_heap_type_evidence(trace: SemanticTrace) -> bool:
+    if _has_state_key(trace, "heap_type"):
+        return True
+    submode = _family_contract_submode(trace)
+    return "heap" in submode and any(token in submode for token in ("min", "max", "topk"))
+
+
+def _has_heap_top_evidence(trace: SemanticTrace) -> bool:
+    if _has_state_key(trace, "heap_top"):
+        return True
+    for event in trace.events:
+        refs = set(_target_ids(event)) | set(_dep_ids(event))
+        if "heap[0]" in refs:
+            return True
+    return False
 
 
 def _looks_like_union_find(trace: SemanticTrace) -> bool:

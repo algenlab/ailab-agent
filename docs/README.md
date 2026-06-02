@@ -23,6 +23,7 @@
 涉及论文实验、benchmark 或评估时读：
 
 8. [06_EVALUATION_AND_BENCHMARK.md](06_EVALUATION_AND_BENCHMARK.md)
+9. [08_AAAI_EXPERIMENT_PLAN.md](08_AAAI_EXPERIMENT_PLAN.md)
 
 ## 文档分工
 
@@ -34,6 +35,7 @@
 - `05_VISUAL_PRIMITIVES_AND_PATTERNS.md`：通用视觉原语和页面模式。
 - `06_EVALUATION_AND_BENCHMARK.md`：评估指标、baseline、消融和失败分类。
 - `07_ROADMAP_AND_TASKS.md`：最终产品设计方案和分阶段可执行任务。
+- `08_AAAI_EXPERIMENT_PLAN.md`：P17 收口后的 AAAI 实验冻结、真实浏览器截图、LLM benchmark、baseline / ablation 和论文产物执行计划。
 
 ## 子目录
 

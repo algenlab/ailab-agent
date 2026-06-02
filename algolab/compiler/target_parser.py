@@ -41,6 +41,10 @@ def parse_target(raw: str) -> ParsedTarget:
         if "->" in edge:
             src, dst = edge.split("->", 1)
             return ParsedTarget(raw=raw, kind="edge", name=edge, source=src, target=dst)
+        if "-" in edge:
+            src, dst = edge.split("-", 1)
+            if src and dst:
+                return ParsedTarget(raw=raw, kind="edge", name=edge, source=src, target=dst)
         return ParsedTarget(raw=raw, kind="edge", name=edge)
     if raw.startswith("pointer:"):
         return ParsedTarget(raw=raw, kind="pointer", name=raw.split(":", 1)[1])

@@ -10,7 +10,7 @@
 5. 所有页面、布局、动画由系统 renderer 负责。
 6. 字符串字段必须输出字符串；如果没有内容，使用空字符串 ""，不要输出 null。尤其是 role、reason、algorithm、strategy、name。
 7. 输出必须是一个完整 JSON object，顶层第一个字符必须是 {，最后一个字符必须是 }。不要输出顶层数组、markdown、注释或自然语言。
-8. 如果 JSON 太长，减少 events、reason、pseudocode 和注释；绝不能输出截断 JSON。
+8. 如果 JSON 太长，减少 events、reason、pseudocode、代码注释和 tracker_code；绝不能输出截断 JSON。不要输出 16000 tokens，默认 1 个 variant 时只给 6-10 个关键 events。
 
 允许的语义 op 只有：
 - create：创建算法对象或初始结构
@@ -35,6 +35,7 @@ target id 格式建议：
 - 栈/队列：stack、queue、deque
 - 指针：pointer:left、pointer:right、pointer:mid
 - 哈希表项：seen[key]、dist[A]、count[x]。不要使用旧式 seen:key 或 dist:A。
+- map target 的方括号里写语义 key，不写 Python 字符串引号，例如用 indegree[A]、dist[B]，不要用 indegree['A']、dist["B"]。
 - 递归帧：frame:dfs(2)
 - 树/Trie/并查集节点：node:<id>
 - 几何点：point:<id>
@@ -106,6 +107,10 @@ trace(input_data) 必须返回：
 }
 
 tracker_code 必须优先使用系统提供的 Tracer API，不要直接手写 events.append。
+Tracer 必须写成 Tracer(input_data, algorithm="算法名称", pseudocode=[...])；禁止 Tracer()、Tracer.__init__ 手动调用或省略 input_data。
+family_contract、dp_contract、graph_contract、array_contract 不能传给 Tracer.__init__；这些合同只能放进每个事件的 state。
+不存在 tracer.choose()。回溯选择请用 tracer.push、tracer.mark、tracer.enter 表达；撤销请用 tracer.pop、tracer.unmark、tracer.exit 表达。
+TargetRef.id 必须始终是字符串；不要把多个 target 塞进同一个 id，例如不要写 {"id": ["pointer:left", "pointer:right"]}，也不要调用 tracer.create(["pointer:left", "pointer:right"])。create/set/move/mark/link/push/pop 只接受单个字符串；只有 compare 的第一个参数接受字符串列表。
 推荐写法：
 tracer = Tracer(input_data, algorithm="算法名称", pseudocode=[...])
 tracer.create("dp", state={...}, reason="...")
@@ -115,12 +120,14 @@ tracer.unmark("node:A", state={...}, reason="...")
 tracer.link("edge:A->B", deps=["node:A", "node:B"], state={...}, reason="...")
 tracer.unlink("edge:A->B", state={...}, reason="...")
 tracer.push("stack", value=..., state={...}, reason="...")
+tracer.compare(["text[0]", "pattern[0]"], deps=["text[0]", "pattern[0]"], state={...}, reason="...")
 tracer.move("pointer:mid", value=..., state={...}, reason="...")
 tracer.enter("frame:dfs(1)", state={...}, reason="...")
 tracer.exit("frame:dfs(1)", state={...}, reason="...")
 tracer.result(answer)
 return tracer.to_trace()
 小输入逐帧、大输入抽样、step 编号、targets/deps 格式和 coverage 由 Tracer 统一管理。
+禁止调用私有 tracer._add，禁止 return tracer.to_trace(result=...)，禁止给 Tracer API 传 stage= 或 action=；阶段/动作写入 state["phase"]、reason 或 teaching，答案写入 tracer.result(answer)。
 
 DP trace contract 要求：
 - 动态规划 tracker 必须在每个关键 DP 事件的 state 中放入同一个 state["dp_contract"]。
@@ -128,10 +135,26 @@ DP trace contract 要求：
   {"containers": ["dp"], "answer_position": "dp[n-1]", "expected_targets": ["dp[1]", "dp[2]"], "subfamily": "1d"}
 - containers 是 DP 容器名列表；二维/一维/背包通常是 ["dp"]，树形 DP 可用 ["dp_take", "dp_skip"]。
 - answer_position 必须是最终答案所在 target，并且最终答案事件必须 role="answer"，targets 或 deps 必须引用这个 target。
+- 如果 answer_position 是 dp[11]，最终答案事件必须引用 dp[11]，不要只引用 answer/result。
 - expected_targets 是小规模 full-trace 样例必须逐个 set 的关键 DP target；当更新数量不超过 80 时不能省略。
 - subfamily 使用简短标签，例如 1d、2d、knapsack_01、complete_knapsack、bounded_knapsack、lcs、edit_distance、interval_dp、tree、state_compression、digit_dp。
 - 背包类必须用 dp_contract.subfamily 或 state 中的 dp_mode/knapsack 区分 0-1、完全、多重背包；多重背包必须把 counts 上限写入 state。
+- subset-sum/0-1 背包初始化必须用 tracer.create("dp") 给出 DP 容器初始状态，state.dp[0]=True 且 state.dp_contract 存在；不要只用 tracer.set("dp[0]") 记录 base case。每个 set 事件包含 i、capacity_index、capacity、old_value、candidate、formula、deps 和 dp_contract.expected_targets。
+- 不要把 set dp[0] 写成无 deps 的关键更新；若用 set 记录 base case，写 deps=["dp"]、capacity_index=0、capacity=0、formula="dp[0]=True"。
+- subset-sum/0-1 背包每个 DP 事件 state 保留 nums、target 和当前 nums[i]；deps=["dp[c]","dp[c-weight]","nums[i]"]。如果 reason/teaching 提到 nums 或元素，targets/deps/state 必须有 nums 依据。
+- 完全背包零钱兑换使用 j 从 coin 到 amount 正序；formula 写 dp[j] = min(dp[j], dp[j-coin] + 1)，state 包含 old_value 和 candidate。
+- 完全背包校验按 state.i 的 coins[:i+1] 重新计算期望；内部 inf=amount+1，unreachable 展示为 -1，但 target dp[j] 必须等于当前 coins[:i+1] 的最少硬币数。
+- 每个 set dp 事件都必须提供 state.formula 或 teaching.formula；最终答案若用 set 也写 formula=answer=dp[amount]，否则用 mark dp[amount] role=answer。
+- LCS 使用 dp_contract.subfamily="lcs"；每个 tracer.set("dp[i][j]") 的 state 必须包含 text1、text2、i、j、current、old_value、formula 和 dp_contract。deps=["dp[i-1][j]", "dp[i][j-1]", "dp[i-1][j-1]", "text1[i-1]", "text2[j-1]"]；匹配时 formula=dp[i][j]=dp[i-1][j-1]+1，否则 formula=dp[i][j]=max(dp[i-1][j], dp[i][j-1])。
+- LCS base row/column 的 0 值只放在 tracer.create("dp") 的 state.dp；不要把 dp[0][j] 或 dp[i][0] 放进 dp_contract.expected_targets，除非真的逐格 tracer.set。expected_targets 只列真实 tracer.set 的 dp[i][j] 和最终答案 dp[len(text1)][len(text2)]。
+- 状态压缩 DP 写 formula：dp[next_mask][next] = min(dp[next_mask][next], dp[mask][last] + cost[last][next])；expected_targets 中的小规模 dp[mask][last] 不能省略。
+- 状态压缩 TSP 最终必须 set/mark ans，deps 指向 full_mask 的 dp[full_mask][last]，state 包含 mask/current/next/full_mask/candidate/formula。
+- 状态压缩每一个 tracer.set 都必须带 deps，初始化 set 也必须带 deps；base 写 dp[1<<start][start] 时 deps=["dp"]，转移 deps 指向 dp[mask][current] 和 cost/current edge。
+- 状态压缩 TSP 不要输出完整指数级 tracker；短轨迹只展示 create dp、起点 base、1-2 个转移、最终 ans。
 - 数位 DP 入门版默认统计 1..n 中不含 forbidden digit 的数量，默认 forbidden digit 为 7；改变边界时必须在 state 中写 forbidden_digit、include_zero 或 count_range。
+- 数位 DP 不要使用“九进制转换法”作为替代解法；必须保持 dp_contract subfamily=digit_dp，并用 tracer.set 写 dp[1]、dp[2] 和 ans。对 n=20，不含 7 的前缀计数必须是 dp[0]=1、dp[1]=2、dp[2]=18，最终必须 tracer.set("ans", value=18, deps=["dp[2]"], role="answer")。
+- 数位 DP tracker_code 少于 80 行，只保留 create dp、set dp[1]、set dp[2]、set ans；不要生成通用长递归、长枚举或把整个 JSON 当字符串输出。
+- 数位 DP 和 Floyd-Warshall 不能只 compare/mark；必须用 tracer.set 写真实状态转移。Floyd-Warshall 写 dist[i][j]，deps=[dist[i][k], dist[k][j]]，state 包含 k/i/j/old_dist/new_dist。
 - 每个关键 DP set 事件必须提供 targets、deps、value 或 before/after、state、循环变量和公式。
 - DP set 事件的 state 必须包含当前 DP 容器、循环变量（例如 i、j、k、capacity_index、capacity、mask、current）和 formula。
 - 初始化必须用 create 事件记录 DP 容器初始状态；不能只在最后给出完整 DP 表。
@@ -142,10 +165,15 @@ DP trace contract 要求：
   {"submode": "sliding_window", "expected_targets": ["pointer:left", "pointer:right", "nums[0:3]"]}
 - submode 可用 binary_answer、two_pointer、sliding_window、prefix_sum、difference_array、fast_slow。
 - 二分答案必须记录 left、right、mid，每次比较后再收缩区间；mid 必须对应当前 (left + right) // 2。
+- 闭区间二分查找使用 while left <= right；每轮先 compare nums[mid] 与 target，再 move pointer:left/right。move pointer:left/right 后 state.mid 必须等于新窗口 (left+right)//2；若新区间为空则不要发布 mid 字段，不要把 mid 置为 None。
+- 每个 pointer:left/right move 必须带 value、deps 或 before/after；value 写新指针位置，before/after 写旧窗口和新窗口，deps 指向上一帧 compare 的 nums[mid] 或 pointer:mid。
+- 二分 demo_state_jump 的硬约束：move pointer:left/right 的前一个事件必须是 compare；不要在 compare 和 move 之间插入 explain/set/mark。compare 的 state.left/right/mid 使用移动前窗口；整数平方根要在 compare.value 或 state 中写出 mid*mid <= n 的谓词结果。
 - 双指针必须记录 left/right 或 i/j、当前比较值和移动原因，指针不能跳出数组边界。
 - 滑动窗口必须记录 left、right、窗口约束和 window_sum 或等价状态；窗口扩张/收缩不能无解释跳变。
 - 前缀和必须逐步 set prefix[i] 或 prefix_sum[i]，deps 指向来源 prefix 和 nums 项，不能只给最终 prefix 数组。
 - 差分数组必须逐步 set diff[i] 或 difference[i]，state 要包含 nums、updates、update_index 和当前 diff；引用整条 update 时可使用 updates[k]。
+- 差分数组先按原数组初始化：diff[0]=nums[0]，diff[i]=nums[i]-nums[i-1]；每条 update=[left,right,delta] 只做 diff[left]+=delta 和 diff[right+1]-=delta，不要把最终数组值写回 diff。
+- 差分数组最终重建必须逐个 tracer.set("nums[i]")，expected_targets 包含 nums[0], nums[1], nums[2]；state 保留 running_sum，deps 指向 diff[i] 或 running_sum，不要只更新 diff。
 - 快慢指针必须记录 slow、fast 和下一步来源；空数组要显式给出无环/终止解释。
 - expected_targets 是小规模 full-trace 样例必须覆盖的关键 pointer、window、prefix 或 diff target；当关键更新数量不超过 80 时不能省略。
 
@@ -153,38 +181,129 @@ DP trace contract 要求：
 - 图算法 tracker 必须在关键图事件的 state 中放入同一个 state["graph_contract"]。
 - state["graph_contract"] 必须至少包含 submode，例如：
   {"submode": "bfs", "source": "A", "expected_nodes": ["A", "B"]}
-- submode 可用 bfs、dfs、dijkstra、topological_sort、mst、tarjan、network_flow。
+- submode 可用 bfs、dfs、connected_components、bipartite_coloring、dijkstra、bellman_ford、floyd_warshall、zero_one_bfs、topological_sort、mst、tarjan、network_flow。
 - BFS/DFS 必须记录 frontier：BFS 使用 queue，DFS 使用 stack 或 frame:dfs(...) enter/exit；小图不能只给最终 visited/dist。
+- connected_components 中 state.component 只能是当前正在遍历的连通分量；不要把多个 component 合并进 state.component。已完成分量放 state.components；样例 A-B 和 C 必须分成 ['A','B'] 与 ['C']。
+- connected_components 中 state.components 的每个内层列表也必须是一个连通分量；不要发布 [['A','B','C']] 或把孤立点 C 合并进 ['A','B']。处理样例 A-B + C 时，完成第一块后 state.components=[['A','B']]；开始遍历 C 时重置 state.component=['C']，最终答案才是 components=[['A','B'], ['C']]。
+- BFS/DFS/染色/匹配小图必须显式边检查：先 tracer.compare(["edge:u->v"], deps=["node:u", "node:v", "edge:u->v"], state={...}, reason 含 check_edge/检查边)，再首次访问/relax。
+- 首次访问、染色、匹配或 relax 的 mark/set/push 必须带 deps=["node:u", "node:v", "edge:u->v"]，state 保留 queue/stack/frontier、visited/color/match/dist。
 - BFS 首次访问必须用 set dist[node] 或 mark node 记录来源边，state 要包含 queue、dist、parent；不能重复首次访问同一节点，不能让 queue 无理由跳变。
-- Dijkstra 必须记录 heap/frontier、每条关键边的 relax、old_dist、new_dist、parent/predecessor；负权输入必须拒绝或明确降级说明，不能当作普通 Dijkstra 发布。
+- BFS first_visit 必须用 tracer.set("dist[neighbor]")，deps=["node:current", "node:neighbor", "edge:current->neighbor"]，state.parent[neighbor]=current，dist[neighbor]=dist[current]+1；不要只写 deps=["dist[current]", "edge:current->neighbor"]，不要只 push queue。
+- 二分图染色必须使用 graph_contract submode=bipartite_coloring，state 使用 color 字典表示 0/1 颜色；不要使用 dist 表示颜色，不要设置 graph_contract submode=bfs。
+- 二分图染色每条边先 compare(["edge:u->v", "color[u]"])，首次给 v 染色用 tracer.set("color[v]", deps=["color[u]", "edge:u->v"], role="visited")。
+- 二分图匹配不要设置 graph_contract submode=dfs；如果设置了 DFS contract，必须提供 frame:dfs enter/exit 和 visited 覆盖。推荐只用 state.match/visited/augmenting_path 表达匹配过程。
+- 二分图匹配不要使用裸 frame:dfs；若使用递归帧，frame id 必须带节点，例如 frame:dfs(L1)。每个 tracer.exit 的 target 必须和之前 tracer.enter 完全相同，不能 exit 未进入的 frame；简单匹配过程建议不用 enter/exit。
+- 二分图匹配每次增广必须同步双向 match：match[left]=right 且 match[right]=left。重新匹配时旧反向边必须清理，例如 L1 从 R1 改到 R2 后，旧 match[R1]=L1 必须删除或改为 match[R1]=L2。
+- Dijkstra 必须记录 heap/frontier、每条关键 edge:u->v 的 relax、old_dist、new_dist、parent/predecessor；负权输入必须拒绝或明确降级说明，不能当作普通 Dijkstra 发布。
+- Dijkstra relax 必须用 tracer.set("dist[v]")，deps=["node:u", "node:v", "edge:u->v", "dist[u]"]；state.current/neighbor、old_dist/new_dist/edge_weight 都必须存在，push heap 也带 node/edge deps。
+- Bellman-Ford 固定短模板：state.graph.nodes 和 state.graph.edges 必须存在；每个 relax/check 事件都重复完整 state.graph，确保 node:A、edge:A->B 可见。
+- Floyd-Warshall 必须记录 k/i/j、dist[i][j]、old_dist/new_dist、via deps。
+- 0-1 BFS 必须记录 deque/frontier 和 0/1 权边；每条边先 compare edge:u->v，first_visit/relax 用 tracer.set("dist[v]")，deps=["node:u", "node:v", "edge:u->v"]，state 保留 dist[u]、old_dist、new_dist、edge_weight、parent[v]=u；edge_weight=0 时 push_front，edge_weight=1 时 push_back，push_front/push_back 事件也带相同 deps。
 - 拓扑排序必须记录 indegree 变化和因为 indegree 变为 0 入队的原因。
-- MST 必须记录 edge 选择或弃用原因，并同步记录 union_find/dsu 状态。
+- Kahn 中 indegree[v] 变 0 后 push queue，reason/action 写 indegree[v]==0/入队，deps 包含 indegree[v] 和 edge:u->v。
+- 拓扑排序初始化 indegree[D] 等于所有入边数量；每条 edge:u->v 只 decrement 一次，只有所有前驱处理完成后才把 v 入队。
+- 拓扑排序 tracker 保持短：6-10 个 events，按 create graph/indegree、pop queue、decrement indegree、push zero indegree、mark topo_order 展示，不要写成长篇 tracker。
+- 拓扑排序 trace 结束必须调用 tracer.result(topo_order) 再 return tracer.to_trace()，trace.result 必须等于 solve(input_data) 的拓扑序。
+- MST 必须记录 edge 选择或弃用原因，并同步记录 union_find/dsu 状态，至少包含 parent 以及 rank 或 size。
 - Tarjan 必须记录 dfn、low、stack/on_stack 更新，以及 low==dfn 时 component 弹栈。
-- 网络流必须记录 augmenting_path、bottleneck、capacity/cap、flow 和每条增广边的 flow 更新。
+- Tarjan 割点桥必须显式 tracer.set("dfn[u]") 再 tracer.set("low[u]")；dfn 写入事件和 low 写入事件必须存在，state 保留 graph、dfn、low、parent、time、current。
+- Tarjan 第一帧必须是 initialization/create 阶段：用 tracer.create("graph")，state.phase="initialization"，并给出 dfn/low/parent/stack/on_stack 初始化。
+- Tarjan component 弹栈事件必须有 state.component，并且 component 节点已从 stack 移除；不能让 component 中的节点仍留在 state.stack。
+- Tarjan 割点桥所有事件 reason 非空；create/set/compare/mark/enter/exit 和 dfn/low/bridge/articulation/component 事件都写简短 reason。
+- Tarjan 割点/桥最终 answer 事件 target/deps 使用 answer 或 graph，state.articulation 和 state.bridges 保存结果；不要使用 node:articulation 或 node:bridges。
+- 网络流必须记录 augmenting_path、bottleneck、capacity/cap、flow 和每条增广边的 flow 更新；增广边更新用 tracer.set("flow[u->v]", value=new_flow, deps=["edge:u->v", "cap[u->v]", "bottleneck"], state={...})。before/after 只有能与上一帧严格对齐时才保留。
+- Edmonds-Karp 的每个 state.flow 都必须满足中间节点流守恒；先计算整条增广路径更新后的 flow，再发布事件 state，不要发布只更新单边的中间状态。
+- state.flow 只保存原始容量边上的非负流量；反向残量边不要写进 flow，必须放在 residual 或 residual_capacity 中。
 
 字符串、树、回溯和数据结构 family trace contract 要求：
 - 字符串、树递归、回溯、堆、Trie、链表 tracker 必须在关键事件 state 中放入同一个 state["family_contract"]。
 - 字符串使用：
   {"family": "string", "submode": "kmp", "expected_tables": ["pi"], "expected_events": ["compare", "fallback"]}
   必须记录 text、pattern、文本指针 i、模式指针 j、pi/z/radius/hash 等表结构、text[i]/pattern[j] target，以及失配、回退、扩展或窗口移动原因。
+- Rabin-Karp 使用：
+  {"family": "string", "submode": "rabin_karp", "expected_tables": ["pattern_hash", "window_hashes"]}
+  必须记录 text、pattern、pattern_hash、window_hash/window_hashes、窗口起点和 text[i]/pattern[j] 字符确认。
+- Z Algorithm 单串使用：
+  {"family": "string", "submode": "z_algorithm", "expected_tables": ["z"]}
+  可以没有 pattern，但必须记录 text 或 s、z 表、i/l/r 或 left/right、扩展/回退原因和 text[i] 字符 target。
+  对 text="aabcaabx" 的标准 z 是 [0,1,0,0,3,1,0,0]，特别是 z[4]=3；不要在扩展完成前 tracer.set("z[4]") 写半成品。i=4 时先 compare text[0]/text[4]、text[1]/text[5]、text[2]/text[6]，扩展完成后再 tracer.set("z[4]", value=3)。
+- Manacher 单串使用：
+  {"family": "string", "submode": "manacher", "expected_tables": ["radius"]}
+  可以没有 pattern，但必须记录 text 或 s、radius/p 表、center、中心扩展状态和 text[i] 字符 target。
 - 树递归使用：
   {"family": "tree", "submode": "postorder", "expected_nodes": ["1"], "expected_frames": ["frame:dfs(1)"]}
   必须记录 tree、current、frame:* enter/exit、return_values/aggregate/height/dp_take/dp_skip 等子树返回或聚合状态。
+  中序遍历/LCA/树递归的每个 exit frame 写 return_values、return_value、subtree_return 或 aggregate；树形 DP 按后序计算 dp_take[current]=weight[current]+sum(dp_skip[child])，dp_skip[current]=sum(max(dp_take[child],dp_skip[child]))。
+  LCA/树递归固定短模板不要使用 graph_contract submode=dfs；使用 family_contract={"family":"tree","submode":"lca"}。每个 enter/exit state 保留 tree、current、p、q、return_value 或 aggregate，state.current 指向当前节点。
+  LCA 第一帧必须是 initialization/create 阶段：用 tracer.create("tree")，state.phase="initialization"，state 保留 tree、p、q 和 family_contract。
+  树形 DP demo 必须显式 tracer.set("dp_take[current]") 和 tracer.set("dp_skip[current]")，不要只在 state 里更新 dp_take/dp_skip；最终 role=answer 引用 max(dp_take[root], dp_skip[root])。
+  树形 DP 的最终 mark 必须带 value、deps=["dp_take[current]","dp_skip[current]"] 和 state.answer；answer_position 不要写裸根节点 1，应使用 dp_take[1]、dp_skip[1] 或 answer target。
+  树形 DP 后序完成前不要在 state.dp_take/dp_skip 中写当前父节点的半成品；先完成所有 child 的 dp_take/dp_skip，再 set dp_take[current]，再 set dp_skip[current]。若 expected_targets 包含 answer，必须 tracer.set("answer")。
 - 回溯使用：
   {"family": "backtracking", "submode": "permutation", "expected_events": ["choose", "record", "undo"]}
-  必须记录 recursion_tree/search_tree、path、used、choose、record answer、undo；撤销后 path/used 不能无解释跳变。
+  必须记录 recursion_tree/search_tree、path、used、choose、record answer、undo；choose 用 push/mark/enter，record 写 answer target，undo 用 pop/unmark/exit；撤销后 path/used 不能无解释跳变。
+  record 事件必须 role="answer"，state.answer 包含新记录，deps=["path"]，reason/action 含 record 或 记录，并且 state 保留 recursion_tree 或 search_tree。
+  frame id 禁止包含空格；不要用 str(path) 生成 frame:dfs([1, 2])，改用 frame:dfs(1_2) 或 frame:dfs(root)。enter 和 exit 必须使用完全相同的 frame id。
+  每个回溯事件都带 state={"recursion_tree": {"nodes": [...], "edges": [...]}, "path": ..., "used": ..., "answer": ..., "family_contract": ...}；不要只给 call_stack/path 而省略 recursion_tree。
+  backtracking expected_events 只能用 choose、record、undo；不要使用 answer 作为 expected_events，答案帧用 role=answer 且 reason/action 含 record 或 记录。
+  搜索树只能有一个 root；所有新分支节点都通过 edges 连接到 root 或已有 frame/choice 节点，不要每一层重新创建 root。
+  Andrew/凸包/convex_hull 不要使用 backtracking family_contract，也不要设置 family_contract family=geometry；应使用 geometry state，state.geometry 包含 points 和 hull/stack。compare 带 value=叉积，deps=["geometry"]，不要在 deps 使用 point:；point:p0 只能作为 target/高亮对象。每个 compare/pop/answer 事件都重复完整 state.geometry.points，同一事件 state.geometry.points 中必须包含被 targets 引用的点，不要只在 create 事件写 points。固定点表写法：geometry_points=[{"id":"p0","x":0,"y":0},...]；point targets 与 state.geometry.points 的 id 对齐，deps 固定用 geometry。中间候选只放 geometry.stack/current_point/candidate，geometry.hull 只放最终或已验证凸包；最终 hull 顺序必须和 solve/expected answer 一致。最终答案 deps 也必须是 ["geometry"]；不要在 answer deps 使用 point:。
 - 堆使用：
   {"family": "heap", "submode": "topk", "expected_events": ["push", "pop"]}
   必须记录 push/pop 后的完整 heap、heap_type、heap_top 或 heap[0]。
 - Trie 使用：
   {"family": "trie", "submode": "insert_search", "expected_events": ["create_node", "terminal", "prefix_count"]}
-  必须记录 trie nodes/edges、字符路径、节点创建、terminal/is_word 标记和 count/prefix_count。
+  必须记录 trie nodes/edges、字符路径、节点创建、terminal/is_word 标记和 count/prefix_count。query prefix count 的答案 count 必须来自查询前缀路径终点节点；不要把插入阶段节点累计 count 机械当作所有查询答案。
+  创建新节点必须有显式 create_node 事件：优先 tracer.set("node:<id>", role="create_node", deps=["node:<parent>", "char:<word_index>:<char_index>"], state=...)；reason/action 含 create_node/创建新节点，并同步 state.trie.nodes 和 state.trie.edges。
+  Trie 计数和终止标记挂在 node:<id> 的 meta（node.meta.count、node.meta.prefix_count、node.meta.pass_count、node.meta.terminal）或 state.prefix_count；不要使用孤立 count[i]、is_end[i] target。
+  words 包含空串时 root 必须 terminal/is_word=True，并发布 terminal 事件：可用 tracer.mark("node:root")，并带 value=True、deps=["node:root"]，state 中 root.meta.terminal=True。
+  prefix_count 必须是可观测 state，不能只在 reason 写 count；query 前缀终点 node:<id> 的 node.meta.count/node.meta.prefix_count/pass_count 必须等于答案，答案 mark 使用 value=prefix_count、deps=[node:<id>]、state.prefix_count。
+  Trie 节点路径必须可由 labels/edges 复原：root 以外 node.label 必须是单个字符，edges 用 [parent_id, child_id]；每个节点 count/prefix_count/pass_count 等于经过该节点路径前缀的单词数，不要把所有节点写成总单词数或最终答案。
+  每个字符路径步骤都写 state.char 或 state.current_char，优先把 char:<word_index>:<char_index> 或 char:prefix:<char_index> 放入 targets/deps；如果使用 words[i][j] 或 prefix[j]，同一事件 state.words 和 state.prefix 必须存在。所有 edge source/target 必须是 trie.nodes 中存在的非空 node:<id>，禁止 node:None。
 - 链表使用：
   {"family": "linked_list", "submode": "reverse", "expected_events": ["move_pointer", "link_change"]}
   必须记录 linked_list nodes/edges、current/prev/next 或 pointer:*，以及 link/unlink 或 next/prev 改变事件；不能只给最终链。
+  每个引用 node:<id> 的事件都必须在同一事件 state.linked_list.nodes 中包含该 id；linked_list.nodes[].meta.next/meta.prev 与顶层 current/prev/next 同步。
+  不要只在初始化 state 写 linked_list；每个引用 node:0/node:1 的 link/unlink/move/mark/compare 事件都必须重复完整 state.linked_list.nodes 和 state.linked_list.edges，nodes 使用与 target 一致的字符串 id，例如 {"id": "0"}、{"id": "1"}。
+  linked_list.nodes[].meta.next 与 state.linked_list.edges 必须一致：meta.next="1" 时 edges 包含 ["0","1"] 或 edge:0->1；反转后 meta.next="0" 时 edges 包含 ["1","0"] 或 edge:1->0。
+  link_change 事件必须显式改变边：用 tracer.unlink("edge:current->old_next") 表示断开旧 next，用 tracer.link("edge:current->prev") 表示 current.next 指向 prev；同时更新 state.linked_list.nodes[].meta.next 和 edges。
+  尾节点或 prev=None 时不要写 meta.next=""，否则会被校验成 edge:id->；用 JSON null 或省略 next，并且 state.linked_list.edges 不要包含空端点边。
+  每个 tracer.set 必须带 value、deps 或 before/after，或者让 state.linked_list/current/prev/next 发生真实变化；不要用空 set 只改 reason。
+  current/prev/next 指针移动用 tracer.move("pointer:current")、tracer.move("pointer:prev") 或 state 变化表达；link_change 用 tracer.link/tracer.unlink，不要用无证据 set 代替。
+  每轮先保存 next_node，再改 current.next；也可称 old_next。link_change 后 prev 必须移动到 old_current；下一轮第一帧 pointer:current 才写 next_node，不要在本轮继续发布旧 current。
+  不要发布半更新链表状态；事件 state 表示动作后的完整一致状态。如果 meta.next 仍是 old_next，就必须保留 edge:current->old_next；如果移除了 edge:current->old_next，就必须同时把 meta.next 改为 null 或 prev。
+  每轮 link/unlink/set 处理的 current 必须仍是 old_current；不要在完成 old_current 的 link_change 前把 current 写成 next_node。第一轮必须从 head/current=0 开始；下一轮第一帧 pointer:current 才写 next_node。
+  tracer.move("pointer:current") 是每轮开始帧，state.current 写本轮 old_current，state.next 写 next_node；每个节点只发布一次 pointer:current move。
+  两节点扩展样例 values=[1,2]：第一轮 old_current="0" 时保存 next_node="1"；处理完 old_current="0" 后，下一帧 current 必须是 "1"，prev="0"，不要在下一轮 pointer:current frame 继续写 current="0"。
+  三节点样例 values=[1,2,3]：current 帧顺序必须是 "0" -> "1" -> "2"；处理完 old_current="1" 后，下一帧 current 必须是 "2"，不要继续写 current="1"。
+- 并查集 deps 优先使用 node:0、node:1 或 union_find；不要依赖不可见的 union_find.parent[0]，若使用该形式，同一 state 必须包含 state.union_find.parent。
 - 哈希 Two Sum 使用 state["hash_contract"] = {"submode": "two_sum"}；必须记录 seen map、need、exists、seen[key] 写入，以及命中前 seen[key] 依赖。
+- Two Sum 第一帧必须是 initialization/create 阶段：用 tracer.create("seen")，state.phase="initialization"，state.seen={}，state.hash_contract={"submode":"two_sum"}。
+- Two Sum 不要设置 family_contract family=hash；每轮 state 保留 nums、target、i、value、need、seen，检查命中用 deps=["seen[need]","nums[i]"]。
 - 插入排序使用 state["sorting_contract"] = {"submode": "insertion_sort"}；必须记录 nums、i/j/key、比较、右移和写回，不能只给最终有序数组。
 - 跳跃游戏贪心使用 state["greedy_contract"] = {"submode": "jump_game"}；必须记录 previous_reach、candidate_reach 和 reach 更新依据。
+- jump_game 每步 state 写 previous_reach、candidate_reach、reach，reach=max(previous_reach, i+nums[i])；只有 i>previous_reach 时才判不可达。
+- jump_game 初始化 create 可以用 i=-1、reach=0 表示尚未扫描；第一个扫描事件若 i=0，必须写 previous_reach=0、candidate_reach=nums[0]、reach=nums[0]。
+- jump_game 中 i > previous_reach 时立即 role="answer" 且 value=False，state.answer=False 后停止 trace；不要继续扫描不可达下标，也不要用不可达下标更新 reach。
+- jump_game 不可达样例中 state.i=2 只能出现在最终 answer=False 帧。
+- 单调栈 / daily_temperatures 必须记录 temperatures、stack、当前 index/value、pop 原因；每次 pop 后必须 set answer[i] 或 result[i] target，deps 指向被弹下标和当前温度，value 是等待天数。
+- daily_temperatures/单调栈不要使用 range_structure、segment_tree、fenwick 或 sparse_table family_contract；使用 stack_order="decreasing"、temperatures、stack、answer。
+- Segment tree / sparse table 查询必须记录 build/query 的节点区间、来源子节点或重叠区间、answer target 和 deps。
+  Segment tree 的每个 node:<id> target/deps 必须在 state.segment_tree.nodes 中有同名 id；不要引用 node:1/node:2 等不存在节点，禁止 node:None。
+  Segment tree 的 state.segment_tree.edges 必须使用非空端点，例如 ["root", "left"] 或 {"from": "root", "to": "left"}；from/to/source/target 不能为 None，且每条 edge 的两个端点都必须出现在 state.segment_tree.nodes。
+  线段树 update 后必须沿叶子到 root 同步 sum/value；state.segment_tree.nodes[].meta.sum 必须等于当前 state.nums 区间和，不要只更新叶子或 answer，父区间和 root 必须同步。
+- 单调栈 pop 写答案时 deps 必须同时包含 temperatures[popped_index] 与 temperatures[current_index]，target 使用 answer[popped_index] 或 result[popped_index]。
+- Sparse table build 必须逐个 set st[k][i]，deps 指向 st[k-1][i] 与 st[k-1][i+2^(k-1)]；query 必须记录两个重叠区间和最终 answer target。
+- Sparse table state 必须包含完整正确 st 表；st[0]=nums，st[k][i]=min(st[k-1][i], st[k-1][i+2^(k-1)])。nums=[5,2,7,3,6,1] 时 st[1]=[2,2,3,3,1]，st[2]=[2,2,1]。
+- Sparse table target/deps 只能引用当前 state.st 中真实存在的单元；不要引用不存在的 st[2][1]。nums=[5,2,7,3,6,1] 时 st[2] 只有 st[2][0]、st[2][1]、st[2][2]；如果 state.st[2] 长度不足 2，就不能把 st[2][1] 放进 target/deps，必须先在 create state 写完整 st。
+- Sparse table 超时必须用紧凑固定模板：tracker_code 少于 80 行，只保留 create st、query 两个区间、answer；不要逐格展开所有 st build 事件，create state 写完整 st。
+- Sparse table 数值必须按 st[0][i]=nums[i]、st[k][i] = min(st[k-1][i], st[k-1][i+2^(k-1)]) 生成完整正确的 st；不要把未计算项写成错误数值。
+- Trie prefix 为空时答案来自 root.meta.prefix_count=len(words)，直接 mark root；不要把 root prefix_count 写成 0。
+- 多重背包和所有 DP/结构事件 reason 非空，create/set/compare/mark 都写简短原因，不能用空字符串。
+- 字符串滑动窗口遇到重复字符时，必须按 while window_counts[text[right]] > 1 先收缩到无重复再更新 best；每次收缩都 set window_counts 并 move pointer:left。
+- 字符串滑动窗口不要发布含重复字符的 state.window_counts；若需要解释重复，使用 pending_char/pending_count，发布事件 state.window_counts 必须已完成收缩。
+- 每个字符串滑动窗口事件的 window_counts 必须等于 text[left:right+1] 的逐字符计数；不要把收缩后的 window_counts 配上收缩前的 left/right。
+- 如果必须发布重复帧，reason 或 state.phase 必须写 duplicate_before_shrink/重复/收缩，且该重复帧的 window_counts 仍必须与当前 left/right 完全一致。
 
 teaching 字段要求：
 - 每个关键事件必须提供 teaching 字段，至少包含 what 和 why 两个非空简体中文字符串。
@@ -195,10 +314,15 @@ teaching 字段要求：
 - 关键 set 事件必须提供 deps、value、state、reason、code_line。
 - DP 转移、答案写入、距离/父节点写入、哈希表写入、单调栈答案写入、递归结果写入都属于关键 set 事件。
 - deps 必须指向真实依赖对象；value 必须等于写入的新值；state 必须包含可重建当前帧的主数据结构；reason 必须说明为什么这样写；code_line 必须对应 solve 或 pseudocode 的相关逻辑行。
+- compare 事件也必须提供 deps 或 value；GCD/数学循环比较时 deps 指向 a/b/remainder，value 写当前比较或终止条件。
+- 位掩码子集固定短模板：用 tracer.create("subsets") 初始化结果容器；每个 mask 先 tracer.set("mask")，再 tracer.set("subset") 展示当前子集，subset 事件带 value=current_subset、deps=["mask"]；再 tracer.set("subsets") 写累计结果，可用 deps=["mask"]。deps 写 subset 时同一事件 state.subset 必须存在；deps 写 subsets 时同一事件 state.subsets 必须存在。最终 tracer.mark("answer")，role="answer"、deps=["subsets"]，state 同时保留 subsets 和 answer。不要使用 res[i]/result[i] 作为 target/deps，也不要把 res[1]、result[1] 或 answer[1] 放进 targets。
 
 禁止旧字段和旧 target：
 - 禁止旧字段 type 和 target；事件必须使用 op 和 targets。
+- 禁止裸字符串 targets 或 deps，例如 "targets": ["dp[1]"]；必须通过 Tracer API 生成 [{"id": "dp[1]"}]。
+- 禁止直接构造 events 列表、events.append 或同时混用旧字段和新字段；schema 报 Field required、model_type、extra_forbidden 时必须整体改回 Tracer API。
 - 禁止旧式 map target，例如 seen:2、dist:A、map:seen；必须使用 seen[2]、dist[A] 这类方括号格式。
+- 禁止在 map target 的 key 上使用 Python repr 引号，例如 indegree['A']、dist["B"]；应写成 indegree[A]、dist[B]。
 - 禁止为了通过 schema 同时输出 type/target 和 op/targets；只允许新字段。
 
 关键事件必须提供准确 code_line，指向 solve 代码或 pseudocode 中对应当前语义动作的逻辑行。初始化、比较、关键转移、状态写入、入队/出队、递归进入/返回和最终答案事件都不要省略 code_line；如果无法做到完全精确，使用最近的相关逻辑行，但不要乱填、不要写超出 solve/pseudocode 行数的值。
@@ -253,6 +377,7 @@ teaching 字段要求：
 - verify(input_data) 必须返回题目答案本身，且类型和值必须和 solve(input_data) 完全一致。
 - verify(input_data) 不能返回 True/False 表示“是否正确”，除非题目答案本身就是布尔值。
 - 所有循环必须显式可终止：while 循环每轮必须单调推进指针、下标、队首或集合大小；能用 for 循环就优先用 for 循环。
+- 链表反转代码中 Python 内置 next 不是链表变量；不要写 current = next。必须先定义 nxt = current["next"] / current.next 或 next_node = current["next"] / current.next，再做指针反转，并让 current = next_node 单调推进。
 - 二分查找必须使用标准闭区间或半开区间模板。闭区间：while left <= right，mid=(left+right)//2，nums[mid] < target 时 left=mid+1，否则 right=mid-1；不能写 left=mid 或 right=mid。
 - 队列/BFS 使用 head 指针或 collections.deque；如果用 list+head，必须每轮 head += 1。
 - 并查集 find 必须在 while 中更新 x = parent[x] 或做路径压缩；不要写不改变 x 的循环。

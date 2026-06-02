@@ -44,6 +44,10 @@ FAMILY_CONTRACT_FAMILIES = {
     "heap",
     "trie",
     "linked_list",
+    "union_find",
+    "monotonic_stack",
+    "range_structure",
+    "data_structure",
 }
 
 def _validate_core_invariants(trace: SemanticTrace) -> tuple[list[str], list[str]]:
@@ -249,9 +253,17 @@ def _validate_reason_grounding(trace: SemanticTrace) -> list[str]:
         refs = {ref.id for ref in [*event.targets, *event.deps]}
         refs.update((event.state or {}).keys())
         for key in ("dp", "nums", "queue", "stack", "graph", "text", "pattern", "heap"):
-            if key in reason and not any(ref == key or ref.startswith(f"{key}[") for ref in refs):
+            if key in reason and not _reason_key_grounded(key, refs):
                 warnings.append(f"第 {event.step} 步 reason 提到 {key}，但 targets/deps/state 缺少对应依据")
     return warnings
+
+
+def _reason_key_grounded(key: str, refs: set[str]) -> bool:
+    if any(ref == key or ref.startswith(f"{key}[") for ref in refs):
+        return True
+    if key == "dp" and any(ref.startswith("dp_") or ref.startswith("dp.") for ref in refs):
+        return True
+    return False
 
 
 class Resolved:
@@ -266,7 +278,15 @@ def _resolve_target(state: dict[str, Any], target_id: str) -> Resolved:
         value = state.get(parsed.name)
         try:
             for idx in parsed.indices:
-                value = value[idx]
+                if isinstance(value, dict):
+                    if idx in value:
+                        value = value[idx]
+                    elif str(idx) in value:
+                        value = value[str(idx)]
+                    else:
+                        return Resolved(False)
+                else:
+                    value = value[idx]
             return Resolved(True, value)
         except Exception:
             return Resolved(False)
@@ -289,8 +309,63 @@ def _resolve_target(state: dict[str, Any], target_id: str) -> Resolved:
         if target_id in state:
             return Resolved(True, state[target_id])
         return Resolved(False)
+    if parsed.kind == "char":
+        resolved_char = _resolve_char_target(state, parsed.name)
+        if resolved_char.exists:
+            return resolved_char
+    resolved_nested = _resolve_dotted_bracket_target(state, target_id)
+    if resolved_nested.exists:
+        return resolved_nested
     if target_id in state:
         return Resolved(True, state[target_id])
+    return Resolved(False)
+
+
+def _resolve_char_target(state: dict[str, Any], name: str) -> Resolved:
+    parts = name.split(":")
+    if len(parts) != 2:
+        return Resolved(False)
+    source, index_text = parts
+    if not index_text.isdigit():
+        return Resolved(False)
+    index = int(index_text)
+    if source == "prefix":
+        prefix = state.get("prefix")
+        if isinstance(prefix, str) and 0 <= index < len(prefix):
+            return Resolved(True, prefix[index])
+        return Resolved(False)
+    if source.isdigit():
+        word_index = int(source)
+        words = state.get("words")
+        if (
+            isinstance(words, list)
+            and 0 <= word_index < len(words)
+            and isinstance(words[word_index], str)
+            and 0 <= index < len(words[word_index])
+        ):
+            return Resolved(True, words[word_index][index])
+    return Resolved(False)
+
+
+def _resolve_dotted_bracket_target(state: dict[str, Any], target_id: str) -> Resolved:
+    if "." not in target_id or "[" not in target_id or not target_id.endswith("]"):
+        return Resolved(False)
+    container, _, tail = target_id.partition(".")
+    field, _, raw_key = tail.partition("[")
+    key = raw_key[:-1]
+    if not container or not field or not key:
+        return Resolved(False)
+    outer = state.get(container)
+    if not isinstance(outer, dict):
+        return Resolved(False)
+    inner = outer.get(field)
+    if not isinstance(inner, dict):
+        return Resolved(False)
+    if key in inner:
+        return Resolved(True, inner[key])
+    for existing_key, value in inner.items():
+        if str(existing_key) == key:
+            return Resolved(True, value)
     return Resolved(False)
 
 

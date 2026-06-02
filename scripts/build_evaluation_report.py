@@ -28,6 +28,14 @@ from algolab.verification.degradation import (
 
 
 MetricValue = int | float | str | None
+VLM_SCORE_FIELDS = (
+    "layout_readability",
+    "algorithm_state_visibility",
+    "teaching_explanation",
+    "interaction_affordance",
+    "evidence_alignment",
+    "overall_teaching_quality",
+)
 
 
 def build_evaluation_report(
@@ -36,6 +44,7 @@ def build_evaluation_report(
     manifest_path: Path | None = None,
     dashboard_path: Path | None = None,
     llm_report_path: Path | None = None,
+    vlm_report_path: Path | None = None,
     human_ratings_path: Path | None = None,
     family_gate_path: Path | None = None,
 ) -> Path:
@@ -43,6 +52,7 @@ def build_evaluation_report(
     manifest = _load_json_or_manifest(manifest_path)
     dashboard = _load_json(dashboard_path) if dashboard_path and dashboard_path.exists() else None
     llm_report = _load_json(llm_report_path) if llm_report_path and llm_report_path.exists() else None
+    vlm_report = _load_json(vlm_report_path) if vlm_report_path and vlm_report_path.exists() else None
     human_scores = _load_human_scores(human_ratings_path) if human_ratings_path and human_ratings_path.exists() else None
     family_gate = _load_json(family_gate_path) if family_gate_path and family_gate_path.exists() else None
 
@@ -65,6 +75,7 @@ def build_evaluation_report(
             "manifest": str(manifest_path) if manifest_path else "generated_in_memory",
             "dashboard": str(dashboard_path) if dashboard_path else "",
             "llm_report": str(llm_report_path) if llm_report_path else "",
+            "vlm_report": str(vlm_report_path) if vlm_report_path else "",
             "human_ratings": str(human_ratings_path) if human_ratings_path else "",
             "family_gate": str(family_gate_path) if family_gate_path else "",
         },
@@ -78,6 +89,7 @@ def build_evaluation_report(
         "failure_type_summary": failure_rows,
         "case_style_summary": style_rows,
         "degradation_summary": degradation_rows,
+        "vlm_summary": vlm_summary(vlm_report),
         "comparisons": comparisons,
         "core_case_rows": case_rows,
     }
@@ -92,6 +104,8 @@ def build_evaluation_report(
     _write_failure_type_summary_csv(output_dir / "evaluation_failure_types.csv", failure_rows)
     _write_case_style_summary_csv(output_dir / "evaluation_case_styles.csv", style_rows)
     _write_degradation_summary_csv(output_dir / "evaluation_degradations.csv", degradation_rows)
+    _write_vlm_scores_csv(output_dir / "evaluation_vlm_scores.csv", vlm_report)
+    _write_vlm_condition_summary_csv(output_dir / "evaluation_vlm_condition_summary.csv", vlm_report)
     (output_dir / "evaluation_report.md").write_text(_render_markdown(report), encoding="utf-8")
     return json_path
 
@@ -107,6 +121,7 @@ def compute_metrics(
         _generation_success_rate(dashboard, llm_report),
         _contract_pass_rate(dashboard),
         _correctness_gate_pass_rate(dashboard, llm_report),
+        _algolab_full_strict_release_gate_pass_rate(llm_report),
         _repair_success_rate(llm_report),
         _visual_smoke_pass_rate(llm_report),
         _interaction_coverage(dashboard),
@@ -287,6 +302,7 @@ def condition_summary(llm_report: dict[str, Any] | None) -> list[dict[str, Any]]
                 "failed": 0,
                 "pass_rate": None,
                 "failure_types": {},
+                "machine_correctness_gate_available": _machine_correctness_gate_available(condition),
             },
         )
         row["total"] += 1
@@ -309,6 +325,7 @@ def condition_summary(llm_report: dict[str, Any] | None) -> list[dict[str, Any]]
                 "failed": row["failed"],
                 "pass_rate": round(row["passed"] / total, 6) if total else None,
                 "failure_types": dict(sorted(row["failure_types"].items())),
+                "machine_correctness_gate_available": row["machine_correctness_gate_available"],
             }
         )
     return result
@@ -368,6 +385,116 @@ def case_style_summary(llm_report: dict[str, Any] | None) -> list[dict[str, Any]
     return result
 
 
+def vlm_summary(vlm_report: dict[str, Any] | None) -> dict[str, Any]:
+    if not vlm_report:
+        return {
+            "status": "missing",
+            "reason": "未提供 VLM condition report。",
+            "total": 0,
+            "conditions": [],
+            "model_usage": {},
+        }
+    summary = vlm_report.get("summary") if isinstance(vlm_report.get("summary"), dict) else {}
+    condition_rows = vlm_condition_rows(vlm_report)
+    quality_rows = _vlm_quality_on_successful_screenshots(condition_rows)
+    return {
+        "status": "ok",
+        "schema_version": vlm_report.get("schema_version", ""),
+        "total": int(summary.get("total") or len(vlm_report.get("results") or [])),
+        "conditions": condition_rows,
+        "vlm_quality_on_successful_screenshots": quality_rows,
+        "model_usage": summary.get("model_usage") or _vlm_model_usage(vlm_report.get("results") or []),
+    }
+
+
+def vlm_condition_rows(vlm_report: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not vlm_report:
+        return []
+    summary = vlm_report.get("summary") if isinstance(vlm_report.get("summary"), dict) else {}
+    condition_rows = summary.get("conditions")
+    if isinstance(condition_rows, list) and all(isinstance(row, dict) for row in condition_rows):
+        return [dict(row) for row in condition_rows]
+    results = [item for item in (vlm_report.get("results") or []) if isinstance(item, dict)]
+    rows = []
+    for condition in sorted({str(item.get("condition") or "") for item in results}):
+        condition_results = [item for item in results if str(item.get("condition") or "") == condition]
+        rows.append({"condition": condition, **_summarize_vlm_results(condition_results)})
+    return rows
+
+
+def _summarize_vlm_results(results: list[dict[str, Any]]) -> dict[str, Any]:
+    ok_results = [item for item in results if item.get("ok")]
+    failed_results = [item for item in results if not item.get("ok")]
+    failure_types: dict[str, int] = {}
+    for item in failed_results:
+        failure_type = str(item.get("failure_type") or "unknown")
+        failure_types[failure_type] = failure_types.get(failure_type, 0) + 1
+    score_averages = {}
+    for field in VLM_SCORE_FIELDS:
+        values = [int(item["scores"][field]) for item in ok_results if isinstance(item.get("scores"), dict) and field in item["scores"]]
+        score_averages[field] = (sum(values) / len(values)) if values else None
+    low_score_count = sum(
+        1
+        for item in ok_results
+        if isinstance(item.get("scores"), dict)
+        and any(field in item["scores"] and int(item["scores"][field]) <= 2 for field in VLM_SCORE_FIELDS)
+    )
+    high_confidence_issue_count = sum(
+        1 for item in ok_results if float(item.get("confidence") or 0.0) >= 0.7 and item.get("issues")
+    )
+    return {
+        "total": len(results),
+        "passed": len(ok_results),
+        "failed": len(failed_results),
+        "pass_rate": (len(ok_results) / len(results)) if results else 0.0,
+        "failure_types": dict(sorted(failure_types.items())),
+        "score_averages": score_averages,
+        "score_averages_on_successful_screenshots": score_averages,
+        "low_score_count": low_score_count,
+        "high_confidence_issue_count": high_confidence_issue_count,
+        "model_usage": _vlm_model_usage(results),
+    }
+
+
+def _vlm_quality_on_successful_screenshots(condition_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for row in condition_rows:
+        score_averages = row.get("score_averages_on_successful_screenshots")
+        if not isinstance(score_averages, dict):
+            score_averages = row.get("score_averages") if isinstance(row.get("score_averages"), dict) else {}
+        item = {
+            "condition": row.get("condition", ""),
+            "successful_screenshot_count": row.get("passed", 0),
+            "total_screenshot_count": row.get("total", 0),
+        }
+        for field in VLM_SCORE_FIELDS:
+            item[f"avg_{field}_on_successful_screenshots"] = score_averages.get(field)
+        rows.append(item)
+    return rows
+
+
+def _vlm_model_usage(results: list[dict[str, Any]]) -> dict[str, Any]:
+    calls: list[dict[str, Any]] = []
+    for result in results:
+        result_calls = result.get("model_calls")
+        if isinstance(result_calls, list):
+            calls.extend(call for call in result_calls if isinstance(call, dict))
+        elif isinstance(result.get("model_call"), dict):
+            calls.append(result["model_call"])
+    usage_calls = [call for call in calls if call.get("usage_available") is True]
+    all_usage_available = bool(calls) and len(usage_calls) == len(calls)
+    total_tokens = sum(int(call["total_tokens"]) for call in usage_calls) if all_usage_available else None
+    duration_s = round(sum(float(call.get("duration_s") or 0.0) for call in calls), 3)
+    return {
+        "usage_available": all_usage_available,
+        "usage_available_rate": (len(usage_calls) / len(calls)) if calls else 0.0,
+        "call_count": len(calls),
+        "total_tokens": total_tokens,
+        "duration_s": duration_s,
+        "avg_duration_s": (duration_s / len(calls)) if calls else 0.0,
+    }
+
+
 def _condition_from_config(llm_report: dict[str, Any]) -> str:
     config = llm_report.get("config") if isinstance(llm_report.get("config"), dict) else {}
     for key in ("benchmark_condition", "condition", "experiment_condition"):
@@ -397,6 +524,10 @@ def _condition_kind(condition: str) -> str:
     if condition.startswith("no_") or "ablation" in condition:
         return "ablation"
     return "experiment"
+
+
+def _machine_correctness_gate_available(condition: str) -> bool:
+    return condition in {"algolab_full", "unseen_algolab_full"}
 
 
 def _family_row(rows: dict[str, dict[str, Any]], family: str) -> dict[str, Any]:
@@ -442,7 +573,20 @@ def model_config_from_llm_report(llm_report: dict[str, Any] | None) -> dict[str,
             "reason": "未提供 LLM benchmark report；deterministic report 不包含模型配置。",
         }
     config = llm_report.get("config")
-    return dict(config) if isinstance(config, dict) else {"status": "missing", "reason": "LLM report 缺少 config。"}
+    if not isinstance(config, dict):
+        return {"status": "missing", "reason": "LLM report 缺少 config。"}
+    if isinstance(config.get("source_reports"), list):
+        source_reports = [dict(item) for item in config.get("source_reports") or [] if isinstance(item, dict)]
+        models = sorted({str(item.get("model")) for item in source_reports if item.get("model")})
+        if not models and isinstance(config.get("models"), list):
+            models = sorted(str(item) for item in config["models"] if isinstance(item, str) and item)
+        return {
+            "status": "ok",
+            "benchmark_condition": config.get("benchmark_condition", "merged"),
+            "models": models,
+            "source_reports": source_reports,
+        }
+    return dict(config)
 
 
 def repair_summary(llm_report: dict[str, Any] | None) -> dict[str, Any]:
@@ -603,12 +747,27 @@ def _contract_pass_rate(dashboard: dict[str, Any] | None) -> dict[str, Any]:
 
 def _correctness_gate_pass_rate(dashboard: dict[str, Any] | None, llm_report: dict[str, Any] | None) -> dict[str, Any]:
     if llm_report:
+        default_condition = _condition_from_config(llm_report)
+        results = [
+            item
+            for item in llm_report.get("results") or []
+            if _machine_correctness_gate_available(_condition_for_result(item, default_condition))
+        ]
+        if results:
+            passed = sum(1 for item in results if item.get("ok"))
+            return _rate_metric(
+                "correctness_gate_pass_rate",
+                passed,
+                len(results),
+                "llm_benchmark_report",
+                "严格机器 release gate 通过率；direct_html_baseline 等 browser-only baseline 不进入该聚合。",
+            )
         return _rate_metric(
             "correctness_gate_pass_rate",
-            int(llm_report.get("passed") or 0),
-            int(llm_report.get("total") or 0),
+            0,
+            0,
             "llm_benchmark_report",
-            "LLM benchmark release gate 通过率。",
+            "没有可计入严格机器 release gate 的 condition；direct_html_baseline 等 browser-only baseline 被排除。",
         )
     if dashboard:
         return _rate_metric(
@@ -619,6 +778,25 @@ def _correctness_gate_pass_rate(dashboard: dict[str, Any] | None, llm_report: di
             "demo dashboard release gate 通过率。",
         )
     return _missing_metric("correctness_gate_pass_rate", "缺少 dashboard 或 LLM benchmark report。")
+
+
+def _algolab_full_strict_release_gate_pass_rate(llm_report: dict[str, Any] | None) -> dict[str, Any]:
+    if not llm_report:
+        return _missing_metric("algolab_full_strict_release_gate_pass_rate", "缺少 LLM benchmark report。")
+    default_condition = _condition_from_config(llm_report)
+    results = [
+        item
+        for item in llm_report.get("results") or []
+        if _condition_for_result(item, default_condition) == "algolab_full"
+    ]
+    passed = sum(1 for item in results if item.get("ok"))
+    return _rate_metric(
+        "algolab_full_strict_release_gate_pass_rate",
+        passed,
+        len(results),
+        "llm_benchmark_report",
+        "仅统计 condition=algolab_full 的严格机器 release gate 通过率。",
+    )
 
 
 def _repair_success_rate(llm_report: dict[str, Any] | None) -> dict[str, Any]:
@@ -793,7 +971,7 @@ def _write_family_summary_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def _write_condition_summary_csv(path: Path, rows: list[dict[str, Any]]) -> None:
-    fields = ["condition", "kind", "total", "passed", "failed", "pass_rate", "failure_types"]
+    fields = ["condition", "kind", "machine_correctness_gate_available", "total", "passed", "failed", "pass_rate", "failure_types"]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
@@ -848,6 +1026,104 @@ def _write_degradation_summary_csv(path: Path, summary: dict[str, Any]) -> None:
             )
 
 
+def _write_vlm_scores_csv(path: Path, vlm_report: dict[str, Any] | None) -> None:
+    fields = [
+        "condition",
+        "case_id",
+        "viewport",
+        "kind",
+        "screenshot_type",
+        "screenshot",
+        "ok",
+        "failure_type",
+        *VLM_SCORE_FIELDS,
+        "confidence",
+        "issue_count",
+        "suggested_caption",
+        "judge_model",
+        "usage_available",
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "duration_s",
+        "error",
+        "source_vlm_report",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        if not vlm_report:
+            return
+        for result in vlm_report.get("results") or []:
+            if not isinstance(result, dict):
+                continue
+            scores = result.get("scores") if isinstance(result.get("scores"), dict) else {}
+            model_call = result.get("model_call") if isinstance(result.get("model_call"), dict) else {}
+            row = {
+                "condition": result.get("condition", ""),
+                "case_id": result.get("case_id", ""),
+                "viewport": result.get("viewport", ""),
+                "kind": result.get("kind", ""),
+                "screenshot_type": result.get("screenshot_type", ""),
+                "screenshot": result.get("screenshot", ""),
+                "ok": result.get("ok", False),
+                "failure_type": result.get("failure_type", ""),
+                "confidence": result.get("confidence", 0.0),
+                "issue_count": len(result.get("issues") or []),
+                "suggested_caption": result.get("suggested_caption", ""),
+                "judge_model": result.get("judge_model", ""),
+                "usage_available": model_call.get("usage_available", False),
+                "prompt_tokens": model_call.get("prompt_tokens"),
+                "completion_tokens": model_call.get("completion_tokens"),
+                "total_tokens": model_call.get("total_tokens"),
+                "duration_s": model_call.get("duration_s", 0.0),
+                "error": result.get("error", ""),
+                "source_vlm_report": result.get("source_vlm_report", ""),
+            }
+            for field in VLM_SCORE_FIELDS:
+                row[field] = scores.get(field)
+            writer.writerow(row)
+
+
+def _write_vlm_condition_summary_csv(path: Path, vlm_report: dict[str, Any] | None) -> None:
+    fields = [
+        "condition",
+        "total",
+        "passed",
+        "failed",
+        "pass_rate",
+        "low_score_count",
+        "high_confidence_issue_count",
+        "failure_types",
+        "call_count",
+        "total_tokens",
+        *(f"avg_{field}" for field in VLM_SCORE_FIELDS),
+        *(f"avg_{field}_on_successful_screenshots" for field in VLM_SCORE_FIELDS),
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in vlm_condition_rows(vlm_report):
+            score_averages = row.get("score_averages") if isinstance(row.get("score_averages"), dict) else {}
+            model_usage = row.get("model_usage") if isinstance(row.get("model_usage"), dict) else {}
+            item = {
+                "condition": row.get("condition", ""),
+                "total": row.get("total", 0),
+                "passed": row.get("passed", 0),
+                "failed": row.get("failed", 0),
+                "pass_rate": row.get("pass_rate", 0.0),
+                "low_score_count": row.get("low_score_count", 0),
+                "high_confidence_issue_count": row.get("high_confidence_issue_count", 0),
+                "failure_types": json.dumps(row.get("failure_types") or {}, ensure_ascii=False, sort_keys=True),
+                "call_count": model_usage.get("call_count", 0),
+                "total_tokens": model_usage.get("total_tokens"),
+            }
+            for field in VLM_SCORE_FIELDS:
+                item[f"avg_{field}"] = score_averages.get(field)
+                item[f"avg_{field}_on_successful_screenshots"] = score_averages.get(field)
+            writer.writerow(item)
+
+
 def _render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# AlgoLab Evaluation Report",
@@ -871,9 +1147,12 @@ def _render_markdown(report: dict[str, Any]) -> str:
     lines.extend(["", "## Model And Repair", ""])
     model_config = report.get("model_config") or {}
     repair = report.get("repair_summary") or {}
+    model_text = model_config.get("model") or model_config.get("llm", {}).get("model")
+    if not model_text and isinstance(model_config.get("models"), list):
+        model_text = ", ".join(str(item) for item in model_config["models"])
     lines.extend(
         [
-            f"- Model: {model_config.get('model') or model_config.get('llm', {}).get('model') or 'N/A'}",
+            f"- Model: {model_text or 'N/A'}",
             f"- Max repair rounds: {repair.get('max_rounds_configured') if repair.get('max_rounds_configured') is not None else 'N/A'}",
             f"- Cases with repair: {repair.get('cases_with_repair', 0)}",
             f"- Repair rounds attempted: {repair.get('repair_rounds_attempted', 0)}",
@@ -918,14 +1197,36 @@ def _render_markdown(report: dict[str, Any]) -> str:
             "",
             "## Baseline And Ablation Summary",
             "",
-            "| Condition | Kind | Pass Rate | Passed | Failed | Failure Types |",
-            "|---|---|---:|---:|---:|---|",
+            "| Condition | Kind | Machine Gate | Pass Rate | Passed | Failed | Failure Types |",
+            "|---|---|---|---:|---:|---:|---|",
         ]
     )
     for row in report.get("condition_summary", []):
         pass_rate = "N/A" if row["pass_rate"] is None else row["pass_rate"]
         failures = json.dumps(row["failure_types"], ensure_ascii=False, sort_keys=True)
-        lines.append(f"| {row['condition']} | {row['kind']} | {pass_rate} | {row['passed']} | {row['failed']} | {failures} |")
+        machine_gate = "yes" if row.get("machine_correctness_gate_available") else "no"
+        lines.append(f"| {row['condition']} | {row['kind']} | {machine_gate} | {pass_rate} | {row['passed']} | {row['failed']} | {failures} |")
+    vlm = report.get("vlm_summary") or {}
+    if vlm.get("status") == "ok":
+        lines.extend(
+            [
+                "",
+                "## VLM Condition Summary",
+                "",
+                "Averages are computed only on successful screenshots.",
+                "",
+                "| Condition | Total | Passed | Failed | Avg Overall Teaching Quality (successful screenshots) |",
+                "|---|---:|---:|---:|---:|",
+            ]
+        )
+        for row in vlm.get("conditions") or []:
+            averages = row.get("score_averages") or {}
+            overall = averages.get("overall_teaching_quality")
+            overall_text = "N/A" if overall is None else overall
+            lines.append(
+                f"| {row.get('condition', '')} | {row.get('total', 0)} | {row.get('passed', 0)} | "
+                f"{row.get('failed', 0)} | {overall_text} |"
+            )
     if report.get("failure_type_summary"):
         lines.extend(["", "## Failure Types", "", "| Failure Type | Count |", "|---|---:|"])
         for failure_type, count in report["failure_type_summary"].items():
@@ -973,6 +1274,7 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, default=Path("output/evaluation/evaluation_manifest.json"), help="evaluation manifest JSON")
     parser.add_argument("--dashboard", type=Path, default=Path("output/dashboard/dashboard.json"), help="dashboard JSON")
     parser.add_argument("--llm-report", type=Path, default=Path("output/llm_benchmark/llm_benchmark_report.json"), help="可选 llm_benchmark_report.json")
+    parser.add_argument("--vlm-report", type=Path, default=None, help="可选 VLM condition scores JSON")
     parser.add_argument("--human-ratings", type=Path, default=None, help="可选人工教学质量评分 CSV")
     parser.add_argument("--family-gate", type=Path, default=Path("output/release_gate/family_release_gate.json"), help="可选 family release gate JSON")
     args = parser.parse_args()
@@ -982,6 +1284,7 @@ def main() -> int:
         manifest_path=args.manifest,
         dashboard_path=args.dashboard,
         llm_report_path=_existing_or_none(args.llm_report),
+        vlm_report_path=_existing_or_none(args.vlm_report),
         human_ratings_path=args.human_ratings,
         family_gate_path=_existing_or_none(args.family_gate),
     )

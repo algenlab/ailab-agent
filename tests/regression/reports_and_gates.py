@@ -27,7 +27,7 @@ from scripts.run_llm_benchmark import (
     average_duration, build_artifact_timed, build_family_summary, case_style_for_sample, classify_failure,
     completed_phase_timings, last_phase, last_phase_elapsed_s, load_family_capabilities, load_llm_family_sets,
     load_unseen_family_cases, make_request, selected_cases, selected_samples, selected_tasks, strong_family_ids_from_capabilities,
-    result_metadata, summarize_phase_timings, validate_llm_family_sets, validate_unseen_family_cases, write_report,
+    result_metadata, summarize_model_usage, summarize_phase_timings, validate_llm_family_sets, validate_unseen_family_cases, write_report,
 )
 from scripts.build_demo_dashboard import CUSTOM_SUBSET_SUM_ID, build_dashboard, selected_demo_definitions
 from scripts.check_benchmark_html import html_paths_from_report, resolve_required_case_htmls
@@ -43,6 +43,7 @@ from scripts.build_evaluation_report import (
 from scripts.build_reproducibility_package import build_reproducibility_package, write_reproducibility_package
 from scripts.check_v1_release_gate import build_v1_release_gate_report, write_v1_release_gate_report
 from llm_client import parse_json_content
+import llm_client
 
 from tests.regression.helpers import *
 
@@ -117,6 +118,64 @@ def test_llm_client_reads_local_api_settings_without_committing_key(tmp_path: Pa
     assert "sk-test-local-only" not in json.dumps(config)
 
 
+def test_llm_client_retries_transient_api_499_json_call():
+    class TransientStatusError(Exception):
+        status_code = 499
+
+    class Message:
+        content = '{"ok": true}'
+
+    class Choice:
+        message = Message()
+
+    class Response:
+        choices = [Choice()]
+        usage = {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3}
+
+    class Completions:
+        def __init__(self):
+            self.calls = 0
+
+        def create(self, **_kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                raise TransientStatusError("Error code: 499 - upstream_error: The operation was cancelled.")
+            return Response()
+
+    class Chat:
+        def __init__(self):
+            self.completions = Completions()
+
+    class FakeClient:
+        def __init__(self):
+            self.chat = Chat()
+
+    old_client = llm_client._client
+    old_env = {
+        key: os.environ.get(key)
+        for key in ("ALGOLAB_LLM_API_RETRIES", "ALGOLAB_LLM_API_RETRY_DELAY_S")
+    }
+    fake = FakeClient()
+    try:
+        llm_client._client = fake
+        os.environ["ALGOLAB_LLM_API_RETRIES"] = "1"
+        os.environ["ALGOLAB_LLM_API_RETRY_DELAY_S"] = "0"
+        llm_client.clear_model_calls()
+        result = llm_client.chat_json_with_metadata("system", "user")
+    finally:
+        llm_client._client = old_client
+        for key, value in old_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        llm_client.clear_model_calls()
+
+    assert fake.chat.completions.calls == 2
+    assert result["content"] == {"ok": True}
+    assert result["model_call"]["total_tokens"] == 3
+
+
 def test_llm_benchmark_sample_selection_and_failure_classification(tmp_path: Path):
     case = benchmark_cases()[0]
     args = argparse.Namespace(sample=1, all_samples=False)
@@ -177,6 +236,48 @@ def test_llm_benchmark_sample_selection_and_failure_classification(tmp_path: Pat
     assert report["results"][0]["condition"] == "direct_html_baseline"
     assert report["failure_summary"] == {"timeout": 1}
     assert report["avg_duration_s"] == 1.0
+    assert report["model_usage"]["call_count"] == 0
+    assert report["model_usage"]["usage_available"] is False
+
+
+def test_llm_benchmark_model_usage_summary_records_tokens_by_kind():
+    results = [
+        {
+            "ok": True,
+            "model_calls": [
+                {
+                    "kind": "generation",
+                    "model": "fake-model",
+                    "started_at": "2026-05-30T00:00:00",
+                    "ended_at": "2026-05-30T00:00:01",
+                    "duration_s": 1.0,
+                    "usage_available": True,
+                    "prompt_tokens": 10,
+                    "completion_tokens": 20,
+                    "total_tokens": 30,
+                },
+                {
+                    "kind": "repair",
+                    "model": "fake-model",
+                    "started_at": "2026-05-30T00:00:02",
+                    "ended_at": "2026-05-30T00:00:04",
+                    "duration_s": 2.0,
+                    "usage_available": True,
+                    "prompt_tokens": 40,
+                    "completion_tokens": 50,
+                    "total_tokens": 90,
+                },
+            ],
+        }
+    ]
+    usage = summarize_model_usage(results)
+    assert usage["usage_available"] is True
+    assert usage["call_count"] == 2
+    assert usage["prompt_tokens"] == 50
+    assert usage["completion_tokens"] == 70
+    assert usage["total_tokens"] == 120
+    assert usage["by_kind"]["generation"]["total_tokens"] == 30
+    assert usage["by_kind"]["repair"]["total_tokens"] == 90
 
 
 def test_llm_benchmark_family_split_selection_and_summary(tmp_path: Path):
@@ -779,6 +880,180 @@ def test_demo_readiness_phase14_accepts_topological_sort_indegree_edge_deps():
     assert not any("图演示缺少边检查帧" in error for error in report.errors)
 
 
+def test_r7_demo_readiness_accepts_declared_tree_dp_take_skip_transition_targets():
+    contract = {
+        "containers": ["dp_take", "dp_skip", "answer"],
+        "answer_position": "answer",
+        "expected_targets": ["dp_take[1]", "dp_skip[1]", "answer"],
+        "subfamily": "tree",
+    }
+    family_contract = {"family": "tree", "submode": "tree_dp", "expected_nodes": ["1"], "expected_frames": ["frame:tree_dp(1)"]}
+    tree = {"nodes": [{"id": "1", "value": 3}], "edges": []}
+    trace = SemanticTrace.model_validate(
+        _family_contract_trace(
+            "树形 DP take/skip demo",
+            {"tree": tree},
+            3,
+            [
+                _family_contract_event(
+                    0,
+                    "create",
+                    ["tree"],
+                    state={"tree": tree, "current": "1", "dp_take": {}, "dp_skip": {}, "dp_contract": contract, "family_contract": family_contract},
+                    reason="初始化树形 DP。",
+                ),
+                _family_contract_event(
+                    1,
+                    "enter",
+                    ["frame:tree_dp(1)"],
+                    deps=["node:1"],
+                    state={"tree": tree, "current": "1", "dp_take": {}, "dp_skip": {}, "dp_contract": contract, "family_contract": family_contract},
+                    reason="进入节点 1 的后序 frame。",
+                ),
+                _family_contract_event(
+                    2,
+                    "set",
+                    ["dp_take[1]"],
+                    value=3,
+                    deps=["node:1"],
+                    state={"tree": tree, "current": "1", "dp_take": {"1": 3}, "dp_skip": {}, "formula": "dp_take[1]=weight[1]", "dp_contract": contract, "family_contract": family_contract},
+                    reason="选择节点 1，写入 take 状态。",
+                ),
+                _family_contract_event(
+                    3,
+                    "set",
+                    ["dp_skip[1]"],
+                    value=0,
+                    deps=["node:1"],
+                    state={"tree": tree, "current": "1", "dp_take": {"1": 3}, "dp_skip": {"1": 0}, "formula": "dp_skip[1]=0", "dp_contract": contract, "family_contract": family_contract},
+                    reason="不选叶子节点时收益为 0。",
+                ),
+                _family_contract_event(
+                    4,
+                    "exit",
+                    ["frame:tree_dp(1)"],
+                    deps=["node:1"],
+                    state={"tree": tree, "current": "1", "dp_take": {"1": 3}, "dp_skip": {"1": 0}, "return_values": {"1": {"take": 3, "skip": 0}}, "dp_contract": contract, "family_contract": family_contract},
+                    reason="节点 1 返回 take/skip。",
+                ),
+                _family_contract_event(
+                    5,
+                    "set",
+                    ["answer"],
+                    value=3,
+                    deps=["dp_take[1]", "dp_skip[1]"],
+                    role="answer",
+                    state={"tree": tree, "current": "1", "dp_take": {"1": 3}, "dp_skip": {"1": 0}, "answer": 3, "formula": "answer=max(dp_take[1],dp_skip[1])", "dp_contract": contract, "family_contract": family_contract},
+                    reason="根节点 take/skip 取最大作为答案。",
+                ),
+            ],
+        )
+    )
+
+    report = validate_variant_demo_readiness("tree_dp_r7", "树形 DP", trace)
+
+    assert report.status == "pass", report.errors
+    assert not any("DP 演示缺少状态转移写入帧" in error for error in report.errors)
+
+
+def test_r7_demo_readiness_accepts_tree_dp_state_derived_take_skip_transitions_without_deps():
+    contract = {
+        "containers": ["dp_take", "dp_skip", "answer"],
+        "answer_position": "answer",
+        "expected_targets": ["dp_take[1]", "dp_skip[1]", "answer"],
+        "subfamily": "tree",
+    }
+    family_contract = {"family": "tree", "submode": "tree_dp", "expected_nodes": ["1"], "expected_frames": ["frame:tree_dp(1)"]}
+    tree = {"nodes": [{"id": "1", "value": 3}], "edges": []}
+    trace = SemanticTrace.model_validate(
+        _family_contract_trace(
+            "树形 DP state-derived take/skip demo",
+            {"tree": tree},
+            3,
+            [
+                _family_contract_event(
+                    0,
+                    "create",
+                    ["tree"],
+                    state={"tree": tree, "current": "1", "dp_take": {}, "dp_skip": {}, "dp_contract": contract, "family_contract": family_contract},
+                    reason="初始化树形 DP。",
+                ),
+                _family_contract_event(
+                    1,
+                    "enter",
+                    ["frame:tree_dp(1)"],
+                    deps=["node:1"],
+                    state={"tree": tree, "current": "1", "dp_take": {}, "dp_skip": {}, "dp_contract": contract, "family_contract": family_contract},
+                    reason="进入节点 1 的后序 frame。",
+                ),
+                _family_contract_event(
+                    2,
+                    "set",
+                    ["dp_take[1]"],
+                    value=3,
+                    state={
+                        "tree": tree,
+                        "current": "1",
+                        "dp_take": {"1": 3},
+                        "dp_skip": {},
+                        "formula": "dp_take[1]=weight[1]",
+                        "dp_contract": contract,
+                        "family_contract": family_contract,
+                    },
+                    reason="写入节点 1 选择当前节点的状态。",
+                ),
+                _family_contract_event(
+                    3,
+                    "set",
+                    ["dp_skip[1]"],
+                    value=0,
+                    state={
+                        "tree": tree,
+                        "current": "1",
+                        "dp_take": {"1": 3},
+                        "dp_skip": {"1": 0},
+                        "formula": "dp_skip[1]=0",
+                        "dp_contract": contract,
+                        "family_contract": family_contract,
+                    },
+                    reason="写入节点 1 不选择当前节点的状态。",
+                ),
+                _family_contract_event(
+                    4,
+                    "exit",
+                    ["frame:tree_dp(1)"],
+                    deps=["node:1"],
+                    state={
+                        "tree": tree,
+                        "current": "1",
+                        "dp_take": {"1": 3},
+                        "dp_skip": {"1": 0},
+                        "return_values": {"1": {"take": 3, "skip": 0}},
+                        "dp_contract": contract,
+                        "family_contract": family_contract,
+                    },
+                    reason="节点 1 返回 take/skip。",
+                ),
+                _family_contract_event(
+                    5,
+                    "set",
+                    ["answer"],
+                    value=3,
+                    deps=["dp_take[1]", "dp_skip[1]"],
+                    role="answer",
+                    state={"tree": tree, "current": "1", "dp_take": {"1": 3}, "dp_skip": {"1": 0}, "answer": 3, "formula": "answer=max(dp_take[1],dp_skip[1])", "dp_contract": contract, "family_contract": family_contract},
+                    reason="根节点 take/skip 取最大作为答案。",
+                ),
+            ],
+        )
+    )
+
+    report = validate_variant_demo_readiness("tree_dp_r7_state_derived", "树形 DP", trace)
+
+    assert report.status == "pass", report.errors
+    assert not any("DP 转移帧缺少来源 deps" in error for error in report.errors)
+
+
 def test_demo_readiness_phase14_does_not_treat_bipartite_graph_as_binary_search():
     case = next(item for item in benchmark_cases() if item.id == "graph_bipartite_coloring")
     sample = case.samples[0]
@@ -877,6 +1152,79 @@ def test_demo_readiness_phase14_accepts_pattern_longer_than_text_short_path():
 
     assert report.status == "pass", report.errors
     assert not any("字符串演示缺少文本/模式指针" in error for error in report.errors)
+
+
+def test_r2_demo_readiness_uses_string_submode_specific_evidence():
+    rabin_trace = _family_contract_trace(
+        "Rabin-Karp rolling hash demo",
+        {"text": "abcab", "pattern": "ab"},
+        [0, 3],
+        [
+            _family_contract_event(
+                0,
+                "create",
+                ["text", "pattern"],
+                state={
+                    "text": "abcab",
+                    "pattern": "ab",
+                    "i": 0,
+                    "j": 0,
+                    "pattern_hash": 25027,
+                    "window_hashes": [25027, 25285, 25540, 25027],
+                    "array_contract": {"submode": "sliding_window"},
+                    "family_contract": {"family": "string", "submode": "rabin_karp", "expected_tables": ["pattern_hash", "window_hashes"]},
+                },
+                reason="Rabin-Karp 使用窗口哈希作为聚合状态。",
+            ),
+            _family_contract_event(
+                1,
+                "compare",
+                ["text[0]", "pattern[0]"],
+                deps=["window_hashes[0]", "pattern_hash"],
+                state={
+                    "text": "abcab",
+                    "pattern": "ab",
+                    "i": 0,
+                    "j": 0,
+                    "pattern_hash": 25027,
+                    "window_hashes": [25027, 25285, 25540, 25027],
+                    "answer": [0, 3],
+                    "array_contract": {"submode": "sliding_window"},
+                    "family_contract": {"family": "string", "submode": "rabin_karp", "expected_tables": ["pattern_hash", "window_hashes"]},
+                },
+                reason="窗口哈希命中后比较字符。",
+            ),
+        ],
+    )
+    rabin_report = validate_variant_demo_readiness("rabin_r2", "Rabin-Karp", SemanticTrace.model_validate(rabin_trace))
+    assert rabin_report.status == "pass", rabin_report.errors
+    assert not any("窗口演示缺少窗口边界或聚合状态" in error for error in rabin_report.errors)
+
+    manacher_trace = _family_contract_trace(
+        "Manacher missing radius demo",
+        {"s": "aba"},
+        3,
+        [
+            _family_contract_event(
+                0,
+                "create",
+                ["text"],
+                state={"text": "aba", "center": 1, "family_contract": {"family": "string", "submode": "manacher", "expected_tables": ["radius"]}},
+                reason="初始化 Manacher。",
+            ),
+            _family_contract_event(
+                1,
+                "compare",
+                ["text[0]", "text[2]"],
+                state={"text": "aba", "center": 1, "answer": 3, "family_contract": {"family": "string", "submode": "manacher", "expected_tables": ["radius"]}},
+                reason="中心扩展。",
+            ),
+        ],
+    )
+    manacher_report = validate_variant_demo_readiness("manacher_r2", "Manacher", SemanticTrace.model_validate(manacher_trace))
+    assert manacher_report.status == "fail", manacher_report.errors
+    assert any("Manacher 演示缺少 radius / p 半径表" in error for error in manacher_report.errors), manacher_report.errors
+    assert not any("字符串演示缺少表项、哈希、半径或前缀计数状态" in error for error in manacher_report.errors)
 
 
 def test_demo_readiness_failure_types_enter_llm_and_evaluation_reports(tmp_path: Path):
@@ -998,6 +1346,98 @@ def test_llm_json_and_spec_normalization_helpers():
     spec = normalize_solution_spec({"variants": {"id": "y", "code": "", "tracker_code": ""}})
     assert len(spec["variants"]) == 1
     assert spec["variants"][0]["id"] == "y"
+
+
+def test_llm_json_with_metadata_records_usage_present_and_missing():
+    class FakeCompletions:
+        def __init__(self, responses):
+            self.responses = list(responses)
+
+        def create(self, **_kwargs):
+            return self.responses.pop(0)
+
+    class FakeClient:
+        def __init__(self, responses):
+            self.chat = type("Chat", (), {})()
+            self.chat.completions = FakeCompletions(responses)
+
+    def response(content, usage=None):
+        message = type("Message", (), {"content": content})()
+        choice = type("Choice", (), {"message": message})()
+        data = type("Response", (), {"choices": [choice]})()
+        if usage is not None:
+            data.usage = usage
+        return data
+
+    old_client = llm_client._client
+    old_env = os.environ.get("ALGOLAB_LLM_JSON_RETRIES")
+    try:
+        os.environ["ALGOLAB_LLM_JSON_RETRIES"] = "0"
+        llm_client.clear_model_calls()
+        llm_client._client = FakeClient([
+            response(
+                '{"ok": true}',
+                type("Usage", (), {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3})(),
+            )
+        ])
+        first = llm_client.chat_json_with_metadata("system", "user", model="fake-model", kind="generation")
+        assert first["content"] == {"ok": True}
+        assert first["model_call"]["usage_available"] is True
+        assert first["model_call"]["prompt_tokens"] == 1
+        assert llm_client.consume_model_calls()[0]["total_tokens"] == 3
+
+        llm_client._client = FakeClient([response('{"ok": true}')])
+        second = llm_client.chat_json_with_metadata("system", "user", model="fake-model", kind="repair")
+        assert second["model_call"]["usage_available"] is False
+        assert second["model_call"]["prompt_tokens"] is None
+        assert llm_client.consume_model_calls()[0]["kind"] == "repair"
+    finally:
+        llm_client._client = old_client
+        llm_client.clear_model_calls()
+        if old_env is None:
+            os.environ.pop("ALGOLAB_LLM_JSON_RETRIES", None)
+        else:
+            os.environ["ALGOLAB_LLM_JSON_RETRIES"] = old_env
+
+
+def test_llm_json_default_retries_allow_four_empty_responses_then_success():
+    class FakeCompletions:
+        def __init__(self, responses):
+            self.responses = list(responses)
+            self.calls = 0
+
+        def create(self, **_kwargs):
+            self.calls += 1
+            return self.responses.pop(0)
+
+    class FakeClient:
+        def __init__(self, responses):
+            self.chat = type("Chat", (), {})()
+            self.chat.completions = FakeCompletions(responses)
+
+    def response(content):
+        message = type("Message", (), {"content": content})()
+        choice = type("Choice", (), {"message": message})()
+        return type("Response", (), {"choices": [choice]})()
+
+    old_client = llm_client._client
+    old_env = os.environ.get("ALGOLAB_LLM_JSON_RETRIES")
+    fake = FakeClient([response(""), response(""), response(""), response(""), response('{"ok": true}')])
+    try:
+        os.environ.pop("ALGOLAB_LLM_JSON_RETRIES", None)
+        llm_client.clear_model_calls()
+        llm_client._client = fake
+        result = llm_client.chat_json_with_metadata("system", "user", model="fake-model")
+    finally:
+        llm_client._client = old_client
+        llm_client.clear_model_calls()
+        if old_env is None:
+            os.environ.pop("ALGOLAB_LLM_JSON_RETRIES", None)
+        else:
+            os.environ["ALGOLAB_LLM_JSON_RETRIES"] = old_env
+
+    assert fake.chat.completions.calls == 5
+    assert result["content"] == {"ok": True}
 
 
 def test_existing_benchmark_html_report_helper(tmp_path: Path):

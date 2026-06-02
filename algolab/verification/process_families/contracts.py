@@ -25,6 +25,14 @@ def _validate_family_trace_contract(trace: SemanticTrace) -> list[str]:
         return _validate_family_contract_trie(trace, contract)
     if family == "linked_list":
         return _validate_family_contract_linked_list(trace, contract)
+    if family == "union_find":
+        return _validate_family_contract_union_find(trace, contract)
+    if family == "monotonic_stack":
+        return _validate_family_contract_monotonic_stack(trace, contract)
+    if family in {"range_structure", "data_structure"}:
+        if _family_contract_is_monotonic_stack_trace(trace, contract):
+            return _validate_family_contract_monotonic_stack(trace, contract)
+        return _validate_family_contract_range_structure(trace, contract)
     return []
 
 
@@ -58,12 +66,32 @@ def _normalize_family_contract_family(value: Any) -> str:
         "permutations": "backtracking",
         "priority_queue": "heap",
         "堆": "heap",
+        "monotonic_stack": "monotonic_stack",
+        "daily_temperatures": "monotonic_stack",
+        "每日温度": "monotonic_stack",
+        "单调栈": "monotonic_stack",
         "trie_prefix": "trie",
         "前缀树": "trie",
         "linkedlist": "linked_list",
         "linked_list_reverse": "linked_list",
         "linked": "linked_list",
         "链表": "linked_list",
+        "unionfind": "union_find",
+        "union_find": "union_find",
+        "dsu": "union_find",
+        "并查集": "union_find",
+        "range": "range_structure",
+        "range_query": "range_structure",
+        "range_structure": "range_structure",
+        "segment_tree": "range_structure",
+        "fenwick": "range_structure",
+        "fenwick_tree": "range_structure",
+        "binary_indexed_tree": "range_structure",
+        "sparse_table": "range_structure",
+        "data_structure": "data_structure",
+        "线段树": "range_structure",
+        "树状数组": "range_structure",
+        "稀疏表": "range_structure",
     }
     return aliases.get(normalized, normalized)
 
@@ -76,22 +104,202 @@ def _family_contract_string_list(contract: dict[str, Any], key: str) -> list[str
 
 
 def _validate_family_contract_string(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    submode = _normalize_family_contract_submode(contract)
+    if submode in {"kmp", "prefix_function"}:
+        return _validate_family_contract_string_kmp(trace, contract)
+    if submode in {"rabin_karp", "rolling_hash"}:
+        return _validate_family_contract_string_rabin_karp(trace, contract)
+    if submode in {"z_algorithm", "z"}:
+        return _validate_family_contract_string_z_algorithm(trace, contract)
+    if submode in {"manacher", "palindrome_radius"}:
+        return _validate_family_contract_string_manacher(trace, contract)
+    if submode in {"trie_prefix_match", "trie_prefix", "prefix_match"}:
+        return _validate_family_contract_string_trie_prefix(trace, contract)
+    if submode in {"string_sliding_window", "sliding_window", "window"}:
+        return _validate_family_contract_string_sliding_window(trace, contract)
+    return _validate_family_contract_string_default(trace, contract)
+
+
+def _validate_family_contract_string_kmp(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors = _validate_family_contract_string_default(trace, contract, default_tables=["pi"], require_pattern=True)
+    if not _trace_has_char_refs(trace, ("text[",), ("pattern[",)):
+        errors.append("Family contract string kmp 缺少 text[i] / pattern[j] 字符 target")
+    return errors
+
+
+def _validate_family_contract_string_rabin_karp(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors = _validate_family_contract_string_default(
+        trace,
+        contract,
+        default_tables=["pattern_hash", "window_hash"],
+        require_pattern=False,
+        require_generic_char_refs=False,
+    )
+    if not _trace_has_rabin_karp_pointer_evidence(trace):
+        errors.append("Family contract string 缺少 text/pattern 指针")
+    if not _trace_state_has_any_key(trace, ("pattern_hash",)):
+        errors.append("Family contract string rabin_karp 缺少 pattern_hash")
+    if not _trace_state_has_any_key(trace, ("window_hash", "window_hashes", "hashes")):
+        errors.append("Family contract string rabin_karp 缺少 window_hash / window_hashes")
+    if not _trace_has_char_refs(trace, ("text[",), ("pattern[",)):
+        errors.append("Family contract string rabin_karp 缺少 text[i] / pattern[j] 字符 target")
+    return errors
+
+
+def _trace_has_rabin_karp_pointer_evidence(trace: SemanticTrace) -> bool:
+    for event in trace.events:
+        state = event.state or {}
+        if not isinstance(state.get("text"), str) or not isinstance(state.get("pattern"), str):
+            continue
+        if _state_has_string_pointer_pair(state):
+            return True
+        has_text_window_pointer = any(
+            isinstance(state.get(key), int)
+            for key in ("i", "text_index", "text_pos", "window_start", "window_index", "start")
+        )
+        has_window_ref = any(
+            _is_indexed_string_table_ref(ref, {"window_hashes", "hashes"})
+            for ref in (*_event_target_ids(event), *_event_dep_ids(event))
+        )
+        has_window_hash_state = _state_has_any(state, ("window_hash", "window_hashes", "hashes"))
+        has_pattern_hash_evidence = "pattern_hash" in state or "pattern_hash" in _event_target_ids(event) or "pattern_hash" in _event_dep_ids(event)
+        if has_window_hash_state and has_pattern_hash_evidence and (has_text_window_pointer or has_window_ref):
+            return True
+    return False
+
+
+def _is_indexed_string_table_ref(ref: str, names: set[str]) -> bool:
+    parsed = parse_target(ref)
+    return parsed.kind == "indexed" and parsed.name in names and bool(parsed.indices)
+
+
+def _validate_family_contract_string_z_algorithm(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not _trace_has_text_sequence(trace):
+        errors.append("Family contract string z_algorithm 缺少 text 或 s state")
+    if not _trace_state_has_any_key(trace, ("z",)):
+        errors.append("Family contract string z_algorithm 缺少 z 表结构")
+    if not _trace_has_string_reason_event(trace, contract):
+        errors.append("Family contract string z_algorithm 缺少扩展/回退原因")
+    if not _trace_has_char_refs(trace, ("text[", "s[")):
+        errors.append("Family contract string z_algorithm 缺少 text[i] 字符 target")
+    errors.extend(_validate_family_contract_expected_tables(trace, contract))
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "string"))
+    return errors
+
+
+def _validate_family_contract_string_manacher(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not _trace_has_text_sequence(trace):
+        errors.append("Family contract string manacher 缺少 text 或 s state")
+    if not _trace_state_has_any_key(trace, ("radius", "p")):
+        errors.append("Family contract string manacher 缺少 radius / p 表结构")
+    if not _trace_has_string_reason_event(trace, contract):
+        errors.append("Family contract string manacher 缺少中心扩展原因")
+    if not _trace_has_char_refs(trace, ("text[", "s[")):
+        errors.append("Family contract string manacher 缺少 text[i] 字符 target")
+    errors.extend(_validate_family_contract_expected_tables(trace, contract))
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "string"))
+    return errors
+
+
+def _validate_family_contract_string_trie_prefix(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not any(isinstance((event.state or {}).get("trie"), dict) for event in trace.events):
+        errors.append("Family contract string trie_prefix_match 缺少 trie state")
+    if not any(isinstance((event.state or {}).get("prefix"), str) for event in trace.events):
+        errors.append("Family contract string trie_prefix_match 缺少 prefix state")
+    if not any("prefix_count" in (event.state or {}) for event in trace.events):
+        errors.append("Family contract string trie_prefix_match 缺少 prefix_count 证据")
+    if not _trace_has_string_reason_event(trace, contract):
+        errors.append("Family contract string trie_prefix_match 缺少前缀匹配原因")
+    if not any(_event_refs_include_prefix(event, ("node:", "trie")) for event in trace.events):
+        errors.append("Family contract string trie_prefix_match 缺少 Trie 路径 target")
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "string"))
+    return errors
+
+
+def _validate_family_contract_string_sliding_window(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not _trace_has_text_sequence(trace):
+        errors.append("Family contract string sliding_window 缺少 text 或 s state")
+    if not any(_state_has_any(event.state or {}, ("left", "right", "window_start", "window_end")) for event in trace.events):
+        errors.append("Family contract string sliding_window 缺少 left/right 窗口指针")
+    if not any(_state_has_any(event.state or {}, ("window_counts", "count", "best", "max_len", "answer")) for event in trace.events):
+        errors.append("Family contract string sliding_window 缺少 window_counts/best 证据")
+    if not _trace_has_string_reason_event(trace, contract):
+        errors.append("Family contract string sliding_window 缺少窗口移动原因")
+    if not any(_event_refs_include_prefix(event, ("text[", "s[", "pointer:")) for event in trace.events):
+        errors.append("Family contract string sliding_window 缺少 text[i] 或 pointer target")
+    errors.extend(_validate_family_contract_expected_tables(trace, contract))
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "string"))
+    return errors
+
+
+def _validate_family_contract_string_default(
+    trace: SemanticTrace,
+    contract: dict[str, Any],
+    *,
+    default_tables: list[str] | None = None,
+    require_pattern: bool = True,
+    require_generic_char_refs: bool = True,
+) -> list[str]:
     errors: list[str] = []
     expected_tables = _family_contract_string_list(contract, "expected_tables")
     if not expected_tables:
-        expected_tables = ["pi"] if _normalize_family_contract_submode(contract) == "kmp" else []
-    if not any(_state_has_string_pointer_pair(event.state or {}) for event in trace.events):
+        expected_tables = list(default_tables or [])
+    if require_pattern and not any(_state_has_string_pointer_pair(event.state or {}) for event in trace.events):
         errors.append("Family contract string 缺少 text/pattern 指针")
-    if expected_tables and not any(any(table in (event.state or {}) for table in expected_tables) for event in trace.events):
-        errors.append(f"Family contract string 缺少表结构：{', '.join(expected_tables)}")
-    elif not expected_tables and not any(_state_has_any(event.state or {}, ("pi", "prefix", "lps", "next", "z", "radius", "p", "hash", "hashes", "window_hash", "window_hashes", "count", "window_counts")) for event in trace.events):
+    errors.extend(_validate_family_contract_expected_tables(trace, {"expected_tables": expected_tables} if expected_tables else contract))
+    if not expected_tables and not any(_state_has_any(event.state or {}, ("pi", "prefix", "lps", "next", "z", "radius", "p", "hash", "hashes", "window_hash", "window_hashes", "count", "window_counts")) for event in trace.events):
         errors.append("Family contract string 缺少表结构")
     if not _trace_has_string_reason_event(trace, contract):
         errors.append("Family contract string 缺少失配/扩展或窗口移动原因")
-    if not any(_event_refs_include_prefix(event, ("text[", "pattern[")) for event in trace.events):
+    if require_generic_char_refs and not any(_event_refs_include_prefix(event, ("text[", "pattern[")) for event in trace.events):
         errors.append("Family contract string 缺少 text[i] / pattern[j] 字符 target")
     errors.extend(_validate_family_contract_expected_events(trace, contract, "string"))
     return errors
+
+
+def _validate_family_contract_expected_tables(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    expected_tables = _family_contract_string_list(contract, "expected_tables")
+    for table in expected_tables:
+        aliases = _string_table_aliases(table)
+        if not _trace_state_has_any_key(trace, aliases):
+            errors.append(f"Family contract string 缺少表结构：{table}")
+    return errors
+
+
+def _string_table_aliases(table: str) -> tuple[str, ...]:
+    normalized = table.strip()
+    aliases = {
+        "pi": ("pi", "prefix", "lps", "next"),
+        "prefix": ("pi", "prefix", "lps", "next"),
+        "lps": ("pi", "prefix", "lps", "next"),
+        "next": ("pi", "prefix", "lps", "next"),
+        "radius": ("radius", "p"),
+        "p": ("radius", "p"),
+        "window_hash": ("window_hash", "window_hashes", "hashes"),
+        "window_hashes": ("window_hash", "window_hashes", "hashes"),
+        "hashes": ("window_hash", "window_hashes", "hashes"),
+    }
+    return aliases.get(normalized, (normalized,))
+
+
+def _trace_state_has_any_key(trace: SemanticTrace, keys: tuple[str, ...]) -> bool:
+    return any(_state_has_any(event.state or {}, keys) for event in trace.events)
+
+
+def _trace_has_text_sequence(trace: SemanticTrace) -> bool:
+    return any(isinstance((event.state or {}).get(key), str) for event in trace.events for key in ("text", "s"))
+
+
+def _trace_has_char_refs(trace: SemanticTrace, required: tuple[str, ...], also_required: tuple[str, ...] = ()) -> bool:
+    refs = _trace_ref_ids(trace)
+    return any(ref.startswith(prefix) for ref in refs for prefix in required) and all(
+        any(ref.startswith(prefix) for ref in refs) for prefix in also_required
+    )
 
 
 def _normalize_family_contract_submode(contract: dict[str, Any]) -> str:
@@ -148,7 +356,23 @@ def _trace_has_frame_enter_exit(trace: SemanticTrace) -> bool:
 def _tree_state_has_return_value(state: dict[str, Any]) -> bool:
     return any(
         key in state and state.get(key) not in (None, {}, [])
-        for key in ("return_values", "return_value", "subtree_return", "aggregate", "height", "diameter", "dp_take", "dp_skip")
+        for key in (
+            "return_values",
+            "return_value",
+            "subtree_return",
+            "aggregate",
+            "height",
+            "diameter",
+            "dp_take",
+            "dp_skip",
+            "result",
+            "results",
+            "order",
+            "traversal",
+            "inorder",
+            "preorder",
+            "postorder",
+        )
     )
 
 
@@ -157,12 +381,23 @@ def _family_contract_missing_targets(trace: SemanticTrace, contract: dict[str, A
     if not expected:
         return []
     refs = _trace_ref_ids(trace)
+    if prefix == "node:":
+        refs.update(f"node:{node}" for node in _trace_current_node_ids(trace))
     missing = []
     for item in expected:
         target = item if item.startswith(prefix) else f"{prefix}{item}"
         if target not in refs:
             missing.append(item)
     return missing
+
+
+def _trace_current_node_ids(trace: SemanticTrace) -> set[str]:
+    nodes: set[str] = set()
+    for event in trace.events:
+        current = (event.state or {}).get("current")
+        if current is not None:
+            nodes.add(str(current))
+    return nodes
 
 
 def _family_contract_missing_exact_refs(trace: SemanticTrace, contract: dict[str, Any], key: str) -> list[str]:
@@ -210,10 +445,18 @@ def _trace_has_backtracking_choose(trace: SemanticTrace) -> bool:
 
 def _trace_has_backtracking_record(trace: SemanticTrace) -> bool:
     return any(
-        (event.role == "answer" or _event_has_role_or_reason(event, ("record", "记录")))
-        and "answer" in (event.state or {})
+        (event.role == "answer" or _event_has_role_or_reason(event, ("record", "记录", "答案")))
+        and _backtracking_state_has_record_result(event.state or {})
         for event in trace.events
     )
+
+
+def _backtracking_state_has_record_result(state: dict[str, Any]) -> bool:
+    for key in ("answer", "answers", "result", "results", "res", "solutions", "permutations", "output"):
+        value = state.get(key)
+        if value not in (None, [], {}):
+            return True
+    return False
 
 
 def _trace_has_backtracking_undo(trace: SemanticTrace) -> bool:
@@ -346,6 +589,78 @@ def _validate_family_contract_linked_list(trace: SemanticTrace, contract: dict[s
     return errors
 
 
+def _validate_family_contract_union_find(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    uf_events = [
+        event
+        for event in trace.events
+        if isinstance((event.state or {}).get("union_find"), dict) or isinstance((event.state or {}).get("dsu"), dict)
+    ]
+    if not uf_events:
+        errors.append("Family contract union_find 缺少 union_find/dsu state")
+        return errors
+    if not any(isinstance(_union_find_state(event.state or {}).get("parent"), dict) for event in uf_events):
+        errors.append("Family contract union_find 缺少 parent")
+    if not any("rank" in _union_find_state(event.state or {}) or "size" in _union_find_state(event.state or {}) for event in uf_events):
+        errors.append("Family contract union_find 缺少 rank 或 size")
+    if not any(event.op in {SemanticOp.LINK, SemanticOp.SET, SemanticOp.MARK} for event in uf_events):
+        errors.append("Family contract union_find 缺少 union/find 事件")
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "union_find"))
+    return errors
+
+
+def _union_find_state(state: dict[str, Any]) -> dict[str, Any]:
+    raw = state.get("union_find") if isinstance(state.get("union_find"), dict) else state.get("dsu")
+    return raw if isinstance(raw, dict) else {}
+
+
+def _validate_family_contract_range_structure(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    range_events = [
+        event
+        for event in trace.events
+        if any(key in (event.state or {}) for key in ("segment_tree", "bit", "fenwick", "st", "sparse_table"))
+    ]
+    if not range_events:
+        errors.append("Family contract range_structure 缺少 segment_tree/fenwick/sparse_table state")
+        return errors
+    if not any(
+        isinstance((event.state or {}).get("segment_tree"), dict)
+        or isinstance((event.state or {}).get("bit"), list)
+        or isinstance((event.state or {}).get("fenwick"), list)
+        or isinstance((event.state or {}).get("st"), list)
+        or isinstance((event.state or {}).get("sparse_table"), list)
+        for event in range_events
+    ):
+        errors.append("Family contract range_structure 缺少可复核区间结构")
+    errors.extend(_validate_family_contract_expected_events(trace, contract, "range_structure"))
+    return errors
+
+
+def _family_contract_is_monotonic_stack_trace(trace: SemanticTrace, contract: dict[str, Any]) -> bool:
+    submode = _normalize_family_contract_submode(contract)
+    if submode in {"monotonic_stack", "daily_temperatures", "next_greater"}:
+        return True
+    for event in trace.events:
+        state = event.state or {}
+        if (
+            isinstance(state.get("stack"), list)
+            and (
+                state.get("stack_order") in {"increasing", "decreasing"}
+                or state.get("monotonic") in {"increasing", "decreasing"}
+            )
+            and any(key in state for key in ("temperatures", "nums", "heights", "answer", "answers", "ans"))
+        ):
+            return True
+    return False
+
+
+def _validate_family_contract_monotonic_stack(trace: SemanticTrace, contract: dict[str, Any]) -> list[str]:
+    if _family_contract_is_monotonic_stack_trace(trace, contract):
+        return []
+    return ["Family contract monotonic_stack 缺少 stack/answer state"]
+
+
 def _linked_node_count(state: dict[str, Any]) -> int:
     linked = state.get("linked_list")
     if not isinstance(linked, dict):
@@ -395,11 +710,18 @@ def _family_contract_present_event_tokens(trace: SemanticTrace) -> set[str]:
             "undo": ("undo", "撤销", "回溯"),
             "compare": ("compare", "比较"),
             "fallback": ("fallback", "回退", "失配"),
+            "expand": ("expand", "扩展", "中心扩展"),
+            "window": ("window", "窗口"),
             "create_node": ("create_node", "创建", "新节点"),
             "terminal": ("terminal", "is_word", "单词结束"),
             "prefix_count": ("prefix_count", "count", "计数"),
             "move_pointer": ("move_pointer", "移动", "pointer"),
             "link_change": ("link_change", "next", "prev", "指针"),
+            "union": ("union", "合并"),
+            "find": ("find", "根"),
+            "build": ("build", "构建", "初始化"),
+            "update": ("update", "更新"),
+            "query": ("query", "查询", "range"),
         }
         for token, needles in mapping.items():
             if any(needle in text for needle in needles):
