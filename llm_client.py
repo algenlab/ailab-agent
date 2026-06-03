@@ -23,9 +23,9 @@ def get_client() -> OpenAI:
         _client = OpenAI(base_url=settings["base_url"], api_key=settings["api_key"])
     return _client
 
-DEFAULT_MODEL = "gemini-3.1-pro-preview"
-DEFAULT_TIMEOUT_S = 240
-DEFAULT_MAX_TOKENS = 16384
+DEFAULT_MODEL = "deepseek-v4-pro"
+DEFAULT_TIMEOUT_S = 900
+DEFAULT_MAX_TOKENS = 32768
 DEFAULT_JSON_RETRIES = 4
 DEFAULT_API_RETRIES = 2
 DEFAULT_API_RETRY_DELAY_S = 2.0

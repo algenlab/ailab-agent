@@ -1,0 +1,1984 @@
+{
+  "schema_version": "semantic-trace-v1",
+  "algorithm": "Manacher 回文",
+  "input_data": {
+    "s": "babad"
+  },
+  "result": "bab",
+  "pseudocode": [
+    "构造 t = #...# 把奇偶情况统一",
+    "对每个 i：先用对称点初始化 p[i]",
+    "再两侧暴力扩展",
+    "若超出右边界则更新 center/right",
+    "答案 = max(p[i]) 对应的子串"
+  ],
+  "events": [
+    {
+      "step": 0,
+      "op": "create",
+      "targets": [
+        {
+          "id": "t"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "创建字符串 t",
+      "state": {
+        "t": "#b#a#b#a#d#"
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 1,
+      "op": "create",
+      "targets": [
+        {
+          "id": "p"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "创建数组 p",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 2,
+      "op": "create",
+      "targets": [
+        {
+          "id": "center"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "创建变量 center",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 3,
+      "op": "create",
+      "targets": [
+        {
+          "id": "right"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "创建变量 right",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 0,
+        "right": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 4,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=0  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=0  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 0,
+        "right": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 5,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=0  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=0  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 0,
+        "right": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 6,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=1  t[i]='b'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=1  t[i]='b'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 0,
+        "right": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 7,
+      "op": "compare",
+      "targets": [
+        {
+          "id": "t[0]"
+        },
+        {
+          "id": "t[2]"
+        }
+      ],
+      "value": {
+        "left": "#",
+        "right": "#",
+        "equal": true
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "左右匹配，扩展",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 0,
+        "right": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 8,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[1]"
+        }
+      ],
+      "value": 1,
+      "before": 0,
+      "after": 1,
+      "deps": [],
+      "role": "",
+      "reason": "p[1] = 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 0,
+        "right": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 9,
+      "op": "set",
+      "targets": [
+        {
+          "id": "center"
+        }
+      ],
+      "value": 1,
+      "before": 0,
+      "after": 1,
+      "deps": [],
+      "role": "",
+      "reason": "中心右移到 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 10,
+      "op": "set",
+      "targets": [
+        {
+          "id": "right"
+        }
+      ],
+      "value": 2,
+      "before": 0,
+      "after": 2,
+      "deps": [],
+      "role": "",
+      "reason": "右边界扩展到 2",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 11,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=1  t[i]='b'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=1  t[i]='b'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 12,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=2  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=2  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 13,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=2  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=2  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 14,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=3  t[i]='a'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=3  t[i]='a'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 15,
+      "op": "compare",
+      "targets": [
+        {
+          "id": "t[2]"
+        },
+        {
+          "id": "t[4]"
+        }
+      ],
+      "value": {
+        "left": "#",
+        "right": "#",
+        "equal": true
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "左右匹配，扩展",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 16,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[3]"
+        }
+      ],
+      "value": 1,
+      "before": 0,
+      "after": 1,
+      "deps": [],
+      "role": "",
+      "reason": "p[3] = 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 17,
+      "op": "compare",
+      "targets": [
+        {
+          "id": "t[1]"
+        },
+        {
+          "id": "t[5]"
+        }
+      ],
+      "value": {
+        "left": "b",
+        "right": "b",
+        "equal": true
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "左右匹配，扩展",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 18,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[3]"
+        }
+      ],
+      "value": 2,
+      "before": 1,
+      "after": 2,
+      "deps": [],
+      "role": "",
+      "reason": "p[3] = 2",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 19,
+      "op": "compare",
+      "targets": [
+        {
+          "id": "t[0]"
+        },
+        {
+          "id": "t[6]"
+        }
+      ],
+      "value": {
+        "left": "#",
+        "right": "#",
+        "equal": true
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "左右匹配，扩展",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 20,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[3]"
+        }
+      ],
+      "value": 3,
+      "before": 2,
+      "after": 3,
+      "deps": [],
+      "role": "",
+      "reason": "p[3] = 3",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 1,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 21,
+      "op": "set",
+      "targets": [
+        {
+          "id": "center"
+        }
+      ],
+      "value": 3,
+      "before": 1,
+      "after": 3,
+      "deps": [],
+      "role": "",
+      "reason": "中心右移到 3",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 22,
+      "op": "set",
+      "targets": [
+        {
+          "id": "right"
+        }
+      ],
+      "value": 6,
+      "before": 2,
+      "after": 6,
+      "deps": [],
+      "role": "",
+      "reason": "右边界扩展到 6",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 23,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=3  t[i]='a'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=3  t[i]='a'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 24,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=4  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=4  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 25,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[4]"
+        }
+      ],
+      "value": 0,
+      "before": 0,
+      "after": 0,
+      "deps": [],
+      "role": "",
+      "reason": "p[4] = 0",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 26,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=4  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=4  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 27,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=5  t[i]='b'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=5  t[i]='b'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 28,
+      "op": "explain",
+      "targets": [],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "对称初始化：mirror=1, p[5] = min(right-i=1, p[mirror]=1) = 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 29,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[5]"
+        }
+      ],
+      "value": 1,
+      "before": 0,
+      "after": 1,
+      "deps": [],
+      "role": "",
+      "reason": "p[5] = 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 30,
+      "op": "compare",
+      "targets": [
+        {
+          "id": "t[3]"
+        },
+        {
+          "id": "t[7]"
+        }
+      ],
+      "value": {
+        "left": "a",
+        "right": "a",
+        "equal": true
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "左右匹配，扩展",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 31,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[5]"
+        }
+      ],
+      "value": 2,
+      "before": 1,
+      "after": 2,
+      "deps": [],
+      "role": "",
+      "reason": "p[5] = 2",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 32,
+      "op": "compare",
+      "targets": [
+        {
+          "id": "t[2]"
+        },
+        {
+          "id": "t[8]"
+        }
+      ],
+      "value": {
+        "left": "#",
+        "right": "#",
+        "equal": true
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "左右匹配，扩展",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 33,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[5]"
+        }
+      ],
+      "value": 3,
+      "before": 2,
+      "after": 3,
+      "deps": [],
+      "role": "",
+      "reason": "p[5] = 3",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 3,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 34,
+      "op": "set",
+      "targets": [
+        {
+          "id": "center"
+        }
+      ],
+      "value": 5,
+      "before": 3,
+      "after": 5,
+      "deps": [],
+      "role": "",
+      "reason": "中心右移到 5",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 6
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 35,
+      "op": "set",
+      "targets": [
+        {
+          "id": "right"
+        }
+      ],
+      "value": 8,
+      "before": 6,
+      "after": 8,
+      "deps": [],
+      "role": "",
+      "reason": "右边界扩展到 8",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 36,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=5  t[i]='b'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=5  t[i]='b'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 37,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=6  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=6  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 38,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[6]"
+        }
+      ],
+      "value": 0,
+      "before": 0,
+      "after": 0,
+      "deps": [],
+      "role": "",
+      "reason": "p[6] = 0",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 39,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=6  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=6  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 40,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=7  t[i]='a'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=7  t[i]='a'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 41,
+      "op": "explain",
+      "targets": [],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "对称初始化：mirror=3, p[7] = min(right-i=1, p[mirror]=3) = 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 42,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[7]"
+        }
+      ],
+      "value": 1,
+      "before": 0,
+      "after": 1,
+      "deps": [],
+      "role": "",
+      "reason": "p[7] = 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 43,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=7  t[i]='a'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=7  t[i]='a'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 44,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=8  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=8  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 45,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=8  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=8  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 46,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=9  t[i]='d'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=9  t[i]='d'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 47,
+      "op": "compare",
+      "targets": [
+        {
+          "id": "t[8]"
+        },
+        {
+          "id": "t[10]"
+        }
+      ],
+      "value": {
+        "left": "#",
+        "right": "#",
+        "equal": true
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "左右匹配，扩展",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 48,
+      "op": "set",
+      "targets": [
+        {
+          "id": "p[9]"
+        }
+      ],
+      "value": 1,
+      "before": 0,
+      "after": 1,
+      "deps": [],
+      "role": "",
+      "reason": "p[9] = 1",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "center": 5,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 49,
+      "op": "set",
+      "targets": [
+        {
+          "id": "center"
+        }
+      ],
+      "value": 9,
+      "before": 5,
+      "after": 9,
+      "deps": [],
+      "role": "",
+      "reason": "中心右移到 9",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "center": 9,
+        "right": 8
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 50,
+      "op": "set",
+      "targets": [
+        {
+          "id": "right"
+        }
+      ],
+      "value": 10,
+      "before": 8,
+      "after": 10,
+      "deps": [],
+      "role": "",
+      "reason": "右边界扩展到 10",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "center": 9,
+        "right": 10
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 51,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=9  t[i]='d'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=9  t[i]='d'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "center": 9,
+        "right": 10
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 52,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:i=10  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=10  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "center": 9,
+        "right": 10
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 53,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:i=10  t[i]='#'"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "i=10  t[i]='#'",
+      "state": {
+        "t": "#b#a#b#a#d#",
+        "p": [
+          0,
+          1,
+          0,
+          3,
+          0,
+          3,
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "center": 9,
+        "right": 10
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    }
+  ]
+}

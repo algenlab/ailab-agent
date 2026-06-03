@@ -1,0 +1,2000 @@
+{
+  "schema_version": "semantic-trace-v1",
+  "algorithm": "Edmonds-Karp 网络流",
+  "input_data": {
+    "nodes": [
+      "s",
+      "a",
+      "b",
+      "t"
+    ],
+    "edges": [
+      [
+        "s",
+        "a",
+        3
+      ],
+      [
+        "s",
+        "b",
+        2
+      ],
+      [
+        "a",
+        "t",
+        2
+      ],
+      [
+        "a",
+        "b",
+        1
+      ],
+      [
+        "b",
+        "t",
+        3
+      ]
+    ],
+    "source": "s",
+    "sink": "t"
+  },
+  "result": 5,
+  "pseudocode": [
+    "while 存在增广路径 (BFS):",
+    "  bottleneck = min 残余容量",
+    "  沿路径 flow += bn, 反向 -= bn",
+    "  total_flow += bn",
+    "返回 total_flow"
+  ],
+  "events": [
+    {
+      "step": 0,
+      "op": "create",
+      "targets": [
+        {
+          "id": "g"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "创建图 g",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        }
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 1,
+      "op": "create",
+      "targets": [
+        {
+          "id": "total_flow"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "创建变量 total_flow",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 2,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:第 1 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 1 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 3,
+      "op": "explain",
+      "targets": [],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "增广路径：s -> a -> t，bottleneck=2",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 4,
+      "op": "mark",
+      "targets": [
+        {
+          "id": "edge:s->a"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "augmenting",
+      "reason": "路径边 s->a",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 5,
+      "op": "mark",
+      "targets": [
+        {
+          "id": "edge:a->t"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "augmenting",
+      "reason": "路径边 a->t",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 6,
+      "op": "set",
+      "targets": [
+        {
+          "id": "edge:s->a"
+        }
+      ],
+      "value": {
+        "flow": 2,
+        "capacity": 3
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "沿 s->a 增加 2 单位流",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 7,
+      "op": "set",
+      "targets": [
+        {
+          "id": "edge:a->t"
+        }
+      ],
+      "value": {
+        "flow": 2,
+        "capacity": 2
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "沿 a->t 增加 2 单位流",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 0
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 8,
+      "op": "set",
+      "targets": [
+        {
+          "id": "total_flow"
+        }
+      ],
+      "value": 2,
+      "before": 0,
+      "after": 2,
+      "deps": [],
+      "role": "",
+      "reason": "total_flow += 2",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 9,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:第 1 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 1 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 10,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:第 2 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 2 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 11,
+      "op": "explain",
+      "targets": [],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "增广路径：s -> b -> t，bottleneck=2",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 12,
+      "op": "mark",
+      "targets": [
+        {
+          "id": "edge:s->b"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "augmenting",
+      "reason": "路径边 s->b",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 13,
+      "op": "mark",
+      "targets": [
+        {
+          "id": "edge:b->t"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "augmenting",
+      "reason": "路径边 b->t",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 14,
+      "op": "set",
+      "targets": [
+        {
+          "id": "edge:s->b"
+        }
+      ],
+      "value": {
+        "flow": 2,
+        "capacity": 2
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "沿 s->b 增加 2 单位流",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 15,
+      "op": "set",
+      "targets": [
+        {
+          "id": "edge:b->t"
+        }
+      ],
+      "value": {
+        "flow": 2,
+        "capacity": 3
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "沿 b->t 增加 2 单位流",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 2
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 16,
+      "op": "set",
+      "targets": [
+        {
+          "id": "total_flow"
+        }
+      ],
+      "value": 4,
+      "before": 2,
+      "after": 4,
+      "deps": [],
+      "role": "",
+      "reason": "total_flow += 2",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 17,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:第 2 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 2 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 18,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:第 3 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 3 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 19,
+      "op": "explain",
+      "targets": [],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "增广路径：s -> a -> b -> t，bottleneck=1",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 20,
+      "op": "mark",
+      "targets": [
+        {
+          "id": "edge:s->a"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "augmenting",
+      "reason": "路径边 s->a",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 21,
+      "op": "mark",
+      "targets": [
+        {
+          "id": "edge:a->b"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "augmenting",
+      "reason": "路径边 a->b",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 22,
+      "op": "mark",
+      "targets": [
+        {
+          "id": "edge:b->t"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "augmenting",
+      "reason": "路径边 b->t",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 23,
+      "op": "set",
+      "targets": [
+        {
+          "id": "edge:s->a"
+        }
+      ],
+      "value": {
+        "flow": 3,
+        "capacity": 3
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "沿 s->a 增加 1 单位流",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 24,
+      "op": "set",
+      "targets": [
+        {
+          "id": "edge:a->b"
+        }
+      ],
+      "value": {
+        "flow": 1,
+        "capacity": 1
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "沿 a->b 增加 1 单位流",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1,
+              "flow": 1,
+              "capacity": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 2,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 25,
+      "op": "set",
+      "targets": [
+        {
+          "id": "edge:b->t"
+        }
+      ],
+      "value": {
+        "flow": 3,
+        "capacity": 3
+      },
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "沿 b->t 增加 1 单位流",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1,
+              "flow": 1,
+              "capacity": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 4
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 26,
+      "op": "set",
+      "targets": [
+        {
+          "id": "total_flow"
+        }
+      ],
+      "value": 5,
+      "before": 4,
+      "after": 5,
+      "deps": [],
+      "role": "",
+      "reason": "total_flow += 1",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1,
+              "flow": 1,
+              "capacity": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 5
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 27,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:第 3 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 3 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1,
+              "flow": 1,
+              "capacity": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 5
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 28,
+      "op": "enter",
+      "targets": [
+        {
+          "id": "phase:第 4 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 4 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1,
+              "flow": 1,
+              "capacity": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 5
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 29,
+      "op": "explain",
+      "targets": [],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "没有增广路径，结束",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1,
+              "flow": 1,
+              "capacity": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 5
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    },
+    {
+      "step": 30,
+      "op": "exit",
+      "targets": [
+        {
+          "id": "phase:第 4 轮 BFS 找增广路径"
+        }
+      ],
+      "value": null,
+      "before": null,
+      "after": null,
+      "deps": [],
+      "role": "",
+      "reason": "第 4 轮 BFS 找增广路径",
+      "state": {
+        "g": {
+          "nodes": [
+            "s",
+            "a",
+            "b",
+            "t"
+          ],
+          "edges": [
+            {
+              "u": "s",
+              "v": "a",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            },
+            {
+              "u": "s",
+              "v": "b",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "t",
+              "weight": 2,
+              "flow": 2,
+              "capacity": 2
+            },
+            {
+              "u": "a",
+              "v": "b",
+              "weight": 1,
+              "flow": 1,
+              "capacity": 1
+            },
+            {
+              "u": "b",
+              "v": "t",
+              "weight": 3,
+              "flow": 3,
+              "capacity": 3
+            }
+          ],
+          "directed": true
+        },
+        "total_flow": 5
+      },
+      "code_line": 1,
+      "teaching": null,
+      "interaction": null
+    }
+  ]
+}

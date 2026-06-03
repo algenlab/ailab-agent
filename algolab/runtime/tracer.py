@@ -6,6 +6,27 @@ from copy import deepcopy
 from typing import Any
 
 
+class TableRef:
+    def __init__(self, name: str, rows: list[list[Any]]) -> None:
+        if not name:
+            raise ValueError("table name 不能为空")
+        if not isinstance(rows, list) or any(not isinstance(row, list) for row in rows):
+            raise ValueError(f"{name} 必须是二维 list")
+        self.name = str(name)
+        self._rows = deepcopy(rows)
+
+    def cell(self, row: int, col: int) -> str:
+        target = f"{self.name}[{row}][{col}]"
+        if not isinstance(row, int) or not isinstance(col, int):
+            raise ValueError(f"{target} 不存在：row 和 col 必须是整数")
+        if row < 0 or col < 0 or row >= len(self._rows) or col >= len(self._rows[row]):
+            raise ValueError(f"{target} 不存在")
+        return target
+
+    def state(self) -> dict[str, Any]:
+        return {self.name: deepcopy(self._rows)}
+
+
 class Tracer:
     def __init__(
         self,
@@ -25,6 +46,9 @@ class Tracer:
         self._result: Any = None
         self._expected_updates: dict[str, int] = {}
         self._recorded_updates: dict[str, int] = {}
+
+    def table(self, name: str, rows: list[list[Any]]) -> TableRef:
+        return TableRef(name, rows)
 
     def create(self, target: str, **kwargs: Any) -> None:
         self._add("create", [target], **kwargs)

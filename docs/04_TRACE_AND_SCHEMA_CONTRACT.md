@@ -638,11 +638,14 @@ def trace(input_data):
 - `enter(target, ...)`
 - `exit(target, ...)`
 - `explain(target=None, ...)`
+- `table(name, rows)`
 - `expect_updates(name, count)`
 - `result(value)`
 - `to_trace()`
 
 `unmark`、`link`、`unlink`、`enter`、`exit` 只是在固定 SemanticTrace op 上提供便捷封装，不引入新 op。它们适合表达取消标记、建立 / 删除关系、进入 / 退出递归帧或作用域。新增算法仍应优先复用这些固定 op、已有 target 规范和 state 证据，不要因为便捷方法存在而新增 target 前缀或 renderer 规则。
+
+二维表或行长不一致的表可用 `table(name, rows)` 生成类型化引用。`table.cell(row, col)` 只返回真实存在的 `name[row][col]` target；越界会在 tracker 执行时抛错。`table.state()` 返回 `{name: rows}` 的深拷贝，可直接传给事件 `state`。
 
 ## 10. 正确示例
 

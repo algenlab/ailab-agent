@@ -65,6 +65,9 @@ def validate_scene(scene: SceneGraph) -> tuple[list[str], list[str]]:
 
 def _state_node_ids(state: dict[str, Any]) -> set[str]:
     result: set[str] = set()
+    if "nodes" in state:
+        result.update(_node_ids_from_node_edge_struct({"nodes": state.get("nodes"), "edges": state.get("edges")}))
+        result.add("node:nodes")
     for key in ("graph", "adjacency", "weighted_graph"):
         graph = state.get(key)
         if isinstance(graph, dict):
@@ -121,8 +124,8 @@ def _edge_list_node_ids(edges: Any) -> set[str]:
 
 def _node_ids_from_node_edge_struct(struct: dict[str, Any]) -> set[str]:
     result: set[str] = set()
-    for node in struct.get("nodes") or []:
-        node_id = _node_id(node)
+    for node_key, node in _node_entries(struct.get("nodes")):
+        node_id = _node_id(node, fallback=node_key)
         if node_id:
             result.add(f"node:{node_id}")
     for edge in struct.get("edges") or []:
@@ -132,6 +135,17 @@ def _node_ids_from_node_edge_struct(struct: dict[str, Any]) -> set[str]:
         if dst:
             result.add(f"node:{dst}")
     return result
+
+
+def _node_entries(nodes: Any) -> list[tuple[Any, Any]]:
+    if isinstance(nodes, dict):
+        return list(nodes.items())
+    if isinstance(nodes, list):
+        return [
+            (node.get("id", index) if isinstance(node, dict) else node, node)
+            for index, node in enumerate(nodes)
+        ]
+    return []
 
 
 def _neighbor_id(value: Any) -> str:
@@ -145,11 +159,12 @@ def _neighbor_id(value: Any) -> str:
     return str(value)
 
 
-def _node_id(value: Any) -> str:
+def _node_id(value: Any, *, fallback: Any = None) -> str:
     if isinstance(value, dict):
-        raw = value.get("id")
+        raw = value.get("id", fallback)
         return "" if raw in (None, "") else str(raw)
-    return "" if value in (None, "") else str(value)
+    raw = fallback if value in (None, "") else value
+    return "" if raw in (None, "") else str(raw)
 
 
 def _edge_endpoints(edge: Any) -> tuple[str, str]:

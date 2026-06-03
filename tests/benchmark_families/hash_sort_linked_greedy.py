@@ -53,6 +53,64 @@ def verify(input_data):
 """
 
 
+SUBARRAY_SUM_EQUALS_K_CODE = """
+def solve(input_data):
+    nums = input_data["nums"]
+    k = input_data["k"]
+    counts = {0: 1}
+    prefix = 0
+    answer = 0
+    for x in nums:
+        prefix += x
+        answer += counts.get(prefix - k, 0)
+        counts[prefix] = counts.get(prefix, 0) + 1
+    return answer
+"""
+
+
+SUBARRAY_SUM_EQUALS_K_TRACKER = """
+def trace(input_data):
+    nums = input_data["nums"]
+    k = input_data["k"]
+    sess = TraceSession(
+        algorithm="和为 K 的子数组",
+        input_data=input_data,
+        max_events=80,
+        pseudocode=["维护前缀和 prefix", "查询 prefix-k 出现次数", "把当前 prefix 写入计数器"],
+    )
+    arr = sess.array("nums", nums)
+    counts = sess.counter("prefix_counts", {0: 1})
+    prefix = sess.scalar("prefix", 0)
+    answer = sess.scalar("answer", 0)
+    for i in range(len(arr)):
+        arr.highlight(i, role="current")
+        prefix.set(prefix.value + arr[i], reason="累加当前元素得到新的前缀和。")
+        need = prefix.value - k
+        hit = counts.get(need, 0, reason="查询 prefix-k 出现次数，这些位置都能形成和为 k 的子数组。")
+        if hit:
+            counts.highlight(need, role="dependency")
+        answer.set(answer.value + hit, reason="把命中的前缀和次数累加到答案。")
+        counts.inc(prefix.value, reason="记录当前前缀和，供后续位置查询。")
+    sess.result(answer.value)
+    return sess.to_trace()
+"""
+
+
+SUBARRAY_SUM_EQUALS_K_VERIFIER = """
+def verify(input_data):
+    nums = input_data["nums"]
+    k = input_data["k"]
+    answer = 0
+    for i in range(len(nums)):
+        total = 0
+        for j in range(i, len(nums)):
+            total += nums[j]
+            if total == k:
+                answer += 1
+    return answer
+"""
+
+
 INSERTION_SORT_CODE = """
 def solve(input_data):
     nums = input_data["nums"]
@@ -194,6 +252,61 @@ def verify(input_data):
 """
 
 
+MERGE_INTERVALS_CODE = """
+def solve(input_data):
+    intervals = [item[:] for item in input_data["intervals"]]
+    intervals.sort(key=lambda item: (item[0], item[1]))
+    merged = []
+    for start, end in intervals:
+        if not merged or start > merged[-1][1]:
+            merged.append([start, end])
+        else:
+            merged[-1][1] = max(merged[-1][1], end)
+    return merged
+"""
+
+
+MERGE_INTERVALS_TRACKER = """
+def trace(input_data):
+    raw = [item[:] for item in input_data["intervals"]]
+    sess = TraceSession(
+        algorithm="合并区间",
+        input_data=input_data,
+        max_events=80,
+        pseudocode=["按起点排序", "若当前区间与 merged 最后一个重叠则扩展", "否则追加新区间"],
+    )
+    intervals = sess.intervals("intervals", raw)
+    intervals.sort()
+    merged = sess.intervals("merged", [])
+    for i, current in enumerate(intervals.to_list()):
+        intervals.highlight(i, role="current")
+        if len(merged) == 0 or current[0] > merged[len(merged) - 1][1]:
+            merged.append(current, reason="当前区间与已合并结果不重叠，追加为新区间。")
+        else:
+            last_idx = len(merged) - 1
+            last = merged[last_idx]
+            merged.highlight(last_idx, role="dependency")
+            merged.set(last_idx, [last[0], max(last[1], current[1])], reason="当前区间与最后区间重叠，扩展右端点。")
+    result = merged.to_list()
+    sess.result(result)
+    return sess.to_trace()
+"""
+
+
+MERGE_INTERVALS_VERIFIER = """
+def verify(input_data):
+    intervals = [item[:] for item in input_data["intervals"]]
+    intervals.sort(key=lambda item: (item[0], item[1]))
+    merged = []
+    for start, end in intervals:
+        if not merged or start > merged[-1][1]:
+            merged.append([start, end])
+        else:
+            merged[-1][1] = max(merged[-1][1], end)
+    return merged
+"""
+
+
 def cases() -> tuple[BenchmarkCase, ...]:
     return (
         BenchmarkCase(
@@ -217,6 +330,31 @@ def cases() -> tuple[BenchmarkCase, ...]:
                 BenchmarkInput({"nums": [2, 7, 11, 15], "target": 9}, [0, 1]),
                 BenchmarkInput({"nums": [3, 2, 4], "target": 6}, [1, 2]),
                 BenchmarkInput({"nums": [1, 2, 3], "target": 7}, []),
+            ),
+        ),
+        BenchmarkCase(
+            id="subarray_sum_equals_k",
+            title="和为 K 的子数组",
+            problem=(
+                "LeetCode 560. 和为 K 的子数组。给定整数数组 nums 和整数 k，"
+                "返回数组中和为 k 的连续子数组个数。"
+            ),
+            family="哈希表 / map",
+            input_contract="输入 nums 数组和 k。",
+            variant_name="前缀和计数器",
+            strategy="维护前缀和出现次数，当前位置贡献 counts[prefix-k]。",
+            time_complexity="O(n)",
+            space_complexity="O(n)",
+            expected_layouts=("array", "map"),
+            code=SUBARRAY_SUM_EQUALS_K_CODE,
+            tracker_code=SUBARRAY_SUM_EQUALS_K_TRACKER,
+            verifier_code=SUBARRAY_SUM_EQUALS_K_VERIFIER,
+            samples=(
+                BenchmarkInput({"nums": [1, 1, 1], "k": 2}, 2),
+                BenchmarkInput({"nums": [1, 2, 3], "k": 3}, 2),
+                BenchmarkInput({"nums": [1, -1, 0], "k": 0}, 3),
+                BenchmarkInput({"nums": [2, 4], "k": 7}, 0),
+                BenchmarkInput({"nums": [3], "k": 3}, 1),
             ),
         ),
         BenchmarkCase(
@@ -277,6 +415,30 @@ def cases() -> tuple[BenchmarkCase, ...]:
                 BenchmarkInput({"nums": [2, 3, 1, 1, 4]}, True),
                 BenchmarkInput({"nums": [3, 2, 1, 0, 4]}, False),
                 BenchmarkInput({"nums": [0]}, True),
+            ),
+        ),
+        BenchmarkCase(
+            id="merge_intervals",
+            title="合并区间",
+            problem=(
+                "LeetCode 56. 合并区间。给定若干闭区间 intervals，"
+                "合并所有重叠区间并返回不重叠区间列表。"
+            ),
+            family="贪心",
+            input_contract="输入 intervals，每个区间为 [start, end]。",
+            variant_name="排序后线性合并",
+            strategy="按起点排序，维护已合并结果的最后一个区间并按需扩展。",
+            time_complexity="O(n log n)",
+            space_complexity="O(n)",
+            expected_layouts=("matrix",),
+            code=MERGE_INTERVALS_CODE,
+            tracker_code=MERGE_INTERVALS_TRACKER,
+            verifier_code=MERGE_INTERVALS_VERIFIER,
+            samples=(
+                BenchmarkInput({"intervals": [[1, 3], [2, 6], [8, 10], [15, 18]]}, [[1, 6], [8, 10], [15, 18]]),
+                BenchmarkInput({"intervals": [[1, 4], [4, 5]]}, [[1, 5]]),
+                BenchmarkInput({"intervals": [[1, 4], [0, 2], [3, 5]]}, [[0, 5]]),
+                BenchmarkInput({"intervals": [[2, 3]]}, [[2, 3]]),
             ),
         ),
     )

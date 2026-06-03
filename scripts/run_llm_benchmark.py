@@ -1036,6 +1036,9 @@ def write_report(
         "process_validator_enabled",
         "scenegraph_compiler_enabled",
         "direct_html_baseline",
+        "expected_visible_to_model",
+        "direct_html_repair_enabled",
+        "direct_html_browser_repair_enabled",
         "trace_only_renderer_enabled",
     ):
         if hasattr(args, key):

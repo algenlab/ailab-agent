@@ -16,15 +16,9 @@ def workspace_markup(render_target: str = "teaching_2d") -> str:
   </header>
   <main class="workspace">
     <aside class="col task-col">
-      <section class="panel section task-panel">
-        <h2>题目与输入</h2>
-        <div id="problem-description" class="problem-description"></div>
-        <h3 class="subhead">当前输入</h3>
-        <pre id="input" class="jsonbox"></pre>
-        <h3 class="subhead">修改输入</h3>
-        <textarea id="input-editor" class="jsonbox input-editor" aria-label="修改 JSON 输入"></textarea>
-        <h3 class="subhead">期望输出</h3>
-        <pre id="expected" class="jsonbox compact"></pre>
+      <section id="code-panel" class="panel section code-panel">
+        <h2>代码</h2>
+        <div id="code" class="code"></div>
       </section>
       <section class="panel section">
         <h2>解法</h2>
@@ -33,14 +27,6 @@ def workspace_markup(render_target: str = "teaching_2d") -> str:
       <section id="variant-compare-panel" class="panel section variant-compare-panel">
         <h2>解法对比</h2>
         <div id="variant-compare" class="variant-compare"></div>
-      </section>
-      <section id="regeneration-panel" class="panel section regeneration-panel">
-        <h2>输入重新生成</h2>
-        <p class="regen-note">修改 JSON 后需要重新走 pipeline：ProblemInput -> BuildArtifact -> HTML。</p>
-        <p class="regen-note">静态 HTML 无法在线调用后端；这里仅准备 artifact 输入，不修改当前 trace 或 SceneGraph。</p>
-        <button id="regenerate" class="secondary-action" type="button">准备重新生成请求</button>
-        <div id="regenerate-status" class="regen-status" role="status">等待修改输入。需要重新生成时，请将下方 artifact 输入交给主 pipeline。</div>
-        <pre id="regenerate-payload" class="jsonbox compact regenerate-payload"></pre>
       </section>
     </aside>
     <section class="col">
@@ -62,11 +48,14 @@ def workspace_markup(render_target: str = "teaching_2d") -> str:
     </section>
     <aside class="col teaching-col">
       <section id="teaching-panel" class="panel section"><h2>讲解</h2><div id="teaching"></div></section>
-      <section class="panel section"><h2>系统校验</h2><div id="evidence" class="evidence"></div></section>
-      <section class="panel section"><h2>本步证据</h2><div id="step-evidence" class="step-evidence"></div></section>
-      <section class="panel section"><h2>当前状态</h2><div id="state" class="state-grid"></div></section>
+      <section id="step-evidence-panel" class="panel section">
+        <details class="compact-details step-evidence-details">
+          <summary>本步证据</summary>
+          <div id="step-evidence" class="step-evidence"></div>
+        </details>
+      </section>
       <section class="panel section"><h2>交互</h2><div id="interaction"></div></section>
-      <section class="panel section"><h2>代码</h2><div id="code" class="code"></div></section>
+      <section class="panel section"><h2>当前状态</h2><div id="state" class="state-grid"></div></section>
     </aside>
   </main>
   <details id="debug-drawer" class="debug-drawer">

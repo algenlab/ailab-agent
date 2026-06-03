@@ -7,7 +7,7 @@ from typing import Any
 
 from algolab.compiler.scene_compiler import compile_scene
 from algolab.generation.solution_generator import generate_solution_spec, parse_variants, repair_solution_spec
-from algolab.runtime.executor import canonical, execute_variant, run_verifier
+from algolab.runtime.executor import canonical, execute_variant, results_equivalent, run_verifier
 from algolab.runtime.sandbox import run_function
 from algolab.schemas.correctness import CorrectnessContract, OracleStrategy
 from algolab.schemas.input import ProblemInput
@@ -79,10 +79,15 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
     for variant in parse_variants(spec):
         try:
             materialized = execute_variant(variant, request.input_data)
-            if verifier_available and canonical(materialized.result) != canonical(verifier_result):
-                raise ValueError(f"结果 {materialized.result!r} 与 verifier {verifier_result!r} 不一致")
-            if request.expected_result is not None and canonical(materialized.result) != canonical(request.expected_result):
+            if request.expected_result is not None and not results_equivalent(materialized.result, request.expected_result):
                 raise ValueError(f"结果 {materialized.result!r} 与 expected {request.expected_result!r} 不一致")
+            if verifier_available:
+                if request.expected_result is not None and not results_equivalent(verifier_result, request.expected_result):
+                    checks.append(
+                        f"{materialized.name}: 独立 verifier 结果 {verifier_result!r} 与 expected {request.expected_result!r} 不一致，已以 expected 为准"
+                    )
+                elif not results_equivalent(materialized.result, verifier_result):
+                    raise ValueError(f"结果 {materialized.result!r} 与 verifier {verifier_result!r} 不一致")
             assert materialized.trace is not None
             trace_errors, trace_warnings = validate_trace(materialized.trace)
             if trace_errors:
@@ -121,7 +126,7 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
     if len(good_variants) > 1:
         baseline = good_variants[0].result
         for variant in good_variants[1:]:
-            if canonical(variant.result) != canonical(baseline):
+            if not results_equivalent(variant.result, baseline):
                 errors.append(f"多解法结果不一致：{good_variants[0].name} vs {variant.name}")
         if not any("多解法结果不一致" in e for e in errors):
             checks.append("多解法交叉结果一致")

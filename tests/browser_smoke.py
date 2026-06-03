@@ -43,7 +43,8 @@ def _check_page(page, path: Path, *, require_p1_layout: bool = True):
             assert raw_label not in badges_text, f"{path}: 顶部可信度泄露工程字段 {raw_label}"
         assert page.locator("#top-result").inner_text().strip(), f"{path}: 顶部输出为空"
         assert page.locator("#top-solution").inner_text().strip(), f"{path}: 顶部解法为空"
-        assert page.locator("#problem-description").inner_text().strip(), f"{path}: 左侧题目描述为空"
+        _check_removed_main_input_and_validation_sections(page, path)
+        _check_expanded_code_is_left_top(page, path)
         assert page.locator("#teaching-panel").count() == 1, f"{path}: 右侧讲解区缺失"
         assert page.locator("#teaching").inner_text().strip(), f"{path}: 主讲解区不应依赖 Debug Drawer"
         assert page.locator("#debug-drawer").count() == 1, f"{path}: Debug Drawer 缺失"
@@ -81,15 +82,13 @@ def _check_page(page, path: Path, *, require_p1_layout: bool = True):
         assert page.locator("#debug-artifact").inner_text().strip(), f"{path}: Debug Drawer 缺少 artifact"
         page.locator("#debug-drawer summary").click()
         page.wait_for_timeout(50)
-    if page.locator("#evidence").count():
-        evidence_text = page.locator("#evidence").inner_text()
-        step_evidence_text = page.locator("#step-evidence").inner_text()
-        if require_p1_layout:
-            assert "答案交叉检查" in evidence_text, f"{path}: 校验证据摘要为空"
-            assert "过程转移通过校验" in evidence_text, f"{path}: 校验证据摘要缺少人话校验"
-        else:
-            assert evidence_text.strip(), f"{path}: 校验证据面板为空"
-        assert "本步语义" in step_evidence_text, f"{path}: 步骤证据面板为空"
+        _check_compact_teaching_layout(page, path)
+        _check_current_variant_main_view_has_no_internal_scroll(page, path)
+    if page.locator("#step-evidence").count():
+        if page.locator("#step-evidence-panel details:not([open])").count():
+            page.locator("#step-evidence-panel summary").click()
+            page.wait_for_timeout(50)
+        assert "本步语义" in page.locator("#step-evidence").inner_text(), f"{path}: 步骤证据面板为空"
     _check_compound_scene_if_present(page, path)
     _check_dependency_flow_if_present(page, path)
     assert not errors, f"{path}: JS errors: {errors}"
@@ -97,11 +96,186 @@ def _check_page(page, path: Path, *, require_p1_layout: bool = True):
     page.wait_for_timeout(100)
     assert page.locator("#counter").inner_text() != counter or counter.startswith("1 / 1")
     if page.locator("#step-evidence").count():
+        if page.locator("#step-evidence-panel details:not([open])").count():
+            page.locator("#step-evidence-panel summary").click()
+            page.wait_for_timeout(50)
         assert "状态变化" in page.locator("#step-evidence").inner_text(), f"{path}: 步骤证据未更新"
     page.set_viewport_size({"width": 390, "height": 820})
     page.wait_for_timeout(100)
     overflow = page.evaluate("() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1")
     assert not overflow, f"{path}: 窄屏出现水平溢出"
+
+
+def _check_compact_teaching_layout(page, path: Path):
+    page.set_viewport_size({"width": 1365, "height": 900})
+    page.wait_for_timeout(80)
+    metrics = page.evaluate(
+        """() => {
+            const rect = selector => {
+                const node = document.querySelector(selector);
+                if (!node) return { height: 0, width: 0, top: 0, bottom: 0 };
+                const box = node.getBoundingClientRect();
+                return { height: box.height, width: box.width, top: box.top, bottom: box.bottom };
+            };
+            const panelHeights = Array.from(document.querySelectorAll('.teaching-col > .panel'))
+                .map(node => Math.round(node.getBoundingClientRect().height));
+            return {
+                scrollHeight: document.documentElement.scrollHeight,
+                viewportHeight: window.innerHeight,
+                workspace: rect('.workspace'),
+                hero: rect('.hero'),
+                canvas: rect('#canvas'),
+                timeline: rect('#timeline'),
+                taskColumn: rect('.task-col'),
+                teachingColumn: rect('.teaching-col'),
+                teachingPanels: panelHeights,
+                compactDetails: Array.from(document.querySelectorAll('.task-col > .panel details, .teaching-col > .panel > details')).length,
+                collapsedStepEvidence: document.querySelectorAll('#step-evidence-panel details:not([open])').length,
+                rightOverflow: (() => {
+                    const node = document.querySelector('.teaching-col');
+                    if (!node) return {};
+                    const style = getComputedStyle(node);
+                    return { overflowX: style.overflowX, overflowY: style.overflowY };
+                })(),
+                code: (() => {
+                    const node = document.querySelector('#code');
+                    if (!node) return {};
+                    const style = getComputedStyle(node);
+                    return {
+                        height: node.getBoundingClientRect().height,
+                        clientHeight: node.clientHeight,
+                        scrollHeight: node.scrollHeight,
+                        overflowX: style.overflowX,
+                        overflowY: style.overflowY,
+                    };
+                })(),
+            };
+        }"""
+    )
+    assert metrics["scrollHeight"] <= 2300, f"{path}: 页面过长，full-page 截图会包含大面积空白: {metrics}"
+    assert metrics["hero"]["height"] <= 760, f"{path}: 主可视化面板过高: {metrics}"
+    assert metrics["canvas"]["height"] <= 420, f"{path}: 主画布固定高度过大: {metrics}"
+    assert metrics["timeline"]["height"] <= 72, f"{path}: 时间线占用过高: {metrics}"
+    assert metrics["teachingColumn"]["height"] <= 2200, f"{path}: 右侧面板堆叠过长: {metrics}"
+    assert metrics["taskColumn"]["height"] <= 760, f"{path}: 左侧代码和解法区域堆叠过长: {metrics}"
+    assert metrics["compactDetails"] == 1, f"{path}: 只有本步证据允许折叠: {metrics}"
+    assert metrics["collapsedStepEvidence"] == 1, f"{path}: 本步证据应默认隐藏收起: {metrics}"
+    assert metrics["rightOverflow"]["overflowY"] == "visible", f"{path}: 右侧栏不应有内部滚动条: {metrics}"
+    assert metrics["code"]["overflowY"] == "visible", f"{path}: 代码应完全展开，不应内部滚动: {metrics}"
+    assert metrics["code"]["scrollHeight"] <= metrics["code"]["clientHeight"] + 1, f"{path}: 代码没有完全展开: {metrics}"
+    page.set_viewport_size({"width": 390, "height": 820})
+    page.wait_for_timeout(80)
+    mobile_metrics = page.evaluate(
+        """() => {
+            const rect = selector => {
+                const node = document.querySelector(selector);
+                if (!node) return { height: 0 };
+                return { height: node.getBoundingClientRect().height };
+            };
+            return {
+                scrollHeight: document.documentElement.scrollHeight,
+                viewportHeight: window.innerHeight,
+                taskColumn: rect('.task-col'),
+                teachingColumn: rect('.teaching-col'),
+                hero: rect('.hero'),
+                rightOverflow: (() => {
+                    const node = document.querySelector('.teaching-col');
+                    if (!node) return {};
+                    const style = getComputedStyle(node);
+                    return { overflowX: style.overflowX, overflowY: style.overflowY };
+                })(),
+            };
+        }"""
+    )
+    assert mobile_metrics["scrollHeight"] <= 3600, f"{path}: 移动端展开后页面异常过长: {mobile_metrics}"
+    assert mobile_metrics["taskColumn"]["height"] <= 760, f"{path}: 移动端左侧内容应保持可控: {mobile_metrics}"
+    assert mobile_metrics["rightOverflow"]["overflowY"] == "visible", f"{path}: 移动端右侧栏不应有内部滚动条: {mobile_metrics}"
+
+
+def _check_removed_main_input_and_validation_sections(page, path: Path):
+    removed_selectors = (
+        "#problem-description",
+        "#input-editor",
+        "#regeneration-panel",
+        "#regenerate",
+        "#evidence",
+    )
+    for selector in removed_selectors:
+        assert page.locator(selector).count() == 0, f"{path}: 主页面不应再出现旧入口 {selector}"
+    app_text = page.locator(".app > main").inner_text()
+    for phrase in ("题目与输入", "修改输入", "输入重新生成", "系统校验"):
+        assert phrase not in app_text, f"{path}: 主页面不应再出现 {phrase}: {app_text[:300]}"
+
+
+def _check_expanded_code_is_left_top(page, path: Path):
+    assert page.locator(".task-col > #code-panel").count() == 1, f"{path}: 左侧顶部缺少代码面板"
+    assert page.locator(".task-col #code").count() == 1, f"{path}: 代码应放在左侧栏"
+    assert page.locator(".teaching-col #code").count() == 0, f"{path}: 右侧栏不应再放代码"
+    assert page.locator("#code").evaluate("node => !node.closest('details')"), f"{path}: 代码面板应默认展开"
+    assert page.locator("#code").evaluate(
+        "node => getComputedStyle(node).overflowY === 'visible' && node.scrollHeight <= node.clientHeight + 1"
+    ), f"{path}: 代码必须完全展开且不应内部滚动"
+    first_panel_code = page.locator(".task-col > .panel").first.locator("#code")
+    assert first_panel_code.count() == 1, f"{path}: 代码应是左侧顶部第一个面板"
+    assert page.locator(".task-col > .panel").first.inner_text().splitlines()[0].strip() == "代码", (
+        f"{path}: 左侧顶部面板标题应为代码"
+    )
+
+
+def _check_current_variant_main_view_has_no_internal_scroll(page, path: Path):
+    for viewport_name, viewport in (
+        ("desktop", {"width": 1365, "height": 900}),
+        ("mobile", {"width": 390, "height": 820}),
+    ):
+        page.set_viewport_size(viewport)
+        page.wait_for_timeout(80)
+        total = page.evaluate("() => typeof frames === 'function' ? frames().length : 0")
+        failures = []
+        for index in range(int(total)):
+            page.evaluate("(i) => go(i)", index)
+            page.wait_for_timeout(30)
+            failures.extend(
+                page.evaluate(
+                    """({viewportName, step}) => {
+                        const host = document.querySelector('#canvas');
+                        const scene = document.querySelector('#canvas .objects');
+                        const hostRect = host.getBoundingClientRect();
+                        const sceneRect = scene ? scene.getBoundingClientRect() : null;
+                        const selectors = ['#canvas', '#canvas .scene-fit', '#canvas .primitive-panel', '#canvas .matrix', '#canvas .graph-svg', '#canvas .tree-svg', '#canvas .geometry-svg'];
+                        const scrollFailures = selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map((node, itemIndex) => {
+                            const style = getComputedStyle(node);
+                            const scrollable = ['auto', 'scroll'].includes(style.overflowX) || ['auto', 'scroll'].includes(style.overflowY);
+                            return scrollable ? {
+                                viewport: viewportName,
+                                step,
+                                selector,
+                                itemIndex,
+                                overflowX: style.overflowX,
+                                overflowY: style.overflowY,
+                            } : null;
+                        })).filter(Boolean);
+                        if (sceneRect) {
+                            const visuallyFits = sceneRect.left >= hostRect.left - 1
+                                && sceneRect.top >= hostRect.top - 1
+                                && sceneRect.right <= hostRect.right + 1
+                                && sceneRect.bottom <= hostRect.bottom + 1;
+                            if (!visuallyFits) {
+                                scrollFailures.push({
+                                    viewport: viewportName,
+                                    step,
+                                    selector: '#canvas .objects',
+                                    host: { left: hostRect.left, top: hostRect.top, right: hostRect.right, bottom: hostRect.bottom },
+                                    scene: { left: sceneRect.left, top: sceneRect.top, right: sceneRect.right, bottom: sceneRect.bottom },
+                                    fitScale: scene.dataset.fitScale || '',
+                                });
+                            }
+                        }
+                        return scrollFailures;
+                    }""",
+                    {"viewportName": viewport_name, "step": index},
+                )
+            )
+        assert not failures, f"{path}: 主视图不允许内部滚动条，必须完整展示: {failures[:6]}"
 
 
 def _check_compound_scene_if_present(page, path: Path):
@@ -217,38 +391,14 @@ def _check_dependency_click_details(page, path: Path):
     assert seen == {"matrix", "graph", "array_stack"}, f"{path}: 依赖点击覆盖不足: {seen}"
 
 
-def _check_regeneration_and_variant_entry(page, path: Path):
+def _check_removed_input_sections_and_variant_entry(page, path: Path):
     page.set_viewport_size({"width": 1365, "height": 900})
     page.goto(path.resolve().as_uri())
     page.wait_for_timeout(500)
 
-    input_text = page.locator("#input").inner_text()
-    assert '"fixture": "golden_visual_matrix"' in input_text, f"{path}: 当前输入没有展示 artifact input_data"
-    assert page.locator("#input-editor").count() == 1, f"{path}: 缺少可编辑输入入口"
-    assert '"fixture": "golden_visual_matrix"' in page.locator("#input-editor").input_value(), (
-        f"{path}: 输入编辑器没有加载当前输入"
-    )
+    _check_removed_main_input_and_validation_sections(page, path)
     tabs = page.locator("#tabs .tab")
     assert tabs.count() >= 4, f"{path}: variant 列表不足: {tabs.count()}"
-
-    panel_text = page.locator("#regeneration-panel").inner_text()
-    for phrase in ("ProblemInput -> BuildArtifact -> HTML", "静态 HTML 无法在线调用后端", "artifact 输入"):
-        assert phrase in panel_text, f"{path}: 重新生成入口缺少说明 {phrase}: {panel_text}"
-    regenerate = page.locator("#regenerate")
-    assert regenerate.count() == 1 and not regenerate.is_disabled(), f"{path}: 重新生成入口不可点击"
-
-    before_frames = page.evaluate("() => JSON.stringify(frames())")
-    before_artifact = page.evaluate("() => JSON.stringify(ARTIFACT)")
-    page.locator("#input-editor").fill('{"fixture":"modified","m":4}')
-    regenerate.click()
-    page.wait_for_timeout(80)
-    status_text = page.locator("#regenerate-status").inner_text()
-    payload_text = page.locator("#regenerate-payload").inner_text()
-    assert "静态 HTML 无法在线调用后端" in status_text, f"{path}: 缺少静态降级提示: {status_text}"
-    assert "ProblemInput -> BuildArtifact -> HTML" in payload_text, f"{path}: artifact 输入缺少主 pipeline: {payload_text}"
-    assert '"fixture": "modified"' in payload_text, f"{path}: artifact 输入没有包含修改后的输入: {payload_text}"
-    assert page.evaluate("() => JSON.stringify(frames())") == before_frames, f"{path}: 重新生成入口修改了当前 trace"
-    assert page.evaluate("() => JSON.stringify(ARTIFACT)") == before_artifact, f"{path}: 重新生成入口修改了 artifact"
 
     expected_scene_markers = {
         "unique_paths": {"must": {"dp"}, "must_not": {"node:A", "temperatures", "nums"}},
@@ -366,13 +516,16 @@ def _check_variant_comparison_entry(page, path: Path):
 def _check_golden_visual_matrix_page(page, path: Path):
     _check_page(page, path)
     _check_dependency_click_details(page, path)
-    _check_regeneration_and_variant_entry(page, path)
+    _check_removed_input_sections_and_variant_entry(page, path)
     _check_variant_comparison_entry(page, path)
     _check_phase17_interaction_learning_enhancements(page, path)
     for example in golden_visual_matrix():
         page.locator("#tabs .tab").filter(has_text=example["name"]).first.click()
         page.wait_for_timeout(120)
         assert page.locator("#canvas").inner_text().strip(), f"{path}: {example['id']} 主画布为空"
+        if page.locator("#step-evidence-panel details:not([open])").count():
+            page.locator("#step-evidence-panel summary").click()
+            page.wait_for_timeout(50)
         assert page.locator("#step-evidence").inner_text().strip(), f"{path}: {example['id']} 本步证据为空"
         for object_id in example["key_objects"]:
             frame_index = page.evaluate(

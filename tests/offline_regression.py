@@ -431,8 +431,8 @@ def test_stable_renderer_exposes_correctness_and_step_evidence(tmp_path: Path):
     out = save_html(artifact, tmp_path / "stable_evidence.html")
     html = out.read_text(encoding="utf-8")
 
-    assert 'id="evidence"' in html
     assert 'id="step-evidence"' in html
+    assert 'id="debug-evidence"' in html
     assert "function renderEvidence" in html
     assert "function renderStepEvidence" in html
     assert "function stateDiff" in html
@@ -448,8 +448,25 @@ def test_renderer_uses_p1_information_architecture(tmp_path: Path):
 
     assert 'id="top-result"' in html
     assert 'id="top-solution"' in html
-    assert 'id="problem-description"' in html
+    assert 'id="problem-description"' not in html
+    assert 'id="input-editor"' not in html
+    assert 'id="regeneration-panel"' not in html
+    assert ">题目与输入<" not in html
+    assert ">修改输入<" not in html
+    assert ">输入重新生成<" not in html
+    assert ">系统校验<" not in html
     assert 'id="teaching-panel"' in html
+    assert 'id="code-panel"' in html
+    code_panel_block = html.split('id="code-panel"', 1)[1].split('id="tabs"', 1)[0]
+    assert '<h2>代码</h2>' in code_panel_block
+    assert 'id="code"' in code_panel_block
+    assert "<details" not in code_panel_block
+    assert 'class="col task-col"' in html.split('id="code-panel"', 1)[0]
+    assert html.index('<h2>代码</h2>') < html.index('<h2>解法</h2>')
+    assert ".task-col .code {{" not in html
+    assert ".code {{ max-height" not in html
+    assert ".teaching-col {{ max-height" not in html
+    assert "<details" not in html.split('class="col teaching-col"', 1)[1].split("</aside>", 1)[0]
     assert 'id="debug-drawer"' in html
     assert 'id="debug-drawer" open' not in html
     assert html.index('id="teaching-panel"') < html.index('id="debug-drawer"')
@@ -2769,31 +2786,23 @@ def test_renderer_declares_phase17_formula_expand_and_structured_wrong_feedback(
     assert "scene().frames" not in feedback_block
 
 
-def test_renderer_declares_regeneration_entry_without_trace_mutation(tmp_path: Path):
-    out = save_html(golden_visual_artifact(), tmp_path / "regeneration_entry.html")
+def test_renderer_removes_main_input_regeneration_and_validation_sections(tmp_path: Path):
+    out = save_html(golden_visual_artifact(), tmp_path / "compact_main_view.html")
     html = out.read_text(encoding="utf-8")
 
-    assert 'id="input-editor"' in html
-    assert 'id="regeneration-panel"' in html
-    assert "ProblemInput -> BuildArtifact -> HTML" in html
-    assert "静态 HTML 无法在线调用后端" in html
-    assert "artifact 输入" in html
-    assert "function buildProblemInputPayload" in html
-    assert "function requestRegenerate" in html
-
-    payload_block = html.split("function buildProblemInputPayload", 1)[1].split("function updateRegeneratePayload", 1)[0]
-    assert "problem_input" in payload_block
-    assert "input_data" in payload_block
-    assert "solution_count" in payload_block
-    assert "pipeline" in payload_block
-
-    request_block = html.split("function requestRegenerate", 1)[1].split("function selectVariant", 1)[0]
-    assert "JSON.parse" not in request_block
-    assert "ARTIFACT =" not in request_block
-    assert "ARTIFACT.scenes" not in request_block
-    assert "frames()[" not in request_block
-    assert "scene().frames" not in request_block
-    assert "stepIndex =" not in request_block
+    assert 'id="input-editor"' not in html
+    assert 'id="regeneration-panel"' not in html
+    assert 'id="problem-description"' not in html
+    assert 'id="evidence"' not in html
+    assert ">题目与输入<" not in html
+    assert ">修改输入<" not in html
+    assert ">输入重新生成<" not in html
+    assert ">系统校验<" not in html
+    assert "function buildProblemInputPayload" not in html
+    assert "function updateRegeneratePayload" not in html
+    assert "function requestRegenerate" not in html
+    assert 'id="debug-evidence"' in html
+    assert "function renderEvidence" in html
 
     select_block = html.split("function selectVariant", 1)[1].split("function go", 1)[0]
     assert "variantIndex = i" in select_block
@@ -2828,7 +2837,7 @@ def test_renderer_declares_variant_comparison_without_scene_mixing(tmp_path: Pat
     assert "scene().frames" not in compare_block
     assert "frames()[" not in compare_block
 
-    keyframe_block = html.split("function isKeyCompareFrame", 1)[1].split("function buildProblemInputPayload", 1)[0]
+    keyframe_block = html.split("function isKeyCompareFrame", 1)[1].split("function selectVariant", 1)[0]
     assert "timeline.keyframe" in keyframe_block
     assert "evidence.operation" in keyframe_block
     assert "algorithm" not in keyframe_block

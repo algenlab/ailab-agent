@@ -336,7 +336,7 @@ def materialize_demo(definition: DemoDefinition, demo_dir: Path, *, output_dir: 
     if exception_text:
         errors.append(exception_text)
     capability = capability_for_definition(definition)
-    process_status = process_status_for_profile(definition.process_profile)
+    process_status = process_status_for_profile(definition.process_profile, family_id=definition.family_id)
     process_failure_type = process_failure_type_for_status(definition.process_profile, process_status)
     layer_statuses = demo_layer_statuses(
         artifact,
@@ -745,10 +745,13 @@ def family_capability_lookup() -> dict[str, dict[str, Any]]:
     return lookup
 
 
-def process_status_for_profile(process_profile: str) -> str:
+def process_status_for_profile(process_profile: str, *, family_id: str = "") -> str:
+    profiles = known_process_profiles()
+    if family_id in profiles:
+        return profiles[family_id]
     if process_profile == "uncovered":
         return "uncovered"
-    return known_process_profiles().get(process_profile, "unknown")
+    return profiles.get(process_profile, "unknown")
 
 
 def process_failure_type_for_status(process_profile: str, process_status: str) -> str:

@@ -108,6 +108,118 @@ def test_direct_html_baseline_writes_html_and_runs_browser_smoke(tmp_path: Path)
     assert report["browser_smoke"][0]["ok"] is True
 
 
+def test_direct_html_prompt_can_hide_expected_output() -> None:
+    case = _case("two_sum")
+    sample = case.samples[0]
+
+    visible_prompt = direct_html._user_prompt(case, sample, expected_visible_to_model=True)
+    hidden_prompt = direct_html._user_prompt(case, sample, expected_visible_to_model=False)
+
+    assert "期望输出 JSON" in visible_prompt
+    assert json.dumps(sample.expected, ensure_ascii=False) in visible_prompt
+    assert "期望输出 JSON" not in hidden_prompt
+    assert json.dumps(sample.expected, ensure_ascii=False) not in hidden_prompt
+    assert "请自行求解" in hidden_prompt
+    assert "#answer" in hidden_prompt
+
+
+def test_direct_html_repairs_invalid_html_with_max_rounds(tmp_path: Path):
+    case = _case("two_sum")
+    sample = case.samples[0]
+    args = _args(tmp_path, condition="direct_html_no_expected")
+    args.baseline = "direct_html_no_expected"
+    args.direct_html_baseline = True
+    args.expected_visible_to_model = False
+    args.process_validator_enabled = False
+    args.scenegraph_compiler_enabled = False
+    args.trace_only_renderer_enabled = False
+    args.max_rounds = 1
+    calls: list[str] = []
+
+    def fake_chat_text_with_metadata(_system, user, **_kwargs):
+        calls.append(user)
+        llm_client.record_model_call(_model_call("direct_html"))
+        if len(calls) == 1:
+            return {"content": "这不是 HTML"}
+        return {
+            "content": """<!doctype html>
+<html lang="zh-CN"><body>
+  <h1 id="title">两数之和</h1>
+  <div id="counter">1 / 1</div>
+  <main id="canvas">完成</main>
+  <pre id="answer">[0, 1]</pre>
+  <button id="next">下一步</button>
+</body></html>"""
+        }
+
+    original = direct_html.chat_text_with_metadata
+    direct_html.chat_text_with_metadata = fake_chat_text_with_metadata
+    try:
+        result = direct_html.run_one_direct_html(case, sample, 0, args)
+    finally:
+        direct_html.chat_text_with_metadata = original
+
+    assert result["ok"] is True
+    assert result["direct_html_repair_attempted"] is True
+    assert result["direct_html_repair_rounds"] == 1
+    assert "期望输出 JSON" not in calls[1]
+    assert "missing <html>" in calls[1]
+    assert Path(result["html"]).exists()
+
+
+def test_direct_html_repairs_browser_smoke_failure_when_enabled(tmp_path: Path):
+    case = _case("two_sum")
+    sample = case.samples[0]
+    args = _args(tmp_path, condition="direct_html_no_expected")
+    args.baseline = "direct_html_no_expected"
+    args.direct_html_baseline = True
+    args.expected_visible_to_model = False
+    args.process_validator_enabled = False
+    args.scenegraph_compiler_enabled = False
+    args.trace_only_renderer_enabled = False
+    args.browser_smoke = True
+    args.max_rounds = 1
+    calls: list[str] = []
+    smoke_calls = 0
+
+    def fake_chat_text_with_metadata(_system, user, **_kwargs):
+        calls.append(user)
+        llm_client.record_model_call(_model_call("direct_html"))
+        return {
+            "content": """<!doctype html>
+<html lang="zh-CN"><body>
+  <h1 id="title">两数之和</h1>
+  <div id="counter">1 / 1</div>
+  <main id="canvas">完成</main>
+  <pre id="answer">[0, 1]</pre>
+  <button id="next">下一步</button>
+</body></html>"""
+        }
+
+    def fake_browser_smoke_html_paths(paths):
+        nonlocal smoke_calls
+        smoke_calls += 1
+        if smoke_calls == 1:
+            return [{"html": str(paths[0]), "ok": False, "errors": ["pageerror: boom"]}]
+        return [{"html": str(paths[0]), "ok": True, "errors": []}]
+
+    original_chat = direct_html.chat_text_with_metadata
+    original_smoke = direct_html.browser_smoke_html_paths
+    direct_html.chat_text_with_metadata = fake_chat_text_with_metadata
+    direct_html.browser_smoke_html_paths = fake_browser_smoke_html_paths
+    try:
+        result = direct_html.run_one_direct_html(case, sample, 0, args)
+    finally:
+        direct_html.chat_text_with_metadata = original_chat
+        direct_html.browser_smoke_html_paths = original_smoke
+
+    assert result["ok"] is True
+    assert result["direct_html_repair_attempted"] is True
+    assert result["direct_html_repair_rounds"] == 1
+    assert smoke_calls == 2
+    assert "pageerror: boom" in calls[1]
+
+
 def test_no_process_validator_ablation_records_flag_and_restores_pipeline(tmp_path: Path):
     case = _case("two_sum")
     sample = case.samples[0]
@@ -184,6 +296,9 @@ def run_all() -> None:
     with tempfile.TemporaryDirectory() as d:
         root = Path(d)
         test_direct_html_baseline_writes_html_and_runs_browser_smoke(root / "direct")
+        test_direct_html_prompt_can_hide_expected_output()
+        test_direct_html_repairs_invalid_html_with_max_rounds(root / "repair_html")
+        test_direct_html_repairs_browser_smoke_failure_when_enabled(root / "repair_browser")
         test_no_process_validator_ablation_records_flag_and_restores_pipeline(root / "no_process")
         test_no_scenegraph_compiler_ablation_writes_trace_only_report_and_failure_types(root / "no_scene")
 

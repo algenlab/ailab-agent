@@ -1,8 +1,8 @@
 # AlgoLab 系统说明
 
-本文档是当前项目的主说明文档。它描述实际代码正在使用的架构、数据流、质量门禁、运行方式和维护边界。
+本文档描述当前代码实际运行的系统架构、数据流、产物、质量门禁和实验口径。需要理解项目时优先读本文档，再看源码和各阶段历史文档。
 
-旧的阶段设计文档已经合并到这里；需要了解系统时优先读本文档，再看源码。
+当前实现已经进入 DSL-era：LLM 不再直接生成 HTML，也不再手写完整事件 JSON；LLM 生成可执行 Python `solve(input_data)` 和使用 `TraceSession` DSL 的 `trace(input_data)`，系统在沙箱中执行代码，得到 `SemanticTrace`，再编译为 `SceneGraph` 和单文件 HTML。
 
 ## 1. 系统目标
 
@@ -11,7 +11,7 @@ AlgoLab 是一个可验证的算法可视化生成系统。
 输入：
 
 - LeetCode 风格题目描述。
-- 一组具体 JSON 输入。
+- 本次可视化使用的具体 JSON 输入。
 - 可选 expected output。
 - 可选解法思路。
 - 可选用户代码。
@@ -20,55 +20,78 @@ AlgoLab 是一个可验证的算法可视化生成系统。
 输出：
 
 - 可执行解法 `solve(input_data)`。
-- 可执行语义轨迹 `trace(input_data)`。
-- 独立校验器 `verify(input_data)`。
-- 通过校验的 `BuildArtifact` JSON。
+- 可执行追踪函数 `trace(input_data)`。
+- 可选独立校验器 `verify(input_data)`。
+- 机器可验的 `BuildArtifact` JSON。
 - 单文件中文交互式 HTML 页面。
 
 核心原则：
 
-- LLM 只生成算法语义候选，不生成 HTML/CSS/JS。
-- 系统执行和校验 LLM 输出，错误产物不能发布。
-- Renderer 只消费 `SceneGraph`，不理解具体算法题。
-- 新增算法优先复用通用视觉形态和固定语义 op。
-- 当前版本使用严格 `SemanticTrace` 协议，不再兼容旧式 trace 字段和旧式 map target。
+- LLM 只生成算法代码和 DSL trace 代码，不生成 AlgoLab 主链路 HTML/CSS/JS。
+- 系统真实执行 LLM 输出，错误产物不能发布。
+- `SemanticTrace` 是算法过程语义层，`SceneGraph` 是渲染语义层。
+- Renderer 只消费 `BuildArtifact` / `SceneGraph`，不重新理解具体算法。
+- direct HTML baseline 是外部实验，不进入 AlgoLab release gate。
 
-### 1.1 当前系统功能状态
-
-当前系统已经从“让 LLM 自由手写事件列表”升级为“LLM 生成算法代码，系统用统一语义协议执行、校验、编译和渲染”。
+## 2. 当前系统状态
 
 主要能力：
 
-- Web UI 和 CLI 都走同一条 `ProblemInput -> BuildArtifact -> HTML` 管线。
-- LLM 负责生成 `solve(input_data)`、`trace(input_data)`、`verify(input_data)` 和多解法 variants。
-- `tracker_code` 推荐使用系统注入的 `Tracer` API 生成 trace，系统统一管理 step、targets/deps、抽样、coverage 和 `_trace_meta`。
-- `trace(input_data)` 必须返回 `semantic-trace-v1` 格式，且必须显式包含与本次请求完全一致的 `input_data`。
-- 系统会真实执行 `solve`、`trace`、`verify`，再经过 schema、trace、process、scene、release gate 多层校验。
-- 通过校验后输出单文件 HTML 和对应 artifact JSON，renderer 只读取 `SceneGraph`，不读取 LLM 代码。
-- 确定性 benchmark 覆盖 DP、图、栈队列、哈希表、树、堆、Trie、并查集、递归、字符串、几何和 ML primitive 等视觉形态。
+- Web UI、CLI、LLM benchmark 共享 `ProblemInput -> BuildArtifact -> HTML` 主链路。
+- `tracker_system.txt` 要求 LLM 输出 JSON：`problem_title`、`input_contract`、`verifier_code`、`variants`。
+- 每个 variant 包含 `code` 和 `tracker_code`；`code` 定义 `solve(input_data)`，`tracker_code` 定义 `trace(input_data)`。
+- `trace(input_data)` 使用沙箱注入的 `TraceSession` DSL，例如 `sess.array()`、`sess.table()`、`sess.graph()`、`arr[i] = x`、`sess.result(answer)`、`sess.to_trace()`。
+- 沙箱会执行 `solve`、`trace`、可选 `verify`，并检查答案一致性。
+- `TraceSession` 自动生成 `semantic-trace-v1`，包括 step、op、targets、deps、state、reason、teaching、interaction 等字段。
+- `compile_scene()` 将 `SemanticTrace` 编译为 `scene-graph-v1`，生成 frame、object、mark、teaching 和 evidence。
+- `save_html()` 输出单文件 HTML，并同时写出完整 artifact JSON。
+- benchmark 和 evaluation 脚本会记录 condition、failure type、phase timing、model calls、browser smoke、release gate 等证据。
 
-最近移除的旧兼容：
+最近架构变化：
 
-- 不再把事件字段 `type` 自动转换成 `op`。
-- 不再把事件字段 `target` 自动转换成 `targets`。
-- 不再给 trace 自动补缺失的 `input_data`。
-- 不再自动规范化 quoted map target，例如 `seen['2']`。
-- 不再接受旧式 map target，例如 `seen:2`、`dist:A`、`map:seen`。
+- `algolab/runtime/dsl.py` 是当前主追踪 API。
+- `algolab/runtime/tracer.py` 旧 `Tracer` 仍存在，但 prompt 明确要求优先使用 `TraceSession`，不要回退到旧 API。
+- `algolab/verification/process_families/*` 已删除。
+- `process_validator.py` 保留外部 API，但当前是 DSL-era 轻量 sanity 层；算法族级 5500+ 行手写 invariant 不再维护。
+- family/process 报告仍保留 strong/fallback/uncovered 等 registry 口径，用于报告边界和降级说明。
+- direct HTML baseline 新增 `--hide-expected` 公平模式和 `audit_direct_html_answer.py` 答案审计。
 
-当前推荐 target 写法：
+## 3. 主链路总览
 
 ```text
-数组/表格：nums[0]、dp[1][2]
-切片：text[2:5]
-哈希表：seen[2]、dist[B]、count[x]
-图节点/边：node:A、edge:A->B
-指针：pointer:left、pointer:mid
-递归帧：frame:dfs(2)
-几何点：point:3
-字符串字符：text[3]、pattern[2]
+BenchmarkCase / Web / CLI
+  -> ProblemInput
+  -> generate_solution_spec()
+  -> LLM solution spec
+  -> parse_variants()
+  -> execute_variant()
+  -> SemanticTrace
+  -> validate_trace()
+  -> validate_process()
+  -> validate_variant_demo_readiness()
+  -> compile_scene()
+  -> validate_scene()
+  -> contract tests / multi-solution checks
+  -> compute_release_gate()
+  -> BuildArtifact
+  -> save_html()
+  -> HTML + artifact JSON
+  -> browser smoke
+  -> benchmark / evaluation / release report
 ```
 
-## 2. 主入口
+一句话版本：
+
+```text
+LLM 写可执行算法和 DSL trace
+  -> 系统执行并生成 SemanticTrace
+  -> 系统校验 trace / demo / scene / answer evidence
+  -> 编译为 SceneGraph
+  -> 导出 HTML
+  -> browser smoke 只检查页面可运行性
+```
+
+## 4. 入口
 
 ### Web UI
 
@@ -83,29 +106,11 @@ cd /ssd1/liaokunpeng/paper/ailab-agent
 
 默认端口：`7861`
 
-Gradio 缓存目录固定在项目内：
-
-```text
-.gradio_cache/
-```
-
-如果在容器里启动，宿主机需要映射端口：
-
-```bash
-docker run -p 7861:7861 ...
-```
+Web UI 读取题目、输入、expected、解法数量，构造 `ProblemInput`，调用 `build_artifact()`，再用 `save_html()` 写出 `output/algolab.html` 和 `output/algolab.json`。
 
 ### CLI
 
 文件：`cli.py`
-
-默认样例：
-
-```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py --strategy "动态规划" --solutions 2 --output output/algolab.html
-```
-
-不同路径样例：
 
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py \
@@ -117,59 +122,58 @@ docker run -p 7861:7861 ...
   --output output/unique_paths.html
 ```
 
-### 静态 Dashboard
+CLI 和 Web UI 使用同一条 `build_artifact()` 主链路。
 
-生成：
+### LLM Benchmark
+
+文件：`scripts/run_llm_benchmark.py`
+
+用途：调用真实模型，跑 benchmark cases，输出 `llm_benchmark_report.json/md`。
+
+关键字段：
+
+- `ok`：由 `artifact.validation.release_gate.release_ready` 和 strict warning 决定。
+- `release_gate`：每条样例的机器发布门。
+- `checks` / `warnings` / `errors`：构建过程证据。
+- `phase_timings`：generate、materialize、repair、render 等阶段耗时。
+- `model_calls`：模型调用与 token 信息。
+- `html` / `json`：导出的 HTML 和 artifact JSON。
+
+### Direct HTML Baseline
+
+文件：`scripts/run_direct_html_baseline.py`
+
+这是外部 baseline，不经过 `SemanticTrace`、`SceneGraph`、process validator 或 release gate。它直接让 LLM 输出单文件 HTML。
+
+默认模式：
+
+```text
+condition = direct_html_baseline
+expected_visible_to_model = true
+```
+
+公平模式：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_direct_html_baseline.py \
+  --hide-expected \
+  --output-dir output/direct_html_no_expected
 ```
 
-直接打开：
+`--hide-expected` 后：
 
 ```text
-output/dashboard/index.html
+condition = direct_html_no_expected
+baseline = direct_html_no_expected
+expected_visible_to_model = false
 ```
 
-或用本地静态服务：
+direct HTML prompt 要求页面包含 `#title`、`#counter`、`#canvas`、`#next`、`#answer`。静态 `validate_direct_html()` 当前只检查 `<html>`、`#title`、`#counter`、`#canvas`；browser smoke 检查页面能打开和核心 DOM 可见；最终答案正确性必须用 answer audit 单独统计。
 
-```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m http.server 8000 --directory output/dashboard
-```
-
-访问：
+## 5. 文件级调用顺序
 
 ```text
-http://127.0.0.1:8000/
-```
-
-## 3. 目录结构
-
-```text
-algolab/
-  schemas/              # Pydantic 数据模型
-  generation/           # LLM prompt、解析、修复
-  runtime/              # sandbox 执行 solve / trace / verify
-  verification/         # contract / trace / process / scene / release gate
-  compiler/             # SemanticTrace -> SceneGraph
-  renderer/             # SceneGraph -> HTML runtime
-
-tests/                  # 离线、benchmark、浏览器 smoke 测试
-scripts/                # dashboard、benchmark、质量检查脚本
-output/                 # 生成产物，已 gitignore
-app.py                  # Gradio Web UI
-cli.py                  # CLI 入口
-llm_client.py           # OpenAI-compatible LLM 客户端
-SYSTEM_FLOW.html        # 系统流程可视化说明
-SYSTEM_OVERVIEW.md      # 当前文档
-```
-
-## 3.1 文件级调用顺序
-
-主路径从用户输入到 HTML 产物，文件级调用链如下：
-
-```text
-app.py / cli.py
+app.py / cli.py / scripts/run_llm_benchmark.py
   -> algolab/schemas/input.py
   -> algolab/pipeline.py
   -> algolab/generation/solution_generator.py
@@ -178,10 +182,12 @@ app.py / cli.py
   -> algolab/schemas/semantic_trace.py
   -> algolab/runtime/executor.py
   -> algolab/runtime/sandbox.py
-  -> algolab/runtime/tracer.py
+  -> algolab/runtime/dsl.py
   -> algolab/verification/contract_validator.py
   -> algolab/verification/trace_validator.py
   -> algolab/verification/process_validator.py
+  -> algolab/verification/demo_readiness.py
+  -> algolab/compiler/object_resolver.py
   -> algolab/compiler/target_parser.py
   -> algolab/compiler/scene_compiler.py
   -> algolab/schemas/scene_graph.py
@@ -197,48 +203,13 @@ app.py / cli.py
   -> output/*.html + output/*.json
 ```
 
-展开说明：
+## 6. 核心产物
 
-1. `app.py` / `cli.py` 读取题目、输入、期望输出和解法数量。
-2. `algolab/schemas/input.py` 用 `ProblemInput` 统一封装请求。
-3. `algolab/pipeline.py` 的 `build_artifact()` 负责总调度。
-4. `algolab/generation/solution_generator.py` 组织 prompt，并通过 `llm_client.py` 请求模型。
-5. `tracker_system.txt` 约束 LLM 输出 `solve`、`tracker_code`、`verifier_code` 和 variants。
-6. `solution_generator.py` 将 LLM JSON 规范化为 `SolutionVariant`。
-7. `algolab/runtime/executor.py` 调用 sandbox 分别执行 `solve(input_data)` 和 `trace(input_data)`。
-8. `algolab/runtime/sandbox.py` 在子进程中执行生成代码，并注入 `Tracer`。
-9. `algolab/runtime/tracer.py` 在新 tracker 路径下统一生成 `SemanticTrace`、coverage meta 和抽样信息。
-10. `executor.py` 只做必要的 step 重编号、budget 和 result 一致性检查；不再兼容旧字段或旧 target 格式。
-11. `contract_validator.py`、`trace_validator.py`、`process_validator.py` 分别检查 contract、trace 引用和算法过程。
-12. `target_parser.py` 解析 `dp[1][2]`、`node:A`、`edge:A->B`、`pointer:left` 等 target id。
-13. `scene_compiler.py` 将 `SemanticTrace` 编译为 `SceneGraph`，把 state、targets、deps 转成可渲染对象、标记和箭头。
-14. `scene_validator.py` 检查 scene graph 是否可渲染。
-15. `release_gate.py` 汇总 artifact、trace、process、visual 等发布门禁。
-16. `validation.py` 定义最终 `BuildArtifact`、`ValidationReport` 和 `ReleaseGate`。
-17. `renderer/export.py` 将 `BuildArtifact` 打包为单文件 HTML，并写出 JSON 副本。
-18. `renderer/targets.py`、`panels.py`、`runtime_shell.py`、`spatial_runtime.py`、`layout_registry.py` 提供页面外壳、面板结构、渲染目标和前端运行时。
-
-一句话版本：
-
-```text
-入口 app/cli
-  -> pipeline
-  -> LLM generator
-  -> executor / sandbox / Tracer
-  -> validators
-  -> scene compiler
-  -> release gate
-  -> renderer / export
-  -> HTML
-```
-
-## 4. 核心数据结构
-
-### ProblemInput
+### 6.1 ProblemInput
 
 位置：`algolab/schemas/input.py`
 
-表示用户请求：
+用户级请求：
 
 - `problem`
 - `input_data`
@@ -247,17 +218,22 @@ app.py / cli.py
 - `expected_result`
 - `solution_count`
 
-### Solution Spec
+它回答：“这次要生成哪个题、哪个输入、几个解法？”
 
-LLM 首次输出的 JSON，不是最终产物：
+### 6.2 LLM Solution Spec
+
+位置：`algolab/generation/solution_generator.py`、`algolab/generation/prompts/tracker_system.txt`
+
+LLM 输出 JSON，不是最终 artifact：
 
 ```json
 {
   "problem_title": "...",
   "input_contract": "...",
+  "verifier_code": "def verify(input_data): ...",
   "variants": [
     {
-      "id": "...",
+      "id": "v1",
       "name": "...",
       "strategy": "...",
       "time_complexity": "O(...)",
@@ -265,101 +241,157 @@ LLM 首次输出的 JSON，不是最终产物：
       "code": "def solve(input_data): ...",
       "tracker_code": "def trace(input_data): ..."
     }
-  ],
-  "verifier_code": "def verify(input_data): ..."
+  ]
 }
 ```
 
-可选字段：
+硬约束：
 
-- `correctness_contract`
-- `visual_plan`
+- 顶层只允许 `problem_title`、`input_contract`、`verifier_code`、`variants`。
+- variant 只允许 `id`、`name`、`strategy`、`time_complexity`、`space_complexity`、`code`、`tracker_code`。
+- 禁止输出 HTML、SceneGraph、events、metadata 等额外字段。
+- `trace(input_data)` 内使用 `sess = TraceSession(...)`，最后 `return sess.to_trace()`。
 
-### SemanticTrace
+它回答：“模型给出的算法实现和可视化追踪实现是什么？”
+
+### 6.3 SolutionVariant
 
 位置：`algolab/schemas/semantic_trace.py`
 
-`trace(input_data)` 必须返回固定格式：
+单个解法：
 
-- `schema_version`
+- `code`：定义 `solve(input_data)`。
+- `tracker_code`：定义 `trace(input_data)`。
+- `result`：执行后填入。
+- `trace`：执行后填入 `SemanticTrace`。
+
+它回答：“这个解法执行后得到什么答案和什么过程轨迹？”
+
+### 6.4 SemanticTrace
+
+位置：`algolab/schemas/semantic_trace.py`
+
+`trace(input_data)` 返回的机器语义轨迹：
+
+- `schema_version = semantic-trace-v1`
 - `algorithm`
 - `input_data`
 - `result`
 - `pseudocode`
 - `events`
 
-固定 op 集合：
+每个 event 包含：
+
+- `step`
+- `op`
+- `targets`
+- `value` / `before` / `after`
+- `deps`
+- `role`
+- `reason`
+- `state`
+- `code_line`
+- `interaction`
+- `teaching`
+
+固定 op：
 
 ```text
 create / set / mark / unmark / move / compare / link / unlink /
 push / pop / enter / exit / explain
 ```
 
-事件必须包含可核对的状态快照，不能只写自然语言。
+`SemanticTrace` 不描述布局，它描述算法过程。
 
-当前版本的 trace 是严格格式：
+它回答：“算法每一步做了什么、修改了什么、依赖了什么、为什么这么做？”
 
-- 事件字段必须使用 `op`，不能使用旧字段 `type`。
-- 事件目标必须使用 `targets: [{"id": "..."}]`，不能使用旧字段 `target`。
-- `trace` 顶层必须显式包含 `input_data`，并且与本次请求输入完全一致。
-- `state` 是当前帧可视化和过程校验的主要证据，内部字段如果以下划线开头会在编译 `SceneGraph` 时隐藏。
-- 哈希表 / map target 使用方括号格式，例如 `seen[2]`、`dist[B]`、`count[x]`。
-- 结构化前缀继续保留，例如 `node:`、`edge:`、`pointer:`、`frame:`、`point:`、`char:`。
-
-已废弃写法：
-
-```text
-type / target       -> 改为 op / targets
-seen:2              -> seen[2]
-dist:A              -> dist[A]
-map:seen            -> seen
-seen['2']           -> seen[2]
-```
-
-## Tracer API
-
-新 tracker 应使用系统提供的 `Tracer`，不要直接手写 `events.append({...})`。
-
-当前状态：
-
-- `tracker_code` 可以调用 `Tracer` 生成标准 `SemanticTrace`。
-- 小规模 DP 等语义更新数不超过预算的输入会保留完整逐帧过程。
-- 大输入会进入 sampled mode，并在 `_trace_meta` 中记录抽样状态。
-- process validator 会基于事件重新计算 coverage，拒绝非抽样模式下覆盖不足的 trace。
-- executor 对 Tracer full trace 放宽 raw event 数限制，允许 compare + set 这类多事件逐帧表达。
-
-作用：
-
-1. 防止跳帧。
-2. 统一 trace schema。
-3. 统一粒度策略。
-4. 支持标准轨迹和学生轨迹对齐。
-5. 输出 trace coverage 指标。
-6. 大输入时明确进入 sampled mode。
-
-已知限制：
-
-第一版定位为科研原型，默认 generated tracker 按 Tracer API 生成 trace。`_trace_meta` 目前仍放在 trace 事件的 `state` 中，不是不可伪造的执行侧证明；恶意手写 tracker 理论上可以构造类似 meta 影响预算判断。这个限制不影响正常 Tracer 路径、逐帧展示、coverage 统计和 demo 流程。后续如果进入生产化，需要把 Tracer 输出来源做成 executor 内部可信标记，或在 budget 阶段重新计算并严格校验 meta 与事件序列的一致性。
-
-### SceneGraph
+### 6.5 SceneGraph
 
 位置：`algolab/schemas/scene_graph.py`
 
-`SceneGraph` 是 renderer 的唯一输入。它由 `SemanticTrace` 编译得到，包含：
+`compile_scene(trace)` 输出的渲染语义层：
 
-- frame 列表。
-- frame 中的 scene object。
-- marks / arrows / state / teaching / evidence。
+- `schema_version = scene-graph-v1`
+- `algorithm`
+- `input_data`
+- `result`
+- `pseudocode`
+- `frames`
 
-Renderer 不直接读取题目文本和算法逻辑，只读 `SceneGraph`。
+每个 frame 包含：
 
-### BuildArtifact
+- `step`
+- `title`
+- `description`
+- `operation`
+- `code_line`
+- `objects`
+- `marks`
+- `state`
+- `interaction`
+- `teaching`
+- `evidence`
+
+常见 object 类型：
+
+```text
+container / cell / node / edge / pointer / label / arrow / callout /
+tensor / batch / parameter / loss_curve / gradient_vector /
+decision_boundary / training_epoch / prediction
+```
+
+`SceneGraph` 是 renderer 的主要输入。它回答：“每一步应该画哪些对象、哪些对象高亮、显示哪些教学与证据？”
+
+### 6.6 ValidationReport
 
 位置：`algolab/schemas/validation.py`
 
-最终构建产物：
+校验报告：
 
+- `errors`
+- `warnings`
+- `checks`
+- `degradations`
+- `contract_validation`
+- `contract_test_results`
+- `demo_readiness`
+- `release_gate`
+
+它回答：“这次构建有哪些通过证据、失败原因、警告和降级边界？”
+
+### 6.7 ReleaseGate
+
+位置：`algolab/verification/release_gate.py`
+
+字段：
+
+- `artifact_ready`
+- `process_ready`
+- `trace_ready`
+- `visual_ready`
+- `multi_solution_ready`
+- `release_ready`
+- `blocking_reasons`
+
+当前规则：
+
+- `artifact_ready`：至少一个 good variant，且 scene 数等于 variant 数。
+- `trace_ready`：至少一个 good variant。
+- `process_ready`：有 expected、verifier 或多解法交叉校验。
+- `visual_ready`：每个 good variant 都有 SceneGraph。
+- `release_ready`：上述满足且没有 errors。
+
+它回答：“这个 artifact 是否可作为主系统产物发布？”
+
+### 6.8 BuildArtifact
+
+位置：`algolab/schemas/validation.py`
+
+最终机器证据包：
+
+- `schema_version = algolab-build-v1`
 - `problem_title`
+- `input_contract`
 - `input_data`
 - `expected_result`
 - `verifier_result`
@@ -370,208 +402,366 @@ Renderer 不直接读取题目文本和算法逻辑，只读 `SceneGraph`。
 - `visual_plan`
 - `render_report`
 
-## 5. 生成和校验流程
+HTML 不是 correctness 的来源；HTML 是 `BuildArtifact` 的浏览器投影。真正的答案、trace、scene、校验和 release gate 证据都在 artifact JSON 中。
 
-主流程在 `algolab/pipeline.py`：
+## 7. DSL Trace 机制
 
-```text
-ProblemInput
-  -> generate_solution_spec()
-  -> _try_materialize()
-  -> execute_variant()
-  -> validate_trace()
-  -> validate_process()
-  -> compile_scene()
-  -> validate_scene()
-  -> compute_release_gate()
-  -> BuildArtifact
-  -> save_html()
+位置：`algolab/runtime/dsl.py`
+
+`TraceSession` 让 LLM 写接近普通 Python 的算法代码，同时自动记录语义事件。
+
+典型模板：
+
+```python
+def trace(input_data):
+    sess = TraceSession(
+        algorithm="不同路径",
+        input_data=input_data,
+        max_events=80,
+        pseudocode=["初始化 DP 表", "逐格转移", "返回右下角"],
+    )
+    dp = sess.table("dp", [[0] * input_data["n"] for _ in range(input_data["m"])])
+    # 赋值会自动 emit set 事件
+    dp[0, 0] = 1
+    # ...
+    sess.result(answer)
+    return sess.to_trace()
 ```
 
-如果失败：
+核心对象：
+
+- `ArrayObj`：一维数组。
+- `StringObj`：字符串。
+- `TableObj`：二维表 / DP 表。
+- `ScalarObj`：标量变量。
+- `MapObj` / `CounterObj`：映射和计数器。
+- `PointerObj`：数组或结构上的指针。
+- `HeapObj`、`StackObj`、`QueueObj`、`DequeObj`。
+- `UnionFindObj`、`LinkedListObj`、`TrieObj`。
+- `GraphObj`、`TreeObj`、`PointsObj`。
+- `FenwickObj`、`SegmentTreeObj`、`FlowNetworkObj`、`IntervalObj`。
+
+`TraceSession.to_trace()` 会：
+
+- 如果没有 create 事件，补一个输入初始化事件。
+- 如果设置了 `sess.result(answer)` 但没有 answer 事件，补一个 answer mark 事件。
+- 如果事件超过 `max_events`，按 anchor/sampling 压缩。
+- 重编号 `step`。
+- 返回 `semantic-trace-v1` dict。
+
+当前边界：
+
+- DSL 保证事件结构和 state snapshot 由 API 产生，不等于数学正确性自动证明。
+- `trace` 仍是模型生成代码，正常路径依赖沙箱执行和一致性校验；恶意代码不是生产级安全模型。
+- 大 trace 会压缩，因此 HTML 的帧数可能少于算法内部操作数。
+
+## 8. Sandbox / Executor
+
+位置：
+
+- `algolab/runtime/sandbox.py`
+- `algolab/runtime/executor.py`
+
+沙箱执行流程：
 
 ```text
-原始输入 + 上一次 spec + 错误信息
-  -> repair_solution_spec()
-  -> 再次 _try_materialize()
+validate_code_safety(code)
+  -> build_namespace()
+  -> exec(code, restricted namespace)
+  -> call solve / trace / verify
 ```
 
-默认最多修复 2 轮。
+沙箱限制：
 
-`execute_variant()` 的 trace materialization 边界：
+- 只允许白名单模块：`bisect`、`collections`、`copy`、`functools`、`heapq`、`itertools`、`json`、`math`。
+- 拒绝危险 dunder 访问和构造。
+- 注入 `TraceSession`、旧 `Tracer` 和 DSL 对象。
+- 在子进程中执行生成代码。
+
+`execute_variant()` 检查：
 
 ```text
-run solve(input_data)
-  -> run trace(input_data)
-  -> trace 必须是 dict
-  -> trace 必须显式包含 input_data
-  -> 重编号 events.step
-  -> 检查 event budget
-  -> SemanticTrace.model_validate()
-  -> trace.input_data 必须等于本次 input_data
-  -> solve_result 必须等于 trace.result
+solve(input_data) 可执行
+trace(input_data) 可执行且返回 dict
+trace event budget 合法
+SemanticTrace.model_validate(raw_trace)
+trace.input_data == input_data
+solve_result == trace.result
 ```
 
-这里已经没有旧格式兼容层。也就是说，旧式 `type/target` 事件、缺失 `input_data` 的 trace、旧式 map target 都会在 Pydantic schema、trace validator 或 process validator 阶段失败，并触发 repair。
-
-## 6. 正确性门禁
-
-### 6.1 执行一致性
-
-系统实际运行生成代码：
-
-- `solve(input_data)`
-- `trace(input_data)`
-- `verify(input_data)`
-
-检查：
+pipeline 额外检查：
 
 ```text
-solve(input_data) == trace.result
-solve(input_data) == expected_result    如果用户提供 expected
-solve(input_data) == verify(input_data) 如果 verifier 可执行
-多个 variant 的 result 一致            如果生成多个解法
+solve_result == expected_result    如果 expected 存在
+solve_result == verifier_result    如果 verifier 可执行且 expected 不冲突
+多个 variant result 一致          如果有多个解法
 ```
 
-### 6.2 Contract 校验
+## 9. 校验层
+
+### 9.1 Contract Validator
 
 位置：`algolab/verification/contract_validator.py`
 
-如果 LLM 输出 `correctness_contract`，系统会校验：
+如果 LLM 输出 `correctness_contract`，系统会校验 schema、postconditions、oracle strategy、test cases，并可对 good variants 运行 contract tests。
 
-- input schema。
-- output schema。
-- postconditions。
-- oracle strategy。
-- test cases。
-- generated oracle / expected-only oracle。
+当前主 prompt 不强制输出 correctness contract；该能力保留为扩展正确性证据。
 
-Contract 不是页面渲染规则，它用于增强答案正确性证据。
-
-### 6.3 Trace Schema 校验
+### 9.2 Trace Validator
 
 位置：`algolab/verification/trace_validator.py`
 
 检查：
 
-- op 是否在固定集合内。
-- step 是否连续。
-- target id 是否可解析。
-- 是否使用了已废弃的旧式 map target。
-- target 是否明显越界。
-- trace input 是否等于当前 input。
-- trace result 是否等于 solve result。
+- `schema_version` 必须是 `semantic-trace-v1`。
+- event step 连续。
+- target/deps 可解析。
+- indexed/slice/map target 必须能从 state/input 推导到已知对象。
+- 旧式 map target 被拒绝，例如 `seen:2`、`map:seen`。
+- choice interaction 必须有 options。
+- 没有 reason 会 warning。
 
-接受示例：
-
-```text
-seen[2]
-dist[A]
-count[word]
-node:A
-edge:A->B
-pointer:mid
-```
-
-拒绝示例：
+推荐 target：
 
 ```text
-seen:2
-dist:A
-map:seen
+数组/表格：nums[0]、dp[1][2]
+切片：text[2:5]
+哈希表：seen[2]、dist[B]、count[x]
+图节点/边：node:A、edge:A->B
+指针：pointer:left、pointer:mid
+递归帧：frame:dfs(2)
+几何点：point:3
+字符串字符：text[3]、pattern[2]
 ```
 
-### 6.4 Process Invariant 校验
+### 9.3 Process Validator
 
 位置：`algolab/verification/process_validator.py`
 
-这是防止“结果对但过程乱写”的核心层。它分三类：
+当前是 DSL-era 轻量实现：
 
-- Core：通用过程证据，例如 `set` 必须有可观测变化、deps、before/after 或 value。
-- Structure：视觉结构合法性，例如 heap、union-find forest、BST、拓扑序、凸包。
-- Algorithm：算法族转移，例如不同路径 DP、BFS 距离、二分窗口、KMP 前缀函数、LCS、编辑距离。
+- 保留 `validate_process()`、`process_validation_registry()` 等 public API，兼容 pipeline、degradation、reports。
+- 对已经通过 `SemanticTrace.model_validate()` 的 trace 返回 `([], [])`。
+- registry 将主要算法族登记为 strong，用于报告和 family gate 口径。
+- 不再维护旧版 `process_families/*` 的算法族重算 validator。
 
-当前重点规则：
+这意味着当前 process 层的实际强约束主要来自：
 
-- 小规模 DP 表更新单元不超过 80 时必须逐帧记录，不能抽样跳到最终格。
-- 不同路径必须记录每个内部 `dp[i][j]` 的 `set` 事件。
-- 每个 `set` 状态必须满足对应算法转移。
+- DSL 对象自动记录 state mutation。
+- runtime 的 solve/trace/result/expected/verifier 一致性。
+- trace validator 的 target/reference 检查。
+- scene compiler 的 evidence 和 scene validator。
+- demo readiness 的通用阶段/状态/答案检查。
 
-### 6.5 Scene 校验
+文档和论文里应避免把当前 `process_ready` 描述成“每个算法族均有手写 invariant 重算证明”。更准确的说法是：DSL-era 的 process API 仍保留，但 family-specific invariant 已折叠为 DSL 执行约束和通用语义检查。
+
+### 9.4 Demo Readiness
+
+位置：`algolab/verification/demo_readiness.py`
+
+检查教学 demo 是否可用：
+
+- 是否有 initialization / transition / answer 阶段。
+- key event 是否有 reason。
+- 非 enter/exit/explain 的关键事件是否有 state。
+- 需要 deps 的事件是否提供 deps。
+- 当前 family-specific demo checks 已简化，避免旧启发式误判 DSL trace。
+
+### 9.5 Scene Validator
 
 位置：`algolab/verification/scene_validator.py`
 
 检查：
 
-- frame 非空。
-- mark 指向存在对象。
-- arrow source/target 存在。
-- 页面至少有可渲染内容。
+- `scene-graph-v1`。
+- frames 非空。
+- 每帧有可见 object。
+- mark 指向的 object 是否存在。
+- edge/arrow 的 source/target 是否存在。
+- state 中节点与 scene object 是否明显不一致。
 
-### 6.6 Release Gate
+### 9.6 Degradation
 
-位置：`algolab/verification/release_gate.py`
+位置：`algolab/verification/degradation.py`
 
-只有以下条件满足时才发布：
+降级类型：
 
-- artifact ready。
-- trace ready。
-- process ready。
-- visual ready。
-- 无 blocking error。
+- `answer_only`
+- `schema_scene_only`
+- `process_fallback`
+- `process_uncovered`
+- `demo_warn`
 
-## 7. 渲染系统
+这些不会都自动阻塞；它们用于 report/debug evidence 中明确说明“这条证据链到哪一层为止”。
 
-### 稳定 HTML Runtime
+## 10. Scene 编译和渲染
+
+### 10.1 Scene Compiler
+
+位置：
+
+- `algolab/compiler/object_resolver.py`
+- `algolab/compiler/target_parser.py`
+- `algolab/compiler/scene_compiler.py`
+
+流程：
+
+```text
+SemanticEvent.state
+  -> resolve state objects
+  -> parse targets/deps
+  -> create marks/arrows/callouts
+  -> infer teaching fallback
+  -> compute evidence/process summary/timeline
+  -> SceneFrame
+```
+
+`object_resolver.py` 把常见 state 转成 object：
+
+- list -> array / stack / queue / heap
+- list[list] -> matrix
+- dict -> map
+- scalar -> label
+
+`scene_compiler.py` 还会从 event 推导：
+
+- title / description / operation。
+- marks：current、answer、dependency 等。
+- evidence：operation、targets、deps、before/after、changes、timeline、process。
+- teaching：如果 event 没有 teaching，就从 reason/targets/deps 生成 fallback。
+
+### 10.2 Renderer / Export
 
 位置：`algolab/renderer/export.py`
 
-输出单文件 HTML，支持：
+`save_html(artifact, output_path)` 输出：
 
-- 时间线逐帧播放。
-- 上一步 / 下一步 / 播放。
-- 输入、输出、状态、代码、校验证据。
-- array / matrix / graph / stack / queue / map / tree / heap / trie / union_find / recursion_tree / string / geometry / ML primitives。
+```text
+output_path.html
+output_path.json
+```
 
-### Creative Runtime
+HTML 是单文件离线页面，嵌入 public artifact payload 和前端 runtime。页面包含：
 
-位置：`algolab/renderer/creative.py`
+- 标题和 summary。
+- 解法 tab。
+- 代码面板。
+- 当前帧画布。
+- 状态面板。
+- 教学解释。
+- 交互题。
+- timeline / next / play 控件。
+- debug / evidence drawer。
+- release gate、contract tests、pipeline checks。
+
+Renderer 支持稳定 2D runtime，也保留 spatial/creative 相关能力。VisualPlan 只能选择高层表现策略，不能改变算法结果、trace、state 或校验结论。
+
+## 11. Browser Smoke
+
+位置：
+
+- `scripts/run_llm_benchmark.py`
+- `tests/browser_smoke.py`
+- `scripts/run_browser_smoke_container.sh`
+
+benchmark 内置的 `browser_smoke_html_paths()` 做轻量检查：
+
+- HTML 能被 Chromium 打开。
+- `#title` 有内容。
+- `#counter` 包含 `/`。
+- `#canvas` 有可见文本。
+- 页面没有 console/page error。
+
+完整 `tests/browser_smoke.py` 会检查更多 UI 行为，例如 frame 切换、SceneGraph 读取、debug evidence、交互不修改 trace 等。
+
+注意：browser smoke 只证明页面可运行，不证明答案正确。主链路答案证据来自 `BuildArtifact.validation`，direct HTML baseline 的答案证据来自单独 answer audit。
+
+## 12. Benchmark / Evaluation / Paper Artifacts
+
+### 12.1 Deterministic Benchmark
+
+位置：
+
+- `tests/benchmark_cases.py`
+- `tests/benchmark_families/*`
+- `tests/offline_regression.py`
+- `tests/benchmark_regression.py`
 
 用途：
 
-- 只消费已通过校验的 artifact。
-- 提供更强表现形式。
-- 不参与正确性判定。
+- 不调用 LLM。
+- 验证 fixture、trace、scene、renderer、release/evaluation scripts。
+- 覆盖 DP、图、栈队列、哈希、树、堆、Trie、并查集、递归、字符串、几何、range structure、数学位运算等形态。
 
-### Spatial / Visual Plan
+### 12.2 LLM Benchmark
 
-相关文件：
+位置：`scripts/run_llm_benchmark.py`
 
-- `algolab/generation/prompts/visual_plan_system.txt`
-- `algolab/verification/visual_plan_validator.py`
-- `algolab/renderer/spatial_runtime.py`
+用途：
 
-VisualPlan 只能选择高层展示目标，不能改变 trace、状态或算法结果。
+- 调用真实模型生成 `BuildArtifact`。
+- 支持 deterministic / unseen case sets。
+- 支持 repair rounds。
+- 支持 strict warnings、browser smoke、concurrency、family/gate layer 过滤。
+- 输出 `llm_benchmark_report.json/md` 和 `family_summary.json`。
 
-## 8. 支持的视觉形态
+### 12.3 Baseline / Ablation
 
-| 视觉形态 | 代表算法 |
-|---|---|
-| array + pointer | 二分、双指针、滑动窗口、排序 |
-| matrix / DP table | 不同路径、背包、LCS、编辑距离 |
-| graph | BFS、DFS、拓扑排序、基础最短路 |
-| stack / queue / deque | 单调栈、BFS frontier、滑窗候选 |
-| map / hash table | Two Sum、频次统计 |
-| tree | 二叉树、BST、LCA |
-| heap | TopK、堆排序、Huffman |
-| trie | 前缀树插入和查询 |
-| union-find | 连通分量、路径压缩 |
-| recursion_tree | 全排列、组合、搜索树 |
-| string | KMP、Rabin-Karp、Manacher |
-| geometry | 凸包、扫描线、点线面 |
-| ML primitives | 参数、梯度、loss curve、decision boundary |
+相关脚本：
 
-## 9. LLM 配置
+- `scripts/run_direct_html_baseline.py`
+- `scripts/run_no_process_validator_ablation.py`
+- `scripts/run_no_scenegraph_compiler_ablation.py`
+- `scripts/baseline_experiment_utils.py`
+
+典型 conditions：
+
+- `algolab_full`
+- `direct_html_baseline`
+- `direct_html_no_expected`
+- `no_process_validator`
+- `no_scenegraph_compiler`
+- `no_repair`
+
+`build_evaluation_report.py` 会把 direct HTML 识别为 baseline，并将其排除在严格机器 correctness gate 聚合之外。
+
+### 12.4 Direct HTML Answer Audit
+
+位置：`scripts/audit_direct_html_answer.py`
+
+用途：审计 direct HTML baseline 里“可见最终答案”是否与 expected 匹配。
+
+流程：
+
+```text
+llm_benchmark_report.json
+  -> 只取 ok=True 且有 html 的 result
+  -> 读取 HTML
+  -> 抽取 body 文本和 script 字符串
+  -> 找“最终答案/输出/结果/final answer/result”等标签
+  -> 解析 JSON/list/object/number/bool/string 候选答案
+  -> canonical 对比 expected
+  -> 输出 json/csv/md
+```
+
+状态：
+
+- `answer_match`
+- `answer_missing`
+- `answer_mismatch`
+- `html_missing`
+
+指标：
+
+- `total_results`：原 benchmark report 总条数。
+- `browser_passed`：原 report 中 `ok=True` 条数。
+- `audited_html`：实际审计的 HTML 数。
+- `visible_answer_found_rate`：能找到可见答案的比例。
+- `visible_answer_match_rate`：`answer_match / audited_html`。
+
+旧 `direct_html_baseline` prompt 暴露 expected，所以它的 answer audit 只能说明“页面是否展示了与 expected 一致的答案”。公平 correctness 口径应使用 `direct_html_no_expected` 全量报告。
+
+## 13. LLM 配置
 
 位置：`llm_client.py`
 
@@ -594,27 +784,15 @@ VisualPlan 只能选择高层展示目标，不能改变 trace、状态或算法
 
 这些配置文件已加入 `.gitignore`，不要提交密钥。
 
-## 10. Benchmark 和 Dashboard
+## 14. 常用命令
 
-确定性 benchmark：
+所有 Python 命令使用项目指定解释器：
 
-- 文件：`tests/benchmark_cases.py`
-- 用途：不调用 LLM，验证 pipeline、validator、compiler、renderer 稳定性。
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3
+```
 
-LLM benchmark：
-
-- 文件：`scripts/run_llm_benchmark.py`
-- 用途：调用模型生成真实产物，记录成功率和失败分类。
-
-Dashboard：
-
-- 文件：`scripts/build_demo_dashboard.py`
-- 输出：`output/dashboard/index.html`
-- 用途：展示确定性 demo、校验信息、artifact 链接和 HTML 产物。
-
-## 11. 质量检查
-
-快速离线回归：
+快速回归：
 
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
@@ -626,10 +804,16 @@ Benchmark 回归：
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
 ```
 
-浏览器 smoke：
+Direct HTML answer audit 回归：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.direct_html_answer_audit
+```
+
+Baseline 回归：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.baseline_experiments
 ```
 
 全部本地检查：
@@ -638,21 +822,27 @@ bash scripts/run_browser_smoke_container.sh
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
-当前宿主机 glibc 2.17 不能直接运行 Playwright 自带 node；浏览器 smoke 和完整质量门禁使用 Playwright 兼容容器：
+浏览器 smoke 容器：
+
+```bash
+bash scripts/run_browser_smoke_container.sh
+```
+
+宿主机 glibc 2.17 不能直接运行 Playwright 自带 node 时，使用容器：
 
 ```bash
 bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 ```
 
-容器命令要求能访问 Docker daemon；脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`。两者都不可用时才是执行环境权限问题，不是代码失败。
+容器命令要求能访问 Docker daemon；脚本会优先使用普通 `docker`，失败后尝试 `sudo -n docker`。
 
-这些检查验证系统边界，不等价于证明任意未知题的 LLM 输出永远正确。
+## 15. 常见问题
 
-## 12. 常见问题
+### 为什么页面只有少数几帧？
 
-### 为什么页面里只有少数几帧？
+通常不是播放器问题，而是 `trace(input_data)` 事件少，或 `TraceSession.to_trace()` 因超过 `max_events` 进行了压缩。
 
-通常不是播放器问题，而是 `trace(input_data)` 只生成了少数 events。检查：
+检查 artifact：
 
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
@@ -664,51 +854,44 @@ for v in data["variants"]:
 PY
 ```
 
-对小规模 DP，系统已要求逐单元 `set`，如果生成稀疏 trace，会被 process validator 拦截并进入 repair。
+### 为什么 browser pass 不能当 correctness？
 
-### 为什么 Gradio 报 `/tmp/gradio` 权限错误？
+browser smoke 检查 HTML 可运行和核心 DOM 可见。它不重新执行算法，不审计最终答案，也不证明教学过程语义正确。
 
-已在 `app.py` 中把 `GRADIO_TEMP_DIR` 固定到：
+主链路 correctness 要看 artifact 的 answer/verifier/trace/scene/release gate 证据。direct HTML baseline 没有这些中间产物，只能额外跑 `audit_direct_html_answer.py`。
 
-```text
-.gradio_cache/
-```
+### 为什么 direct HTML 需要 `--hide-expected`？
 
-如果目录权限异常：
-
-```bash
-chmod -R u+rwX,g+rwX .gradio_cache
-```
-
-### 静态 dashboard 和 Gradio 页面有什么区别？
-
-Gradio 页面是动态生成入口，会调用 LLM。
-
-静态 dashboard 是已构建好的确定性 demo 页面，不需要 LLM，不需要 Gradio 服务。
+旧 `direct_html_baseline` prompt 把 expected 直接给了模型，存在答案泄漏。它可以用于观察“直接写 HTML 能否打开”，但不能作为公平答案正确性口径。`--hide-expected` 让模型自行求解，condition 变成 `direct_html_no_expected`，才适合做 direct HTML answer correctness。
 
 ### 什么时候扩展 renderer？
 
-只有出现新的视觉形态时才扩展 renderer。新增同一形态内的算法，优先：
+只有出现新的视觉形态时才扩展 renderer。新增同一形态内算法，优先：
 
-1. 复用固定 semantic op。
-2. 复用已有 state key。
-3. 增加 process invariant。
-4. 增加 fixture / benchmark case。
+1. 复用 `TraceSession` DSL 对象。
+2. 复用固定 semantic op。
+3. 复用已有 state key 和 object resolver。
+4. 增加 deterministic case / benchmark case。
+5. 必要时再扩展 scene compiler 或 renderer。
 
-## 13. 当前边界
+## 16. 当前边界
 
-系统能强保证：
+系统能较强保证：
 
-- LLM 不直接生成页面。
-- 生成代码在 sandbox 中执行。
-- trace 使用当前严格 `SemanticTrace` 协议；旧字段和旧 map target 不再走兼容路径。
-- 已覆盖算法族的关键状态转移会被 process invariant 校验。
-- 通过 release gate 的 artifact 才进入 HTML。
+- LLM 不直接生成 AlgoLab 主链路页面。
+- 生成代码在受限沙箱中执行。
+- `solve`、`trace.result`、expected、verifier、多解法交叉的一致性会被检查。
+- `SemanticTrace` 和 `SceneGraph` 有结构化 schema 与 validator。
+- 通过 release gate 的 artifact 才进入主链路 HTML 发布口径。
+- direct HTML baseline 与 AlgoLab full pipeline 在 report 中保持不同 condition。
 
 系统不能完全保证：
 
 - 任意未知算法题一次生成就正确。
 - LLM 生成的 verifier 永远独立且无同错。
-- 大规模图、几何、搜索树布局永远清晰。
+- 当前 DSL-era `process_validator` 不再做旧版每算法族重算 invariant。
+- 压缩后的大规模 trace 展示每一个内部操作。
+- browser smoke 或 VLM screenshot 分数能替代答案 correctness。
+- direct HTML baseline 的 browser pass 能代表答案正确。
 
-因此，新的算法族上线前必须补 deterministic case 和回归测试。
+新的算法族上线前，需要补 deterministic case、DSL 使用样例、trace/scene/browser 回归，以及必要的 evaluation/report 口径。

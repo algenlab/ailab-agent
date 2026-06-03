@@ -407,6 +407,15 @@ BENCHMARK_CASE_METADATA: dict[str, dict[str, Any]] = {
         "oracle_type": "bruteforce",
         "demo_required": True,
     },
+    "subarray_sum_equals_k": {
+        "family_id": "hash_map",
+        "subfamily_id": "prefix_sum_count",
+        "gate_layer": "family_core",
+        "support_level": "medium_plus",
+        "process_profile": "hash",
+        "oracle_type": "bruteforce",
+        "demo_required": True,
+    },
     "daily_temperatures": {
         "family_id": "monotonic_stack",
         "subfamily_id": "daily_temperatures",
@@ -437,6 +446,15 @@ BENCHMARK_CASE_METADATA: dict[str, dict[str, Any]] = {
     "jump_game": {
         "family_id": "greedy",
         "subfamily_id": "jump_game",
+        "gate_layer": "family_core",
+        "support_level": "medium_plus",
+        "process_profile": "greedy",
+        "oracle_type": "independent_reference",
+        "demo_required": True,
+    },
+    "merge_intervals": {
+        "family_id": "greedy",
+        "subfamily_id": "merge_intervals",
         "gate_layer": "family_core",
         "support_level": "medium_plus",
         "process_profile": "greedy",

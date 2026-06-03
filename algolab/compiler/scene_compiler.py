@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from algolab.compiler.object_resolver import resolve_basic_state_value
 from algolab.compiler.target_parser import parse_target
 from algolab.schemas.scene_graph import SceneFrame, SceneGraph, SceneObject, SceneObjectType, VisualMark
 from algolab.schemas.semantic_trace import SemanticEvent, SemanticOp, SemanticTrace
@@ -643,8 +644,15 @@ def _timeline_keyframe_label(event: SemanticEvent, teaching: dict[str, Any]) -> 
 
 def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObject]:
     objects: list[SceneObject] = []
+    topology_keys: set[str] = set()
+
+    if "nodes" in state and "edges" in state:
+        objects.extend(_tree_objects("tree", {"nodes": state.get("nodes"), "edges": state.get("edges")}))
+        topology_keys.update({"nodes", "edges"})
 
     for key, value in state.items():
+        if key in topology_keys:
+            continue
         if _is_ml_state_like(key, value):
             objects.extend(_ml_objects(key, value))
         elif _is_recursion_tree_like(key, value):
@@ -665,64 +673,10 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
             objects.extend(_string_objects(key, value, state))
         elif _is_edge_list_like(key, value):
             objects.extend(_edge_list_objects(key, value, state))
-        elif _is_matrix(value):
-            objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "matrix"}))
-            for r, row in enumerate(value):
-                for c, cell in enumerate(row):
-                    objects.append(
-                        SceneObject(
-                            id=f"{key}[{r}][{c}]",
-                            type=SceneObjectType.CELL,
-                            value=cell,
-                            parent=key,
-                            row=r,
-                            col=c,
-                        )
-                    )
-        elif key not in {"heap", "stack", "queue", "deque"} and _is_string_list(value):
-            objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "string_list"}))
-            for r, item in enumerate(value):
-                objects.append(SceneObject(id=f"{key}[{r}]", type=SceneObjectType.LABEL, label=str(r), value=item, parent=key, row=r))
-                for c, char in enumerate(item):
-                    objects.append(
-                        SceneObject(
-                            id=f"{key}[{r}][{c}]",
-                            type=SceneObjectType.CELL,
-                            value=char,
-                            parent=key,
-                            row=r,
-                            col=c,
-                        )
-                    )
-        elif _is_scalar_list(value):
-            layout = key if key in {"heap", "stack", "queue", "deque"} else "array"
-            objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": layout}))
-            for i, item in enumerate(value):
-                objects.append(
-                    SceneObject(
-                        id=f"{key}[{i}]",
-                        type=SceneObjectType.CELL,
-                        value=item,
-                        parent=key,
-                        index=i,
-                    )
-                )
         elif isinstance(value, dict) and _looks_like_graph(key, value):
             objects.extend(_graph_objects(key, value, state))
-        elif isinstance(value, dict):
-            objects.append(SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "map"}))
-            for mk, mv in value.items():
-                objects.append(
-                    SceneObject(
-                        id=f"{key}[{mk}]",
-                        type=SceneObjectType.LABEL,
-                        label=str(mk),
-                        value=mv,
-                        parent=key,
-                    )
-                )
-        elif isinstance(value, (int, float, str, bool)) or value is None:
-            objects.append(SceneObject(id=key, type=SceneObjectType.LABEL, label=key, value=value))
+        else:
+            objects.extend(resolve_basic_state_value(key, value))
 
     if isinstance(input_data, dict):
         graph = input_data.get("graph") or input_data.get("adjacency") or input_data.get("weighted_graph")
@@ -762,6 +716,19 @@ def _objects_from_refs(refs, event: SemanticEvent) -> list[SceneObject]:
             objects.append(SceneObject(id=target.id, type=SceneObjectType.NODE, label=parsed.name, meta={"layout": "point"}))
         elif parsed.kind == "char":
             objects.append(SceneObject(id=target.id, type=SceneObjectType.CELL, label=parsed.name, parent="string"))
+        elif parsed.kind == "indexed":
+            value, index, row, col = _indexed_ref_value(event.state or {}, parsed.name, parsed.indices)
+            objects.append(
+                SceneObject(
+                    id=target.id,
+                    type=SceneObjectType.CELL,
+                    value=value,
+                    parent=parsed.name,
+                    index=index,
+                    row=row,
+                    col=col,
+                )
+            )
         elif parsed.kind == "slice":
             objects.extend(_slice_target_objects(target.id, parsed.name, parsed.indices))
         elif parsed.kind == "map":
@@ -788,6 +755,25 @@ def _pointer_location(event: SemanticEvent, pointer_name: str, target_pos: int) 
         index = _as_int(state.get(pointer_name))
 
     return array_name, index
+
+
+def _indexed_ref_value(
+    state: dict[str, Any],
+    name: str,
+    indices: tuple[int, ...],
+) -> tuple[Any, int | None, int | None, int | None]:
+    current = state.get(name)
+    for idx in indices:
+        if isinstance(current, (list, tuple, str)) and 0 <= idx < len(current):
+            current = current[idx]
+        else:
+            current = None
+            break
+    if len(indices) == 1:
+        return current, indices[0], None, None
+    if len(indices) >= 2:
+        return current, None, indices[0], indices[1]
+    return current, None, None, None
 
 
 def _primary_array_name(state: dict[str, Any]) -> str:
@@ -1444,8 +1430,8 @@ def _tree_objects(key: str, value: dict[str, Any], layout: str = "tree") -> list
     nodes = value.get("nodes") or []
     edges = value.get("edges") or []
     objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": layout})]
-    for node in nodes:
-        node_id = str(node.get("id") if isinstance(node, dict) else node)
+    for node_key, node in _tree_node_entries(nodes):
+        node_id = str(node.get("id", node_key) if isinstance(node, dict) else node_key)
         label = str(node.get("label", node_id) if isinstance(node, dict) else node_id)
         meta = dict(node.get("meta", {})) if isinstance(node, dict) and isinstance(node.get("meta"), dict) else {}
         objects.append(SceneObject(id=f"node:{node_id}", type=SceneObjectType.NODE, label=label, parent=key, meta=meta))
@@ -1473,6 +1459,17 @@ def _tree_objects(key: str, value: dict[str, Any], layout: str = "tree") -> list
             )
         )
     return objects
+
+
+def _tree_node_entries(nodes: Any) -> list[tuple[Any, Any]]:
+    if isinstance(nodes, dict):
+        return list(nodes.items())
+    if isinstance(nodes, list):
+        return [
+            (node.get("id", index) if isinstance(node, dict) else node, node)
+            for index, node in enumerate(nodes)
+        ]
+    return []
 
 
 def _trie_objects(key: str, value: dict[str, Any]) -> list[SceneObject]:
@@ -1798,7 +1795,6 @@ def _is_matrix(value: Any) -> bool:
         isinstance(value, list)
         and bool(value)
         and all(isinstance(row, list) for row in value)
-        and len({len(row) for row in value}) <= 1
     )
 
 
@@ -1811,6 +1807,8 @@ def _is_edge_list_like(key: str, value: Any) -> bool:
 def _looks_like_graph(key: str, value: dict[str, Any]) -> bool:
     if key in {"graph", "adjacency", "weighted_graph"}:
         return True
+    if key in {"answer", "result"}:
+        return False
     return bool(value) and all(isinstance(v, (dict, list)) for v in value.values())
 
 

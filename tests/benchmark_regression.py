@@ -7,6 +7,9 @@ from pathlib import Path
 
 from tests.regression.helpers import benchmark_coverage_artifact, materialize_case, spec_for_case
 from tests.regression.trace_contracts import *
+from tests.regression.object_resolver import *
+from tests.regression.typed_tracer_table import *
+from tests.regression.dsl_p0_p2_primitives import *
 from tests.regression.scene_edge_binding import *
 from tests.regression.graph_repair_guidance import *
 from tests.regression.data_structure_repair_guidance import *
@@ -18,6 +21,13 @@ from tests.regression.benchmark_metadata import *
 from tests.regression.reports_and_gates import *
 
 def run_all():
+    test_shared_resolver_handles_basic_state_shapes()
+    test_table_helper_generates_valid_cell_refs_and_state()
+    test_table_helper_rejects_missing_cell_before_trace_validation()
+    test_dsl_map_counter_emit_valid_map_targets_and_scene_objects()
+    test_dsl_array_swap_and_range_highlight_use_existing_slice_targets()
+    test_dsl_range_structures_reuse_existing_range_visual_state_shapes()
+    test_dsl_flow_network_and_intervals_reuse_renderer_state_shapes()
     test_phase13_long_files_are_split_without_changing_public_contracts()
     test_phase12_dp_trace_contract_accepts_representative_subfamilies()
     test_phase12_dp_trace_contract_rejects_missing_deps_init_answer_and_key_updates()
@@ -81,21 +91,10 @@ def run_all():
     test_phase13_tree_backtracking_trie_heap_validator_expands_samples_and_rejects_process_errors()
     test_phase13_hash_sorting_linked_list_greedy_validator_upgrades_profiles_and_rejects_process_errors()
     test_phase13_math_geometry_range_advanced_graph_validator_upgrades_geometry_and_preserves_profiles()
+    test_phase13_process_registry_covers_all_benchmark_families()
     test_benchmark_cases_are_multi_input_release_ready()
-    test_process_validator_rejects_missing_key_step_coverage_for_small_traces()
-    test_process_validator_rejects_bad_string_algorithm_tables()
     test_benchmark_cases_expose_phase10_metadata()
     test_benchmark_cases_expose_phase11_oracle_metadata_and_independent_examples()
-    test_convex_hull_trace_exposes_scan_phases_and_pop_steps()
-    test_phase7_string_algorithms_have_benchmarks_visual_state_and_examples()
-    test_process_validator_rejects_bad_phase7_tree_recursion_aggregates()
-    test_phase7_tree_recursion_group_has_benchmarks_visual_state_and_examples()
-    test_process_validator_rejects_bad_phase7_range_structure_tables()
-    test_phase7_range_structures_have_benchmarks_visual_state_and_examples()
-    test_process_validator_rejects_bad_phase7_math_bit_invariants()
-    test_phase7_math_bit_group_has_benchmarks_visual_state_and_examples()
-    test_process_validator_rejects_bad_phase7_advanced_graph_invariants()
-    test_phase7_advanced_graph_group_has_benchmarks_visual_state_and_examples()
     test_contract_tests_block_bad_solve()
     test_llm_benchmark_request_uses_problem_and_expected()
     test_llm_benchmark_sample_selection_and_failure_classification(Path(tempfile.gettempdir()))

@@ -17,7 +17,7 @@
 - 已有多模态调用入口：`llm_client.chat_vision()`。
 - 还没有完整 VLM 截图评分脚本、VLM rubric report、VLM merge 到 evaluation report 的实现。
 - 目前真实 LLM 主要参与 solve / trace / verifier 生成和 repair；VLM 只应作为离线评审者，不进入主发布链路。
-- 当前默认生成 LLM 是 `llm_client.DEFAULT_MODEL = "gemini-3.1-pro-preview"`，可由 `ALGOLAB_LLM_MODEL` 覆盖。
+- 当前默认生成 LLM 是 `llm_client.DEFAULT_MODEL = "deepseek-v4-pro"`，默认 `timeout_s=600`、`max_tokens=32768`，可由 `ALGOLAB_LLM_MODEL` / `ALGOLAB_LLM_TIMEOUT_S` / `ALGOLAB_LLM_MAX_TOKENS` 覆盖。
 - 当前默认 VLM 是 `llm_client.VISION_MODEL = "gemini-3-flash-preview"`，执行 AI 必须在 VLM report 中记录实际使用模型，必要时支持参数覆盖。
 - 当前 LLM benchmark 已记录 model、started_at、ended_at、duration_s 和 phase_summary，但 token usage 记录还不完整。执行 AI 必须补齐模型调用级 token、耗时和成本估算字段。
 

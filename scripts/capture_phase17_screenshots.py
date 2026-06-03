@@ -198,25 +198,17 @@ def _capture_formula_and_regenerate_sequence(browser: Any, html_path: Path, outp
                 errors=list(errors),
             )
         )
-        if page.locator("#input-editor").count():
-            page.locator("#input-editor").fill('{"phase17":"modified_input","m":4,"n":4}')
-            page.locator("#regenerate").click()
-            page.wait_for_timeout(120)
-            status = page.locator("#regenerate-status").inner_text()
-            payload = page.locator("#regenerate-payload").inner_text()
-            if "ProblemInput -> BuildArtifact -> HTML" not in payload:
-                errors.append("regenerate payload does not reference main pipeline")
-            if "静态 HTML 无法在线调用后端" not in status:
-                errors.append("regenerate static fallback missing")
-        else:
-            errors.append("input editor missing")
+        main_text = page.locator(".app > main").inner_text()
+        for phrase in ("题目与输入", "修改输入", "输入重新生成", "系统校验"):
+            if phrase in main_text:
+                errors.append(f"removed main section still visible: {phrase}")
         records.append(
             _record_screenshot(
                 page,
-                output_dir / "phase17_interaction_regenerate_payload_desktop.png",
-                target_id="interaction_regenerate_payload",
+                output_dir / "phase17_interaction_compact_main_desktop.png",
+                target_id="interaction_compact_main",
                 html_path=html_path,
-                phase="after_input",
+                phase="after_removed_sections_check",
                 errors=list(errors),
             )
         )

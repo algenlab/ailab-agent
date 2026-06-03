@@ -30,6 +30,28 @@ def canonical(value: Any) -> str:
     return json.dumps(to_jsonable(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def results_equivalent(left: Any, right: Any) -> bool:
+    if canonical(left) == canonical(right):
+        return True
+    left_graph = _canonical_graph_set_result(left)
+    right_graph = _canonical_graph_set_result(right)
+    return left_graph is not None and left_graph == right_graph
+
+
+def _canonical_graph_set_result(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict) or "articulation" not in value or "bridges" not in value:
+        return None
+    bridges = []
+    for edge in value.get("bridges") or []:
+        if not isinstance(edge, (list, tuple)) or len(edge) < 2:
+            return None
+        bridges.append(tuple(sorted((str(edge[0]), str(edge[1])))))
+    return {
+        "articulation": sorted(str(item) for item in (value.get("articulation") or [])),
+        "bridges": sorted(bridges),
+    }
+
+
 def execute_variant(variant: SolutionVariant, input_data: Any) -> SolutionVariant:
     """Run solve and trace code for one variant."""
 
@@ -43,7 +65,7 @@ def execute_variant(variant: SolutionVariant, input_data: Any) -> SolutionVarian
     trace = SemanticTrace.model_validate(raw_trace)
     if canonical(trace.input_data) != canonical(input_data):
         raise ValueError("trace.input_data 必须与本次输入完全一致")
-    if canonical(solve_result) != canonical(trace.result):
+    if not results_equivalent(solve_result, trace.result):
         raise ValueError(f"solve 结果 {solve_result!r} 与 trace 结果 {trace.result!r} 不一致")
     variant.result = solve_result
     variant.trace = trace

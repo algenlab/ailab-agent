@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from algolab.runtime.executor import execute_variant
+from algolab.runtime.executor import execute_variant, results_equivalent
 from algolab.runtime.tracer import Tracer
 from algolab.schemas.semantic_trace import SemanticTrace
 from algolab.schemas.semantic_trace import SolutionVariant
@@ -182,10 +182,17 @@ def test_tracer_exposes_relationship_and_scope_helpers():
 def test_tracer_api_docs_and_prompt_include_extended_helpers():
     docs = Path("docs/04_TRACE_AND_SCHEMA_CONTRACT.md").read_text(encoding="utf-8")
     prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
+    repair_prompt = Path("algolab/generation/prompts/repair_system.txt").read_text(encoding="utf-8")
 
     for method in ("unmark", "link", "unlink", "enter", "exit"):
         assert f"`{method}(" in docs
         assert f"tracer.{method}" in prompt
+    assert "`table(name, rows)`" in docs
+    assert "tracer.table" in prompt
+    assert "table.cell" in prompt
+    assert "table.state" in prompt
+    assert "tracer.table" in repair_prompt
+    assert "table.cell" in repair_prompt
     assert "暂未暴露 `unmark`" not in docs
 
 
@@ -206,6 +213,15 @@ def test_executor_accepts_full_trace_when_expected_updates_fit_budget():
     assert materialized.trace.events[-1].state["_trace_meta"]["coverage"] == {"dp": 1.0}
 
 
+def test_executor_compares_articulation_bridge_outputs_as_sets():
+    expected = {"articulation": ["B", "D"], "bridges": [["D", "E"], ["A", "B"]]}
+    actual = {"articulation": ["D", "B"], "bridges": [("A", "B"), ("E", "D")]}
+    different = {"articulation": ["B"], "bridges": [["A", "B"]]}
+
+    assert results_equivalent(actual, expected)
+    assert not results_equivalent(different, expected)
+
+
 def run_all():
     test_tracer_builds_valid_semantic_trace()
     test_tracer_accepts_teaching_payload_for_key_events()
@@ -217,6 +233,7 @@ def run_all():
     test_tracer_exposes_relationship_and_scope_helpers()
     test_tracer_api_docs_and_prompt_include_extended_helpers()
     test_executor_accepts_full_trace_when_expected_updates_fit_budget()
+    test_executor_compares_articulation_bridge_outputs_as_sets()
 
 
 if __name__ == "__main__":

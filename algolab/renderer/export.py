@@ -37,33 +37,34 @@ def render_html(artifact: BuildArtifact) -> str:
 body {{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif; color:var(--ink); background:var(--bg); }}
 button,input,textarea {{ font:inherit; }}
 .app {{ min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; }}
-.topbar {{ background:#fff; border-bottom:1px solid var(--line); padding:14px 20px; display:grid; grid-template-columns:minmax(240px,1fr) minmax(260px,420px) auto; gap:16px; align-items:center; }}
+.topbar {{ background:#fff; border-bottom:1px solid var(--line); padding:10px 16px; display:grid; grid-template-columns:minmax(240px,1fr) minmax(260px,420px) auto; gap:12px; align-items:center; }}
 .top-title {{ min-width:0; }}
-h1 {{ margin:0; font-size:20px; letter-spacing:0; }}
+h1 {{ margin:0; font-size:18px; letter-spacing:0; }}
 .subtitle {{ margin:5px 0 0; color:var(--muted); font-size:13px; }}
 .top-summary {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; min-width:0; }}
 .summary-card {{ border:1px solid var(--line); border-radius:7px; background:#fbfdff; padding:7px 9px; min-width:0; }}
 .summary-card span {{ display:block; color:var(--muted); font-size:11px; line-height:1.3; }}
 .summary-card strong {{ display:block; margin-top:2px; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
-.badges {{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }}
-.badge {{ border:1px solid var(--line); border-radius:999px; padding:4px 9px; background:#fff; color:var(--muted); font-size:12px; }}
+.badges {{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }}
+.badge {{ border:1px solid var(--line); border-radius:999px; padding:3px 8px; background:#fff; color:var(--muted); font-size:11px; }}
 .badge.ok {{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }}
 .badge.warn {{ color:#92400e; border-color:#fde68a; background:#fffbeb; }}
-.workspace {{ display:grid; grid-template-columns:minmax(260px,320px) minmax(440px,1fr) minmax(300px,380px); gap:14px; padding:14px; min-height:0; }}
-.col {{ display:grid; gap:14px; align-content:start; min-width:0; }}
-.task-col,.teaching-col {{ align-content:start; }}
+.workspace {{ display:grid; grid-template-columns:minmax(220px,260px) minmax(520px,1fr) minmax(280px,340px); gap:10px; padding:10px; min-height:0; align-items:start; }}
+.col {{ display:grid; gap:10px; align-content:start; min-width:0; }}
+.task-col,.teaching-col {{ align-content:start; padding-right:2px; }}
+.task-col {{ max-height:min(560px, calc(100vh - 86px)); }}
+.task-col {{ overflow:auto; }}
+.teaching-col {{ overflow:visible; }}
 .panel {{ background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); min-width:0; }}
-.section {{ padding:14px; }}
-.section h2 {{ margin:0 0 10px; color:#374151; font-size:13px; letter-spacing:.04em; text-transform:uppercase; }}
-.subhead {{ margin:12px 0 7px; color:#374151; font-size:12px; font-weight:700; }}
-.problem-description {{ color:#172033; font-size:13px; line-height:1.5; }}
-.tabs {{ display:grid; gap:8px; }}
-.tab {{ border:1px solid var(--line); border-radius:7px; background:#fff; padding:10px; cursor:pointer; text-align:left; }}
+.section {{ padding:10px; }}
+.section h2 {{ margin:0 0 8px; color:#374151; font-size:12px; letter-spacing:.04em; text-transform:uppercase; }}
+.tabs {{ display:grid; gap:6px; max-height:160px; overflow:auto; padding-right:2px; }}
+.tab {{ border:1px solid var(--line); border-radius:7px; background:#fff; padding:8px; cursor:pointer; text-align:left; }}
 .tab.active {{ border-color:var(--blue); box-shadow:inset 3px 0 0 var(--blue); }}
 .tab strong {{ display:block; font-size:14px; }}
 .tab span {{ display:block; margin-top:4px; color:var(--muted); font-size:12px; line-height:1.25; }}
-.variant-compare {{ display:grid; gap:8px; min-width:0; max-width:100%; }}
-.variant-compare-card {{ border:1px solid var(--line); border-radius:7px; background:#fff; padding:9px; display:grid; gap:7px; min-width:0; max-width:100%; overflow-wrap:anywhere; }}
+.variant-compare {{ display:grid; gap:6px; min-width:0; max-width:100%; max-height:160px; overflow:auto; padding-right:2px; }}
+.variant-compare-card {{ border:1px solid var(--line); border-radius:7px; background:#fff; padding:8px; display:grid; gap:6px; min-width:0; max-width:100%; overflow-wrap:anywhere; }}
 .variant-compare-card.active {{ border-color:#86efac; background:#f0fdf4; }}
 .variant-compare-card > * {{ min-width:0; max-width:100%; }}
 .variant-compare-card strong {{ display:block; font-size:13px; color:#172033; }}
@@ -71,44 +72,40 @@ h1 {{ margin:0; font-size:20px; letter-spacing:0; }}
 .variant-compare-meta span {{ min-width:0; overflow-wrap:anywhere; }}
 .variant-compare-status {{ width:auto; justify-self:start; max-width:100%; min-width:0; border:1px solid #bbf7d0; border-radius:999px; padding:2px 7px; color:#166534; background:#f0fdf4; font-size:11px; overflow-wrap:anywhere; }}
 .variant-compare-status.warn {{ border-color:#fde68a; color:#92400e; background:#fffbeb; }}
-.variant-compare-card button {{ width:100%; border:1px solid #bfdbfe; border-radius:6px; background:#eff6ff; color:#1d4ed8; padding:7px 8px; cursor:pointer; text-align:center; }}
+.variant-compare-card button {{ width:100%; border:1px solid #bfdbfe; border-radius:6px; background:#eff6ff; color:#1d4ed8; padding:6px 8px; cursor:pointer; text-align:center; }}
 .variant-compare-card button:focus-visible {{ outline:2px solid #2563eb; outline-offset:2px; }}
-pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-height:1.45; }}
-.jsonbox {{ max-height:260px; border:1px solid var(--line); border-radius:6px; padding:10px; background:#fbfdff; }}
-.jsonbox.compact {{ max-height:120px; }}
-.input-editor {{ width:100%; min-height:132px; resize:vertical; color:var(--ink); }}
-.secondary-action {{ width:100%; margin-top:10px; border:1px solid #bfdbfe; border-radius:6px; background:#eff6ff; color:#1d4ed8; padding:8px 10px; cursor:pointer; }}
-.secondary-action:focus-visible {{ outline:2px solid #2563eb; outline-offset:2px; }}
-.regen-note {{ margin:0 0 8px; color:var(--muted); font-size:12px; line-height:1.45; }}
-.regen-status {{ margin-top:10px; border:1px solid #fde68a; border-radius:6px; background:#fffbeb; color:#92400e; padding:8px 10px; font-size:12px; line-height:1.45; }}
-.regenerate-payload {{ margin-top:8px; max-height:180px; }}
-.hero {{ min-height:520px; display:grid; grid-template-rows:auto minmax(360px,1fr) auto auto; }}
-.step-head {{ padding:14px 16px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:12px; }}
-.step-head h2 {{ margin:0; font-size:18px; }}
-.step-head p {{ margin:6px 0 0; color:var(--muted); font-size:13px; }}
+pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-height:1.4; }}
+.jsonbox {{ max-height:120px; border:1px solid var(--line); border-radius:6px; padding:8px; background:#fbfdff; }}
+.jsonbox.compact {{ max-height:96px; }}
+.hero {{ min-height:0; display:grid; grid-template-rows:auto minmax(240px,clamp(300px,46vh,450px)) auto auto; }}
+.step-head {{ padding:10px 12px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:10px; }}
+.step-head h2 {{ margin:0; font-size:16px; }}
+.step-head p {{ margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.35; max-height:36px; overflow:auto; }}
 .pill {{ border-radius:999px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; padding:5px 10px; height:fit-content; font-size:12px; text-transform:uppercase; }}
-.canvas {{ padding:18px; overflow:auto; min-height:360px; }}
-.spatial-wrap {{ display:grid; gap:8px; min-height:360px; }}
-.spatial-stage {{ width:100%; min-height:330px; border:1px solid var(--line); border-radius:8px; background:#0b1220; display:block; }}
+.canvas {{ padding:12px; overflow:hidden; min-height:0; height:clamp(300px,46vh,450px); }}
+.scene-fit {{ position:relative; width:100%; height:100%; overflow:hidden; min-width:0; }}
+.spatial-wrap {{ display:grid; gap:6px; min-height:0; }}
+.spatial-stage {{ width:100%; height:clamp(240px,34vh,330px); border:1px solid var(--line); border-radius:8px; background:#0b1220; display:block; }}
 .spatial-label {{ color:var(--muted); font-size:12px; }}
 .spatial-fallback {{ color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 10px; font-size:12px; }}
-.controls {{ border-top:1px solid var(--line); padding:12px 14px; display:grid; grid-template-columns:auto auto auto 1fr auto; gap:10px; align-items:center; }}
-.controls button {{ border:1px solid var(--line); background:#fff; border-radius:6px; padding:8px 11px; cursor:pointer; }}
+.controls {{ border-top:1px solid var(--line); padding:8px 10px; display:grid; grid-template-columns:auto auto auto 1fr auto; gap:8px; align-items:center; }}
+.controls button {{ border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 10px; cursor:pointer; }}
 .controls .primary {{ border-color:var(--blue); background:var(--blue); color:#fff; }}
 .range {{ width:100%; accent-color:var(--blue); }}
 .counter {{ color:var(--muted); font-size:13px; min-width:86px; text-align:right; }}
-.timeline {{ border-top:1px solid var(--line); display:flex; gap:8px; padding:12px 14px; overflow-x:auto; }}
-.tick {{ position:relative; width:132px; min-width:132px; min-height:52px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--muted); cursor:pointer; font-size:11px; text-align:left; padding:7px 9px 7px 14px; display:grid; gap:3px; align-content:center; }}
-.tick::before {{ content:''; position:absolute; left:5px; top:10px; bottom:10px; width:3px; border-radius:999px; background:#cbd5e1; }}
+.timeline {{ border-top:1px solid var(--line); display:flex; gap:6px; padding:8px 10px; overflow-x:auto; }}
+.tick {{ position:relative; width:104px; min-width:104px; min-height:42px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--muted); cursor:pointer; font-size:11px; text-align:left; padding:6px 7px 6px 12px; display:grid; gap:2px; align-content:center; }}
+.tick::before {{ content:''; position:absolute; left:4px; top:8px; bottom:8px; width:3px; border-radius:999px; background:#cbd5e1; }}
 .tick.keyframe::before {{ background:var(--amber); }}
 .tick.active {{ background:#eff6ff; border-color:var(--blue); color:#1d4ed8; }}
 .tick.active::before {{ background:var(--blue); }}
 .tick-label {{ color:#172033; font-size:12px; font-weight:700; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
 .tick.active .tick-label {{ color:#1d4ed8; }}
 .tick-op {{ color:var(--muted); font-size:11px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
-.objects {{ display:grid; gap:18px; max-width:100%; min-width:0; }}
+.objects {{ display:grid; gap:10px; width:max-content; max-width:none; min-width:0; transform-origin:top left; }}
+.scene-fit > .objects {{ position:absolute; top:0; left:0; }}
 .compound-scene {{ grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); align-items:start; gap:12px; }}
-.primitive-panel {{ min-width:0; max-width:100%; overflow:auto; border:1px solid #eef2f7; border-radius:7px; background:#fbfdff; padding:10px; }}
+.primitive-panel {{ min-width:0; max-width:100%; overflow:visible; border:1px solid #eef2f7; border-radius:7px; background:#fbfdff; padding:10px; }}
 .primitive-panel .view-title {{ font-size:13px; margin-bottom:8px; }}
 .view-title {{ margin:0 0 10px; font-size:15px; }}
 .array {{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }}
@@ -122,7 +119,7 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .dep {{ border-color:var(--amber)!important; background:#fffbeb!important; }}
 .answer {{ border-color:var(--green)!important; background:#f0fdf4!important; }}
 .conflict {{ border-color:var(--red)!important; background:#fef2f2!important; }}
-.matrix {{ display:grid; gap:4px; width:fit-content; max-width:100%; overflow:auto; }}
+.matrix {{ display:grid; gap:4px; width:fit-content; max-width:none; overflow:visible; }}
 .mcell {{ width:44px; height:34px; border:1px solid var(--line); border-radius:5px; background:#fff; display:grid; place-items:center; font-size:12px; font-weight:620; }}
 .mcell.pattern-dp-formula-substitution.role-dp-target {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
 .mcell.pattern-dp-formula-substitution.role-dp-dependency {{ border-color:#f59e0b; background:#fffbeb; }}
@@ -133,7 +130,7 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .stack-item {{ border:1px solid var(--line); border-radius:6px; padding:9px 10px; background:#fff; }}
 .mapgrid {{ display:grid; gap:6px; }}
 .maprow {{ display:grid; grid-template-columns:minmax(80px,130px) 1fr; gap:8px; align-items:start; border:1px solid var(--line); border-radius:6px; padding:7px 8px; background:#fff; }}
-.graph-svg {{ width:100%; min-height:330px; border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
+.graph-svg {{ width:100%; height:clamp(240px,34vh,320px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
 .edge {{ stroke:#b8c1d1; stroke-width:1.6; }}
 .node circle {{ fill:#fff; stroke:#94a3b8; stroke-width:2; }}
 .node.hot circle {{ fill:#dbeafe; stroke:var(--blue); stroke-width:3; }}
@@ -148,7 +145,7 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .edge-label {{ fill:#334155; font-size:12px; font-weight:700; paint-order:stroke; stroke:#fff; stroke-width:3px; }}
 .return-bubble rect {{ fill:#f0fdf4; stroke:#16a34a; stroke-width:1.2; rx:7; }}
 .return-bubble text {{ fill:#166534; font-size:11px; font-weight:700; }}
-.tree-svg,.geometry-svg {{ width:100%; min-height:330px; border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
+.tree-svg,.geometry-svg {{ width:100%; height:clamp(240px,34vh,320px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
 .geo-axis {{ stroke:#e5e7eb; stroke-width:1; }}
 .geo-segment {{ stroke:#64748b; stroke-width:2; fill:none; }}
 .geo-hull {{ stroke:#16a34a; stroke-width:2.4; fill:none; }}
@@ -179,24 +176,27 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .visual-char.cursor {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
 .clickable-object {{ cursor:pointer; }}
 .clickable-object:hover {{ outline:2px solid #60a5fa; outline-offset:1px; }}
-.code {{ max-height:370px; background:#101827; color:#dbeafe; border-radius:7px; overflow:auto; }}
-.code-sync {{ position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.25); background:#0f172a; color:#bfdbfe; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.4; }}
+.code-panel {{ padding:9px; }}
+.code-panel h2 {{ margin-bottom:7px; }}
+.code {{ background:#101827; color:#dbeafe; border-radius:7px; overflow:visible; }}
+.code pre {{ overflow:visible; }}
+.code-sync {{ display:flex; align-items:center; gap:8px; padding:5px 9px; border-bottom:1px solid rgba(148,163,184,.25); background:#0f172a; color:#bfdbfe; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.3; }}
 .code-sync.ok {{ color:#bbf7d0; }}
 .code-sync.warn {{ color:#fde68a; background:#1f2937; }}
 .line {{ display:grid; grid-template-columns:42px 1fr; gap:10px; padding:1px 10px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.55; }}
 .lineno {{ color:#7f8ea3; text-align:right; }}
 .line.active {{ background:#1d4ed8; color:#fff; }}
-.state-grid {{ display:grid; gap:8px; }}
-.state-grid {{ max-height:360px; overflow:auto; padding-right:2px; }}
+.state-grid {{ display:grid; gap:6px; overflow:visible; padding-right:2px; }}
 .state-row {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; }}
 .state-row strong {{ display:block; margin-bottom:4px; color:#374151; font-size:12px; }}
+.state-row code {{ display:block; color:#172033; overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; line-height:1.35; }}
 .interaction {{ border-left:3px solid var(--violet); background:#f5f3ff; padding:10px; border-radius:6px; }}
 .interaction button {{ display:block; width:100%; margin:6px 0; border:1px solid #ddd6fe; background:#fff; border-radius:6px; padding:8px; text-align:left; cursor:pointer; }}
 .feedback {{ margin-top:8px; color:#4c1d95; font-size:13px; }}
 .feedback.correct {{ color:#166534; }}
 .feedback.wrong {{ color:#991b1b; }}
 .feedback-source {{ display:block; margin-top:4px; color:var(--muted); font-size:11px; }}
-.teaching {{ display:grid; gap:8px; }}
+.teaching {{ display:grid; gap:6px; overflow:visible; padding-right:2px; }}
 .teach-row {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; }}
 .teach-row.formula {{ border-color:#bfdbfe; background:#eff6ff; }}
 .teach-row.invariant {{ border-color:#bbf7d0; background:#f0fdf4; }}
@@ -217,8 +217,8 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .change-row {{ display:grid; gap:3px; padding:5px 0; border-top:1px solid #dcfce7; font-size:12px; line-height:1.4; }}
 .change-row:first-of-type {{ border-top:0; padding-top:0; }}
 .change-row code {{ overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; color:#14532d; }}
-.evidence,.step-evidence {{ display:grid; gap:8px; }}
-.evidence-block {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; min-width:0; }}
+.evidence,.step-evidence {{ display:grid; gap:6px; overflow:visible; padding-right:2px; }}
+.evidence-block {{ border:1px solid var(--line); border-radius:6px; padding:7px; background:#fff; min-width:0; }}
 .evidence-block strong {{ display:block; margin-bottom:5px; color:#374151; font-size:12px; }}
 .evidence-line {{ display:grid; grid-template-columns:minmax(82px,120px) minmax(0,1fr); gap:8px; align-items:start; padding:3px 0; font-size:12px; line-height:1.4; }}
 .evidence-line span:first-child {{ color:var(--muted); }}
@@ -242,26 +242,35 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .mlitem {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fbfdff; min-width:0; }}
 .mlitem strong {{ display:block; color:#374151; font-size:12px; margin-bottom:5px; }}
 .spark {{ width:100%; height:56px; border:1px solid var(--line); border-radius:5px; background:#fff; }}
-.debug-drawer {{ border-top:1px solid var(--line); background:#eef2f7; padding:0 14px 14px; }}
+.debug-drawer {{ border-top:1px solid var(--line); background:#eef2f7; padding:0 10px 10px; }}
 .debug-drawer summary {{ list-style:none; display:flex; gap:12px; align-items:baseline; padding:12px 4px; cursor:pointer; color:#172033; }}
 .debug-drawer summary::-webkit-details-marker {{ display:none; }}
 .debug-drawer summary span {{ font-weight:700; }}
 .debug-drawer summary small {{ color:var(--muted); }}
-.debug-grid {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }}
-.debug-json {{ max-height:360px; }}
+.debug-grid {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }}
+.debug-json {{ max-height:260px; }}
 .debug-download {{ display:inline-block; margin:0 0 8px; color:#1d4ed8; font-size:12px; text-decoration:none; }}
 .debug-download:hover {{ text-decoration:underline; }}
+.compact-details {{ margin-top:8px; }}
+.compact-details summary {{ list-style:none; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; color:#374151; font-size:12px; font-weight:700; }}
+.compact-details summary::-webkit-details-marker {{ display:none; }}
+.compact-details summary::after {{ content:'展开'; border:1px solid var(--line); border-radius:999px; padding:1px 6px; color:var(--muted); background:#fff; font-size:11px; font-weight:500; }}
+.compact-details[open] summary::after {{ content:'收起'; }}
+.compact-details > :not(summary) {{ margin-top:7px; }}
 @media (max-width:1100px) {{
   .workspace {{ grid-template-columns:1fr; }}
   .topbar {{ grid-template-columns:1fr; }}
   .badges {{ justify-content:flex-start; }}
   .debug-grid {{ grid-template-columns:1fr; }}
+  .task-col {{ max-height:360px; overflow:auto; padding-right:2px; }}
+  .teaching-col {{ max-height:none; overflow:visible; padding-right:2px; }}
 }}
 @media (max-width:560px) {{
   .topbar,.workspace {{ padding:10px; }}
   .top-summary {{ grid-template-columns:1fr; }}
-  .hero {{ min-height:0; grid-template-rows:auto minmax(300px,1fr) auto auto; }}
-  .canvas,.spatial-wrap {{ min-height:300px; }}
+  .hero {{ min-height:0; grid-template-rows:auto minmax(300px,380px) auto auto; }}
+  .canvas {{ height:380px; max-height:none; min-height:300px; }}
+  .spatial-stage {{ height:280px; }}
   .controls {{ grid-template-columns:repeat(3,1fr); }}
   .controls .range {{ grid-column:1 / -1; }}
   .counter {{ grid-column:1 / -1; text-align:left; min-width:0; }}
@@ -282,6 +291,7 @@ let timer = null;
 const SPATIAL_STATE = {{ renderer:null, scene:null, camera:null, canvas:null, resizeBound:false, fallbackReason:'', primitives:{{}}, layouts:[] }};
 window.SPATIAL_STATE = SPATIAL_STATE;
 const $ = id => document.getElementById(id);
+const setText = (id, value) => {{ const node = $(id); if (node) node.textContent = value; }};
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
 const pretty = x => JSON.stringify(x, null, 2);
 const sceneIds = () => Object.keys(ARTIFACT.scenes || {{}});
@@ -292,22 +302,11 @@ const frame = () => frames()[stepIndex];
 const isSpatialTarget = () => RUNTIME_TARGET === 'spatial_3d' || RUNTIME_TARGET === 'hybrid_2_5d';
 
 function boot() {{
-  $('title').textContent = ARTIFACT.problem_title || '算法可视化实验';
-  $('subtitle').textContent = ARTIFACT.input_contract || '由语义轨迹编译生成，页面只渲染 scene graph';
-  $('problem-description').textContent = ARTIFACT.problem_title || ARTIFACT.input_contract || '算法题目';
-  $('input').textContent = pretty(ARTIFACT.input_data);
-  const inputEditor = $('input-editor');
-  if (inputEditor) {{
-    inputEditor.value = pretty(ARTIFACT.input_data);
-    inputEditor.addEventListener('input', updateRegeneratePayload);
-  }}
-  $('expected').textContent = ARTIFACT.expected_result === null || ARTIFACT.expected_result === undefined ? '未提供' : pretty(ARTIFACT.expected_result);
-  $('debug-artifact').textContent = pretty(ARTIFACT);
+  setText('title', ARTIFACT.problem_title || '算法可视化实验');
+  setText('subtitle', ARTIFACT.input_contract || '由语义轨迹编译生成，页面只渲染 scene graph');
+  setText('debug-artifact', pretty(ARTIFACT));
   const artifactDownload = $('debug-artifact-download');
   if (artifactDownload) artifactDownload.href = `data:application/json;charset=utf-8,${{encodeURIComponent(pretty(ARTIFACT))}}`;
-  const regenerateButton = $('regenerate');
-  if (regenerateButton) regenerateButton.onclick = requestRegenerate;
-  updateRegeneratePayload();
   renderBadges();
   renderEvidence();
   renderTabs();
@@ -351,58 +350,6 @@ function isKeyCompareFrame(f) {{
   if (timeline.keyframe) return true;
   const op = textOrEmpty(evidence.operation || f && f.operation);
   return ['set','mark','move','compare','push','pop','enter','exit'].includes(op);
-}}
-function buildProblemInputPayload() {{
-  let inputData = ARTIFACT.input_data;
-  let parseError = '';
-  const editor = $('input-editor');
-  if (editor) {{
-    try {{
-      inputData = JSON.parse(editor.value || 'null');
-    }} catch (err) {{
-      parseError = err && err.message ? err.message : String(err);
-    }}
-  }}
-  const problemInput = {{
-    problem: ARTIFACT.problem_title || ARTIFACT.input_contract || '算法可视化实验',
-    input_data: inputData,
-    strategy_hint: (ARTIFACT.variants || []).map(v => v.name || v.id).filter(Boolean).join(' / '),
-    user_code: '',
-    expected_result: ARTIFACT.expected_result === undefined ? null : ARTIFACT.expected_result,
-    solution_count: Math.min(4, Math.max(1, (ARTIFACT.variants || []).length || 1)),
-  }};
-  return {{
-    pipeline: 'ProblemInput -> BuildArtifact -> HTML',
-    static_html_note: '静态 HTML 无法在线调用后端；请把 artifact_input.problem_input 交给主 pipeline 重新生成。',
-    artifact_input: {{
-      problem_input: problemInput,
-      current_variant_ids: (ARTIFACT.variants || []).map(v => v.id).filter(Boolean),
-      source_artifact_schema: ARTIFACT.schema_version || 'algolab-build-v1',
-    }},
-    parse_error: parseError,
-  }};
-}}
-function updateRegeneratePayload() {{
-  const payload = buildProblemInputPayload();
-  const payloadNode = $('regenerate-payload');
-  if (payloadNode) payloadNode.textContent = pretty(payload);
-  const status = $('regenerate-status');
-  if (!status) return;
-  status.textContent = payload.parse_error
-    ? `JSON 解析失败：${{payload.parse_error}}。静态 HTML 不会修改当前 trace。`
-    : 'artifact 输入已准备；点击按钮会显示静态降级说明，但真正重新生成必须回到主 pipeline。';
-}}
-function requestRegenerate() {{
-  const payload = buildProblemInputPayload();
-  const payloadNode = $('regenerate-payload');
-  if (payloadNode) payloadNode.textContent = pretty(payload);
-  const status = $('regenerate-status');
-  if (!status) return;
-  if (payload.parse_error) {{
-    status.textContent = `JSON 解析失败：${{payload.parse_error}}。请修正输入后通过 ProblemInput -> BuildArtifact -> HTML 重新生成。`;
-    return;
-  }}
-  status.textContent = '静态 HTML 无法在线调用后端；当前 trace、SceneGraph 和 ARTIFACT 保持不变。请使用这份 artifact 输入重新走 pipeline。';
 }}
 function selectVariant(i) {{
   variantIndex = i; stepIndex = 0; stop();
@@ -488,7 +435,7 @@ function renderCanvas(f) {{
 function renderTeachingCanvas(f) {{
   const groups = groupedObjects(f);
   const containers = (f.objects || []).filter(o => o.type === 'container');
-  let html = `<div class="objects ${{containers.length > 1 ? 'compound-scene' : ''}}" data-primitive-count="${{containers.length}}">`;
+  let html = `<div class="scene-fit"><div class="objects ${{containers.length > 1 ? 'compound-scene' : ''}}" data-primitive-count="${{containers.length}}">`;
   if (containers.length) {{
     for (const c of containers) html += renderPrimitivePanel(c, groups[c.id] || [], f.marks || []);
   }} else {{
@@ -497,8 +444,27 @@ function renderTeachingCanvas(f) {{
   html += renderVisualPatternPanel(f);
   html += renderDependencyFlow(f);
   html += '<div id="dependency-detail" class="dependency-detail">点击当前对象或依赖对象，查看它依赖谁、影响谁。</div>';
-  html += '</div>';
+  html += '</div></div>';
   $('canvas').innerHTML = html;
+  fitSceneToCanvas();
+}}
+function fitSceneToCanvas() {{
+  const host = $('canvas');
+  const fit = host && host.querySelector('.scene-fit');
+  const scene = fit && fit.querySelector('.objects');
+  if (!host || !fit || !scene) return;
+  scene.style.transform = 'none';
+  scene.style.width = '';
+  scene.style.height = '';
+  const availableWidth = Math.max(1, fit.clientWidth);
+  const availableHeight = Math.max(1, fit.clientHeight);
+  const contentWidth = Math.max(1, scene.scrollWidth);
+  const contentHeight = Math.max(1, scene.scrollHeight);
+  const scale = Math.min(1, availableWidth / contentWidth, availableHeight / contentHeight) * 0.995;
+  scene.style.transform = `scale(${{scale}})`;
+  scene.style.width = `${{contentWidth}}px`;
+  scene.style.height = `${{contentHeight}}px`;
+  scene.dataset.fitScale = String(scale);
 }}
 function renderPrimitivePanel(c, children, marks) {{
   const layout = c.meta && c.meta.layout || 'generic';
@@ -1036,6 +1002,19 @@ function compactValue(value) {{
   const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
   return text.length > 80 ? text.slice(0, 77) + '...' : text;
 }}
+function stateValueSummary(value) {{
+  if (Array.isArray(value)) {{
+    const rows = value.length;
+    const cols = Array.isArray(value[0]) ? value[0].length : null;
+    const shape = cols !== null ? `${{rows}}×${{cols}}` : `${{rows}} 项`;
+    return `${{shape}} · ${{compactValue(value)}}`;
+  }}
+  if (value && typeof value === 'object') {{
+    const keys = Object.keys(value);
+    return keys.length ? `${{keys.length}} 字段 · ${{compactValue(value)}}` : '{{}}';
+  }}
+  return compactValue(value);
+}}
 function renderSparkline(value) {{
   const values = Array.isArray(value) ? value.map(Number).filter(Number.isFinite) : [];
   if (!values.length) return `<span>${{esc(compactValue(value))}}</span>`;
@@ -1193,7 +1172,7 @@ function textOrEmpty(value) {{
 }}
 function renderState(state) {{
   const entries = Object.entries(state || {{}});
-  $('state').innerHTML = entries.length ? entries.map(([k,v]) => `<div class="state-row"><strong>${{esc(k)}}</strong><pre>${{esc(pretty(v))}}</pre></div>`).join('') : '<p style="color:var(--muted);margin:0;">当前步骤没有状态快照。</p>';
+  $('state').innerHTML = entries.length ? entries.map(([k,v]) => `<div class="state-row"><strong>${{esc(k)}}</strong><code>${{esc(stateValueSummary(v))}}</code></div>`).join('') : '<p style="color:var(--muted);margin:0;">当前步骤没有状态快照。</p>';
 }}
 function renderDebugState(state) {{
   const node = $('debug-state');
@@ -1243,10 +1222,13 @@ function renderEvidence() {{
   if (renderReport.requested_target || renderReport.actual_target) {{
     debugHtml += `<div class="evidence-block"><strong>Render target</strong>${{evidenceLine('requested', esc(renderReport.requested_target || ''))}}${{evidenceLine('actual', esc(renderReport.actual_target || RUNTIME_TARGET))}}${{renderReport.used_baseline_renderer ? evidenceLine('baseline', 'true') : ''}}</div>`;
   }}
-  $('evidence').innerHTML = html;
-  $('debug-evidence').innerHTML = debugHtml;
-  $('debug-validation-json').textContent = pretty(validation);
-  $('debug-release').innerHTML = `<div class="evidence-block"><strong>release gate raw</strong><pre>${{esc(pretty(gate))}}</pre></div>`;
+  const evidenceNode = $('evidence');
+  if (evidenceNode) evidenceNode.innerHTML = html;
+  const debugEvidence = $('debug-evidence');
+  if (debugEvidence) debugEvidence.innerHTML = debugHtml;
+  setText('debug-validation-json', pretty(validation));
+  const debugRelease = $('debug-release');
+  if (debugRelease) debugRelease.innerHTML = `<div class="evidence-block"><strong>release gate raw</strong><pre>${{esc(pretty(gate))}}</pre></div>`;
 }}
 function gateChips(gate) {{
   const keys = ['schema_ready','oracle_ready','expected_consistent','generated_tests_pass','contract_ready','artifact_ready','process_ready','trace_ready','visual_ready','multi_solution_ready','release_ready'];
@@ -1277,7 +1259,6 @@ function renderProcessEvidence(f) {{
 function renderStepEvidence(f) {{
   const evidence = f.evidence || {{}};
   const previous = stepIndex > 0 ? frames()[stepIndex - 1] : null;
-  const diffs = stateDiff(previous && previous.state || {{}}, f.state || {{}});
   const marks = f.marks || [];
   const targets = evidence.targets || marks.filter(m => m.role !== 'dependency').map(m => m.target);
   const deps = evidence.deps || marks.filter(m => m.role === 'dependency').map(m => m.target);
@@ -1288,8 +1269,8 @@ function renderStepEvidence(f) {{
   if (evidence.value !== undefined || evidence.before !== undefined || evidence.after !== undefined) {{
     html += `<div class="evidence-block"><strong>事件值</strong>${{evidence.value !== undefined ? evidenceLine('value', valueCode(evidence.value)) : ''}}${{evidence.before !== undefined ? evidenceLine('before', valueCode(evidence.before)) : ''}}${{evidence.after !== undefined ? evidenceLine('after', valueCode(evidence.after)) : ''}}</div>`;
   }}
-  html += `<div class="evidence-block"><strong>状态变化摘要</strong>${{eventChangeRows(f).length ? eventChangeRows(f).map(renderChangeRow).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">本步没有可观测状态变化。</p>'}}</div>`;
-  html += `<div class="evidence-block"><strong>状态变化</strong>${{diffs.length ? diffs.slice(0, 8).map(renderDiff).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">与上一帧相比没有关键变量变化。</p>'}}${{diffs.length > 8 ? `<p style="color:var(--muted);margin:6px 0 0;font-size:12px;">还有 ${{diffs.length - 8}} 项变化已省略。</p>` : ''}}</div>`;
+  const changeRows = eventChangeRows(f);
+  html += `<div class="evidence-block"><strong>状态变化摘要</strong>${{changeRows.length ? changeRows.slice(0, 4).map(renderChangeRow).join('') : '<p style="color:var(--muted);margin:0;font-size:12px;">本步没有可观测状态变化。</p>'}}${{changeRows.length > 4 ? `<p style="color:var(--muted);margin:5px 0 0;font-size:12px;">还有 ${{changeRows.length - 4}} 项变化已省略。</p>` : ''}}</div>`;
   html += `<div class="evidence-block"><strong>目标写入核对</strong>${{changedTargetIds.length ? `<ul class="evidence-list">${{changedTargetIds.map(x => `<li>${{esc(x)}}</li>`).join('')}}</ul>` : '<p style="color:var(--muted);margin:0;font-size:12px;">本步目标没有可解析的状态写入，或属于指针/节点移动。</p>'}}</div>`;
   $('step-evidence').innerHTML = html;
 }}
@@ -1539,6 +1520,7 @@ $('next').onclick = () => go(stepIndex+1);
 $('play').onclick = play;
 $('range').oninput = e => go(parseInt(e.target.value,10));
 window.addEventListener('keydown', e => {{ if(e.key==='ArrowLeft') go(stepIndex-1); if(e.key==='ArrowRight') go(stepIndex+1); if(e.key===' ') {{ e.preventDefault(); play(); }} }});
+window.addEventListener('resize', () => {{ if (!isSpatialTarget()) fitSceneToCanvas(); }});
 boot();
 </script>
 {document_end()}

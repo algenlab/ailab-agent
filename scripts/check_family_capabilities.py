@@ -90,7 +90,7 @@ def validate_family_capabilities(
     entries: list[dict[str, Any]] = []
     for entry in families:
         normalized, entry_errors = _validate_entry(entry, process_profiles, benchmark_family_counts, benchmark_sample_counts)
-        if normalized["process_profile"] not in process_profiles and normalized["process_profile"] not in unknown_process_profiles:
+        if normalized["process_status"] == "unknown" and normalized["process_profile"] not in unknown_process_profiles:
             unknown_process_profiles.append(normalized["process_profile"])
         if entry_errors:
             invalid_entries.append({"label": normalized["label"], "errors": entry_errors})
@@ -137,8 +137,13 @@ def _validate_entry(
         errors.append("missing fields: " + ", ".join(missing_fields))
 
     label = entry.get("label", "")
+    family_id = entry.get("family_id", "")
     process_profile = entry.get("process_profile", "")
-    process_status = "uncovered" if process_profile == "uncovered" else process_profiles.get(process_profile, "unknown")
+    process_status = (
+        "uncovered"
+        if process_profile == "uncovered"
+        else process_profiles.get(family_id) or process_profiles.get(process_profile, "unknown")
+    )
     benchmark_target = entry.get("benchmark_target") if isinstance(entry.get("benchmark_target"), dict) else {}
     min_cases = benchmark_target.get("min_cases")
     min_samples = benchmark_target.get("min_samples")
@@ -155,7 +160,7 @@ def _validate_entry(
         errors.append("core_subfamilies must be a non-empty list")
     if not isinstance(entry.get("visual_primitives"), list) or not entry.get("visual_primitives"):
         errors.append("visual_primitives must be a non-empty list")
-    if process_profile not in process_profiles:
+    if family_id not in process_profiles and process_profile not in process_profiles:
         errors.append(f"process_profile {process_profile!r} is not registered")
     if process_status not in VALID_PROCESS_STATUSES:
         errors.append(f"process_status {process_status!r} is invalid")

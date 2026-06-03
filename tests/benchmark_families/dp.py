@@ -858,11 +858,14 @@ def cases() -> tuple[BenchmarkCase, ...]:
         BenchmarkCase(
             id="digit_dp_no_seven",
             title="数位 DP 统计不含 7",
-            problem="给定非负整数 n，统计 1 到 n 中十进制表示不包含数字 7 的正整数个数。",
+            problem=(
+                "给定非负整数 n，统计闭区间 1..n 中十进制表示不包含数字 7 的正整数个数。"
+                "注意 0 不是正整数，不能计入答案；例如 n=20 时只排除 7 和 17，答案是 18。"
+            ),
             family="DP 核心扩展",
-            input_contract="输入非负整数 n。",
+            input_contract="输入非负整数 n；输出只统计 1..n 的正整数个数，不统计 0。",
             variant_name="数位 DP 入门",
-            strategy="逐位处理 n 的前缀，维护当前前缀范围内不含禁用数字的计数。",
+            strategy="逐位处理 n 的前缀，维护当前前缀范围内不含禁用数字的正整数计数；不要把 0 算入答案。",
             time_complexity="O(d * 10)",
             space_complexity="O(d)",
             expected_layouts=("array",),
