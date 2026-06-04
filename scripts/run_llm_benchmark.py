@@ -346,6 +346,9 @@ def make_request(case: BenchmarkCase | UnseenBenchmarkCase, sample: BenchmarkInp
         strategy_hint=case.strategy,
         expected_result=sample.expected,
         solution_count=solutions,
+        case_id=case.id,
+        family_id=case.family_id,
+        subfamily_id=case.subfamily_id,
     )
 
 
@@ -393,16 +396,18 @@ def run_one(
             progress(event)
 
     try:
+        candidate_summary: dict[str, Any] = {}
         artifact = build_artifact_timed(
             request,
             max_rounds=args.max_rounds,
+            max_candidates=getattr(args, "max_candidates", 1),
             progress=record_progress,
             strict_warnings=args.strict_warnings,
             repair_failure_types_out=repair_types,
+            spec_log_dir=args.output_dir,
+            spec_log_stem=output_stem,
+            candidate_summary_out=candidate_summary,
         )
-        strict_warning_errors: list[str] = []
-        if args.strict_warnings and artifact.validation.warnings:
-            strict_warning_errors = [f"严格模式拒绝 warning：{warning}" for warning in artifact.validation.warnings]
         timed_phase("render", record_progress, lambda: save_html(artifact, output_html))
         variants = [
             {
@@ -423,11 +428,11 @@ def run_one(
             "expected": sample.expected,
             "model": _model_name(),
             "condition": benchmark_condition(args),
-            "ok": artifact.validation.release_gate.release_ready and not strict_warning_errors,
+            "ok": artifact.validation.release_gate.release_ready,
             "release_gate": artifact.validation.release_gate.model_dump(),
             "checks": artifact.validation.checks,
             "warnings": artifact.validation.warnings,
-            "errors": [*artifact.validation.errors, *strict_warning_errors],
+            "errors": artifact.validation.errors,
             "variants": variants,
             "html": str(output_html),
             "json": str(output_html.with_suffix(".json")),
@@ -436,6 +441,7 @@ def run_one(
             "duration_s": round(time.time() - started, 3),
             "failure_type": "",
             "repair_failure_types": repair_types,
+            "candidate_summary": candidate_summary,
             "model_calls": consume_model_calls(),
         }
     except Exception as exc:
@@ -456,6 +462,7 @@ def run_one(
             "last_phase": last_phase(phase_log),
             "duration_s": round(time.time() - started, 3),
             "repair_failure_types": repair_types,
+            "candidate_summary": locals().get("candidate_summary", {}),
             "model_calls": consume_model_calls(),
         }
 
@@ -463,36 +470,181 @@ def run_one(
 def build_artifact_timed(
     request: ProblemInput,
     max_rounds: int = 2,
+    max_candidates: int = 1,
     progress: ProgressCallback | None = None,
     strict_warnings: bool = False,
     repair_failure_types_out: list[str] | None = None,
+    spec_log_dir: Path | None = None,
+    spec_log_stem: str = "",
+    candidate_summary_out: dict[str, Any] | None = None,
 ) -> BuildArtifact:
-    spec = timed_phase("generate", progress, lambda: generate_solution_spec(request))
+    if max_rounds < 0:
+        raise ValueError("max_rounds 不能为负数")
+    if max_candidates < 1:
+        raise ValueError("max_candidates 至少为 1")
+
+    stats: dict[str, Any] = {
+        "max_candidates": max_candidates,
+        "repairs_per_candidate": max_rounds,
+        "candidates_attempted": 0,
+        "materialize_attempts": 0,
+        "repair_attempts": 0,
+        "selected_candidate": None,
+        "selected_round": None,
+        "selection": "failed",
+    }
     last_errors: list[str] = []
+    candidate_failures: list[dict[str, Any]] = []
 
-    for round_idx in range(max_rounds + 1):
-        artifact, errors = timed_phase(
-            f"materialize_round_{round_idx}",
-            progress,
-            lambda spec=spec: _try_materialize(request, spec),
-        )
-        if artifact.validation.release_gate.release_ready and (not strict_warnings or not artifact.validation.warnings):
-            return artifact
-        last_errors = errors or []
-        if artifact.validation.release_gate.release_ready and strict_warnings and artifact.validation.warnings:
-            last_errors = [f"严格模式拒绝 warning：{warning}" for warning in artifact.validation.warnings]
-        if round_idx < max_rounds:
-            if repair_failure_types_out is not None:
-                for failure_type in repair_failure_types(last_errors):
-                    if failure_type not in repair_failure_types_out:
-                        repair_failure_types_out.append(failure_type)
-            spec = timed_phase(
-                f"repair_round_{round_idx}",
-                progress,
-                lambda spec=spec, errors=last_errors: repair_solution_spec(request, spec, errors),
+    for candidate_idx in range(max_candidates):
+        stats["candidates_attempted"] += 1
+        candidate_label = _candidate_label(candidate_idx, max_candidates)
+        generate_phase = _candidate_phase("generate", candidate_idx, max_candidates)
+        try:
+            spec = timed_phase(generate_phase, progress, lambda: generate_solution_spec(request))
+            _write_spec_snapshot(
+                spec_log_dir,
+                spec_log_stem,
+                _candidate_snapshot_label(candidate_label, "round0_generation_spec"),
+                spec,
             )
+        except Exception as exc:
+            last_errors = [f"{type(exc).__name__}: {exc}"]
+            candidate_failures.append({"candidate": candidate_idx, "round": -1, "errors": last_errors})
+            _write_spec_snapshot(
+                spec_log_dir,
+                spec_log_stem,
+                _candidate_snapshot_label(candidate_label, "generation_errors"),
+                {"errors": last_errors, "release_ready": False},
+            )
+            continue
 
+        for round_idx in range(max_rounds + 1):
+            try:
+                artifact, errors = timed_phase(
+                    _candidate_phase(f"materialize_round_{round_idx}", candidate_idx, max_candidates),
+                    progress,
+                    lambda spec=spec: _try_materialize(request, spec),
+                )
+                stats["materialize_attempts"] += 1
+            except Exception as exc:
+                artifact = None
+                errors = [f"{type(exc).__name__}: {exc}"]
+
+            last_errors = _release_blocking_errors(artifact, errors or [], strict_warnings=strict_warnings)
+            if artifact is not None and not last_errors:
+                stats["selected_candidate"] = candidate_idx
+                stats["selected_round"] = round_idx
+                stats["selection"] = _selection_label(candidate_idx, round_idx)
+                _copy_candidate_summary(stats, candidate_summary_out)
+                _write_spec_snapshot(
+                    spec_log_dir,
+                    spec_log_stem,
+                    _candidate_snapshot_label(candidate_label, f"round{round_idx}_materialize_ok"),
+                    {"errors": [], "release_ready": True, "candidate": candidate_idx, "round": round_idx},
+                )
+                return artifact
+
+            candidate_failures.append({"candidate": candidate_idx, "round": round_idx, "errors": last_errors})
+            _write_spec_snapshot(
+                spec_log_dir,
+                spec_log_stem,
+                _candidate_snapshot_label(candidate_label, f"round{round_idx}_materialize_errors"),
+                {"errors": last_errors, "release_ready": False, "candidate": candidate_idx, "round": round_idx},
+            )
+            if round_idx < max_rounds:
+                if repair_failure_types_out is not None:
+                    for failure_type in repair_failure_types(last_errors):
+                        if failure_type not in repair_failure_types_out:
+                            repair_failure_types_out.append(failure_type)
+                try:
+                    spec = timed_phase(
+                        _candidate_phase(f"repair_round_{round_idx}", candidate_idx, max_candidates),
+                        progress,
+                        lambda spec=spec, errors=last_errors: repair_solution_spec(request, spec, errors),
+                    )
+                    stats["repair_attempts"] += 1
+                    _write_spec_snapshot(
+                        spec_log_dir,
+                        spec_log_stem,
+                        _candidate_snapshot_label(candidate_label, f"round{round_idx + 1}_repair_spec"),
+                        spec,
+                    )
+                except Exception as exc:
+                    last_errors = [f"{type(exc).__name__}: {exc}"]
+                    candidate_failures.append({"candidate": candidate_idx, "round": round_idx, "errors": last_errors})
+                    _write_spec_snapshot(
+                        spec_log_dir,
+                        spec_log_stem,
+                        _candidate_snapshot_label(candidate_label, f"round{round_idx}_repair_errors"),
+                        {"errors": last_errors, "release_ready": False, "candidate": candidate_idx, "round": round_idx},
+                    )
+                    break
+
+    stats["candidate_failures"] = candidate_failures[-max_candidates:]
+    _copy_candidate_summary(stats, candidate_summary_out)
     raise BuildError("没有生成可发布产物：\n" + "\n".join(last_errors))
+
+
+def _release_blocking_errors(
+    artifact: BuildArtifact | None,
+    errors: list[str],
+    *,
+    strict_warnings: bool,
+) -> list[str]:
+    if artifact is None:
+        return errors or ["materialize 未返回 artifact"]
+    if errors:
+        return errors
+    if not artifact.validation.release_gate.release_ready:
+        return [
+            *artifact.validation.errors,
+            *artifact.validation.release_gate.blocking_reasons,
+        ] or ["release gate 未通过"]
+    if strict_warnings and artifact.validation.warnings:
+        return [f"严格模式拒绝 warning：{warning}" for warning in artifact.validation.warnings]
+    return []
+
+
+def _candidate_label(candidate_idx: int, max_candidates: int) -> str:
+    return "" if max_candidates == 1 else f"candidate{candidate_idx}"
+
+
+def _candidate_phase(base: str, candidate_idx: int, max_candidates: int) -> str:
+    return base if max_candidates == 1 else f"candidate_{candidate_idx}_{base}"
+
+
+def _candidate_snapshot_label(candidate_label: str, label: str) -> str:
+    return f"{candidate_label}_{label}" if candidate_label else label
+
+
+def _selection_label(candidate_idx: int, round_idx: int) -> str:
+    if candidate_idx == 0 and round_idx == 0:
+        return "first_try"
+    if candidate_idx == 0:
+        return "repair"
+    if round_idx == 0:
+        return "regen_first_try"
+    return "regen_repair"
+
+
+def _copy_candidate_summary(stats: dict[str, Any], out: dict[str, Any] | None) -> None:
+    if out is None:
+        return
+    out.clear()
+    out.update(stats)
+
+
+def _write_spec_snapshot(base_dir: Path | None, stem: str, label: str, payload: Any) -> None:
+    if base_dir is None or not stem:
+        return
+    try:
+        snapshot_dir = base_dir / "spec_rounds"
+        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        path = snapshot_dir / f"{stem}_{label}.json"
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    except Exception:
+        return
 
 
 def timed_phase(name: str, progress: ProgressCallback | None, fn: Callable[[], Any]) -> Any:
@@ -629,6 +781,37 @@ def summarize_model_usage(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def summarize_candidate_selection(results: list[dict[str, Any]]) -> dict[str, Any]:
+    total = len(results)
+    passed = sum(1 for item in results if item.get("ok"))
+    summaries = [item.get("candidate_summary") or {} for item in results]
+    candidates_used = [
+        int(summary.get("candidates_attempted") or 0)
+        for summary in summaries
+        if summary.get("candidates_attempted") is not None
+    ]
+    llm_calls = [len(item.get("model_calls") or []) for item in results]
+    selection_counts: dict[str, int] = {}
+    for item, summary in zip(results, summaries):
+        selection = str(summary.get("selection") or ("failed" if not item.get("ok") else "unknown"))
+        selection_counts[selection] = selection_counts.get(selection, 0) + 1
+    return {
+        "total": total,
+        "final_pass": passed,
+        "first_try_pass": selection_counts.get("first_try", 0),
+        "repair_pass": selection_counts.get("repair", 0),
+        "regen_pass": selection_counts.get("regen_first_try", 0) + selection_counts.get("regen_repair", 0),
+        "regen_first_try_pass": selection_counts.get("regen_first_try", 0),
+        "regen_repair_pass": selection_counts.get("regen_repair", 0),
+        "failed": total - passed,
+        "selection_counts": dict(sorted(selection_counts.items())),
+        "avg_candidates_used": round(sum(candidates_used) / len(candidates_used), 6) if candidates_used else 0.0,
+        "avg_llm_calls_per_case": round(sum(llm_calls) / len(llm_calls), 6) if llm_calls else 0.0,
+        "repair_attempts": sum(int(summary.get("repair_attempts") or 0) for summary in summaries),
+        "materialize_attempts": sum(int(summary.get("materialize_attempts") or 0) for summary in summaries),
+    }
+
+
 def last_phase(phase_log: list[dict[str, Any]]) -> str:
     for event in reversed(phase_log):
         phase = event.get("phase")
@@ -755,6 +938,8 @@ def classify_failure(message: str) -> str:
     if explicit in DEMO_FAILURE_TYPES:
         return explicit
     if "algolab_llm_api_key" in text or "api_key" in text or "环境变量" in message or "api key" in text:
+        return "configuration"
+    if "arrearage" in text or "access denied" in text or "account is in good standing" in text:
         return "configuration"
     if "timeout" in text or "超时" in message or "超过" in message:
         return "timeout"
@@ -940,7 +1125,7 @@ def _result_attempted_repair(item: dict[str, Any]) -> bool:
         return True
     for phase in item.get("phase_timings") or []:
         name = phase.get("phase") if isinstance(phase, dict) else ""
-        if isinstance(name, str) and name.startswith("repair_round_"):
+        if isinstance(name, str) and (name.startswith("repair_round_") or "_repair_round_" in name):
             return True
     return False
 
@@ -1006,6 +1191,7 @@ def write_report(
     repair_failure_summary = summarize_repair_failure_types(results)
     phase_summary = summarize_phase_timings(results)
     model_usage = summarize_model_usage(results)
+    candidate_selection = summarize_candidate_selection(results)
     family_summary = build_family_summary(results, args=args, started_at=started_at, ended_at=ended_at)
     family_summary_path = output_dir / "family_summary.json"
     family_summary_path.write_text(json.dumps(family_summary, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1015,6 +1201,7 @@ def write_report(
         "all_samples": args.all_samples,
         "solutions": args.solutions,
         "max_rounds": args.max_rounds,
+        "max_candidates": getattr(args, "max_candidates", 1),
         "timeout_s": args.timeout_s,
         "strict_warnings": args.strict_warnings,
         "browser_smoke": args.browser_smoke,
@@ -1039,6 +1226,8 @@ def write_report(
         "expected_visible_to_model",
         "direct_html_repair_enabled",
         "direct_html_browser_repair_enabled",
+        "llm_max_tokens",
+        "direct_html_llm_max_tokens",
         "trace_only_renderer_enabled",
     ):
         if hasattr(args, key):
@@ -1063,6 +1252,7 @@ def write_report(
         "family_summary": family_summary["families"],
         "phase_summary": phase_summary,
         "model_usage": model_usage,
+        "candidate_selection": candidate_selection,
         "browser_smoke": browser_checks or [],
         "results": results,
     }
@@ -1081,6 +1271,10 @@ def write_report(
         f"- 平均耗时：{average_duration(results)}s/case",
         f"- LLM calls：{model_usage['call_count']}",
         f"- Token usage：{model_usage['total_tokens'] if model_usage['usage_available'] else 'usage_available=false'}",
+        f"- 候选策略：max_candidates={getattr(args, 'max_candidates', 1)}, repairs_per_candidate={args.max_rounds}",
+        f"- 候选命中：first_try={candidate_selection['first_try_pass']}, repair={candidate_selection['repair_pass']}, regen={candidate_selection['regen_pass']}, failed={candidate_selection['failed']}",
+        f"- 平均候选数：{candidate_selection['avg_candidates_used']}",
+        f"- 平均 LLM calls/题：{candidate_selection['avg_llm_calls_per_case']}",
         f"- Case set：{getattr(args, 'case_set', 'deterministic')}",
         f"- 严格 warning：{'开启' if args.strict_warnings else '关闭'}",
         f"- 浏览器检查：{'开启' if args.browser_smoke else '关闭'}",
@@ -1139,6 +1333,7 @@ def main() -> int:
     parser.add_argument("--all-samples", action="store_true", help="运行每个 case 的所有输入；默认只跑首个输入")
     parser.add_argument("--solutions", type=int, default=1, help="每个输入请求的解法数量；benchmark 默认用 1 个解法降低模型超时")
     parser.add_argument("--max-rounds", type=int, default=2, help="生成失败后的修复轮数")
+    parser.add_argument("--max-candidates", type=int, default=1, help="每个样例最多独立重新生成多少个候选；每个候选各自执行 max-rounds 轮修复")
     parser.add_argument("--timeout-s", type=int, default=1200, help="单个样例最大运行秒数；0 表示不限制")
     parser.add_argument("--strict-warnings", action=argparse.BooleanOptionalAction, default=True, help="有 warning 时判为失败")
     parser.add_argument("--browser-smoke", action=argparse.BooleanOptionalAction, default=False, help="对本次通过的 HTML 产物执行浏览器 smoke")
@@ -1172,6 +1367,10 @@ def main() -> int:
     args = parser.parse_args()
     if args.limit_per_family < 0:
         raise SystemExit("--limit-per-family 不能为负数")
+    if args.max_rounds < 0:
+        raise SystemExit("--max-rounds 不能为负数")
+    if args.max_candidates < 1:
+        raise SystemExit("--max-candidates 至少为 1")
     args.family_sets_config = load_llm_family_sets(args.family_sets)
     family_set_errors = validate_llm_family_sets(args.family_sets_config)
     if family_set_errors:

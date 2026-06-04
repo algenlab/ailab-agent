@@ -184,7 +184,8 @@ def repair_solution_spec(request: ProblemInput, previous: dict[str, Any], errors
         repair_context=repair_context,
     )
     try:
-        return normalize_solution_spec(_chat_json(_prompt_text("repair_system.txt"), prompt, kind="repair"))
+        repaired = normalize_solution_spec(_chat_json(_prompt_text("repair_system.txt"), prompt, kind="repair"))
+        return _preserve_scope_locked_fields(previous, repaired, repair_context)
     except (LLMJsonError, ValueError) as exc:
         if not isinstance(exc, LLMJsonError) and "LLM 顶层输出必须是 JSON object" not in str(exc):
             raise
@@ -197,7 +198,54 @@ def repair_solution_spec(request: ProblemInput, previous: dict[str, Any], errors
             errors=compact_errors,
             repair_context=compact_context,
         )
-        return normalize_solution_spec(_chat_json(_prompt_text("repair_system.txt"), compact_prompt, kind="repair"))
+        repaired = normalize_solution_spec(_chat_json(_prompt_text("repair_system.txt"), compact_prompt, kind="repair"))
+        return _preserve_scope_locked_fields(previous, repaired, compact_context)
+
+
+def _preserve_scope_locked_fields(
+    previous: dict[str, Any],
+    repaired: dict[str, Any],
+    repair_context: list[dict[str, Any]],
+) -> dict[str, Any]:
+    categories = {str(item.get("repair_category") or "") for item in repair_context}
+    scopes = {str(item.get("repair_scope") or "") for item in repair_context}
+    lock_code = categories == {"demo_state"} or scopes == {"tracker_only"}
+    lock_tracker = scopes == {"code_only"}
+    lock_verifier = lock_code or lock_tracker
+    if not lock_code and not lock_tracker and not lock_verifier:
+        return repaired
+
+    protected = dict(repaired)
+    if lock_verifier and "verifier_code" in previous:
+        protected["verifier_code"] = previous.get("verifier_code") or ""
+
+    previous_variants = {
+        str(item.get("id") or ""): item
+        for item in previous.get("variants") or []
+        if isinstance(item, dict)
+    }
+    locked_variants: list[dict[str, Any]] = []
+    for index, variant in enumerate(protected.get("variants") or []):
+        if not isinstance(variant, dict):
+            locked_variants.append(variant)
+            continue
+        locked = dict(variant)
+        previous_variant = previous_variants.get(str(variant.get("id") or ""))
+        if previous_variant is None:
+            previous_items = previous.get("variants") or []
+            if index < len(previous_items) and isinstance(previous_items[index], dict):
+                previous_variant = previous_items[index]
+        if lock_code and previous_variant is not None and "code" in previous_variant:
+            locked["code"] = previous_variant.get("code") or ""
+        if lock_tracker and previous_variant is not None:
+            previous_tracker = previous_variant.get("tracker_code")
+            if previous_tracker is None:
+                previous_tracker = previous_variant.get("trace_code")
+            if previous_tracker is not None:
+                locked["tracker_code"] = previous_tracker or ""
+        locked_variants.append(locked)
+    protected["variants"] = locked_variants
+    return protected
 
 
 def _compact_previous_for_json_retry(previous: dict[str, Any]) -> dict[str, Any]:

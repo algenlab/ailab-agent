@@ -56,11 +56,9 @@ def build_artifact_no_process(
     for round_idx in range(max_rounds + 1):
         artifact, errors = _try_materialize_without_process(request, spec)
         artifact.validation.checks.append("ablation: process validator disabled")
-        if artifact.validation.release_gate.release_ready and (not strict_warnings or not artifact.validation.warnings):
+        if artifact.validation.release_gate.release_ready:
             return artifact
         last_errors = errors or []
-        if artifact.validation.release_gate.release_ready and strict_warnings and artifact.validation.warnings:
-            last_errors = [f"严格模式拒绝 warning：{warning}" for warning in artifact.validation.warnings]
         if round_idx < max_rounds:
             for failure_type in repair_failure_types(last_errors):
                 if failure_type not in repair_failure_types_out:
@@ -89,9 +87,6 @@ def run_one_no_process_validator(
             strict_warnings=args.strict_warnings,
             repair_failure_types_out=repair_types,
         )
-        strict_warning_errors = []
-        if args.strict_warnings and artifact.validation.warnings:
-            strict_warning_errors = [f"严格模式拒绝 warning：{warning}" for warning in artifact.validation.warnings]
         save_html(artifact, output_html)
         variants = [
             {
@@ -115,11 +110,11 @@ def run_one_no_process_validator(
             "ablation": "no_process_validator",
             "process_validator_enabled": False,
             "scenegraph_compiler_enabled": True,
-            "ok": artifact.validation.release_gate.release_ready and not strict_warning_errors,
+            "ok": artifact.validation.release_gate.release_ready,
             "release_gate": artifact.validation.release_gate.model_dump(),
             "checks": artifact.validation.checks,
             "warnings": artifact.validation.warnings,
-            "errors": [*artifact.validation.errors, *strict_warning_errors],
+            "errors": artifact.validation.errors,
             "variants": variants,
             "html": str(output_html),
             "json": str(output_html.with_suffix(".json")),

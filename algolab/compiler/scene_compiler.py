@@ -683,7 +683,7 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
         if isinstance(graph, dict) and not any(o.meta.get("layout") == "graph" for o in objects):
             objects.extend(_objects_from_state({"graph": graph}, {}))
 
-    return objects
+    return _with_missing_edge_endpoint_nodes(objects)
 
 
 def _objects_from_refs(refs, event: SemanticEvent) -> list[SceneObject]:
@@ -739,7 +739,30 @@ def _objects_from_refs(refs, event: SemanticEvent) -> list[SceneObject]:
         elif parsed.kind == "symbol":
             value = (event.state or {}).get(parsed.name)
             objects.append(SceneObject(id=target.id, type=SceneObjectType.LABEL, label=parsed.name, value=value))
-    return objects
+    return _with_missing_edge_endpoint_nodes(objects)
+
+
+def _with_missing_edge_endpoint_nodes(objects: list[SceneObject]) -> list[SceneObject]:
+    object_ids = {obj.id for obj in objects}
+    additions: list[SceneObject] = []
+    for obj in objects:
+        if obj.type != SceneObjectType.EDGE:
+            continue
+        for endpoint in (obj.source, obj.target):
+            if not endpoint or endpoint in object_ids or not endpoint.startswith("node:"):
+                continue
+            node_name = endpoint.removeprefix("node:")
+            additions.append(
+                SceneObject(
+                    id=endpoint,
+                    type=SceneObjectType.NODE,
+                    label=node_name,
+                    parent=obj.parent,
+                    meta={"synthetic": True, "source": "edge_endpoint_compat"},
+                )
+            )
+            object_ids.add(endpoint)
+    return [*objects, *additions]
 
 
 def _pointer_location(event: SemanticEvent, pointer_name: str, target_pos: int) -> tuple[str, int | None]:
@@ -1473,11 +1496,27 @@ def _tree_node_entries(nodes: Any) -> list[tuple[Any, Any]]:
 
 
 def _trie_objects(key: str, value: dict[str, Any]) -> list[SceneObject]:
-    objects = _tree_objects(key, value)
+    objects = _tree_objects(key, _normalize_trie_struct(value))
     for obj in objects:
         if obj.type == SceneObjectType.CONTAINER:
             obj.meta["layout"] = "trie"
     return objects
+
+
+def _normalize_trie_struct(value: dict[str, Any]) -> dict[str, Any]:
+    nodes = value.get("nodes") or []
+    edges = list(value.get("edges") or [])
+    if not edges and isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            src = node.get("id")
+            children = node.get("children")
+            if src is None or not isinstance(children, dict):
+                continue
+            for label, dst in children.items():
+                edges.append({"from": src, "to": dst, "label": str(label)})
+    return {"nodes": nodes, "edges": edges}
 
 
 def _union_find_objects(key: str, value: dict[str, Any]) -> list[SceneObject]:
@@ -1825,7 +1864,12 @@ def _is_recursion_tree_like(key: str, value: Any) -> bool:
 
 
 def _is_trie_like(key: str, value: Any) -> bool:
-    return isinstance(value, dict) and key == "trie" and "nodes" in value and "edges" in value
+    if not isinstance(value, dict) or "trie" not in key.lower():
+        return False
+    nodes = value.get("nodes")
+    if not isinstance(nodes, list):
+        return False
+    return "edges" in value or any(isinstance(node, dict) and isinstance(node.get("children"), dict) for node in nodes)
 
 
 def _is_union_find_like(key: str, value: Any) -> bool:

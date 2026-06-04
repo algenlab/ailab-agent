@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from algolab.compiler.scene_compiler import compile_scene
 from algolab.runtime.dsl import TraceSession
+from algolab.runtime.executor import execute_variant, results_equivalent, to_jsonable
 from algolab.runtime.sandbox import run_function
-from algolab.schemas.semantic_trace import SemanticTrace
+from algolab.schemas.semantic_trace import SemanticTrace, SolutionVariant
 from algolab.verification.repair_context import classify_repair_error
 from algolab.verification.scene_validator import validate_scene
 from algolab.verification.trace_validator import validate_trace
@@ -137,6 +138,121 @@ def test_dsl_flow_network_and_intervals_reuse_renderer_state_shapes():
     assert "network_flow_augmenting_path" in frame_patterns
     assert "intervals[0][0]" in object_ids
     assert scene.result == {"max_flow": 2, "intervals": [[1, 4], [2, 4], [7, 9]]}
+
+
+def test_dsl_trie_nodes_only_snapshot_compiles_without_fake_node_names():
+    sess = TraceSession("trie snapshot", {"words": ["apple", "app", "ape", "bat"], "prefix": "ap"}, max_events=120)
+
+    trie = sess.trie("trie")
+    for word in ["apple", "app", "ape", "bat"]:
+        trie.insert(word)
+    answer = trie.prefix_count("ap")
+    sess.result(answer)
+
+    trace = SemanticTrace.model_validate(sess.to_trace())
+    errors, warnings = validate_trace(trace)
+    assert errors == []
+    scene = compile_scene(trace)
+    scene_errors, scene_warnings = validate_scene(scene)
+
+    object_ids = {obj.id for frame in scene.frames for obj in frame.objects}
+    assert scene.result == 3
+    assert "node:nodes" not in object_ids
+    assert "node:0" in object_ids
+    assert "node:1" in object_ids
+    assert scene_errors == []
+    assert not any("不存在的 node" in warning for warning in scene_warnings), scene_warnings
+
+
+def test_executor_to_jsonable_converts_tuple_key_memo_state():
+    value = {"memo": {(0, True, False): 1}, "nested": [{"k": {(1, False): 2}}]}
+
+    converted = to_jsonable(value)
+
+    assert converted == {"memo": {"(0, True, False)": 1}, "nested": [{"k": {"(1, False)": 2}}]}
+
+
+def test_scene_compiler_synthesizes_missing_edge_endpoint_nodes():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "edge endpoint compat",
+            "input_data": {},
+            "result": 1,
+            "pseudocode": [],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "edge:A->B"}],
+                    "state": {"dist": {"A": 0, "B": 1}},
+                    "role": "current",
+                    "reason": "检查 A 到 B 的边",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+
+    scene = compile_scene(trace)
+    scene_errors, scene_warnings = validate_scene(scene)
+    object_ids = {obj.id for frame in scene.frames for obj in frame.objects}
+
+    assert "edge:A->B" in object_ids
+    assert "node:A" in object_ids
+    assert "node:B" in object_ids
+    assert scene_errors == []
+    assert not any("source 不在对象集合" in warning or "target 不在对象集合" in warning for warning in scene_warnings)
+
+
+def test_sandbox_allows_scalar_numeric_dunder_compatibility():
+    code = """
+def trace(input_data):
+    sess = TraceSession("scalar compat", input_data)
+    value = sess.scalar("value", input_data["value"])
+    answer = value.__int__()
+    sess.result(answer)
+    return sess.to_trace()
+"""
+
+    raw = run_function(code, "trace", {"value": 4})
+
+    assert raw["result"] == 4
+
+
+def test_dsl_accepts_default_session_and_table_dimensions():
+    sess = TraceSession()
+    table = sess.table("dp", 2, 3)
+    table[1, 2] = 5
+    sess.result(table[1, 2])
+    trace = SemanticTrace.model_validate(sess.to_trace())
+
+    assert trace.input_data is None
+    assert trace.result == 5
+    assert trace.events[0].state["dp"] == [[0, 0, 0], [0, 0, 0]]
+
+
+def test_executor_normalizes_inverse_bipartite_matching_result():
+    assert results_equivalent({"L1": "R2", "L2": "R1"}, {"R1": "L2", "R2": "L1"})
+
+    variant = SolutionVariant(
+        id="matching",
+        name="matching",
+        strategy="inverse trace result compatibility",
+        code="def solve(input_data):\n    return {'L1': 'R2', 'L2': 'R1'}\n",
+        tracker_code=(
+            "def trace(input_data):\n"
+            "    sess = TraceSession('matching', input_data)\n"
+            "    sess.result({'R1': 'L2', 'R2': 'L1'})\n"
+            "    return sess.to_trace()\n"
+        ),
+    )
+
+    executed = execute_variant(variant, {})
+
+    assert executed.result == {"L1": "R2", "L2": "R1"}
+    assert executed.trace is not None
+    assert executed.trace.result == {"L1": "R2", "L2": "R1"}
 
 
 def test_dsl_accepts_deepseek_natural_api_aliases():
@@ -376,6 +492,16 @@ def test_repair_context_guides_tarjan_missing_node_initialization():
     assert "disc" in info["repair_instruction"]
 
 
+def test_repair_context_guides_kruskal_edge_tuple_unpacking():
+    info = classify_repair_error(
+        "Kruskal 算法 失败：trace 执行失败：ValueError: dictionary update sequence element #0 has length 1; 2 is required"
+    )
+
+    assert info["failure_type"] == "execution"
+    assert "for u, v, w in edges" in info["repair_instruction"]
+    assert "dict(edge)" in info["repair_instruction"]
+
+
 def test_repair_context_guides_digit_dp_and_trie_trace_mismatch():
     digit = classify_repair_error("逐位前缀计数 失败：结果 10 与 expected 18 不一致")
     digit_title = classify_repair_error("数位DP - 逐位处理前缀 失败：结果 10 与 expected 18 不一致")
@@ -384,6 +510,16 @@ def test_repair_context_guides_digit_dp_and_trie_trace_mismatch():
     assert "1..n" in digit["repair_instruction"]
     assert "1..n" in digit_title["repair_instruction"]
     assert "prefix_count" in trie["repair_instruction"]
+
+
+def test_repair_context_guides_tree_diameter_edge_height_mismatch():
+    info = classify_repair_error(
+        "后序递归聚合高度计算直径 失败：结果 1 与 expected 3 不一致"
+    )
+
+    assert info["failure_type"] == "result_mismatch"
+    assert "height[child] + 1" in info["repair_instruction"]
+    assert "边数" in info["repair_instruction"]
 
 
 def test_dsl_accepts_deepseek_scalar_rebind_and_tree_node_helpers():
@@ -505,6 +641,12 @@ def run_all() -> None:
     test_dsl_array_swap_and_range_highlight_use_existing_slice_targets()
     test_dsl_range_structures_reuse_existing_range_visual_state_shapes()
     test_dsl_flow_network_and_intervals_reuse_renderer_state_shapes()
+    test_dsl_trie_nodes_only_snapshot_compiles_without_fake_node_names()
+    test_executor_to_jsonable_converts_tuple_key_memo_state()
+    test_scene_compiler_synthesizes_missing_edge_endpoint_nodes()
+    test_sandbox_allows_scalar_numeric_dunder_compatibility()
+    test_dsl_accepts_default_session_and_table_dimensions()
+    test_executor_normalizes_inverse_bipartite_matching_result()
     test_dsl_accepts_deepseek_natural_api_aliases()
     test_dsl_accepts_deepseek_container_aliases_and_safe_json_import()
     test_dsl_accepts_deepseek_scalar_rebind_and_tree_node_helpers()
@@ -517,7 +659,9 @@ def run_all() -> None:
     test_repair_context_guides_linked_list_trace_result_mismatch()
     test_repair_context_guides_geometry_point_index_mixup()
     test_repair_context_guides_tarjan_missing_node_initialization()
+    test_repair_context_guides_kruskal_edge_tuple_unpacking()
     test_repair_context_guides_digit_dp_and_trie_trace_mismatch()
+    test_repair_context_guides_tree_diameter_edge_height_mismatch()
 
 
 if __name__ == "__main__":

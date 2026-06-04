@@ -47,6 +47,8 @@
 
 只能调用本文 DSL API 表中明确列出的方法。如果上一轮因为对象方法不存在失败，优先改成已列出的 DSL 方法，不要继续发明新方法。禁止导入 `algolab`、`algolab_tracker` 或项目内部模块；沙箱已注入 `TraceSession` 和 DSL 对象，直接使用即可。
 
+白名单含义：普通 Python 的 `for/while/if/def`、局部变量、list/dict 可以正常使用；但任何由 `sess.array/table/graph/trie/...` 返回的 DSL 对象都不是普通 Python 对象，**只能调用下方 API 表列出的方法**。如果错误是 `DSL 静态方法检查失败` 或 `AttributeError: '<X>Obj' object has no attribute '<m>'`，必须把 `<m>` 改成 API 表中已有方法，而不是继续猜新方法。
+
 # DSL API 提醒（与 tracker_system 同步）
 
 工厂方法：`sess.array / string / table / scalar / map / counter / pointer / heap / stack / queue / deque / union_find / linked_list / trie / graph / tree / points / fenwick / segment_tree / flow_network / intervals`。
@@ -55,6 +57,10 @@
 - `MapObj`: `m[key] = value`, `m.get(key, default)`, `m.contains(key)`, `m.highlight(key)`。
 - `CounterObj`: `cnt.inc(key)`, `cnt.dec(key)`, `cnt.get(key, 0)`。
 - `ArrayObj`: `arr.swap(i, j)`, `arr.highlight_range(l, r)`。
+- `TableObj`: `tbl[i, j]`, `tbl[i, j] = value`, `tbl.highlight((i,j))`, `tbl.highlight_range((r1,c1), (r2,c2))`。
+- `GraphObj`: `g.highlight_node(node)`, `g.highlight_edge(u, v)`, `g.highlight(node)` / `g.highlight(u, v)`, `g.add_edge(u, v)`, `g.update_edge(u, v, **attrs)`；不要调用 `g.node(...)`。
+- `TrieObj`: `trie.insert(word)`, `trie.search(word)`, `trie.prefix_count(prefix)`；不要手写 `node.children` 或把 Trie 当 Graph。
+- `LinkedListObj`: `ll.get_next(node_id)`, `ll.reverse_link(node_id, new_next)`, `ll.set_head(node_id)`, `ll.highlight(node_id)`；推荐节点 id，不要写 `curr.next`。
 - `FenwickObj`: `bit.range_sum(l, r)`, `bit.add(index, delta)`。
 - `SegmentTreeObj`: `seg.query(l, r)`, `seg.update(index, value)`。
 - `FlowNetworkObj`: `net.residual(u, v)`, `net.augment([s,...,t], amount)`。
@@ -79,10 +85,14 @@
 | `单步 state 过大` | 不要把超大字典/数组反复改写；DSL 的 snapshot 自动深拷贝当前所有对象，因此控制对象数量与大小 |
 | `tracer.create / tracer.set` 在错误中提到 | 这是旧 API 残留；改用 DSL：`tracer.create("dp[0]", ...)` → `dp[0] = value` 或 `dp = sess.array("dp", ...)` |
 | `TraceSession is not defined` | 不要写 `from algolab... import TraceSession`，沙箱已自动注入，直接使用 |
+| `DSL 静态方法检查失败` | DSL 对象调用了不存在的方法；按错误中建议改成白名单方法，不要继续发明 |
+| `GraphObj` 没有 `node` | Graph 只能 `highlight_node/highlight_edge/update_edge/add_edge`；Trie 不要用 Graph 表示 |
+| Trie `trace 结果 0` 或前缀计数不一致 | 不要手写 `trie.root/node.children` DFS；插入所有 words 后用 `trie.prefix_count(prefix)`，`search(prefix)` 不能当计数 |
+| `dictionary update sequence element` 且 Kruskal/MST | 单条边是三元组，不要 `dict(edge)`；必须 `for u, v, w in edges:` 或 `u, v, w = edge` |
 | `module 'xxx' is not allowed` | 只能用白名单模块 |
 | `cannot unpack non-iterable int object` | 循环解包写错；遍历 digits/数组并需要下标和值时必须写 `for i, x in enumerate(seq)`，不要写 `for i, x in seq` |
 | `list indices must be integers or slices, not NoneType` | 链表/指针算法里 `curr` 已经是 `None` 还被当下标使用；先判断 `curr is not None`，反转链表要先保存 `next` 再改链接 |
-| `结果 19 与 expected 18` 或数位 DP 不含 7 | 题目统计的是 `1..n` 的正整数，0 不能计入；`n=20` 时只排除 7 和 17，答案必须是 18 |
+| `结果 10/19 与 expected 18` 或数位 DP 不含 7 | 题目统计的是 `1..n` 的正整数，0 不能计入；`n=20` 时只排除 7 和 17，答案必须是 18；用 `dfs(pos,tight,started)`，memo key 用字符串，不要用九进制转换或最高位粗算 |
 
 # 输出
 

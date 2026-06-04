@@ -246,7 +246,15 @@ def _slice_in_known_targets(name, indices, known_targets) -> bool:
 
 
 def _is_tree_like(key, value) -> bool:
-    return key in {"tree", "binary_tree", "segment_tree", "trie", "recursion_tree", "call_tree", "search_tree"} and "nodes" in value and "edges" in value
+    if key in {"tree", "binary_tree", "segment_tree", "recursion_tree", "call_tree", "search_tree"}:
+        return "nodes" in value and "edges" in value
+    if "trie" in str(key).lower():
+        nodes = value.get("nodes")
+        return isinstance(nodes, list) and (
+            "edges" in value
+            or any(isinstance(node, dict) and isinstance(node.get("children"), dict) for node in nodes)
+        )
+    return False
 
 
 def _is_union_find_like(key, value) -> bool:

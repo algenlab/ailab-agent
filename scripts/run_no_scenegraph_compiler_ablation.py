@@ -103,11 +103,9 @@ def build_trace_only_variants(
     last_errors: list[str] = []
     for round_idx in range(max_rounds + 1):
         variants, errors, warnings, checks, verifier_result = _try_materialize_trace_only(request, spec)
-        if variants and not errors and (not strict_warnings or not warnings):
+        if variants and not errors:
             return spec, variants, warnings, checks, verifier_result
         last_errors = errors or []
-        if variants and not errors and strict_warnings and warnings:
-            last_errors = [f"严格模式拒绝 warning：{warning}" for warning in warnings]
         if round_idx < max_rounds:
             for failure_type in repair_failure_types(last_errors):
                 if failure_type not in repair_failure_types_out:

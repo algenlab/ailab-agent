@@ -183,6 +183,7 @@ def test_llm_benchmark_sample_selection_and_failure_classification(tmp_path: Pat
     assert len(selected) == 1
     assert selected[0][0] == 1
     assert classify_failure("RuntimeError: 缺少 ALGOLAB_LLM_API_KEY 环境变量") == "configuration"
+    assert classify_failure("BadRequestError: Access denied, type: Arrearage") == "configuration"
     assert classify_failure("TimeoutError: LLM benchmark 超过 1 秒") == "timeout"
     assert classify_failure("严格模式拒绝 warning：x") == "visual_warning"
     assert classify_failure("严格模式拒绝 warning：failure_type=coverage_error: BFS 小图缺少关键步骤覆盖：check_edge") == "coverage_error"
@@ -1341,6 +1342,73 @@ def test_llm_benchmark_strict_warning_enters_repair(monkeypatch):
     assert artifact.validation.warnings == []
     assert calls["materialize"] == 2
     assert calls["repair_errors"] == [["严格模式拒绝 warning：第 1 步 after 与 state 不一致：nums[0]"]]
+
+
+def test_llm_benchmark_regenerates_after_candidate_repair_fails(monkeypatch):
+    request = ProblemInput(problem="候选重生成测试", input_data={"nums": [2, 1]}, expected_result=[1, 2])
+    fail_gate = ReleaseGate(
+        artifact_ready=True,
+        process_ready=False,
+        trace_ready=False,
+        visual_ready=True,
+        release_ready=False,
+        blocking_reasons=["结果错误"],
+    )
+    pass_gate = ReleaseGate(
+        artifact_ready=True,
+        process_ready=True,
+        trace_ready=True,
+        visual_ready=True,
+        release_ready=True,
+    )
+    failed = BuildArtifact(
+        problem_title="候选重生成测试",
+        input_contract="",
+        input_data=request.input_data,
+        expected_result=request.expected_result,
+        variants=[],
+        scenes={},
+        validation=ValidationReport(errors=["结果错误"], release_gate=fail_gate),
+    )
+    passed = BuildArtifact(
+        problem_title="候选重生成测试",
+        input_contract="",
+        input_data=request.input_data,
+        expected_result=request.expected_result,
+        variants=[],
+        scenes={},
+        validation=ValidationReport(errors=[], release_gate=pass_gate),
+    )
+    calls = {"generate": 0, "repair": 0, "materialized": []}
+
+    def fake_generate(_request):
+        calls["generate"] += 1
+        return {"candidate": calls["generate"], "variants": []}
+
+    def fake_repair(_request, spec, _errors):
+        calls["repair"] += 1
+        repaired = dict(spec)
+        repaired["repaired"] = True
+        return repaired
+
+    def fake_materialize(_request, spec):
+        calls["materialized"].append((spec.get("candidate"), bool(spec.get("repaired"))))
+        if spec.get("candidate") == 2:
+            return passed, []
+        return failed, ["结果错误"]
+
+    monkeypatch.setattr("scripts.run_llm_benchmark.generate_solution_spec", fake_generate)
+    monkeypatch.setattr("scripts.run_llm_benchmark._try_materialize", fake_materialize)
+    monkeypatch.setattr("scripts.run_llm_benchmark.repair_solution_spec", fake_repair)
+
+    artifact = build_artifact_timed(request, max_rounds=1, max_candidates=2)
+
+    assert artifact.validation.release_gate.release_ready is True
+    assert calls == {
+        "generate": 2,
+        "repair": 1,
+        "materialized": [(1, False), (1, True), (2, False)],
+    }
 
 
 def test_llm_json_and_spec_normalization_helpers():

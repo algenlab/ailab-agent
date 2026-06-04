@@ -68,24 +68,29 @@ def _semantic_trace_repair_checklist(repair_context: list[dict[str, Any]]) -> li
     if categories & {"trace_schema", "target_or_deps"}:
         lines.extend(
             [
-                "- tracker 必须使用 tracer = Tracer(input_data, algorithm=..., pseudocode=[...])，最后 return tracer.to_trace()。",
-                "- 事件字段只用 op/targets；禁止旧字段 type/target、裸字符串 targets 和旧式 map target。",
-                '- TargetRef.id 必须是字符串；不要把多个 target 塞进一个 id，例如 {"id": ["pointer:left", "pointer:right"]}，应拆成 {"id": "pointer:left"} 和 {"id": "pointer:right"}。',
-                "- map target 的 key 不写 Python 引号：使用 indegree[A]、dist[B]，不要写 indegree['A']，不要写 dist[\"B\"]。",
-                '- deps 为 {"id": ...} 结构由 Tracer 自动生成；不要手写旧 events、events.append 或旧 deps/targets 结构。',
-                "- 保留顶层 input_data，result 必须与 solve(input_data) 一致。",
+                "- tracker_code 必须使用 sess = TraceSession(...), 最后 return sess.to_trace()。",
+                "- 不要手写 events、targets、deps 或旧 SemanticTrace 字段；只通过 DSL 对象操作自动 emit。",
+                "- DSL 对象只能调用白名单方法；不要猜测 GraphObj.node、Trie node.children、LinkedList node.next 等自然对象 API。",
+                "- map/dict 可视化用 sess.map(...)，不要手写旧式 map target。",
+                "- trace 的 sess.result(answer) 必须与 solve(input_data) 完全一致。",
             ]
         )
     if "choose" in messages:
         lines.append(
-            "- 不存在 tracer.choose()；选择用 tracer.push / tracer.mark / tracer.enter，撤销用 tracer.pop / tracer.unmark / tracer.exit。"
+            "- 不存在 choose()；选择过程用 DSL 容器 push/pop、highlight/unhighlight 或 with sess.step(...) 表达。"
         )
     if "tracer.__init__" in messages or "missing 1 required positional argument: 'input_data'" in messages:
-        lines.append("- 修复 Tracer 初始化：不要调用 Tracer()，必须传入 input_data。")
+        lines.append("- 修复 TraceSession 初始化：不要调用旧 Tracer；使用 sess = TraceSession(algorithm, input_data, max_events=80)。")
     if "to_trace()" in messages or "to_trace(result" in messages:
-        lines.append("- Tracer.to_trace 不接受 result 参数；必须先调用 tracer.result(answer)，最后 return tracer.to_trace()。")
+        lines.append("- sess.to_trace 不接受 result 参数；必须先调用 sess.result(answer)，最后 return sess.to_trace()。")
     if "tracer._add" in messages or "unexpected keyword argument 'stage'" in messages:
-        lines.append("- 不要调用私有 tracer._add，也不要传 stage=；阶段信息写入 state['phase'] 或 teaching。")
+        lines.append("- 不要调用私有 _add/_emit，也不要生成 renderer 字段；阶段信息用 with sess.step(...) 或 sess.note(...)。")
+    if "dsl 静态方法检查失败" in messages or "object has no attribute" in messages:
+        lines.append("- 如果 DSL 方法不存在，必须改成 tracker_system API 表里的方法；不要换一种新名字继续猜。")
+    if "demo_missing_state" in messages or "缺少可复原 state" in messages:
+        lines.append("- 只补 tracker_code 中缺失的 state/snapshot/step，不要修改 solve_code/code、verifier_code 或最终答案。")
+    if "solve 结果" in messages and "trace 结果" in messages and "不一致" in messages:
+        lines.append("- solve 已可能正确时，优先只修改 tracker_code 的 sess.result(...) 或 trace 计算逻辑；不要重写已正确的 solve_code/code。")
     if "compare 缺少 deps/value" in messages:
         lines.append("- compare 事件必须带 deps 或 value；GCD/数学循环比较时 deps 指向 a/b/remainder，value 写当前比较或终止条件。")
     if not lines:

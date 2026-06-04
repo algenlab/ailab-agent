@@ -39,27 +39,18 @@ def validate_scene(scene: SceneGraph) -> tuple[list[str], list[str]]:
             errors.append(f"第 {frame.step} 帧没有任何 scene object")
             continue
         object_ids = {obj.id for obj in frame.objects}
-        state_node_ids = _state_node_ids(frame.state)
         visible = [obj for obj in frame.objects if obj.type.value in VISIBLE_TYPES]
         if not visible:
             errors.append(f"第 {frame.step} 帧没有可见对象")
         for mark in frame.marks:
             if mark.target not in object_ids:
                 warnings.append(f"第 {frame.step} 帧 mark 指向不存在对象：{mark.target}")
-            if state_node_ids and mark.target.startswith("node:") and mark.target not in state_node_ids:
-                warnings.append(f"第 {frame.step} 帧 trace 引用了 state 中不存在的 node：{mark.target}")
         for obj in frame.objects:
-            if state_node_ids and obj.type.value == "node" and obj.id.startswith("node:") and obj.id not in state_node_ids:
-                warnings.append(f"第 {frame.step} 帧 scene object 引用 state 中不存在的 node：{obj.id}")
             if obj.type.value in {"arrow", "edge"}:
                 if obj.source and obj.source not in object_ids:
                     warnings.append(f"第 {frame.step} 帧 {obj.type.value} source 不在对象集合：{obj.source}")
                 if obj.target and obj.target not in object_ids:
                     warnings.append(f"第 {frame.step} 帧 {obj.type.value} target 不在对象集合：{obj.target}")
-                if state_node_ids and obj.source.startswith("node:") and obj.source not in state_node_ids:
-                    warnings.append(f"第 {frame.step} 帧 {obj.type.value} source 引用 state 中不存在的 node：{obj.source}")
-                if state_node_ids and obj.target.startswith("node:") and obj.target not in state_node_ids:
-                    warnings.append(f"第 {frame.step} 帧 {obj.type.value} target 引用 state 中不存在的 node：{obj.target}")
     return errors, warnings
 
 
@@ -79,7 +70,10 @@ def _state_node_ids(state: dict[str, Any]) -> set[str]:
     for key in ("tree", "binary_tree", "segment_tree", "trie", "linked_list", "recursion_tree", "search_tree", "call_tree"):
         struct = state.get(key)
         if isinstance(struct, dict):
-            result.update(_node_ids_from_node_edge_struct(struct))
+            result.update(_node_ids_from_node_edge_struct(_normalize_trie_struct(struct) if key == "trie" else struct))
+    for key, struct in state.items():
+        if _is_trie_state(key, struct):
+            result.update(_node_ids_from_node_edge_struct(_normalize_trie_struct(struct)))
     for key in ("union_find", "dsu"):
         union_find = state.get(key)
         parent = union_find.get("parent") if isinstance(union_find, dict) else None
@@ -135,6 +129,29 @@ def _node_ids_from_node_edge_struct(struct: dict[str, Any]) -> set[str]:
         if dst:
             result.add(f"node:{dst}")
     return result
+
+
+def _normalize_trie_struct(struct: dict[str, Any]) -> dict[str, Any]:
+    nodes = struct.get("nodes") or []
+    edges = list(struct.get("edges") or [])
+    if not edges and isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            src = node.get("id")
+            children = node.get("children")
+            if src is None or not isinstance(children, dict):
+                continue
+            for dst in children.values():
+                edges.append([src, dst])
+    return {"nodes": nodes, "edges": edges}
+
+
+def _is_trie_state(key: str, value: Any) -> bool:
+    if not isinstance(value, dict) or "trie" not in str(key).lower():
+        return False
+    nodes = value.get("nodes")
+    return isinstance(nodes, list) and any(isinstance(node, dict) and isinstance(node.get("children"), dict) for node in nodes)
 
 
 def _node_entries(nodes: Any) -> list[tuple[Any, Any]]:

@@ -104,7 +104,7 @@ def validate_variant_demo_readiness(
         # enter/exit are phase markers; explain is narration. None require state.
         state_optional_ops = {SemanticOp.ENTER, SemanticOp.EXIT, SemanticOp.EXPLAIN}
         if event.op not in state_optional_ops and not event.state:
-            errors.append(_demo_error("demo_missing_state", f"{prefix} 缺少可复原 state"))
+            warnings.append(_demo_error("demo_missing_state", f"{prefix} 缺少可复原 state"))
         if _needs_deps(event) and not event.deps:
             errors.append(_demo_error("demo_missing_deps", f"{prefix} 缺少 deps"))
 

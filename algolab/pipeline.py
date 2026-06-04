@@ -78,15 +78,28 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
     scenes = {}
     for variant in parse_variants(spec):
         try:
-            materialized = execute_variant(variant, request.input_data)
-            if request.expected_result is not None and not results_equivalent(materialized.result, request.expected_result):
+            equivalence_context = {
+                "case_id": request.case_id,
+                "family_id": request.family_id,
+                "subfamily_id": request.subfamily_id,
+            }
+            materialized = execute_variant(variant, request.input_data, **equivalence_context)
+            if request.expected_result is not None and not results_equivalent(
+                materialized.result,
+                request.expected_result,
+                **equivalence_context,
+            ):
                 raise ValueError(f"结果 {materialized.result!r} 与 expected {request.expected_result!r} 不一致")
             if verifier_available:
-                if request.expected_result is not None and not results_equivalent(verifier_result, request.expected_result):
+                if request.expected_result is not None and not results_equivalent(
+                    verifier_result,
+                    request.expected_result,
+                    **equivalence_context,
+                ):
                     checks.append(
                         f"{materialized.name}: 独立 verifier 结果 {verifier_result!r} 与 expected {request.expected_result!r} 不一致，已以 expected 为准"
                     )
-                elif not results_equivalent(materialized.result, verifier_result):
+                elif not results_equivalent(materialized.result, verifier_result, **equivalence_context):
                     raise ValueError(f"结果 {materialized.result!r} 与 verifier {verifier_result!r} 不一致")
             assert materialized.trace is not None
             trace_errors, trace_warnings = validate_trace(materialized.trace)
@@ -125,8 +138,13 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
 
     if len(good_variants) > 1:
         baseline = good_variants[0].result
+        equivalence_context = {
+            "case_id": request.case_id,
+            "family_id": request.family_id,
+            "subfamily_id": request.subfamily_id,
+        }
         for variant in good_variants[1:]:
-            if not results_equivalent(variant.result, baseline):
+            if not results_equivalent(variant.result, baseline, **equivalence_context):
                 errors.append(f"多解法结果不一致：{good_variants[0].name} vs {variant.name}")
         if not any("多解法结果不一致" in e for e in errors):
             checks.append("多解法交叉结果一致")
@@ -223,7 +241,12 @@ def _run_contract_tests(
                 reference = oracle_result if oracle_ran else expected
                 if reference is None:
                     raise ValueError("contract test 缺少 expected/oracle reference")
-                if canonical(solve_result) != canonical(reference):
+                equivalence_context = {
+                    "case_id": request.case_id,
+                    "family_id": request.family_id,
+                    "subfamily_id": request.subfamily_id,
+                }
+                if not results_equivalent(solve_result, reference, **equivalence_context):
                     raise ValueError(f"solve result {solve_result!r} 与 contract reference {reference!r} 不一致")
                 ok = True
             except Exception as exc:

@@ -59,6 +59,8 @@
 
 只能调用本文 DSL API 表中明确列出的方法；不确定的方法不要调用。禁止自行发明字段、函数、op、对象方法或 renderer/HTML 相关内容。禁止导入 `algolab`、`algolab_tracker` 或项目内部模块；沙箱已注入 `TraceSession` 和 DSL 对象，直接使用即可。
 
+白名单含义：普通 Python 的 `for/while/if/def`、局部变量、list/dict 可以正常使用；但任何由 `sess.array/table/graph/trie/...` 返回的 DSL 对象都不是普通 Python 对象，**只能调用下方 API 表列出的方法**。不要根据数据结构常识猜测 `.node`、`.children`、`.next`、`.clear`、`.peek_all` 等方法；如果 API 表没有写，就不要调用。系统会在执行前做 DSL 静态方法检查，未知方法会直接失败并进入 repair。
+
 # 沙箱环境
 
 - 已注入 `TraceSession` 类（DSL 入口），无须 import。
@@ -78,7 +80,7 @@ def trace(input_data):
     )
     # 用 DSL 创建对象
     arr = sess.array("nums", input_data["nums"])
-    # 算法主体（写起来跟普通 Python 一样）
+    # Python 控制流正常写；DSL 对象只用白名单方法
     arr[0] = 99       # 自动 emit set 事件
     # ...
     sess.result(answer)
@@ -124,29 +126,29 @@ def trace(input_data):
 
 **ArrayObj**: `arr[i]`（读）, `arr[i] = x`（写，自动 emit set）, `arr.swap(i, j)`, `arr.highlight(i, role="current")`, `arr.highlight_range(l, r)`（闭区间）, `arr.unhighlight(i)`, `len(arr)`, `arr.to_list()`
 
-**StringObj**: `s[i]`, `s.compare(i, j)`, `s.highlight(i)`, `len(s)`
+**StringObj**: `s[i]`, `s.compare(i, j)`, `s.highlight(i)`, `s.highlight_range(l, r)`, `len(s)`
 
-**TableObj**: `tbl[i, j]`（读）, `tbl[i, j] = x`（写，自动 emit set，注意是元组下标），`tbl.rows()`
+**TableObj**: `tbl[i, j]`（读）, `tbl[i, j] = x`（写，自动 emit set，注意是元组下标），`tbl.highlight((i, j))`, `tbl.highlight_range((r1,c1), (r2,c2))`, `tbl.rows()`
 
 **ScalarObj**: `.value`（读）, `.set(x, reason="")`
 
-**MapObj**: `m[key]`, `m[key] = value`, `m.get(key, default)`, `m.contains(key)`, `m.highlight(key)`, `m.to_dict()`
+**MapObj**: `m[key]`, `m[key] = value`, `m.get(key, default)`, `m.contains(key)`, `m.highlight(key)`, `m.clear()`, `m.to_dict()`
 
 **CounterObj**: `.inc(key, delta=1)`, `.dec(key, delta=1)`, `.get(key, 0)`, `.most_common(n)`, `.to_dict()`
 
 **PointerObj**: `.idx`, `.move(new_idx, reason="")`, `.deref()`
 
-**HeapObj/StackObj/QueueObj**: `.push(x)`, `.pop()`, `.peek()`, `.empty()`, `len(...)`
+**HeapObj/StackObj/QueueObj**: `.push(x)`, `.pop()`, `.peek()`, `.empty()`, `len(...)`。需要遍历栈内容时，优先维护一个普通 Python list 镜像，不要猜测额外方法。
 
 **DequeObj**: `.push_left(x)`, `.push_right(x)`, `.pop_left()`, `.pop_right()`, `.empty()`
 
 **UnionFindObj**: `.find(x)`, `.union(x, y)` → bool（返回是否真的合并了）
 
-**LinkedListObj**: `.insert_after(node_id, value)`, `.remove(node_id)`, `.reverse_link(node_id, new_next)`, `.set_head(node_id)`, `.highlight(node_id)`
+**LinkedListObj**: `.insert_after(node_id, value)`, `.remove(node_id)`, `.reverse_link(node_id, new_next)`, `.set_head(node_id)`, `.highlight(node_id)`, `.get_next(node_id)`, `.get_value(node_id)`。推荐用节点 id（0,1,2...）表示链表位置，不要把节点当成普通对象访问 `.next`。
 
-**TrieObj**: `.insert(word)`, `.search(word)` → bool, `.prefix_count(prefix)` → int
+**TrieObj**: `.insert(word)`, `.search(word)` → bool, `.prefix_count(prefix)` → int。不要手写 `node.children` 或把 Trie 当 Graph 画。
 
-**GraphObj**: `.highlight_node(node)`, `.highlight_edge(u, v)`, `.update_edge(u, v, **attrs)`
+**GraphObj**: `.highlight_node(node)`, `.highlight_edge(u, v)`, `.highlight(node)` / `.highlight(u, v)`, `.add_edge(u, v)`, `.update_edge(u, v, **attrs)`。不要调用 `.node(...)`。
 
 **TreeObj**: `with frames.frame("dfs(2)"): ...`（递归栈，自动 enter/exit）
 
@@ -171,11 +173,82 @@ def trace(input_data):
 
 # 写代码的指导原则
 
-1. **像写普通 Python 算法一样写**。只是数组用 `sess.array(...)` 而非 list、表用 `sess.table(...)` 而非 list of list、堆用 `sess.heap(...)` 而非 heapq。其余循环、判断、递归全部正常 Python。
+1. **只有控制流像普通 Python，DSL 对象不是普通对象**。循环、判断、递归、局部 list/dict 都正常写；但 `sess.*(...)` 返回的对象只能调用 API 表方法，不能猜测自然对象方法。
 2. **关键阶段用 `with sess.step("..."):`** 包裹，让动画有节奏感。
 3. **不要刻意制造大量事件**。max_events=80 是上限，DSL 会自动压缩，但密集事件影响可读性。一道题通常 30-60 events 即可。
 4. **对小输入优先**。trace 用的 input_data 通常规模小（数组 5-15 个元素，图 4-8 节点）。可以直接用循环走完算法，不必担心事件超限。
-5. **solve 和 trace 答案一致**。最简单的做法是 trace 函数把同样的算法写一遍（带 DSL hook），最后 `sess.result(answer)` 与 solve 返回值相同。
+5. **solve 和 trace 答案一致**。`code` 和 `tracker_code` 会被分别执行，trace 不能直接调用另一个字符串里的 `solve`。如果要复用逻辑，必须在 `tracker_code` 内部也定义同样的 helper，最后 `sess.result(answer)` 与 solve 返回值相同。
+
+# 高频族模板（优先按这些写，避免自造 API）
+
+## Trie / 前缀计数
+
+```python
+trie = sess.trie("trie")
+for word in words:
+    trie.insert(word)
+answer = trie.prefix_count(prefix)
+sess.result(answer)
+```
+
+不要写 `graph.node(...)`、`trie.root.children`、`node.children`，也不要自己 DFS 统计节点；Trie 可视化和前缀计数由 `sess.trie` / `trie.prefix_count(prefix)` 自动处理。`search(prefix)` 只能判断完整单词，不能当作 prefix count。
+
+## 反转链表
+
+```python
+ll = sess.linked_list("list", values)
+prev = None
+curr = 0 if values else None
+while curr is not None:
+    nxt = ll.get_next(curr)
+    ll.reverse_link(curr, prev)
+    prev = curr
+    curr = nxt
+ll.set_head(prev)
+answer = list(reversed(values))
+sess.result(answer)
+```
+
+推荐只使用节点 id；不要写 `curr.next`。
+
+## 凸包 / 点集
+
+保持一种表示：栈里存点索引，访问 `points[idx]`；或栈里存点坐标，直接使用该坐标。不要把点坐标再当下标写 `points[point]`。可视化用 `pts = sess.points("points", points)` 和 `pts.highlight(i)` / `pts.add_segment(i, j)`。
+
+## 网络流
+
+优先使用 `sess.flow_network(...)`，不要自己维护三套不一致的 graph/capacity/flow 可视化对象。BFS 用普通 queue/list 找增广路径，更新流量用 `net.augment(path, amount)`，最终 `sess.result(net.flow_value())`。
+
+## Kruskal / MST
+
+边列表通常是三元组 `[u, v, w]` 或 `(u, v, w)`。必须写 `for u, v, w in edges:` 或 `u, v, w = edge` 解包；不要写 `dict(edge)`、`dict.update(edge)` 或把单条边当字典。可视化用 `g = sess.graph("graph", nodes, edges)` 和 `uf = sess.union_find("union_find", len(nodes))`，选中边用 `g.highlight_edge(u, v, role="selected")`。
+
+## 数位 DP / 不含 7
+
+本 benchmark 的 `digit_dp_no_seven` 统计 `1..n` 的正整数，不包含 0。`n=20` 时只排除 7 和 17，答案是 18。不要用九进制转换或按最高位粗算；推荐用这个 helper：
+
+```python
+def count_no_7(n):
+    digits = [int(ch) for ch in str(n)]
+    memo = {}
+    def dfs(pos, tight, started):
+        key = f"{pos}:{int(tight)}:{int(started)}"
+        if key in memo:
+            return memo[key]
+        if pos == len(digits):
+            return 1 if started else 0
+        limit = digits[pos] if tight else 9
+        total = 0
+        for digit in range(limit + 1):
+            if digit == 7:
+                continue
+            total += dfs(pos + 1, tight and digit == limit, started or digit != 0)
+        memo[key] = total
+        return total
+    return dfs(0, True, False)
+```
+
+trace 的 `sess.result(answer)` 必须与 solve 一致。
 
 # 示例
 

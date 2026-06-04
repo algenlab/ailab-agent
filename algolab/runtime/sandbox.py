@@ -27,6 +27,16 @@ DANGEROUS_DUNDER_NAMES = {
 }
 
 
+SAFE_DUNDER_NAMES = {
+    "__bool__",
+    "__float__",
+    "__index__",
+    "__int__",
+    "__len__",
+    "__str__",
+}
+
+
 def safe_import(name: str, globals=None, locals=None, fromlist=(), level=0):
     allowed = {
         "bisect",
@@ -66,6 +76,8 @@ def validate_code_safety(code: str) -> None:
 
 
 def _is_dunder_name(value: str) -> bool:
+    if value in SAFE_DUNDER_NAMES:
+        return False
     return value in DANGEROUS_DUNDER_NAMES or (value.startswith("__") and value.endswith("__"))
 
 

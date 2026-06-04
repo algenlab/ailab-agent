@@ -82,12 +82,15 @@ class TraceSession:
 
     def __init__(
         self,
-        algorithm: str,
-        input_data: Any,
+        algorithm: str = "算法可视化",
+        input_data: Any = None,
         *,
         max_events: int = 80,
         pseudocode: list[str] | None = None,
     ) -> None:
+        if not isinstance(algorithm, str) and input_data is None:
+            input_data = algorithm
+            algorithm = "算法可视化"
         self.algorithm = algorithm
         self.input_data = deepcopy(input_data)
         self.max_events = max_events
@@ -114,10 +117,16 @@ class TraceSession:
                    reason=reason or f"创建字符串 {name}")
         return obj
 
-    def table(self, name: str, rows: list[list[Any]], *_args: Any, reason: str = "", **_kwargs: Any) -> "TableObj":
-        obj = TableObj(self, name, [list(r) for r in rows])
-        self._register(name, obj, deepcopy(rows))
-        self._emit("create", [name], state_override={name: deepcopy(rows)},
+    def table(self, name: str, rows: list[list[Any]] | int, *args: Any, reason: str = "", **_kwargs: Any) -> "TableObj":
+        if isinstance(rows, int):
+            cols = int(args[0]) if args and isinstance(args[0], int) else int(_kwargs.get("cols") or _kwargs.get("columns") or rows)
+            fill = _kwargs.get("fill", _kwargs.get("value", 0))
+            data = [[deepcopy(fill) for _ in range(cols)] for _ in range(rows)]
+        else:
+            data = [list(r) for r in rows]
+        obj = TableObj(self, name, data)
+        self._register(name, obj, deepcopy(data))
+        self._emit("create", [name], state_override={name: deepcopy(data)},
                    reason=reason or f"创建二维表 {name}")
         return obj
 
@@ -494,6 +503,9 @@ class ArrayObj:
         return self._values[idx]
 
     def __setitem__(self, idx: int, value: Any) -> None:
+        if idx == len(self._values):
+            self.append(value)
+            return
         before = self._values[idx]
         self._values[idx] = value
         self._session._update_snapshot(self.name, self._values)
@@ -711,6 +723,21 @@ class ScalarObj:
 
     def __getitem__(self, key: Any) -> Any:
         return self._value[key]
+
+    def __bool__(self) -> bool:
+        return bool(self._value)
+
+    def __int__(self) -> int:
+        return int(self._value)
+
+    def __float__(self) -> float:
+        return float(self._value)
+
+    def __index__(self) -> int:
+        return int(self._value)
+
+    def __str__(self) -> str:
+        return str(self._value)
 
     def get(self, default: Any = None, *, reason: str = "") -> Any:
         self._session._emit(
@@ -1234,6 +1261,9 @@ class QueueObj:
         )
         return value
 
+    def peek(self) -> Any:
+        return self._items[0] if self._items else None
+
     def empty(self) -> bool:
         return len(self._items) == 0
 
@@ -1665,6 +1695,7 @@ class TrieObj:
                     "terminal": False, "count": 0,
                 })
                 children[ch] = new_id
+                self._session._update_snapshot(self.name, self._snap())
                 self._session._emit(
                     "create", [f"node:{new_id}"],
                     value={"char": ch, "parent": cur},
