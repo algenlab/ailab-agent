@@ -18,6 +18,8 @@ def resolve_basic_state_objects(state: dict[str, Any]) -> list[SceneObject]:
 
 
 def resolve_basic_state_value(key: str, value: Any) -> list[SceneObject]:
+    if _is_set_grid(key, value):
+        return _set_grid_objects(key, value)
     if _is_matrix(value):
         return _matrix_objects(key, value)
     if key not in SEQUENCE_LAYOUT_KEYS and _is_string_list(value):
@@ -75,6 +77,40 @@ def _string_list_objects(key: str, value: list[str]) -> list[SceneObject]:
     return objects
 
 
+def _set_grid_objects(key: str, value: list[list[Any]]) -> list[SceneObject]:
+    objects = [
+        SceneObject(
+            id=key,
+            type=SceneObjectType.CONTAINER,
+            label=key,
+            meta={"layout": "set_grid", "subset_count": len(value)},
+        )
+    ]
+    for r, row in enumerate(value):
+        objects.append(
+            SceneObject(
+                id=f"{key}[{r}]",
+                type=SceneObjectType.LABEL,
+                label=str(r),
+                value="[]" if not row else None,
+                parent=key,
+                row=r,
+            )
+        )
+        for c, item in enumerate(row):
+            objects.append(
+                SceneObject(
+                    id=f"{key}[{r}][{c}]",
+                    type=SceneObjectType.CELL,
+                    value=item,
+                    parent=key,
+                    row=r,
+                    col=c,
+                )
+            )
+    return objects
+
+
 def _scalar_list_objects(key: str, value: list[Any]) -> list[SceneObject]:
     layout = key if key in SEQUENCE_LAYOUT_KEYS else "array"
     objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": layout})]
@@ -112,6 +148,17 @@ def _is_scalar_list(value: Any) -> bool:
 
 def _is_string_list(value: Any) -> bool:
     return isinstance(value, list) and all(isinstance(x, str) for x in value)
+
+
+def _is_set_grid(key: str, value: Any) -> bool:
+    if key not in {"answer", "ans", "result", "subsets", "combinations", "permutations", "powerset"}:
+        return False
+    if not isinstance(value, list) or not value or not all(isinstance(row, list) for row in value):
+        return False
+    if not all(all(not isinstance(item, (list, dict)) for item in row) for row in value):
+        return False
+    widths = [len(row) for row in value]
+    return 0 in widths or len(set(widths)) > 1
 
 
 def _is_matrix(value: Any) -> bool:

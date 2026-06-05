@@ -46,6 +46,6 @@
 
 - LLM 不直接生成 HTML/CSS/JS。
 - Renderer 只消费 SceneGraph 和 BuildArtifact。
-- 新 tracker 优先使用 Tracer API。
+- 新 tracker 优先使用 `TraceSession` DSL；`Tracer` 仅作为历史 benchmark / 旧产物兼容 API。
 - 新算法优先复用固定 SemanticOp 和视觉原语。
 - 错误产物不能通过放宽校验发布。

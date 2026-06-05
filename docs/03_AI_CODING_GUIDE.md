@@ -23,7 +23,7 @@
 
 1. 不允许让 LLM 直接生成 HTML/CSS/JS 页面。
 2. Renderer 只能消费 SceneGraph 和 BuildArtifact。
-3. `tracker_code` 必须优先使用系统注入的 `Tracer` API。
+3. `tracker_code` 必须优先使用系统注入的 `TraceSession` DSL；`Tracer` 仅用于历史兼容。
 4. `trace(input_data)` 必须返回 `semantic-trace-v1`。
 5. trace 顶层必须显式包含与本次请求完全一致的 `input_data`。
 6. 事件字段必须使用 `op` 和 `targets`。
@@ -74,12 +74,13 @@
 
 新增或修改 tracker 时：
 
-- 优先使用 `Tracer(input_data, algorithm=..., pseudocode=...)`。
-- 对小输入保留完整关键步骤。
-- 对大输入允许 sampled mode，但必须保留 `_trace_meta`。
-- `set` 事件应提供 `value`、`deps`、`state`、`reason`。
+- 优先使用 `sess = TraceSession(algorithm, input_data, pseudocode=[...])`。
+- 保留完整必要过程，不要因为帧数主动省略真实算法步骤。
+- 系统不再按事件数采样或限制 `max_events`；只控制单步 `state` 不要过大。
+- DSL 写操作应能产生足够的 `value`、`deps`、`state`、`reason` 证据；必要时用 `reason=...` 或 `sess.note(...)` 补充教学意图。
 - DP 转移类事件必须能被 process validator 复核。
 - `state` 应包含当前帧重建页面所需的关键变量。
+- 返回前必须补齐每个关键事件的 `code_line`，行号指向同一 variant 的 `code` / `solve(input_data)`。
 
 禁止写法：
 
@@ -90,15 +91,19 @@ events.append({"type": "set", "target": "dp[1][2]"})
 正确方向：
 
 ```python
-tracer.set(
-    "dp[1][2]",
-    value=3,
-    deps=["dp[0][2]", "dp[1][1]"],
-    state={"dp": [row[:] for row in dp], "i": 1, "j": 2},
-    role="answer",
-    reason="写入上方和左侧路径数之和。",
-    code_line=3,
-)
+sess = TraceSession("不同路径", input_data, pseudocode=["初始化 DP", "按行列转移"])
+dp = sess.table("dp", [[1] * n for _ in range(m)])
+dp[1, 2] = 3
+sess.result(dp[m - 1, n - 1])
+trace = sess.to_trace()
+for event in trace["events"]:
+    if event.get("role") == "answer":
+        event["code_line"] = 8
+    elif event.get("op") == "set":
+        event["code_line"] = 6
+    else:
+        event["code_line"] = 3
+return trace
 ```
 
 ## 6. Renderer 相关任务规则

@@ -4,14 +4,15 @@
 
 当前重点：
 
-- 先确认当前系统 69 个 deterministic 算法页面在真实浏览器中没有明显问题。
+- 先确认当前系统 71 个 deterministic 算法页面在真实浏览器中没有明显问题。
 - 再跑真实 LLM 生成能力实验。
 - 再跑 unseen、baseline、ablation 和 VLM 评审。
 - 实验过程中允许修复可复现 bug，但不能改变实验口径。
 
 当前事实：
 
-- 已有 deterministic benchmark：69 cases / 250 samples。
+- 已有 deterministic benchmark：71 cases / 259 samples。
+- 当前分层：`family_core=62 cases / 222 samples`，`expansion=9 cases / 37 samples`。
 - 已有真实浏览器截图入口：`scripts/capture_phase17_screenshots.py`。
 - 已有真实 LLM benchmark 入口：`scripts/run_llm_benchmark.py`。
 - 已有多模态调用入口：`llm_client.chat_vision()`。
@@ -82,8 +83,8 @@ VLM 参与：
 数据：
 
 - `tests/benchmark_cases.py`
-- 69 cases / 250 samples
-- gate layers：`family_core=60 cases / 213 samples`，`expansion=9 cases / 37 samples`
+- 71 cases / 259 samples
+- gate layers：`family_core=62 cases / 222 samples`，`expansion=9 cases / 37 samples`
 
 验证：
 
@@ -103,16 +104,16 @@ VLM 参与：
 
 数据：
 
-- 69 个 deterministic case。
+- 71 个 deterministic case。
 - 每个 case 生成 desktop 和 mobile 截图。
 - dashboard 生成 desktop 和 mobile 截图。
 - 交互截图 4 张：公式展开前、公式展开后、输入重新生成 payload、错误反馈。
 
 预期数量：
 
-- 页面截图：140 张。
+- 页面截图：144 张。
 - 交互截图：4 张。
-- 总截图：144 张。
+- 总截图：148 张。
 
 用途：
 
@@ -123,7 +124,7 @@ VLM 参与：
 
 数据：
 
-- B1 的 144 张截图。
+- B1 的 148 张截图。
 
 评分：
 
@@ -139,7 +140,7 @@ VLM 参与：
 
 数据：
 
-- 与 deterministic benchmark 同一 69 case 集合。
+- 与 deterministic benchmark 同一 71 case 集合。
 - primary setting：每个 case 跑 sample 0。
 - secondary setting：预算允许时跑 `--all-samples`。
 
@@ -544,11 +545,11 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 验收：
 
 - `quality_checks: PASS`
-- family gate 为 69 cases / 250 samples。
+- family gate 为当前 deterministic benchmark：71 cases / 259 samples。
 - answer、process、demo readiness 都为 1.0。
 - fallback / uncovered / degradation 均为 0。
 
-完成证据（2026-05-30）：
+完成证据（2026-05-30，历史 69 cases / 250 samples 口径）：
 
 - 修改文件：仅更新 `docs/08_AAAI_EXPERIMENT_PLAN.md` 中 E1 状态和完成证据。
 - 新增或修改的测试：无，本阶段只执行既有 deterministic gate。
@@ -600,8 +601,8 @@ data = json.loads(Path("output/aaai_screenshots_all/phase17_screenshots.json").r
 page_records = [r for r in data["screenshots"] if r.get("kind") == "page"]
 interaction_records = data["interaction_screenshots"]
 assert data["ok"] is True
-assert len(data["demo_ids"]) == 69
-assert len(page_records) == 140
+assert len(data["demo_ids"]) == 71
+assert len(page_records) == 144
 assert len(interaction_records) == 4
 assert all(r["bytes"] > 0 for r in data["screenshots"])
 assert all(not r["errors"] for r in data["screenshots"])
@@ -610,7 +611,7 @@ for record in data["screenshots"]:
 PY
 ```
 
-完成证据（2026-05-30）：
+完成证据（2026-05-30，历史 69-case 口径）：
 
 - 修改文件：仅更新 `docs/08_AAAI_EXPERIMENT_PLAN.md` 中 E2 状态和完成证据。
 - 新增或修改的测试：无，本阶段只执行既有截图采集与验收脚本。
@@ -754,11 +755,11 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 验收：
 
 - `llm_benchmark_report.json` 存在。
-- `total=69`。
+- `total=71`。
 - 每个失败项有 `failure_type`。
 - 真实 LLM case 失败不阻塞后续实验。
 
-完成证据（2026-05-30）：
+完成证据（2026-05-30，历史 69-case 口径）：
 
 - Smoke 命令：
   - `bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/aaai_llm_algolab_full_smoke --condition algolab_full --case unique_paths --max-rounds 2 --timeout-s 180 --browser-smoke --concurrency 1`
@@ -881,7 +882,7 @@ rg -n "benchmark_condition|direct_html_baseline|no_process_validator|no_scenegra
 
 每个 condition：
 
-- total 应为 69。
+- total 应为 71。
 - 失败项必须有 failure type。
 - 输出目录使用 `output/aaai_llm_*`。
 - browser smoke 开启。
@@ -900,7 +901,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 
 汇总时必须标记为 `condition=no_repair`，不能混进 `algolab_full`。
 
-完成证据：
+完成证据（2026-05-30，历史 69-case 口径）：
 
 - `direct_html_baseline`：
   - 命令：`bash scripts/run_browser_smoke_container.sh python scripts/run_direct_html_baseline.py --output-dir output/aaai_llm_direct_html --timeout-s 600 --browser-smoke --concurrency 2`

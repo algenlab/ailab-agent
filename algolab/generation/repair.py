@@ -60,8 +60,8 @@ def _semantic_trace_repair_checklist(repair_context: list[dict[str, Any]]) -> li
         lines.extend(
             [
                 "- JSON 解析失败、空内容或截断后必须进入紧凑修复：只输出 1 个 variant，保持题意和 expected 不变。",
-                "- tracker_code 必须短：6-10 个 events，reason 和 pseudocode 都用短句，不要复制长代码、长注释或完整历史。",
-                "- 不要输出 16000 tokens；必要时设置 policy=\"sampled\" 或 max_events=40，并只展示 create、1-2 个关键转移和 role=answer。",
+                "- tracker_code 必须紧凑，reason 和 pseudocode 都用短句，不要复制长代码、长注释或完整历史。",
+                "- 不要输出 16000 tokens；保留完整必要过程，但删除与算法无关的冗余 note、注释和重复代码。",
                 "- 仍然必须返回完整 JSON object，顶层第一个字符是 {，最后一个字符是 }。",
             ]
         )
@@ -80,7 +80,7 @@ def _semantic_trace_repair_checklist(repair_context: list[dict[str, Any]]) -> li
             "- 不存在 choose()；选择过程用 DSL 容器 push/pop、highlight/unhighlight 或 with sess.step(...) 表达。"
         )
     if "tracer.__init__" in messages or "missing 1 required positional argument: 'input_data'" in messages:
-        lines.append("- 修复 TraceSession 初始化：不要调用旧 Tracer；使用 sess = TraceSession(algorithm, input_data, max_events=80)。")
+        lines.append("- 修复 TraceSession 初始化：不要调用旧 Tracer；使用 sess = TraceSession(algorithm, input_data)。")
     if "to_trace()" in messages or "to_trace(result" in messages:
         lines.append("- sess.to_trace 不接受 result 参数；必须先调用 sess.result(answer)，最后 return sess.to_trace()。")
     if "tracer._add" in messages or "unexpected keyword argument 'stage'" in messages:

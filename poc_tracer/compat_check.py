@@ -2,7 +2,7 @@
 
 Runs three guards on each PoC trace:
 1) SemanticTrace.model_validate (schema)
-2) executor._validate_trace_budget (event count & state size)
+2) executor._validate_trace_budget (per-event state size)
 3) canonical(solve) == canonical(trace.result) (correctness gate)
 """
 
@@ -48,7 +48,7 @@ def check_one(name, mod, case):
 
     try:
         _validate_trace_budget(raw)
-        print(f"  trace budget     : OK   (events={len(raw['events'])}, max=80)")
+        print(f"  trace budget     : OK   (events={len(raw['events'])})")
     except Exception as e:
         print(f"  trace budget     : FAIL  {e}")
         return False

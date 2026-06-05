@@ -62,7 +62,12 @@ def compile_frame(
     teaching = _teaching_for_event(event)
     objects = _dedupe_objects(objects)
     _apply_visual_pattern_metadata(objects, event, state, teaching)
+    family_hint = _family_visual_hint(trace.algorithm, event, state)
+    _apply_family_visual_hint_metadata(objects, family_hint)
     evidence = _evidence_for_event(event, previous_state or {}, state, teaching, total_steps=total_steps)
+    if family_hint:
+        evidence["visual_family"] = family_hint["family"]
+        evidence["visual_family_pattern"] = family_hint["pattern"]
     evidence["visual_patterns"] = _visual_patterns_for_frame(objects)
     title = _title_for_event(event)
     return SceneFrame(
@@ -658,7 +663,7 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
         elif _is_recursion_tree_like(key, value):
             objects.extend(_tree_objects(key, value, layout="recursion_tree"))
         elif _is_linked_list_like(key, value):
-            objects.extend(_tree_objects(key, value, layout="linked_list"))
+            objects.extend(_linked_list_objects(key, value))
         elif _is_tree_like(key, value):
             objects.extend(_tree_objects(key, value))
         elif _is_trie_like(key, value):
@@ -669,11 +674,14 @@ def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObj
             objects.extend(_geometry_objects(key, value))
         elif _is_points_like(key, value):
             objects.extend(_points_objects(key, value))
+        elif _is_adjacency_matrix_graph_like(key, value):
+            objects.extend(resolve_basic_state_value(key, value))
+            objects.extend(_adjacency_matrix_graph_objects(key, value))
         elif isinstance(value, str) and _is_string_view_key(key):
             objects.extend(_string_objects(key, value, state))
         elif _is_edge_list_like(key, value):
             objects.extend(_edge_list_objects(key, value, state))
-        elif isinstance(value, dict) and _looks_like_graph(key, value):
+        elif isinstance(value, dict) and (_is_node_edge_graph_dict(value) or _looks_like_graph(key, value)):
             objects.extend(_graph_objects(key, value, state))
         else:
             objects.extend(resolve_basic_state_value(key, value))
@@ -874,9 +882,11 @@ def _apply_visual_pattern_metadata(
     by_id = {obj.id: obj for obj in objects}
     _tag_dp_visuals(by_id, event, state, teaching)
     _tag_graph_visuals(objects, by_id, event, state)
+    _tag_answer_projection_visuals(objects, by_id, event, state)
     _tag_string_visuals(objects, by_id, event, state)
     _tag_tree_visuals(objects, by_id, event, state)
     _tag_range_visuals(objects, by_id, event, state)
+    _tag_geometry_visuals(objects, state)
     _tag_network_flow_visuals(objects, state)
 
 
@@ -946,6 +956,96 @@ def _tag_graph_visuals(
             continue
         if obj.meta.get("edge_label") or obj.meta.get("weight") is not None:
             _add_visual_pattern(obj, "graph_edge_label", "edge_label")
+
+
+def _tag_answer_projection_visuals(
+    objects: list[SceneObject],
+    by_id: dict[str, SceneObject],
+    event: SemanticEvent,
+    state: dict[str, Any],
+) -> None:
+    target_ids = {target.id for target in event.targets}
+    if event.role != "answer" and not (target_ids & {"answer", "result"}):
+        return
+    answer = state.get("answer", state.get("result", event.value))
+    if answer is None:
+        answer = event.value
+    if answer is None:
+        return
+
+    for node_id, value in _answer_node_projections(answer):
+        obj = by_id.get(f"node:{node_id}") or by_id.get(str(node_id))
+        _add_visual_pattern(obj, "answer_projection", "answer", answer_value=value)
+    for src, dst, value in _answer_edge_projections(answer):
+        obj = by_id.get(f"edge:{src}->{dst}") or by_id.get(f"edge:{dst}->{src}")
+        _add_visual_pattern(obj, "answer_projection", "answer", answer_value=value)
+
+
+def _answer_node_projections(answer: Any) -> list[tuple[str, Any]]:
+    result: list[tuple[str, Any]] = []
+    if isinstance(answer, dict):
+        for key, value in answer.items():
+            if key in {"articulation", "articulations", "articulation_points", "cut_vertices", "nodes", "vertices", "path"}:
+                result.extend((str(item), item) for item in _as_string_list(value))
+            elif _looks_like_node_answer_table(value):
+                result.append((str(key), value))
+            elif isinstance(value, dict):
+                result.extend(_answer_node_projections(value))
+    elif isinstance(answer, list):
+        for item in answer:
+            if isinstance(item, str):
+                result.append((item, item))
+    return _dedupe_answer_nodes(result)
+
+
+def _answer_edge_projections(answer: Any) -> list[tuple[str, str, Any]]:
+    result: list[tuple[str, str, Any]] = []
+    if isinstance(answer, dict):
+        for key, value in answer.items():
+            if key in {"bridge", "bridges", "edges", "mst_edges", "matching", "path_edges"}:
+                result.extend(_answer_edge_projections(value))
+            elif isinstance(value, dict):
+                result.extend(_answer_edge_projections(value))
+    elif isinstance(answer, list):
+        for item in answer:
+            edge = _answer_edge_entry(item)
+            if edge is not None:
+                src, dst = edge
+                result.append((src, dst, item))
+    return _dedupe_answer_edges(result)
+
+
+def _looks_like_node_answer_table(value: Any) -> bool:
+    return value is None or isinstance(value, (str, int, float, bool))
+
+
+def _answer_edge_entry(item: Any) -> tuple[str, str] | None:
+    src, dst, _label = _edge_list_entry(item)
+    if src and dst:
+        return src, dst
+    if isinstance(item, str):
+        for sep in ("->", "-", ","):
+            if sep in item:
+                left, right = item.split(sep, 1)
+                if left.strip() and right.strip():
+                    return left.strip(), right.strip()
+    return None
+
+
+def _dedupe_answer_nodes(items: list[tuple[str, Any]]) -> list[tuple[str, Any]]:
+    result: dict[str, Any] = {}
+    for node_id, value in items:
+        if node_id:
+            result.setdefault(str(node_id), value)
+    return list(result.items())
+
+
+def _dedupe_answer_edges(items: list[tuple[str, str, Any]]) -> list[tuple[str, str, Any]]:
+    result: dict[tuple[str, str], Any] = {}
+    for src, dst, value in items:
+        if src and dst:
+            result.setdefault((str(src), str(dst)), value)
+    return [(src, dst, value) for (src, dst), value in result.items()]
 
 
 def _tag_string_visuals(
@@ -1028,11 +1128,31 @@ def _tag_range_visuals(
     event: SemanticEvent,
     state: dict[str, Any],
 ) -> None:
-    range_containers = [obj for obj in objects if obj.id in {"segment_tree", "fenwick_tree", "bit", "st"}]
+    range_containers = [
+        obj
+        for obj in objects
+        if obj.id in {"segment_tree", "fenwick_tree", "fenwick", "bit", "st", "sparse_table", "sparse", "diff", "difference", "diff_array", "prefix", "prefix_sum", "prefix_sums"}
+    ]
     if not range_containers and "segment_tree" not in state:
         return
     for container in range_containers:
         _add_visual_pattern(container, "range_structure", "container")
+        has_lowbit_step = any(key in state for key in ("lowbit", "idx", "index", "pos")) or any(
+            _as_string_list(state.get(key)) for key in ("query_path", "update_path", "path")
+        )
+        has_sparse_blocks = isinstance(state.get("query_blocks"), (list, tuple)) or isinstance(state.get("blocks"), (list, tuple)) or all(
+            key in state for key in ("l", "r", "k")
+        )
+        has_diff_prefix_endpoint = any(key in state for key in ("l", "r", "left", "right", "range_l", "range_r")) or any(
+            target.id.startswith(("diff[", "difference[", "diff_array[", "prefix[", "prefix_sum[", "prefix_sums["))
+            for target in event.targets
+        )
+        if container.id in {"fenwick_tree", "fenwick", "bit"} and has_lowbit_step:
+            _add_visual_pattern(container, "fenwick_lowbit", "lowbit")
+        if container.id in {"st", "sparse_table", "sparse"} and has_sparse_blocks:
+            _add_visual_pattern(container, "sparse_table_blocks", "query_blocks")
+        if container.id in {"diff", "difference", "diff_array", "prefix", "prefix_sum", "prefix_sums"} and has_diff_prefix_endpoint:
+            _add_visual_pattern(container, "diff_prefix", "endpoint_dependency")
     for key, pattern, role in (
         ("query_path", "range_query_path", "query"),
         ("update_path", "range_update_path", "update"),
@@ -1052,6 +1172,29 @@ def _tag_range_visuals(
     if target_nodes and (any(dep.startswith("update[") for dep in dep_ids) or "更新路径" in reason):
         for target in target_nodes:
             _add_visual_pattern(by_id.get(target), "range_update_path", "update")
+
+
+def _tag_geometry_visuals(objects: list[SceneObject], state: dict[str, Any]) -> None:
+    geometry_containers = [
+        obj
+        for obj in objects
+        if obj.type == SceneObjectType.CONTAINER and obj.meta.get("layout") == "geometry"
+    ]
+    has_geometry_state = any(
+        key in state
+        for key in ("geometry", "points", "cross", "cross_product", "orientation", "candidate", "current", "popped", "removed", "pop_point")
+    )
+    has_relation_evidence = any(
+        key in state for key in ("cross", "cross_product", "orientation", "candidate", "current", "popped", "removed", "pop_point")
+    )
+    if not geometry_containers or not has_geometry_state or not has_relation_evidence:
+        return
+    for container in geometry_containers:
+        _add_visual_pattern(container, "geometry_relation", "geometry_plane")
+    for obj in objects:
+        if obj.type == SceneObjectType.EDGE and obj.parent in {container.id for container in geometry_containers}:
+            if obj.meta.get("shape") == "hull":
+                _add_visual_pattern(obj, "geometry_relation", "hull_edge")
 
 
 def _tag_network_flow_visuals(objects: list[SceneObject], state: dict[str, Any]) -> None:
@@ -1082,6 +1225,124 @@ def _visual_patterns_for_frame(objects: list[SceneObject]) -> list[dict[str, Any
         item["roles"] = sorted(set(item["roles"]))
         result.append(item)
     return sorted(result, key=lambda item: item["pattern"])
+
+
+def _family_visual_hint(algorithm: str, event: SemanticEvent, state: dict[str, Any]) -> dict[str, str]:
+    text = " ".join(
+        str(part)
+        for part in [
+            algorithm,
+            event.reason or "",
+            *(target.id for target in event.targets[:3]),
+            *state.keys(),
+        ]
+    ).lower()
+    text_zh = f"{algorithm} {event.reason or ''} {' '.join(state.keys())}"
+
+    if "数位" in text_zh or "digit" in text and "dp" in text:
+        return {"family": "digit_dp", "pattern": "digit_dp_state"}
+    if "edmonds" in text or "network" in text or "max_flow" in text or "最大流" in text_zh:
+        return {"family": "network_flow", "pattern": "network_flow_edge_label"}
+    if "凸包" in text_zh or "几何" in text_zh or "convex" in text or "hull" in text or "geometry" in text:
+        return {"family": "geometry", "pattern": _geometry_family_pattern(state)}
+    if _is_string_algorithm_family(text_zh, text):
+        return {"family": "string_specialized", "pattern": _string_family_pattern(text_zh, text)}
+    if "链表" in text_zh or "linked" in text or "环检测" in text_zh or "cycle" in text:
+        return {"family": "linked_list", "pattern": "linked_list_pointer"}
+    if "每日温度" in text_zh or "单调栈" in text_zh or "monotonic" in text or "daily_temperatures" in text:
+        return {"family": "monotonic_stack", "pattern": "monotonic_stack"}
+    if "树状数组" in text_zh or "线段树" in text_zh or "稀疏表" in text_zh or "差分" in text_zh or "前缀和" in text_zh or "RMQ" in text_zh:
+        return {"family": "range_structure", "pattern": _range_family_pattern(state, text_zh, text)}
+    if "fenwick" in text or "segment_tree" in text or "sparse_table" in text or "sparse" in text or "rmq" in text or "difference" in text or "prefix_sum" in text:
+        return {"family": "range_structure", "pattern": _range_family_pattern(state, text_zh, text)}
+    if _is_graph_algorithm_family(text_zh, text):
+        return {"family": "graph", "pattern": "graph_frontier"}
+    heap_text_zh = text_zh.lower().replace(" ", "")
+    if "第 k 大" in text_zh.lower() or "第k" in heap_text_zh or "第k个最大" in heap_text_zh or "kth" in text or "largest" in text or "heap" in text or "堆" in text_zh:
+        return {"family": "heap", "pattern": "heap_sift_path"}
+    if "lowbit" in text or "gcd" in text or "sieve" in text or "fast_power" in text or "快速幂" in text_zh or "欧几里得" in text_zh:
+        return {"family": "math_bit", "pattern": _math_family_pattern(state, text_zh, text)}
+    return {}
+
+
+def _is_graph_algorithm_family(text_zh: str, text: str) -> bool:
+    graph_terms = (
+        "graph",
+        "dijkstra",
+        "bellman",
+        "tarjan",
+        "kruskal",
+        "topological",
+        "bipartite",
+        "province",
+        "floyd",
+        "shortest_path",
+        "mst",
+    )
+    graph_terms_zh = ("图", "最短路", "最小生成树", "二分图", "拓扑", "省份")
+    return any(term in text for term in graph_terms) or any(term in text_zh for term in graph_terms_zh)
+
+
+def _is_string_algorithm_family(text_zh: str, text: str) -> bool:
+    string_terms = ("kmp", "rabin", "z_algorithm", "manacher", "string")
+    string_terms_zh = ("字符串", "回文", "模式串")
+    return any(term in text for term in string_terms) or any(term in text_zh for term in string_terms_zh)
+
+
+def _string_family_pattern(text_zh: str, text: str) -> str:
+    if "manacher" in text or "回文" in text_zh:
+        return "manacher_radius"
+    if "kmp" in text:
+        return "kmp_alignment"
+    if "rabin" in text:
+        return "rolling_hash"
+    if "z_algorithm" in text or "z 算法" in text_zh:
+        return "z_box"
+    return "string_specialized"
+
+
+def _range_family_pattern(state: dict[str, Any], text_zh: str, text: str) -> str:
+    if any(key in state for key in ("bit", "fenwick", "fenwick_tree")) or "树状数组" in text_zh or "fenwick" in text:
+        return "fenwick_lowbit"
+    if any(key in state for key in ("st", "sparse", "sparse_table")) or "稀疏表" in text_zh or "sparse" in text or "rmq" in text:
+        return "sparse_table_blocks"
+    has_diff_or_prefix = any(key in state for key in ("diff", "difference", "diff_array", "prefix", "prefix_sum", "prefix_sums"))
+    has_diff_endpoint = any(key in state for key in ("l", "r", "left", "right", "range_l", "range_r"))
+    if has_diff_or_prefix and has_diff_endpoint:
+        return "diff_prefix"
+    return "range_structure"
+
+
+def _geometry_family_pattern(state: dict[str, Any]) -> str:
+    if any(key in state for key in ("cross", "cross_product", "orientation", "candidate", "current", "popped", "removed", "pop_point")):
+        return "geometry_relation"
+    return "geometry_plane"
+
+
+def _math_family_pattern(state: dict[str, Any], text_zh: str, text: str) -> str:
+    if "lowbit" in text or "lowbit" in text_zh.lower():
+        return "lowbit_state"
+    if "sieve" in text or "筛" in text_zh:
+        return "sieve_state"
+    if "power" in text or "快速幂" in text_zh:
+        return "fast_power_state"
+    if "gcd" in text or "欧几里得" in text_zh:
+        return "gcd_state"
+    return "math_bit_state"
+
+
+def _apply_family_visual_hint_metadata(objects: list[SceneObject], family_hint: dict[str, str]) -> None:
+    if not family_hint:
+        return
+    candidates = [obj for obj in objects if obj.type == SceneObjectType.CONTAINER]
+    if not candidates:
+        candidates = [obj for obj in objects if obj.type != SceneObjectType.CALLOUT]
+    if not candidates:
+        return
+    pattern = family_hint["pattern"]
+    family = family_hint["family"]
+    for obj in candidates[:2]:
+        _add_visual_pattern(obj, pattern, "family_hint", visual_family=family)
 
 
 def _add_visual_pattern(obj: SceneObject | None, pattern: str, role: str = "", **extra: Any) -> None:
@@ -1357,6 +1618,9 @@ def _object_score(obj: SceneObject) -> int:
 
 
 def _graph_objects(key: str, value: dict[str, Any], state: dict[str, Any]) -> list[SceneObject]:
+    if _is_node_edge_graph_dict(value):
+        return _node_edge_graph_objects(key, value, state)
+
     objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "graph"})]
     node_ids: set[str] = set()
     for node, neighbors in value.items():
@@ -1393,6 +1657,43 @@ def _graph_objects(key: str, value: dict[str, Any], state: dict[str, Any]) -> li
                     meta=edge_meta,
                 )
             )
+    return objects
+
+
+def _is_node_edge_graph_dict(value: dict[str, Any]) -> bool:
+    return isinstance(value.get("nodes"), list) and isinstance(value.get("edges"), list)
+
+
+def _node_edge_graph_objects(key: str, value: dict[str, Any], state: dict[str, Any]) -> list[SceneObject]:
+    objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "graph"})]
+    node_ids = {str(node) for node in value.get("nodes", []) if node not in (None, "")}
+    endpoints: list[tuple[str, str, Any]] = []
+    for edge in value.get("edges", []):
+        src, dst, label = _edge_list_entry(edge)
+        if not src or not dst:
+            continue
+        endpoints.append((src, dst, label))
+        node_ids.update((src, dst))
+    for node_id in sorted(node_ids, key=str):
+        objects.append(SceneObject(id=f"node:{node_id}", type=SceneObjectType.NODE, label=str(node_id), parent=key))
+    for src, dst, label in endpoints:
+        meta = _edge_meta_for_state(state, src, dst)
+        if label not in (None, "") and "edge_label" not in meta:
+            meta["edge_label"] = str(label)
+            meta["weight"] = label
+            meta["visual_pattern"] = "graph_edge_label"
+            meta["visual_patterns"] = ["graph_edge_label"]
+        objects.append(
+            SceneObject(
+                id=f"edge:{src}->{dst}",
+                type=SceneObjectType.EDGE,
+                source=f"node:{src}",
+                target=f"node:{dst}",
+                parent=key,
+                label=str(meta.get("edge_label", "")),
+                meta=meta,
+            )
+        )
     return objects
 
 
@@ -1542,6 +1843,7 @@ def _union_find_objects(key: str, value: dict[str, Any]) -> list[SceneObject]:
 
 def _points_objects(key: str, value: list[Any]) -> list[SceneObject]:
     objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "geometry"})]
+    point_ids: list[str] = []
     for i, point in enumerate(value):
         if isinstance(point, dict):
             x, y = point.get("x"), point.get("y")
@@ -1551,6 +1853,7 @@ def _points_objects(key: str, value: list[Any]) -> list[SceneObject]:
             x, y = point[0], point[1]
             point_id = str(i)
             label = str(i)
+        point_ids.append(point_id)
         objects.append(
             SceneObject(
                 id=f"point:{point_id}",
@@ -1570,6 +1873,18 @@ def _points_objects(key: str, value: list[Any]) -> list[SceneObject]:
                 meta={"x": x, "y": y, "alias": f"point:{point_id}"},
             )
         )
+    if _is_hull_points_key(key) and len(point_ids) >= 2:
+        for i, (src, dst) in enumerate(zip(point_ids, point_ids[1:])):
+            objects.append(
+                SceneObject(
+                    id=f"hull:{src}->{dst}:{i}",
+                    type=SceneObjectType.EDGE,
+                    source=f"point:{src}",
+                    target=f"point:{dst}",
+                    parent=key,
+                    meta={"shape": "hull"},
+                )
+            )
     return objects
 
 
@@ -1851,12 +2166,111 @@ def _looks_like_graph(key: str, value: dict[str, Any]) -> bool:
     return bool(value) and all(isinstance(v, (dict, list)) for v in value.values())
 
 
+def _is_adjacency_matrix_graph_like(key: str, value: Any) -> bool:
+    if key not in {"isConnected", "adjacency_matrix", "adj_matrix", "connectivity"}:
+        return False
+    if not _is_matrix(value):
+        return False
+    size = len(value)
+    return size > 0 and all(len(row) == size for row in value)
+
+
+def _adjacency_matrix_graph_objects(key: str, value: list[list[Any]]) -> list[SceneObject]:
+    graph_id = f"{key}:graph"
+    objects = [
+        SceneObject(
+            id=graph_id,
+            type=SceneObjectType.CONTAINER,
+            label=f"{key} graph",
+            meta={
+                "layout": "graph",
+                "source": "adjacency_matrix",
+                "visual_pattern": "adjacency_matrix_projection",
+                "visual_patterns": ["adjacency_matrix_projection"],
+            },
+        )
+    ]
+    for index in range(len(value)):
+        objects.append(SceneObject(id=f"node:{index}", type=SceneObjectType.NODE, label=str(index), parent=graph_id))
+    for row_index, row in enumerate(value):
+        for col_index, cell in enumerate(row):
+            if row_index == col_index or not cell:
+                continue
+            if row_index > col_index and value[col_index][row_index]:
+                continue
+            objects.append(
+                SceneObject(
+                    id=f"edge:{row_index}->{col_index}",
+                    type=SceneObjectType.EDGE,
+                    source=f"node:{row_index}",
+                    target=f"node:{col_index}",
+                    parent=graph_id,
+                )
+            )
+    return objects
+
+
 def _is_tree_like(key: str, value: Any) -> bool:
     return isinstance(value, dict) and key in {"tree", "binary_tree", "segment_tree"} and "nodes" in value and "edges" in value
 
 
 def _is_linked_list_like(key: str, value: Any) -> bool:
-    return isinstance(value, dict) and key == "linked_list" and "nodes" in value and "edges" in value
+    if not isinstance(value, dict) or "nodes" not in value:
+        return False
+    if key in {"linked_list", "list"}:
+        return True
+    return any(isinstance(node, dict) and "next" in node for node in value.get("nodes") or [])
+
+
+def _linked_list_objects(key: str, value: dict[str, Any]) -> list[SceneObject]:
+    objects = [SceneObject(id=key, type=SceneObjectType.CONTAINER, label=key, meta={"layout": "linked_list"})]
+    nodes = value.get("nodes") or []
+    node_ids: set[str] = set()
+    for node_key, node in _tree_node_entries(nodes):
+        raw_id = node.get("id", node_key) if isinstance(node, dict) else node_key
+        node_id = str(raw_id)
+        node_ids.add(node_id)
+        label_value = node.get("value", node.get("label", node_id)) if isinstance(node, dict) else node_id
+        meta = dict(node.get("meta", {})) if isinstance(node, dict) and isinstance(node.get("meta"), dict) else {}
+        if value.get("head") not in (None, "") and str(value.get("head")) == node_id:
+            meta["pointer"] = "head"
+        objects.append(SceneObject(id=f"node:{node_id}", type=SceneObjectType.NODE, label=str(label_value), parent=key, meta=meta))
+    explicit_edges = value.get("edges") or []
+    for edge in explicit_edges:
+        src, dst, label = _edge_list_entry(edge)
+        if src and dst:
+            objects.append(
+                SceneObject(
+                    id=f"edge:{src}->{dst}",
+                    type=SceneObjectType.EDGE,
+                    source=f"node:{src}",
+                    target=f"node:{dst}",
+                    parent=key,
+                    label=str(label or ""),
+                )
+            )
+    if not explicit_edges:
+        for node_key, node in _tree_node_entries(nodes):
+            if not isinstance(node, dict):
+                continue
+            src = str(node.get("id", node_key))
+            dst = node.get("next")
+            if dst in (None, ""):
+                continue
+            dst_id = str(dst)
+            if dst_id not in node_ids:
+                continue
+            objects.append(
+                SceneObject(
+                    id=f"edge:{src}->{dst_id}",
+                    type=SceneObjectType.EDGE,
+                    source=f"node:{src}",
+                    target=f"node:{dst_id}",
+                    parent=key,
+                    meta={"cycle": dst_id == str(value.get("head"))},
+                )
+            )
+    return objects
 
 
 def _is_recursion_tree_like(key: str, value: Any) -> bool:
@@ -1881,13 +2295,17 @@ def _is_geometry_like(key: str, value: Any) -> bool:
 
 
 def _is_points_like(key: str, value: Any) -> bool:
-    if key not in {"points", "geometry"} or not isinstance(value, list):
+    if key not in {"points", "geometry", "点集", "当前凸壳", "凸壳", "hull"} or not isinstance(value, list):
         return False
     return all(
         (isinstance(p, (list, tuple)) and len(p) >= 2)
         or (isinstance(p, dict) and "x" in p and "y" in p)
         for p in value
     )
+
+
+def _is_hull_points_key(key: str) -> bool:
+    return key in {"当前凸壳", "凸壳", "hull"} or "hull" in key.lower()
 
 
 def _is_string_view_key(key: str) -> bool:

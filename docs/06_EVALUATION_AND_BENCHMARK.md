@@ -33,7 +33,7 @@ V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只�
 - `tests/benchmark_cases.py`
 - `benchmark/benchmark_cases_list.md`
 
-当前 V1.2 deterministic benchmark 已有 69 个代表 case、250 个 samples。其中 V1 baseline `family_core` 层保持 60 cases / 213 samples，P16.2 新增 `expansion` 层 9 cases / 37 samples。当前覆盖：
+当前 V1.2 deterministic benchmark 已有 71 个代表 case、259 个 samples。真实数据源是 `tests.benchmark_cases.benchmark_cases()`；`benchmark/benchmark_cases_list.md` 是同步后的可读清单。其中 V1 baseline `family_core` 层为 62 cases / 222 samples，`expansion` 层为 9 cases / 37 samples。当前覆盖：
 
 - 一维 DP：打家劫舍。
 - 二维 DP：不同路径。
@@ -42,11 +42,11 @@ V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只�
 - 图搜索：BFS 最短层数、DFS 遍历、连通分量、拓扑排序、二分图染色。
 - 最短路 / MST：Dijkstra、Bellman-Ford、Floyd-Warshall、0-1 BFS、Kruskal。
 - 字符串：KMP、Rabin-Karp、Z Algorithm、Manacher、字符串滑动窗口、Trie 前缀匹配。
-- 哈希表：Two Sum。
+- 哈希表：Two Sum、和为 K 的子数组。
 - 单调栈：每日温度。
 - 排序：插入排序。
 - 链表：反转链表。
-- 贪心：跳跃游戏。
+- 贪心：跳跃游戏、合并区间。
 - 树：中序遍历、LCA、树直径、树形 DP。
 - 堆：第 K 大。
 - Trie：前缀计数。
@@ -58,7 +58,7 @@ V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只�
 - 图高级：Tarjan SCC、割点桥、二分图匹配、Edmonds-Karp。
 - Expansion 层：贪心、最短路 / MST、堆、Trie、回溯、数学与位运算、几何、链表与缓存、图高级各至少 1 个 expansion case。
 
-第一阶段 V1 benchmark 门禁范围从 80 到 120 个 deterministic samples 起步；P13.3 后 V1.1 本地确定性门禁范围调整为 80 到 220 个 V1 baseline deterministic samples，用于容纳 DP family core 和图基础 / 最短路 / MST 扩容。P16.2 后，V1 release gate 只统计 `smoke` / `family_core` 作为 baseline 样本窗口，`expansion` 层进入 family release gate 的总量、分层和过程通过率报告。
+第一阶段 V1 benchmark 门禁范围从 80 到 120 个 deterministic samples 起步；P13.3 后 V1.1 本地确定性门禁范围调整为 80 到 220 个 V1 baseline deterministic samples，用于容纳 DP family core 和图基础 / 最短路 / MST 扩容。当前 `family_core` baseline 为 222 samples，略高于旧窗口上限；P16.2 后，V1 release gate 只统计 `smoke` / `family_core` 作为 baseline 样本窗口，`expansion` 层进入 family release gate 的总量、分层和过程通过率报告。
 
 完整 V1 的算法族覆盖目标应更广，逐步加入：
 
@@ -572,7 +572,7 @@ P9.3 的 V1 发布门禁由确定性证据报告和完整质量检查共同证�
 
 门禁要求：
 
-- V1 baseline deterministic samples（`smoke` / `family_core`）必须位于 80 到 220；`expansion` 层样例通过 family release gate 单独报告。
+- V1 baseline deterministic samples（`smoke` / `family_core`）当前为 222；`expansion` 层样例通过 family release gate 单独报告。
 - `unique_paths`、`graph_bfs`、`binary_search`、`daily_temperatures` 必须进入 browser smoke。
 - Debug Drawer 必须能展开查看 raw validation、release gate、raw state 和 artifact。
 - evaluation report 必须能输出失败分类 CSV。

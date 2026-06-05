@@ -9,7 +9,7 @@
 系统会在沙箱中执行 solve 和 trace，并校验：
 - solve 与 trace 的最终答案完全一致
 - trace 返回 dict 的 schema 正确
-- 总事件数不超过 max_events
+- 单步 state 不要过大，trace 应保留完整必要过程
 
 # 输出 JSON 格式
 
@@ -75,7 +75,6 @@ def trace(input_data):
     sess = TraceSession(
         algorithm="题目名",
         input_data=input_data,
-        max_events=80,
         pseudocode=["第一步说明", "第二步说明"],
     )
     # 用 DSL 创建对象
@@ -84,15 +83,55 @@ def trace(input_data):
     arr[0] = 99       # 自动 emit set 事件
     # ...
     sess.result(answer)
-    return sess.to_trace()
+    trace = sess.to_trace()
+    # 返回前必须补全 trace["events"][*]["code_line"]，行号指向 solve(input_data) 代码
+    return trace
 ```
 
 **关键铁律**：
-1. `trace(input_data)` 必须 return `sess.to_trace()`。
+1. `trace(input_data)` 必须基于 `sess.to_trace()` 返回；允许且必须在返回前只补全 `trace["events"][*]["code_line"]`。
 2. solve 和 trace 的最终答案（用 `sess.result(...)` 设置）必须**完全一致**，否则会被判失败。
 3. 答案必须 JSON 可序列化（dict/list/str/int/float/bool/None）。
 4. 不要 print，不要写注释解释代码（注释会被忽略），用 `sess.note(text)` 或 `reason="..."` 表达教学意图。
 5. 优先用 DSL 原语，不要用 `Tracer`（旧 API，已弃用）。
+6. `code_line` 是最终页面左侧代码高亮的唯一依据，必须准确指向同一 variant 的 `code` 字段中 `solve(input_data)` 的行号。
+
+# 代码高亮行号硬约束
+
+`tracker_code` 负责生成 trace，同时必须给每个关键事件写入准确 `code_line`。换句话说：关键事件必须填写准确 code_line，不要省略 code_line，也不要乱填。这里的行号永远指向 `code` / `solve(input_data)`，不是 `tracker_code` 自己的行号，也不是 `pseudocode` 序号。
+
+写 tracker 前，先在脑中给 `code` 按 1 开始编号；所有 `trace["events"][*]["code_line"]` 必须来自这些真实行号。不要省略 `code_line`，不要乱填第 1 行。辅助事件也要使用最近或最贴切的 solve 语义行：
+
+- 初始化数据结构的 create 事件，对应 solve 中读取输入或初始化变量的行。
+- 主循环/递归阶段的 enter/exit 事件，对应 solve 中 `while` / `for` / 递归调用所在行。
+- 比较、highlight、candidate 事件，对应 solve 中 `if` / `elif` / 关键判断行。
+- set/move/push/pop/link/unlink 事件，对应 solve 中真正发生赋值、移动、入队、出队、连边修改的行。
+- note/explain 事件，对应它解释的 solve 行；如果只是解释上一步，沿用上一个关键事件的 solve 行。
+- answer 事件，对应 solve 中返回该答案的 `return` 行。
+
+由于 DSL 对象方法不会自动知道 solve 行号，必须在返回前手动修正 trace：
+
+```python
+trace = sess.to_trace()
+for event in trace["events"]:
+    op = event.get("op")
+    targets = [t.get("id", "") for t in event.get("targets", [])]
+    reason = event.get("reason", "")
+    # 按当前题目的 solve 代码行号填写，以下数字只是示例，必须替换成真实 solve 行号
+    if op == "create" and "nums" in targets:
+        event["code_line"] = 2
+    elif op == "move" and "left" in targets:
+        event["code_line"] = 10
+    elif op == "move" and "right" in targets:
+        event["code_line"] = 12
+    elif event.get("role") == "answer" or "answer" in targets:
+        event["code_line"] = 8
+    else:
+        event["code_line"] = 7
+return trace
+```
+
+这段映射逻辑应当针对当前 `solve` 写得具体、简短、可读。不能把所有事件统一设成 1；不能用 tracker 里的实际行号；不能把 `pseudocode` 的第几步当作 `code_line`。
 
 # DSL API 速查
 
@@ -175,8 +214,8 @@ def trace(input_data):
 
 1. **只有控制流像普通 Python，DSL 对象不是普通对象**。循环、判断、递归、局部 list/dict 都正常写；但 `sess.*(...)` 返回的对象只能调用 API 表方法，不能猜测自然对象方法。
 2. **关键阶段用 `with sess.step("..."):`** 包裹，让动画有节奏感。
-3. **不要刻意制造大量事件**。max_events=80 是上限，DSL 会自动压缩，但密集事件影响可读性。一道题通常 30-60 events 即可。
-4. **对小输入优先**。trace 用的 input_data 通常规模小（数组 5-15 个元素，图 4-8 节点）。可以直接用循环走完算法，不必担心事件超限。
+3. **保留完整必要过程**。不要因为帧数主动省略真实算法步骤；但也不要制造与算法无关的重复 `sess.note(...)` 或空转事件。
+4. **对小输入优先**。trace 用的 input_data 通常规模小（数组 5-15 个元素，图 4-8 节点）。可以直接用循环走完算法，不需要压缩事件数。
 5. **solve 和 trace 答案一致**。`code` 和 `tracker_code` 会被分别执行，trace 不能直接调用另一个字符串里的 `solve`。如果要复用逻辑，必须在 `tracker_code` 内部也定义同样的 helper，最后 `sess.result(answer)` 与 solve 返回值相同。
 
 # 高频族模板（优先按这些写，避免自造 API）
@@ -270,7 +309,7 @@ def solve(input_data):
     return -1
 
 def trace(input_data):
-    sess = TraceSession("二分查找", input_data, max_events=80,
+    sess = TraceSession("二分查找", input_data,
         pseudocode=["维护闭区间 [left,right]", "比较 nums[mid] 和 target", "丢弃一半"])
     arr = sess.array("nums", input_data["nums"])
     target = input_data["target"]
@@ -297,7 +336,7 @@ def trace(input_data):
 
 ```python
 def trace(input_data):
-    sess = TraceSession("BFS", input_data, max_events=80,
+    sess = TraceSession("BFS", input_data,
         pseudocode=["从 src 入队", "出队访问邻居", "记录顺序"])
     nodes = input_data["nodes"]; edges = input_data["edges"]; src = input_data["source"]
     g = sess.graph("g", nodes, edges)
@@ -323,7 +362,7 @@ def trace(input_data):
 
 ```python
 def trace(input_data):
-    sess = TraceSession("0/1 背包", input_data, max_events=80,
+    sess = TraceSession("0/1 背包", input_data,
         pseudocode=["dp[i][w] = 前 i 个物品容量 w 的最大价值"])
     weights = input_data["weights"]; values = input_data["values"]; W = input_data["W"]
     n = len(weights)
@@ -343,7 +382,7 @@ def trace(input_data):
 
 ```python
 def trace(input_data):
-    sess = TraceSession("Dijkstra", input_data, max_events=80,
+    sess = TraceSession("Dijkstra", input_data,
         pseudocode=["dist[src]=0 其余 inf", "出最小 (d,u)", "松弛邻居"])
     nodes = input_data["nodes"]; edges = input_data["edges"]; src = input_data["source"]
     g = sess.graph("g", nodes, edges)
@@ -376,7 +415,7 @@ def trace(input_data):
 
 ```python
 def trace(input_data):
-    sess = TraceSession("递归算法", input_data, max_events=80, pseudocode=["..."])
+    sess = TraceSession("递归算法", input_data, pseudocode=["..."])
     nums = input_data["nums"]
     arr = sess.array("nums", nums)
     frames = sess.tree("call_stack")

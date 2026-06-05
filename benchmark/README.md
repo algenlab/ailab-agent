@@ -8,7 +8,7 @@
 
 ## Deterministic Benchmark
 
-确定性路径不调用 LLM，输入来自 `tests/benchmark_cases.py`，题目清单见 `benchmark/benchmark_cases_list.md`。
+确定性路径不调用 LLM，输入来自 `tests/benchmark_cases.py` 的 `benchmark_cases()`，题目清单见 `benchmark/benchmark_cases_list.md`。当前 deterministic benchmark 为 71 cases / 259 samples，其中 `family_core=62 cases / 222 samples`，`expansion=9 cases / 37 samples`。
 
 一条命令运行本地确定性质量检查：
 

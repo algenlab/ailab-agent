@@ -85,7 +85,7 @@ class TraceSession:
         algorithm: str = "算法可视化",
         input_data: Any = None,
         *,
-        max_events: int = 80,
+        max_events: int | None = None,
         pseudocode: list[str] | None = None,
     ) -> None:
         if not isinstance(algorithm, str) and input_data is None:
@@ -376,8 +376,6 @@ class TraceSession:
                 reason="返回最终答案",
                 state=state,
             ))
-        if len(events) > self.max_events:
-            events = self._compress(events, self.max_events)
         for i, ev in enumerate(events):
             ev["step"] = i
         return {
@@ -462,27 +460,6 @@ class TraceSession:
             "teaching": None,
             "interaction": None,
         })
-
-    def _compress(self, events: list[dict], budget: int) -> list[dict]:
-        """Density-based sampling: keep create/enter/exit/result, sample the rest."""
-        if budget <= 0 or len(events) <= budget:
-            return events
-        keep_ops = {"create", "enter", "exit", "explain"}
-        anchors = [i for i, e in enumerate(events) if e["op"] in keep_ops]
-        anchors_set = set(anchors)
-        anchors_set.add(0)
-        anchors_set.add(len(events) - 1)
-        remaining = budget - len(anchors_set)
-        if remaining > 0:
-            others = [i for i in range(len(events)) if i not in anchors_set]
-            if others:
-                step = max(1, len(others) // remaining)
-                for i in range(0, len(others), step):
-                    if len(anchors_set) >= budget:
-                        break
-                    anchors_set.add(others[i])
-        sorted_idx = sorted(anchors_set)[:budget]
-        return [deepcopy(events[i]) for i in sorted_idx]
 
 
 # =============================================================================

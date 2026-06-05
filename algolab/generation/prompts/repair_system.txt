@@ -8,7 +8,6 @@
   - JSON schema 错误：例如顶层结构错、`variants` 不是数组、缺字段
   - 沙箱执行错误：`solve(input_data)` 或 `trace(input_data)` 抛出 Python 异常（含 traceback / 行号）
   - 答案不一致：`solve` 与 `trace` 的最终答案不一致
-  - 事件超限：trace 总事件数 > max_events，且 DSL 自动压缩仍超
   - 事件 state 过大：单步 state > 20000 字节
 
 # 修复原则
@@ -17,7 +16,7 @@
    - JSON 错误 → 调整顶层 JSON 结构。
    - Python 异常 → 修代码逻辑或边界条件。沙箱抛出 `KeyError`/`IndexError`/`TypeError`/`ValueError` 等就按 traceback 行号定位。
    - 答案不一致 → 检查 solve 和 trace 是否实现了同一个算法、参数处理是否一致；最稳妥是让 trace 内部直接复用算法逻辑。
-   - 事件超限 → 减少不必要的 `sess.note(...)`、缩小输入循环规模、把热路径放到 `with sess.step(...)` 外。
+   - 事件 state 过大 → 精简单步 state，只保留可视化必要变量。
 2. **不要重写 DSL 风格**。前一版用的是 DSL（`sess.array(...)`、`arr[i]=x` 等），保持这一风格。**不要回退到旧 `Tracer` API**（`tracer.create("dp[0]", ...)`）。
 3. **保持 JSON schema 不变**。`variants` 数量、字段名都和原版一致。
 4. **优先最小修改**。只动有问题的代码，不要重写整个解法。
@@ -51,7 +50,7 @@
 
 # DSL API 提醒（与 tracker_system 同步）
 
-工厂方法：`sess.array / string / table / scalar / map / counter / pointer / heap / stack / queue / deque / union_find / linked_list / trie / graph / tree / points / fenwick / segment_tree / flow_network / intervals`。
+工厂方法：`sess.array / sess.string / sess.table / sess.scalar / sess.map / sess.counter / sess.pointer / sess.heap / sess.stack / sess.queue / sess.deque / sess.union_find / sess.linked_list / sess.trie / sess.graph / sess.tree / sess.points / sess.fenwick / sess.segment_tree / sess.flow_network / sess.intervals`。
 
 常用新增对象：
 - `MapObj`: `m[key] = value`, `m.get(key, default)`, `m.contains(key)`, `m.highlight(key)`。
@@ -81,7 +80,6 @@
 | `KeyError: 'xxx'` 在 trace/solve 里 | 检查 input_data 实际 key 是否一致 |
 | `IndexError: list index out of range` | 边界条件错（循环范围、空数组、初始化大小） |
 | `solve 结果 X 与 trace 结果 Y 不一致` | 让 trace 直接调用 solve 的同样逻辑；或只在 trace 内手算一次后 `sess.result(...)` |
-| `events 过多: N > 80` | 减少循环规模（input 已小则不动），删冗余 `sess.note` 和重复 `arr.highlight` |
 | `单步 state 过大` | 不要把超大字典/数组反复改写；DSL 的 snapshot 自动深拷贝当前所有对象，因此控制对象数量与大小 |
 | `tracer.create / tracer.set` 在错误中提到 | 这是旧 API 残留；改用 DSL：`tracer.create("dp[0]", ...)` → `dp[0] = value` 或 `dp = sess.array("dp", ...)` |
 | `TraceSession is not defined` | 不要写 `from algolab... import TraceSession`，沙箱已自动注入，直接使用 |

@@ -115,10 +115,10 @@ def test_r7_json_parse_failures_force_compact_single_variant_repair():
 
     assert {item["repair_category"] for item in contexts} == {"generation"}
     assert "1 个 variant" in joined
-    assert "6-10 个 events" in joined
+    assert "完整必要过程" in joined
     assert "短 tracker_code" in joined
     assert "不要复制长代码" in prompt
-    assert "max_events" in prompt
+    assert "max_events" not in prompt
     assert "不要输出 16000 tokens" in prompt
 
 

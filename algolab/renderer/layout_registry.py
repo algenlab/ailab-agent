@@ -8,7 +8,9 @@ import json
 LAYOUT_RENDERERS: dict[str, str] = {
     "array": "array",
     "matrix": "matrix",
+    "set_grid": "set_grid",
     "string": "string",
+    "string_list": "string",
     "heap": "heap",
     "queue": "queue",
     "deque": "queue",
@@ -18,6 +20,7 @@ LAYOUT_RENDERERS: dict[str, str] = {
     "trie": "tree",
     "union_find": "tree",
     "recursion_tree": "tree",
+    "linked_list": "linked_list",
     "geometry": "geometry",
     "ml": "ml",
     "tensor": "ml",

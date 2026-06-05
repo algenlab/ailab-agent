@@ -1252,6 +1252,100 @@ def segment_tree_visual_trace() -> SemanticTrace:
     )
 
 
+def fenwick_lowbit_trace() -> SemanticTrace:
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Fenwick lowbit 跳转可视模式",
+            "input_data": {"nums": [1, 2, 3, 4]},
+            "result": 6,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "bit"}],
+                    "state": {"bit": [0, 1, 3, 3, 10], "idx": 3, "lowbit": 1, "query_path": [3, 2]},
+                    "reason": "树状数组单元展示覆盖区间，当前 idx 通过 lowbit 跳转。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "move",
+                    "targets": [{"id": "bit[4]"}],
+                    "deps": [{"id": "bit[3]"}],
+                    "state": {"bit": [0, 1, 3, 3, 10], "idx": 4, "lowbit": 4, "update_path": [1, 2, 4]},
+                    "role": "current",
+                    "reason": "更新时 idx += lowbit(idx)，跳到下一个负责区间。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
+def sparse_table_blocks_trace() -> SemanticTrace:
+    st = [[5, 2, 7, 3], [2, 2, 3, None], [2, None, None, None]]
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Sparse Table 区间块可视模式",
+            "input_data": {"nums": [5, 2, 7, 3], "query": [1, 3]},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "st"}],
+                    "state": {"nums": [5, 2, 7, 3], "st": st},
+                    "reason": "预处理稀疏表层级。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "compare",
+                    "targets": [{"id": "st[1][1]"}, {"id": "st[1][2]"}],
+                    "deps": [{"id": "nums[1]"}, {"id": "nums[3]"}],
+                    "state": {"nums": [5, 2, 7, 3], "st": st, "l": 1, "r": 3, "k": 1, "query_blocks": [[1, 2], [2, 3]]},
+                    "role": "answer",
+                    "reason": "RMQ 查询拆成两个长度 2 的重叠块。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
+def diff_prefix_trace() -> SemanticTrace:
+    return SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "差分和前缀双端依赖可视模式",
+            "input_data": {"nums": [1, 1, 1, 1], "update": [1, 2, 3]},
+            "result": [1, 4, 4, 1],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "diff"}],
+                    "state": {"nums": [1, 1, 1, 1], "diff": [1, 0, 0, 0, 0]},
+                    "reason": "初始化差分数组。",
+                    "code_line": 1,
+                },
+                {
+                    "step": 1,
+                    "op": "set",
+                    "targets": [{"id": "diff[1]"}, {"id": "diff[3]"}],
+                    "deps": [{"id": "nums[1]"}, {"id": "nums[2]"}],
+                    "state": {"nums": [1, 1, 1, 1], "diff": [1, 3, 0, -3, 0], "prefix": [0, 1, 4, 4, 1], "l": 1, "r": 2, "delta": 3},
+                    "role": "current",
+                    "reason": "区间加只影响差分左端和右端后一位，查询由前缀双端相减。",
+                    "code_line": 2,
+                },
+            ],
+        }
+    )
+
+
 def network_flow_trace() -> SemanticTrace:
     graph = {"s": ["a"], "a": ["t"], "t": []}
     return SemanticTrace.model_validate(
@@ -1287,6 +1381,7 @@ def network_flow_trace() -> SemanticTrace:
                         "flow": {"s->a": 2, "a->t": 2},
                         "residual_capacity": {"s->a": 1, "a->t": 0},
                         "augmenting_path": ["s", "a", "t"],
+                        "bottleneck": 2,
                     },
                     "role": "answer",
                     "reason": "沿增广路推送 2 单位流量。",
@@ -1316,7 +1411,15 @@ def geometry_trace() -> SemanticTrace:
             "result": [[0, 0], [2, 0], [1, 2]],
             "events": [
                 {"step": 0, "op": "create", "targets": [{"id": "geometry"}], "state": {"geometry": geometry}, "reason": "在坐标平面展示点集和当前凸包边。", "code_line": 1},
-                {"step": 1, "op": "mark", "targets": [{"id": "point:3"}], "state": {"geometry": geometry}, "role": "current", "reason": "选择候选凸包点。", "code_line": 2},
+                {
+                    "step": 1,
+                    "op": "mark",
+                    "targets": [{"id": "point:3"}],
+                    "state": {"geometry": geometry, "candidate": "3", "cross": -1, "popped": "1"},
+                    "role": "current",
+                    "reason": "选择候选凸包点，并用叉积方向说明弹出旧点。",
+                    "code_line": 2,
+                },
             ],
         }
     )
@@ -1661,6 +1764,30 @@ def phase17_visual_pattern_matrix() -> list[dict[str, object]]:
             "name": "区间结构路径",
             "trace": segment_tree_visual_trace(),
             "patterns": ("range_structure", "range_query_path", "range_update_path"),
+        },
+        {
+            "id": "fenwick_lowbit",
+            "name": "Fenwick lowbit 跳转",
+            "trace": fenwick_lowbit_trace(),
+            "patterns": ("range_structure", "fenwick_lowbit"),
+        },
+        {
+            "id": "sparse_table_blocks",
+            "name": "Sparse Table 双块查询",
+            "trace": sparse_table_blocks_trace(),
+            "patterns": ("range_structure", "sparse_table_blocks"),
+        },
+        {
+            "id": "diff_prefix",
+            "name": "差分和前缀双端依赖",
+            "trace": diff_prefix_trace(),
+            "patterns": ("range_structure", "diff_prefix"),
+        },
+        {
+            "id": "geometry_relation",
+            "name": "几何方向和 hull 关系",
+            "trace": geometry_trace(),
+            "patterns": ("geometry_relation",),
         },
         {
             "id": "network_flow",

@@ -606,9 +606,9 @@ seen['2']           -> seen[2]
 - 几何删除点时不记录 cross/orientation。
 - bitmask 枚举不记录 mask 与子集对应关系。
 
-## 9. Tracer API 用法
+## 9. Tracer 兼容 API 用法
 
-新 tracker 应优先使用 `Tracer`：
+`Tracer` 是旧版兼容 API，用于历史 benchmark 和单元测试。新生成的 tracker 应优先使用 `TraceSession` DSL；只有维护旧产物时才直接使用 `Tracer`：
 
 ```python
 def trace(input_data):
@@ -643,7 +643,7 @@ def trace(input_data):
 - `result(value)`
 - `to_trace()`
 
-`unmark`、`link`、`unlink`、`enter`、`exit` 只是在固定 SemanticTrace op 上提供便捷封装，不引入新 op。它们适合表达取消标记、建立 / 删除关系、进入 / 退出递归帧或作用域。新增算法仍应优先复用这些固定 op、已有 target 规范和 state 证据，不要因为便捷方法存在而新增 target 前缀或 renderer 规则。
+`unmark`、`link`、`unlink`、`enter`、`exit` 只是在固定 SemanticTrace op 上提供便捷封装，不引入新 op。它们适合表达取消标记、建立 / 删除关系、进入 / 退出递归帧或作用域。维护旧 `Tracer` 代码时仍应优先复用这些固定 op、已有 target 规范和 state 证据，不要因为便捷方法存在而新增 target 前缀或 renderer 规则。
 
 二维表或行长不一致的表可用 `table(name, rows)` 生成类型化引用。`table.cell(row, col)` 只返回真实存在的 `name[row][col]` target；越界会在 tracker 执行时抛错。`table.state()` 返回 `{name: rows}` 的深拷贝，可直接传给事件 `state`。
 

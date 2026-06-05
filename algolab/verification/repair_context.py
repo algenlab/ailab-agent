@@ -42,7 +42,7 @@ def repair_failure_type(message: str) -> str:
     - json_generation : LLM returned malformed/empty JSON
     - trace_schema    : SemanticTrace schema validation failure
     - result_mismatch : solve vs trace answer mismatch
-    - trace_size      : events > max_events or state > size budget
+    - trace_size      : state > size budget
     - execution       : Python exception inside solve / trace
     - generation      : default catch-all
     """
@@ -56,11 +56,11 @@ def repair_failure_type(message: str) -> str:
     if (
         ("solve 结果" in message and "不一致" in message)
         or ("trace 结果" in message and "不一致" in message)
-        or ("expected" in text and ("结果" in message or "result" in text))
+        or (re.search(r"\bexpected\b", text) is not None and ("结果" in message or "result" in text))
         or "result mismatch" in text
     ):
         return "result_mismatch"
-    if "events 过多" in text or "max_events" in text or "单步 state 过大" in message:
+    if "单步 state 过大" in message:
         return "trace_size"
     if "demo_missing_state" in text or "缺少可复原 state" in message:
         return "demo_missing_state"
@@ -91,11 +91,11 @@ def summarize_repair_failure_types(results: list[dict[str, Any]]) -> dict[str, i
 # -----------------------------------------------------------------------------
 
 _CATEGORY_INSTRUCTIONS = {
-    "generation": "返回完整 JSON，保持题目语义和已有正确部分，只修失败原因。",
+    "generation": "返回完整 JSON；JSON 解析失败或截断时只输出 1 个 variant，使用短 tracker_code，保留完整必要过程，保持题目语义和已有正确部分。",
     "trace_schema": "trace(input_data) 必须 return sess.to_trace()；schema 由 DSL 自动保证，不要手写 events 列表。",
     "execution": "查 traceback 行号定位 Python 异常，修代码逻辑或边界条件；考虑空数组、单元素、索引越界。",
     "result_consistency": "solve 与 trace 的最终答案必须完全一致；最稳妥的做法是 trace 内复用 solve 的算法逻辑。",
-    "trace_size": "事件超过预算：缩小输入循环规模或删除冗余 sess.note；不要重复 highlight 同一对象。",
+    "trace_size": "单步 state 过大：精简单步 state，只保留可视化必要变量，不要反复携带超大对象。",
     "demo_state": "只补 tracker_code 中缺失的 state/snapshot/step，不要修改 solve_code/code 或最终答案。",
 }
 

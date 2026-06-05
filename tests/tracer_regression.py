@@ -88,7 +88,7 @@ def test_tracer_attaches_trace_meta_to_last_event_state():
     assert meta["coverage"] == {"nums": 1.0}
 
 
-def test_tracer_auto_policy_samples_when_events_exceed_budget():
+def test_tracer_auto_policy_preserves_events_when_events_exceed_budget():
     tracer = Tracer({"nums": list(range(20))}, algorithm="长数组", max_events=5, policy="auto")
     for i in range(20):
         tracer.set(f"nums[{i}]", value=i, state={"nums": list(range(20)), "i": i})
@@ -97,10 +97,10 @@ def test_tracer_auto_policy_samples_when_events_exceed_budget():
     trace = tracer.to_trace()
     meta = trace["events"][-1]["state"]["_trace_meta"]
 
-    assert len(trace["events"]) == 5
-    assert meta["sampled"] is True
+    assert len(trace["events"]) == 20
+    assert meta["sampled"] is False
     assert meta["raw_event_count"] == 20
-    assert meta["emitted_event_count"] == 5
+    assert meta["emitted_event_count"] == 20
 
 
 def test_tracer_auto_policy_keeps_full_trace_when_expected_updates_fit_budget():
@@ -179,20 +179,20 @@ def test_tracer_exposes_relationship_and_scope_helpers():
     assert meta["coverage"] == {"node:A": 2.0, "edge:A->B": 1.0, "frame:dfs(A)": 1.0}
 
 
-def test_tracer_api_docs_and_prompt_include_extended_helpers():
+def test_tracer_api_docs_keep_compat_helpers_and_prompts_prefer_dsl():
     docs = Path("docs/04_TRACE_AND_SCHEMA_CONTRACT.md").read_text(encoding="utf-8")
     prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
     repair_prompt = Path("algolab/generation/prompts/repair_system.txt").read_text(encoding="utf-8")
 
     for method in ("unmark", "link", "unlink", "enter", "exit"):
         assert f"`{method}(" in docs
-        assert f"tracer.{method}" in prompt
+        assert f"tracer.{method}" not in prompt
     assert "`table(name, rows)`" in docs
-    assert "tracer.table" in prompt
-    assert "table.cell" in prompt
-    assert "table.state" in prompt
-    assert "tracer.table" in repair_prompt
-    assert "table.cell" in repair_prompt
+    assert "TraceSession" in prompt
+    assert "sess.table" in prompt
+    assert "tbl[i, j]" in prompt
+    assert "sess.table" in repair_prompt
+    assert "tbl[i, j]" in repair_prompt
     assert "暂未暴露 `unmark`" not in docs
 
 
@@ -227,11 +227,11 @@ def run_all():
     test_tracer_accepts_teaching_payload_for_key_events()
     test_tracer_strict_mode_rejects_missing_expected_updates()
     test_tracer_attaches_trace_meta_to_last_event_state()
-    test_tracer_auto_policy_samples_when_events_exceed_budget()
+    test_tracer_auto_policy_preserves_events_when_events_exceed_budget()
     test_tracer_auto_policy_keeps_full_trace_when_expected_updates_fit_budget()
     test_tracer_counts_non_set_update_operations_for_expected_updates()
     test_tracer_exposes_relationship_and_scope_helpers()
-    test_tracer_api_docs_and_prompt_include_extended_helpers()
+    test_tracer_api_docs_keep_compat_helpers_and_prompts_prefer_dsl()
     test_executor_accepts_full_trace_when_expected_updates_fit_budget()
     test_executor_compares_articulation_bridge_outputs_as_sets()
 

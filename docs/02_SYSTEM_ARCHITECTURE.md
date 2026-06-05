@@ -72,7 +72,8 @@ materialize errors
 
 - `algolab/runtime/executor.py`：执行 solve / trace / verifier，做结果一致性校验和 trace materialization。
 - `algolab/runtime/sandbox.py`：子进程沙箱执行生成代码。
-- `algolab/runtime/tracer.py`：注入给 LLM tracker 使用的 `Tracer` API。
+- `algolab/runtime/dsl.py`：注入给 LLM tracker 使用的 `TraceSession` DSL。
+- `algolab/runtime/tracer.py`：历史 benchmark / 旧产物兼容的 `Tracer` API。
 
 校验：
 
@@ -184,39 +185,27 @@ materialize errors
 - 不自动补缺失的 `input_data`。
 - 不自动修正旧式 map target，例如 `dist:A`、`seen:2`。
 
-### 4.4 Tracer API
+### 4.4 TraceSession DSL
 
-`Tracer` 是推荐 tracker 路径。LLM 生成的 `trace(input_data)` 应使用：
+`TraceSession` DSL 是推荐 tracker 路径。LLM 生成的 `trace(input_data)` 应创建 `sess = TraceSession(...)`，再通过 DSL 对象表达算法过程：
 
-- `tracer.create()`
-- `tracer.set()`
-- `tracer.mark()`
-- `tracer.unmark()`
-- `tracer.move()`
-- `tracer.compare()`
-- `tracer.link()`
-- `tracer.unlink()`
-- `tracer.push()`
-- `tracer.pop()`
-- `tracer.enter()`
-- `tracer.exit()`
-- `tracer.explain()`
-- `tracer.result()`
-- `tracer.to_trace()`
+- 工厂方法：`sess.array()`、`sess.table()`、`sess.map()`、`sess.graph()`、`sess.tree()`、`sess.trie()`、`sess.heap()` 等。
+- 对象操作：数组/表写入、指针移动、图节点/边高亮、队列/栈/堆 push-pop 等会自动 emit SemanticTrace event。
+- 叙事方法：`with sess.step(...)`、`sess.note(...)`、`sess.result(...)`、`sess.to_trace()`。
 
-`Tracer` 做的真实工作：
+`TraceSession` 做的真实工作：
 
-- 把 target / deps 字符串统一转成 `{"id": ...}`。
-- 自动维护连续 step。
-- 记录每类 target 的 update 数。
-- 根据 `max_events` 和 `policy` 做抽样。
-- 在最后一个事件的 state 中附加 `_trace_meta`，包括 raw event count、sampled、expected updates、recorded updates、coverage。
+- 维护 DSL 对象快照和连续 step。
+- 把对象操作转成 `op / targets / deps / state / reason` 等标准事件字段。
+- 在需要时补 synthetic input / answer 事件。
+- 保留完整事件序列；系统不再设置总帧数 / `max_events` 限制，也不再按事件数采样。
 
 重要限制：
 
-- `_trace_meta` 是 tracker 生成的元信息，不是不可伪造的形式化证明。
-- `Tracer` 只能降低 schema 错误概率，不能替代 process validator。
-- 大输入抽样会提高可读性，但可能损失步骤完整性；小规模关键过程仍应 full trace。
+- `trace(input_data)` 的最终答案必须与 `solve(input_data)` 完全一致。
+- 单步 `state` 仍有大小保护，避免把超大对象反复塞进每一帧。
+- `code_line` 需要由 tracker 在返回前按 `solve` 代码真实行号补齐。
+- `Tracer` 仍保留为历史 benchmark / 旧产物兼容 API，但新 tracker 不应优先使用它。
 
 ### 4.5 SceneGraph
 

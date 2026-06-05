@@ -108,8 +108,8 @@ class Tracer:
     def to_trace(self) -> dict[str, Any]:
         self._validate_expected_updates()
         raw_events = self._events
-        sampled = self._should_sample(raw_events)
-        selected = self._sample_events(raw_events, self.max_events) if sampled else raw_events
+        sampled = False
+        selected = raw_events
         events = [self._with_step(index, event) for index, event in enumerate(selected)]
         self._attach_meta(events, sampled=sampled, raw_event_count=len(raw_events))
         return {
@@ -164,20 +164,8 @@ class Tracer:
             return
         for name, expected in self._expected_updates.items():
             recorded = self._recorded_updates.get(name, 0)
-            if expected <= self.max_events and recorded < expected:
+            if recorded < expected:
                 raise ValueError(f"{name} expected {expected} updates, recorded {recorded}")
-
-    def _should_sample(self, raw_events: list[dict[str, Any]]) -> bool:
-        if self.policy == "full" or self.policy == "strict":
-            return False
-        if self.policy == "sampled":
-            return len(raw_events) > self.max_events
-        if self.policy != "auto":
-            return False
-        expected_total = sum(self._expected_updates.values())
-        if expected_total:
-            return expected_total > self.max_events
-        return len(raw_events) > self.max_events
 
     def _attach_meta(self, events: list[dict[str, Any]], *, sampled: bool, raw_event_count: int) -> None:
         if not events:
@@ -199,19 +187,6 @@ class Tracer:
         state = dict(events[-1].get("state") or {})
         state["_trace_meta"] = meta
         events[-1]["state"] = state
-
-    def _sample_events(self, events: list[dict[str, Any]], max_events: int) -> list[dict[str, Any]]:
-        if max_events <= 0 or len(events) <= max_events:
-            return events
-        if max_events == 1:
-            return [events[-1]]
-        selected_indices = {0, len(events) - 1}
-        remaining = max_events - len(selected_indices)
-        if remaining > 0:
-            span = len(events) - 1
-            for k in range(1, remaining + 1):
-                selected_indices.add(round(k * span / (remaining + 1)))
-        return [events[index] for index in sorted(selected_indices)][:max_events]
 
     def _with_step(self, index: int, event: dict[str, Any]) -> dict[str, Any]:
         item = deepcopy(event)

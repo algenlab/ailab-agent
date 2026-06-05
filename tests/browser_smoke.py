@@ -153,8 +153,8 @@ def _check_compact_teaching_layout(page, path: Path):
         }"""
     )
     assert metrics["scrollHeight"] <= 2300, f"{path}: 页面过长，full-page 截图会包含大面积空白: {metrics}"
-    assert metrics["hero"]["height"] <= 760, f"{path}: 主可视化面板过高: {metrics}"
-    assert metrics["canvas"]["height"] <= 420, f"{path}: 主画布固定高度过大: {metrics}"
+    assert 420 <= metrics["canvas"]["height"] <= 640, f"{path}: 主画布应按新主舞台策略放大: {metrics}"
+    assert metrics["hero"]["height"] <= 920, f"{path}: 主可视化面板过高: {metrics}"
     assert metrics["timeline"]["height"] <= 72, f"{path}: 时间线占用过高: {metrics}"
     assert metrics["teachingColumn"]["height"] <= 2200, f"{path}: 右侧面板堆叠过长: {metrics}"
     assert metrics["taskColumn"]["height"] <= 760, f"{path}: 左侧代码和解法区域堆叠过长: {metrics}"
@@ -239,9 +239,10 @@ def _check_current_variant_main_view_has_no_internal_scroll(page, path: Path):
                     """({viewportName, step}) => {
                         const host = document.querySelector('#canvas');
                         const scene = document.querySelector('#canvas .objects');
+                        const telemetry = document.querySelector('#visual-quality-telemetry');
                         const hostRect = host.getBoundingClientRect();
                         const sceneRect = scene ? scene.getBoundingClientRect() : null;
-                        const selectors = ['#canvas', '#canvas .scene-fit', '#canvas .primitive-panel', '#canvas .matrix', '#canvas .graph-svg', '#canvas .tree-svg', '#canvas .geometry-svg'];
+                        const selectors = ['#canvas', '#canvas .primitive-panel', '#canvas .matrix', '#canvas .graph-svg', '#canvas .tree-svg', '#canvas .geometry-svg'];
                         const scrollFailures = selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map((node, itemIndex) => {
                             const style = getComputedStyle(node);
                             const scrollable = ['auto', 'scroll'].includes(style.overflowX) || ['auto', 'scroll'].includes(style.overflowY);
@@ -255,19 +256,108 @@ def _check_current_variant_main_view_has_no_internal_scroll(page, path: Path):
                             } : null;
                         })).filter(Boolean);
                         if (sceneRect) {
-                            const visuallyFits = sceneRect.left >= hostRect.left - 1
-                                && sceneRect.top >= hostRect.top - 1
-                                && sceneRect.right <= hostRect.right + 1
-                                && sceneRect.bottom <= hostRect.bottom + 1;
-                            if (!visuallyFits) {
+                            const fitMode = scene.dataset.fitMode || '';
+                            const fitScale = Number(scene.dataset.fitScale || 0);
+                            const utilization = Number(scene.dataset.utilization || 0);
+                            const telemetryText = telemetry ? telemetry.innerText : '';
+                            if (!telemetryText.includes('fit_scale=') || !telemetryText.includes('fit_mode=') || !telemetryText.includes('utilization=')) {
+                                scrollFailures.push({
+                                    viewport: viewportName,
+                                    step,
+                                    selector: '#visual-quality-telemetry',
+                                    reason: 'missing visible quality telemetry',
+                                    telemetryText,
+                                });
+                            }
+                            if (!fitMode || !fitScale || !utilization) {
                                 scrollFailures.push({
                                     viewport: viewportName,
                                     step,
                                     selector: '#canvas .objects',
+                                    reason: 'missing fit telemetry',
+                                    fitMode,
+                                    fitScale: scene.dataset.fitScale || '',
+                                    utilization: scene.dataset.utilization || '',
+                                });
+                            }
+                            if (fitScale < 0.72 && fitMode !== 'contain') {
+                                scrollFailures.push({
+                                    viewport: viewportName,
+                                    step,
+                                    selector: '#canvas .objects',
+                                    reason: 'below readable scale',
+                                    fitMode,
+                                    fitScale,
+                                });
+                            }
+                            const visualBounds = {
+                                left: Number(scene.dataset.visualBoundsLeft || 0),
+                                top: Number(scene.dataset.visualBoundsTop || 0),
+                                width: Number(scene.dataset.visualBoundsWidth || sceneRect.width / Math.max(1, fitScale)),
+                                height: Number(scene.dataset.visualBoundsHeight || sceneRect.height / Math.max(1, fitScale)),
+                            };
+                            const visualRect = {
+                                left: sceneRect.left + visualBounds.left * fitScale,
+                                top: sceneRect.top + visualBounds.top * fitScale,
+                                right: sceneRect.left + (visualBounds.left + visualBounds.width) * fitScale,
+                                bottom: sceneRect.top + (visualBounds.top + visualBounds.height) * fitScale,
+                            };
+                            const visuallyFits = visualRect.left >= hostRect.left - 2
+                                && visualRect.top >= hostRect.top - 2
+                                && visualRect.right <= hostRect.right + 2
+                                && visualRect.bottom <= hostRect.bottom + 2;
+                            const sceneFit = document.querySelector('#canvas .scene-fit');
+                            const sceneFitScroll = sceneFit && sceneFit.classList.contains('scroll-fit');
+                            if (fitMode === 'contain' && !visuallyFits) {
+                                scrollFailures.push({
+                                    viewport: viewportName,
+                                    step,
+                                    selector: '#canvas .objects',
+                                    reason: 'contain scene does not fit',
                                     host: { left: hostRect.left, top: hostRect.top, right: hostRect.right, bottom: hostRect.bottom },
-                                    scene: { left: sceneRect.left, top: sceneRect.top, right: sceneRect.right, bottom: sceneRect.bottom },
+                                    scene: { left: visualRect.left, top: visualRect.top, right: visualRect.right, bottom: visualRect.bottom },
                                     fitScale: scene.dataset.fitScale || '',
                                 });
+                            }
+                            if ((fitMode === 'scroll' || fitMode === 'focus') && !sceneFitScroll && !visuallyFits) {
+                                scrollFailures.push({
+                                    viewport: viewportName,
+                                    step,
+                                    selector: '#canvas .scene-fit',
+                                    reason: 'large scene needs managed scene-fit scroll',
+                                    fitMode,
+                                    fitScale,
+                                });
+                            }
+                            const frame = typeof frames === 'function' ? frames()[step] : null;
+                            const targets = frame && frame.evidence && Array.isArray(frame.evidence.targets) ? frame.evidence.targets : [];
+                            const answerLike = id => {
+                                const raw = String(id || '');
+                                return ['answer','ans','result'].includes(raw)
+                                    || raw.startsWith('answer[')
+                                    || raw.startsWith('ans[')
+                                    || raw.startsWith('result[');
+                            };
+                            const visibleTargets = targets.filter(id => !answerLike(id));
+                            const target = visibleTargets.map(id => document.querySelector(`#canvas [data-object-id="${CSS.escape(String(id))}"]`)).find(Boolean);
+                            if (target) {
+                                const targetRect = target.getBoundingClientRect();
+                                const viewRect = sceneFit && sceneFit.classList.contains('scroll-fit') ? sceneFit.getBoundingClientRect() : hostRect;
+                                const targetVisible = targetRect.right >= viewRect.left - 1
+                                    && targetRect.left <= viewRect.right + 1
+                                    && targetRect.bottom >= viewRect.top - 1
+                                    && targetRect.top <= viewRect.bottom + 1;
+                                if (!targetVisible) {
+                                    scrollFailures.push({
+                                        viewport: viewportName,
+                                        step,
+                                        selector: '#canvas [data-object-id]',
+                                        reason: 'active target outside visible main stage',
+                                        target: target.getAttribute('data-object-id'),
+                                        targetRect: { left: targetRect.left, top: targetRect.top, right: targetRect.right, bottom: targetRect.bottom },
+                                        viewRect: { left: viewRect.left, top: viewRect.top, right: viewRect.right, bottom: viewRect.bottom },
+                                    });
+                                }
                             }
                         }
                         return scrollFailures;
@@ -275,7 +365,7 @@ def _check_current_variant_main_view_has_no_internal_scroll(page, path: Path):
                     {"viewportName": viewport_name, "step": index},
                 )
             )
-        assert not failures, f"{path}: 主视图不允许内部滚动条，必须完整展示: {failures[:6]}"
+        assert not failures, f"{path}: 主视图 fit/scroll 策略异常: {failures[:6]}"
 
 
 def _check_compound_scene_if_present(page, path: Path):
@@ -296,11 +386,18 @@ def _check_compound_scene_if_present(page, path: Path):
 
     page.evaluate("(i) => go(i)", info["index"])
     page.wait_for_timeout(80)
-    scene = page.locator("#canvas .compound-scene")
-    assert scene.count() >= 1, f"{path}: 多原语帧缺少 compound-scene"
     panels = page.locator("#canvas .primitive-panel")
-    assert panels.count() >= info["count"], f"{path}: primitive-panel 数量不足: {panels.count()} < {info['count']}"
-    for index in range(min(panels.count(), info["count"])):
+    assert panels.count() >= 1, f"{path}: 多原语帧缺少 primitive-panel"
+    assert page.locator("#canvas [data-stage-role='primary']").count() >= 1, f"{path}: 多原语帧缺少 primary stage"
+    if page.locator("#canvas .compound-scene").count():
+        assert page.locator("#canvas .compound-scene [data-stage-role='primary']").count() >= 1, (
+            f"{path}: compound-scene 内缺少 primary stage"
+        )
+    role_count = page.locator("#canvas [data-stage-role]").count()
+    assert role_count >= info["count"] or page.locator("#canvas .raw-state-dock, #canvas .support-dock").count() >= 1, (
+        f"{path}: 多原语帧没有将辅助/raw 状态分流: roles={role_count} count={info['count']}"
+    )
+    for index in range(panels.count()):
         assert panels.nth(index).get_attribute("data-layout"), f"{path}: primitive-panel 缺少 data-layout"
     page.evaluate("(i) => go(i)", info["current"])
     page.wait_for_timeout(80)
@@ -366,7 +463,7 @@ def _check_dependency_click_details(page, path: Path):
         page.evaluate("(i) => go(i)", frame_index)
         page.wait_for_timeout(100)
 
-        target_node = page.locator(f'#canvas [data-object-id="{spec["target"]}"]').first
+        target_node = page.locator(f'#canvas [data-object-id="{spec["target"]}"]').last
         assert target_node.count() == 1, f"{path}: {example_id} 目标对象不可点击 {spec['target']}"
         target_node.click()
         page.wait_for_timeout(80)
@@ -378,7 +475,7 @@ def _check_dependency_click_details(page, path: Path):
             f"{path}: {example_id} 目标详情未说明数据来源: {detail_text}"
         )
 
-        dep_node = page.locator(f'#canvas [data-object-id="{spec["dep"]}"]').first
+        dep_node = page.locator(f'#canvas [data-object-id="{spec["dep"]}"]').last
         assert dep_node.count() == 1, f"{path}: {example_id} 依赖对象不可点击 {spec['dep']}"
         dep_node.click()
         page.wait_for_timeout(80)
@@ -612,19 +709,36 @@ def _check_phase17_visual_pattern_page(page, path: Path):
     page.set_viewport_size({"width": 1365, "height": 900})
     page.wait_for_timeout(80)
     required_selectors = {
-        "dp_formula": (".dp-formula-substitution", ".dependency-flow"),
-        "graph_relax": (".graph-visual-pattern", ".edge-label"),
-        "string_alignment": (".string-alignment-card", ".string-row", ".visual-char.window"),
+        "dp_formula": (".dp-formula-substitution", ".dependency-flow", ".dp-dependency-window", ".dp-current-cell", ".dp-dependency-arrow"),
+        "graph_relax": (".graph-visual-pattern", ".edge-label", ".graph-node-inline-metrics", ".visual-quality-telemetry"),
+        "string_alignment": (".string-alignment-card", ".string-row", ".visual-char.window", ".string-specialized-card", ".kmp-fallback-arc"),
         "tree_return": (".tree-return-pattern", ".return-bubble"),
         "backtracking_choice": (".backtracking-pattern",),
         "range_structure": (".range-structure-pattern",),
-        "network_flow": (".network-flow-pattern", ".edge-label"),
+        "fenwick_lowbit": (".fenwick-lowbit-panel", ".fenwick-hop-arrow"),
+        "sparse_table_blocks": (".sparse-table-blocks", ".sparse-query-block"),
+        "diff_prefix": (".diff-prefix-panel", ".diff-impact-point"),
+        "geometry_relation": (".geometry-relation-card", ".cross-turn-badge", ".geo-cross-arrow", ".hull-ghost-point", ".geometry-svg", ".geo-candidate-point", ".geo-hull-ghost-svg"),
+        "network_flow": (".network-flow-pattern", ".edge-label", ".network-augmenting-path-panel", ".augmenting-path-chain", ".bottleneck-badge", ".flow-delta-row", ".flow-bottleneck-label"),
+    }
+    preferred_lookup_patterns = {
+        "dp_formula": ("dp_dependency_arrow",),
+        "graph_relax": ("graph_relax_edge",),
+        "string_alignment": ("string_fallback_arc",),
+        "tree_return": ("tree_return_value",),
+        "backtracking_choice": ("backtracking_undo",),
+        "range_structure": ("range_query_path", "range_update_path"),
+        "fenwick_lowbit": ("fenwick_lowbit",),
+        "sparse_table_blocks": ("sparse_table_blocks",),
+        "diff_prefix": ("diff_prefix",),
+        "geometry_relation": ("geometry_relation",),
+        "network_flow": ("network_flow_augmenting_path",),
     }
     for item in phase17_visual_pattern_matrix():
         variant_id = str(item["id"])
         page.locator("#tabs .tab").filter(has_text=str(item["name"])).first.click()
         page.wait_for_timeout(100)
-        lookup_patterns = [pattern for pattern in item["patterns"] if pattern != "range_structure"] or list(item["patterns"])
+        lookup_patterns = list(preferred_lookup_patterns.get(variant_id) or [pattern for pattern in item["patterns"] if pattern != "range_structure"] or item["patterns"])
         frame_index = page.evaluate(
             """(patterns) => {
                 const wanted = new Set(patterns);

@@ -33,7 +33,7 @@ from algolab.schemas.semantic_trace import SemanticTrace, TeachingStep
 from algolab.schemas.semantic_trace import SolutionVariant
 from algolab.schemas.input import ProblemInput
 from algolab.schemas.scene_graph import SceneGraph
-from algolab.schemas.validation import BuildArtifact
+from algolab.schemas.validation import BuildArtifact, ValidationReport
 from algolab.schemas.visual_plan import RenderTarget, VisualPlan
 from algolab.verification.scene_validator import validate_scene
 from algolab.verification.contract_validator import validate_contract
@@ -49,6 +49,7 @@ from tests.fixtures import (
     algorithm_family_traces,
     bfs_trace,
     fixture_artifact,
+    diff_prefix_trace,
     golden_visual_artifact,
     golden_visual_matrix,
     geometry_trace,
@@ -260,6 +261,7 @@ def test_layout_registry_declares_phase6_components():
         "trie": "tree",
         "union_find": "tree",
         "string": "string",
+        "linked_list": "linked_list",
         "geometry": "geometry",
         "generic": "map",
     }
@@ -466,7 +468,10 @@ def test_renderer_uses_p1_information_architecture(tmp_path: Path):
     assert ".task-col .code {{" not in html
     assert ".code {{ max-height" not in html
     assert ".teaching-col {{ max-height" not in html
-    assert "<details" not in html.split('class="col teaching-col"', 1)[1].split("</aside>", 1)[0]
+    teaching_col_block = html.split('class="col teaching-col"', 1)[1].split("</aside>", 1)[0]
+    assert 'class="compact-details step-evidence-details"' in teaching_col_block
+    assert 'class="compact-details step-evidence-details" open' not in teaching_col_block
+    assert 'id="step-evidence"' in teaching_col_block
     assert 'id="debug-drawer"' in html
     assert 'id="debug-drawer" open' not in html
     assert html.index('id="teaching-panel"') < html.index('id="debug-drawer"')
@@ -722,10 +727,12 @@ def test_renderer_declares_code_sync_and_line_fallbacks(tmp_path: Path):
     html = out.read_text(encoding="utf-8")
 
     assert ".code-sync" in html
+    assert ".line.fallback" in html
     assert "function codeLineInfo" in html
     assert "当前代码行" in html
     assert "code_line 越界" in html
     assert "data-active-line" in html
+    assert "data-code-line-status" in html
 
     render_step = html.split("function renderStep()", 1)[1].split("function markClass", 1)[0]
     assert "const code = variant().code || '';" in render_step
@@ -741,6 +748,9 @@ def test_renderer_declares_code_sync_and_line_fallbacks(tmp_path: Path):
     assert "info.label" in render_code
     assert "info.active" in render_code
     assert "data-active-line" in render_code
+    assert "status === 'ok'" in render_code
+    assert "lineActive" in render_code
+    assert "fallback" in render_code
 
 
 def _single_dependency_trace(layout: str) -> SemanticTrace:
@@ -1587,7 +1597,7 @@ def test_execute_variant_rejects_quoted_map_targets():
         assert any("map target" in error for error in errors), errors
 
 
-def test_execute_variant_rejects_excessive_trace_events():
+def test_execute_variant_preserves_long_trace_events():
     variant = SolutionVariant(
         id="too_many_events",
         name="too many events",
@@ -1600,16 +1610,14 @@ def test_execute_variant_rejects_excessive_trace_events():
             "      'algorithm': 'too many',\n"
             "      'input_data': input_data,\n"
             "      'result': 1,\n"
-            "      'events': [{'step': i, 'op': 'explain', 'targets': [], 'state': {}, 'reason': 'x', 'code_line': 1} for i in range(81)]\n"
+            "      'events': [{'step': i, 'op': 'explain', 'targets': [], 'state': {'i': i}, 'reason': 'x', 'code_line': 1} for i in range(81)]\n"
             "    }\n"
         ),
     )
-    try:
-        execute_variant(variant, {})
-    except ValueError as exc:
-        assert "trace events 过多" in str(exc)
-    else:
-        raise AssertionError("过长 trace 应被拒绝")
+    materialized = execute_variant(variant, {})
+
+    assert materialized.trace is not None
+    assert len(materialized.trace.events) == 81
 
 
 def test_process_validator_accepts_map_container_dependency():
@@ -2543,9 +2551,1411 @@ def test_renderer_declares_compound_primitive_layout(tmp_path: Path):
     assert "data-layout" in html
 
     renderer = html.split("function renderTeachingCanvas", 1)[1].split("function renderDependencyFlow", 1)[0]
+    render_canvas_block = html.split("function renderTeachingCanvas", 1)[1].split("function familyRendererForFrame", 1)[0]
     assert "algorithm" not in renderer
     assert "problem_title" not in renderer
-    assert "renderPrimitivePanel(c, groups[c.id] || [], f.marks || [])" in renderer
+    assert "function renderSemanticAnchorBand" in renderer
+    assert "renderSemanticAnchorBand(f)" not in render_canvas_block
+    assert "renderPrimitivePanel(c, groups[c.id] || [], marks, 'primary')" in renderer
+
+
+def test_renderer_declares_phase1_primary_stage_fit_and_raw_state_policy(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "phase1_visual_policy.html")
+    html = out.read_text(encoding="utf-8")
+
+    for marker in (
+        "function classifyStageContainers",
+        "function stageRoleForContainer",
+        "function renderPrimaryStage",
+        "function renderSupportDock",
+        "function renderRawStateDock",
+        "function fitModeForFrame",
+        "function measureVisualBounds",
+        "function bindScenePanZoom",
+        "function resetSceneView",
+        "function syncSceneScrollSurface",
+        "gcd-hero",
+        "function scrollFocusedTarget",
+        "function clampNumber",
+        "primary-scene",
+        "scene-scroll-surface",
+        "scene-world",
+        "support-dock",
+        "raw-state-dock",
+        "scroll-fit",
+        "pan-scroll",
+        "data-stage-role",
+        "data-fit-mode",
+        "raw_state_not_primary",
+        "teaching_relation_visible",
+    ):
+        assert marker in html
+
+    assert "height:clamp(460px,64vh,700px)" in html
+    assert "grid-template-rows:minmax(340px,1fr) minmax(96px,168px)" in html
+    assert "const minReadableScale = 1" in html
+    assert "const maxUsefulScale = 1.85" in html
+    assert "translate(" in html
+
+    render_block = html.split("function renderTeachingCanvas", 1)[1].split("function fitSceneToCanvas", 1)[0]
+    render_canvas_block = html.split("function renderTeachingCanvas", 1)[1].split("function familyRendererForFrame", 1)[0]
+    assert "classifyStageContainers(f, containers)" in render_block
+    assert "scene-scroll-surface" in render_block
+    assert "scene-world" in render_block
+    assert "renderPrimaryStage(classified.primary" in render_block
+    assert "renderSupportDock(classified.support" in render_block
+    assert "renderRawStateDock(classified.raw" in render_block
+    assert "renderAnswerBadge(f)" not in render_canvas_block
+    assert "renderSemanticAnchorBand(f)" not in render_canvas_block
+    assert "containers.length > 1" not in render_block
+    assert "algorithm" not in render_block
+    assert "problem_title" not in render_block
+
+    classifier_block = html.split("function classifyStageContainers", 1)[1].split("function renderPrimaryStage", 1)[0]
+    assert "LAYOUT_RENDERERS" in classifier_block
+    assert "capacity" in classifier_block
+    assert "flow" in classifier_block
+    assert "memo" in classifier_block
+    assert "call_stack" in classifier_block
+    assert "query_path" in classifier_block
+    assert "raw" in classifier_block
+    assert "support" in classifier_block
+    assert "primary" in classifier_block
+    assert "algorithm" not in classifier_block
+    assert "problem_title" not in classifier_block
+
+    fit_block = html.split("function fitSceneToCanvas", 1)[1].split("function renderPrimitivePanel", 1)[0]
+    assert "rawScale" in fit_block
+    assert "needsReadableFallback" in fit_block
+    assert "effectiveFitMode" in fit_block
+    assert "measureVisualBounds(scene)" in fit_block
+    assert "bounds.left" in fit_block
+    assert "bounds.top" in fit_block
+    assert "const scrollFit = needsReadableFallback" in fit_block
+    assert "scrollFit ? 'pan-scroll' : 'contain'" in fit_block
+    assert "clampNumber(rawScale, minContainScale" in fit_block
+    assert "fit.classList.toggle('scroll-fit'" in fit_block
+    assert "fit.classList.toggle('pan-scroll'" in fit_block
+    assert "scrollFocusedTarget(fit, scene)" in fit_block
+    assert "translateX" in fit_block and "translateY" in fit_block
+    assert "scene.dataset.fitMode" in fit_block
+    assert "scene.dataset.cameraMode" in fit_block
+    assert "scene.dataset.utilization" in fit_block
+    assert "scene.dataset.visualBoundsWidth" in fit_block
+    assert "const scale = Math.min(1, availableWidth / contentWidth" not in fit_block
+
+
+def test_renderer_declares_linked_list_and_math_bit_primitives(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "family_primitives.html")
+    html = out.read_text(encoding="utf-8")
+
+    for marker in (
+        "function renderLinkedList",
+        "function linkedListPointers",
+        "function renderMathBitPanel",
+        "function mathBitItems",
+        "function renderBitRows",
+        "linked-list-view",
+        "linked-node",
+        "linked-arrow",
+        "pointer-badge",
+        "math-bit-panel",
+        "bit-row",
+        "gcd-chain",
+        "fast-power-row",
+        "sieve-grid",
+    ):
+        assert marker in html
+
+    assert '"linked_list": "linked_list"' in html
+    assert "if (renderer === 'linked_list') return renderLinkedList" in html
+    assert "renderMathBitPanel(f)" in html
+
+    linked_block = html.split("function renderLinkedList", 1)[1].split("function renderMathBitPanel", 1)[0]
+    assert "prev" in linked_block
+    assert "curr" in linked_block
+    assert "next" in linked_block
+    assert "old_direction" in linked_block
+    assert "cycle" in linked_block
+    assert "algorithm" not in linked_block
+    assert "problem_title" not in linked_block
+
+    math_block = html.split("function renderMathBitPanel", 1)[1].split("function renderTimeline", 1)[0]
+    assert "gcd" in math_block
+    assert "lowbit" in math_block
+    assert "fast_power" in math_block
+    assert "sieve" in math_block
+    assert "state" in math_block
+    assert "algorithm" not in math_block
+    assert "problem_title" not in math_block
+
+
+def test_renderer_declares_rich_object_detail_payload(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "object_detail.html")
+    html = out.read_text(encoding="utf-8")
+
+    detail_block = html.split("function showDependencyDetail", 1)[1].split("function unique", 1)[0]
+    for marker in (
+        "objectContainerInfo",
+        "eventChangeRows",
+        "before",
+        "after",
+        "所属容器",
+        "layout",
+        "值",
+        "角色",
+    ):
+        assert marker in detail_block
+
+    assert "function objectContainerInfo" in html
+
+
+def test_renderer_declares_algorithm_family_semantic_primitives(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "family_semantic_primitives.html")
+    html = out.read_text(encoding="utf-8")
+
+    for marker in (
+        "function renderBinaryPointerPattern",
+        "function renderDigitDpPattern",
+        "function renderMonotonicStackPattern",
+        "function renderHeapSiftPattern",
+        "function renderGraphMetricOverlay",
+        "function renderTreeDpOverlay",
+        "binary-pointer-panel",
+        "search-interval-band",
+        "marker-low",
+        "marker-mid",
+        "marker-high",
+        "digit-dp-card",
+        "digit-dp-state",
+        "monotonic-stack-panel",
+        "stack-pop-arrow",
+        "heap-sift-panel",
+        "heap-sift-path",
+        "graph-metric-overlay",
+        "graph-node-metric",
+        "relax-formula",
+        "frontier-dock",
+        "tree-dp-overlay",
+        "tree-dp-badge",
+    ):
+        assert marker in html
+
+    visual_block = html.split("function renderVisualPatternPanel", 1)[1].split("function renderDependencyFlow", 1)[0]
+    for helper in (
+        "renderBinaryPointerPattern(f)",
+        "renderDigitDpPattern(f)",
+        "renderMonotonicStackPattern(f)",
+        "renderHeapSiftPattern(f)",
+        "renderGraphMetricOverlay(f)",
+        "renderTreeDpOverlay(f)",
+    ):
+        assert helper in visual_block
+    assert "problem_title" not in visual_block
+    assert "algorithm" not in visual_block
+    assert "ARTIFACT" not in visual_block
+
+
+def test_renderer_declares_specialized_family_teaching_primitives(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "specialized_family_primitives.html")
+    html = out.read_text(encoding="utf-8")
+
+    for marker in (
+        "function renderDpDependencyWindowPattern",
+        "function renderStringSpecializedPattern",
+        "function renderFenwickLowbitPattern",
+        "function renderSparseTableBlocksPattern",
+        "function renderDiffPrefixPattern",
+        "function renderGeometryRelationPattern",
+        "function renderNetworkFlowAugmentingPathPattern",
+        "function renderVisualQualityTelemetry",
+        "function updateVisualQualityTelemetry",
+        "function familyRendererForFrame",
+        "function graphNodeMetricText",
+        "dp-dependency-window",
+        "dp-current-cell",
+        "dp-dependency-arrow",
+        "string-specialized-card",
+        "kmp-fallback-arc",
+        "rolling-hash-track",
+        "z-box-band",
+        "manacher-radius-arc",
+        "fenwick-lowbit-panel",
+        "fenwick-hop-arrow",
+        "sparse-table-blocks",
+        "sparse-query-block",
+        "diff-prefix-panel",
+        "geometry-relation-card",
+        "cross-turn-badge",
+        "geo-cross-arrow",
+        "geo-candidate-point",
+        "geo-hull-ghost-svg",
+        "hull-ghost-point",
+        "network-augmenting-path-panel",
+        "augmenting-path-chain",
+        "bottleneck-badge",
+        "bitmask-transition-panel",
+        "kruskal-track-panel",
+        "flow-bottleneck-label",
+        "flow-delta-row",
+        "graph-node-inline-metrics",
+        "visual-quality-telemetry",
+        "fit_mode=",
+        "fit_scale=",
+        "utilization=",
+        "data-visual-quality",
+        "data-family-renderer",
+    ):
+        assert marker in html
+
+    render_block = html.split("function renderTeachingCanvas", 1)[1].split("function classifyStageContainers", 1)[0]
+    assert "renderVisualQualityTelemetry(f, classified)" in render_block
+    assert "data-family-renderer" in render_block
+
+    visual_block = html.split("function renderVisualPatternPanel", 1)[1].split("function renderDependencyFlow", 1)[0]
+    for helper in (
+        "renderDpDependencyWindowPattern(f)",
+        "renderStringSpecializedPattern(f)",
+        "renderFenwickLowbitPattern(f)",
+        "renderSparseTableBlocksPattern(f)",
+        "renderDiffPrefixPattern(f)",
+        "renderGeometryRelationPattern(f)",
+        "renderNetworkFlowAugmentingPathPattern(f)",
+        "renderBitmaskTransitionPattern(f)",
+        "renderKruskalTrackPattern(f)",
+    ):
+        assert helper in visual_block
+    assert "problem_title" not in visual_block
+    assert "algorithm" not in visual_block
+    assert "ARTIFACT" not in visual_block
+
+
+def test_phase5_renderer_visual_audit_script_declares_current_renderer_quality_gate():
+    script_path = Path("scripts/audit_renderer_visual_quality.py")
+    assert script_path.exists()
+    source = script_path.read_text(encoding="utf-8")
+
+    for marker in (
+        "BuildArtifact.model_validate_json",
+        "save_html(artifact",
+        "sample_frame_indices",
+        "first",
+        "middle",
+        "last",
+        "main_stage_utilization",
+        "visual_bounds_left",
+        "primary_visible_ratio",
+        "primary_clip_detected",
+        "multi_primary_fit_mode",
+        "answer_primary_area_ratio",
+        "graph_node_min_radius",
+        "svg_occupied_ratio",
+        "active_target_visible",
+        "readable_scale",
+        "dependency_visible",
+        "code_line_status_visible",
+        "no_major_overflow",
+        "timeline_keyframes_visible",
+        "raw_state_not_primary",
+        "teaching_relation_visible",
+        "fixed_overlay_blocks_primary",
+        "aggregateRects",
+        "primaryRects",
+        "family_renderer_used",
+        "multi_primary_focus",
+        "answer_steals_primary",
+        "graph_node_too_small",
+        "fixed_overlay_blocks_primary",
+        "quality_summary",
+        "low_utilization_ratio",
+        "failure_categories",
+        "renderer_visual_quality_audit.json",
+    ):
+        assert marker in source
+    assert "MIN_READABLE_SCALE = 1.0" in source
+    assert "fitScale >= 1.0" in source
+
+
+def test_phase5_renderer_visual_audit_collects_only_build_artifacts(tmp_path: Path):
+    from scripts.audit_renderer_visual_quality import collect_artifact_paths
+
+    artifact_path = tmp_path / "case.json"
+    artifact_path.write_text('{"schema_version":"algolab-build-v1"}', encoding="utf-8")
+    summary_path = tmp_path / "family_summary.json"
+    summary_path.write_text('{"kind":"llm_family_summary"}', encoding="utf-8")
+    broken_path = tmp_path / "broken.json"
+    broken_path.write_text('{', encoding="utf-8")
+
+    assert collect_artifact_paths(tmp_path, "*.json") == [artifact_path]
+
+
+def test_phase5_renderer_visual_audit_rerenders_with_current_compiler(tmp_path: Path):
+    from scripts.audit_renderer_visual_quality import rerender_artifacts
+
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "图重编译",
+            "input_data": {},
+            "result": ["A", "B"],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "graph"}],
+                    "state": {
+                        "graph": {
+                            "nodes": ["A", "B"],
+                            "edges": [{"u": "A", "v": "B"}],
+                            "directed": True,
+                        }
+                    },
+                    "reason": "初始化 node/edge 图。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    stale_scene = SceneGraph(
+        algorithm="旧图",
+        input_data={},
+        frames=[
+            {
+                "step": 0,
+                "title": "旧图",
+                "description": "旧 compiler 把 nodes/edges 字段误当作普通图节点。",
+                "operation": "create",
+                "objects": [
+                    {"id": "graph", "type": "container", "label": "graph", "meta": {"layout": "graph"}},
+                    {"id": "node:nodes", "type": "node", "label": "nodes", "parent": "graph"},
+                    {"id": "node:edges", "type": "node", "label": "edges", "parent": "graph"},
+                    {
+                        "id": "edge:nodes->A",
+                        "type": "edge",
+                        "source": "node:nodes",
+                        "target": "node:A",
+                        "parent": "graph",
+                    },
+                ],
+            }
+        ],
+    )
+    artifact = BuildArtifact(
+        problem_title="图重编译审计",
+        input_data={},
+        variants=[
+            {
+                "id": "graph_variant",
+                "name": "图解法",
+                "strategy": "审计应使用当前 compiler。",
+                "code": "def solve(input_data):\n    return ['A', 'B']",
+                "tracker_code": "def trace(input_data):\n    return {}",
+                "result": trace.result,
+                "trace": trace.model_dump(),
+            }
+        ],
+        scenes={"graph_variant": stale_scene},
+        validation=ValidationReport(checks=["fixture"]),
+    )
+    artifact_path = tmp_path / "stale_graph.json"
+    artifact_path.write_text(artifact.model_dump_json(), encoding="utf-8")
+
+    records = rerender_artifacts([artifact_path], tmp_path / "html")
+    html = Path(records[0]["html"]).read_text(encoding="utf-8")
+
+    assert records[0]["rerendered_with_current_compiler"] is True
+    assert "node:A" in html
+    assert "edge:A-&gt;B" in html or "edge:A->B" in html
+    assert "node:nodes" not in html
+    assert "edge:nodes-&gt;A" not in html
+
+
+def test_phase5_renderer_visual_audit_checks_primary_stability_within_timeline_phase():
+    from scripts.audit_renderer_visual_quality import add_primary_container_stability
+
+    rows = [
+        {
+            "case_id": "phase_switch_case",
+            "variant_id": "v1",
+            "timeline_phase": "初始化",
+            "primary_rect": {"area": 100.0},
+            "failure_categories": [],
+        },
+        {
+            "case_id": "phase_switch_case",
+            "variant_id": "v1",
+            "timeline_phase": "主循环",
+            "primary_rect": {"area": 1000.0},
+            "failure_categories": [],
+        },
+    ]
+
+    add_primary_container_stability(rows)
+
+    assert all(row["primary_container_stable"] is True for row in rows)
+    assert all("primary_container_unstable" not in row["failure_categories"] for row in rows)
+
+
+def test_phase5_renderer_visual_audit_accepts_specialized_family_subrenderers():
+    source = Path("scripts/audit_renderer_visual_quality.py").read_text(encoding="utf-8")
+
+    family_block = source.split("function familyRendererMatches", 1)[1].split("function selectorForExpectedFamily", 1)[0]
+
+    for marker in (
+        "expected === 'string_specialized' && ['string_specialized','string_list','trie']",
+        "expected === 'trie' && ['trie','tree','string_specialized']",
+        "expected === 'graph' && ['graph','dp_matrix']",
+        "expected === 'kruskal' && ['kruskal','graph']",
+        "expected === 'bitmask_dp' && ['bitmask_dp','dp_matrix','math_bit']",
+        "expected === 'digit_dp' && actual === 'digit_dp'",
+        "expected === 'heap' && actual === 'heap'",
+        "expected === 'monotonic_stack' && actual === 'monotonic_stack'",
+    ):
+        assert marker in family_block
+
+
+def test_renderer_and_audit_use_semantic_target_proxy_for_focus(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "semantic_target_proxy.html")
+    html = out.read_text(encoding="utf-8")
+    audit_source = Path("scripts/audit_renderer_visual_quality.py").read_text(encoding="utf-8")
+
+    for marker in (
+        "function sceneObjectBySemanticId",
+        "function semanticProxyIds",
+        "semantic-anchor-band",
+        "semantic-anchor-chip",
+        "frameMatch",
+        "node:${frameMatch[1]}",
+        "answer' || String(id) === 'result",
+        "semanticFallbackObject",
+        "answerStateProxySelectors",
+        "framePhaseMatch",
+        "localStateCellProxy",
+        "primaryLinearContainerId",
+        ".answer-badge[data-object-id]",
+    ):
+        assert marker in html
+    for marker in (
+        "sceneObjectBySemanticIdInAudit",
+        "semanticProxyIdsInAudit",
+        "document.querySelector('#canvas .primary-scene')",
+        "semantic-anchor-chip",
+        "node:${frameMatch[1]}",
+        "semanticFallbackObjectInAudit",
+        "answerStateProxySelectorsInAudit",
+        "framePhaseMatch",
+        "localStateCellProxyInAudit",
+        "primaryLinearContainerIdInAudit",
+        ".answer-badge[data-object-id]",
+    ):
+        assert marker in audit_source
+    answer_selector_block = html.split("function answerStateProxySelectors", 1)[1].split("function semanticProxyIds", 1)[0]
+    audit_answer_selector_block = audit_source.split("function answerStateProxySelectorsInAudit", 1)[1].split("function aggregateRects", 1)[0]
+    assert 'primary-scene [data-stage-role="primary"]' not in answer_selector_block
+    assert 'primary-scene [data-stage-role="primary"]' not in audit_answer_selector_block
+
+
+def test_scene_compiler_handles_node_edge_graph_dict_without_pseudo_nodes():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "图结构",
+            "input_data": {},
+            "result": {"A": 0, "B": 1},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "graph"}],
+                    "state": {
+                        "graph": {
+                            "nodes": ["A", "B"],
+                            "edges": [{"u": "A", "v": "B", "weight": 3}],
+                            "directed": True,
+                        }
+                    },
+                    "reason": "初始化图。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    scene = compile_scene(trace)
+    frame = scene.frames[0]
+    object_ids = {obj.id for obj in frame.objects}
+    graph_edges = [obj for obj in frame.objects if obj.type.value == "edge"]
+
+    assert {"graph", "node:A", "node:B", "edge:A->B"}.issubset(object_ids)
+    assert "node:nodes" not in object_ids
+    assert "node:edges" not in object_ids
+    assert "edge:nodes->A" not in object_ids
+    assert len(graph_edges) == 1
+    assert graph_edges[0].label == "3"
+
+
+def test_scene_compiler_converts_list_dict_to_linked_list_primitive():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "反转链表",
+            "input_data": {},
+            "result": [2, 1],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "list"}],
+                    "state": {
+                        "list": {
+                            "head": 0,
+                            "nodes": [
+                                {"id": 0, "value": 1, "next": 1},
+                                {"id": 1, "value": 2, "next": None},
+                            ],
+                        }
+                    },
+                    "reason": "初始化链表。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    scene = compile_scene(trace)
+    frame = scene.frames[0]
+    by_id = {obj.id: obj for obj in frame.objects}
+
+    assert by_id["list"].meta.get("layout") == "linked_list"
+    assert by_id["node:0"].label == "1"
+    assert by_id["node:1"].label == "2"
+    assert by_id["edge:0->1"].source == "node:0"
+    assert by_id["edge:0->1"].target == "node:1"
+
+
+def test_scene_compiler_projects_graph_answer_to_primary_nodes_and_edges():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "图答案投影",
+            "input_data": {},
+            "result": {"articulation": ["B"], "bridges": [["A", "B"]]},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "answer"}],
+                    "state": {
+                        "graph": {
+                            "nodes": ["A", "B"],
+                            "edges": [{"u": "A", "v": "B"}],
+                        },
+                        "answer": {"articulation": ["B"], "bridges": [["A", "B"]]},
+                    },
+                    "role": "answer",
+                    "reason": "返回最终答案。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    frame = compile_scene(trace).frames[0]
+    by_id = {obj.id: obj for obj in frame.objects}
+
+    assert "answer_projection" in by_id["node:B"].meta.get("visual_patterns", [])
+    assert by_id["node:B"].meta.get("pattern_role") == "answer"
+    assert "answer_projection" in by_id["edge:A->B"].meta.get("visual_patterns", [])
+    assert by_id["edge:A->B"].meta.get("pattern_role") == "answer"
+    assert {"node:B", "edge:A->B"}.issubset(set(frame.evidence["visual_patterns"][0]["objects"]) | {
+        obj_id
+        for pattern in frame.evidence["visual_patterns"]
+        if pattern["pattern"] == "answer_projection"
+        for obj_id in pattern["objects"]
+    })
+
+
+def test_scene_compiler_handles_localized_node_edge_graph_dict():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Kruskal 最小生成树",
+            "input_data": {},
+            "result": 3,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "网络图"}],
+                    "state": {
+                        "网络图": {
+                            "nodes": ["A", "B", "C"],
+                            "edges": [
+                                {"u": "A", "v": "B", "weight": 1},
+                                {"u": "B", "v": "C", "weight": 2},
+                            ],
+                            "directed": False,
+                        }
+                    },
+                    "reason": "初始化图。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    frame = compile_scene(trace).frames[0]
+    by_id = {obj.id: obj for obj in frame.objects}
+
+    assert by_id["网络图"].meta.get("layout") == "graph"
+    assert {"node:A", "node:B", "node:C", "edge:A->B", "edge:B->C"}.issubset(by_id)
+    assert "node:nodes" not in by_id
+    assert "edge:nodes->A" not in by_id
+
+
+def test_scene_compiler_projects_adjacency_matrix_to_graph_for_province_style_state():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "省份数量",
+            "input_data": {},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "isConnected"}],
+                    "state": {"isConnected": [[1, 1, 0], [1, 1, 0], [0, 0, 1]]},
+                    "reason": "初始化邻接矩阵。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    frame = compile_scene(trace).frames[0]
+    graph = next(obj for obj in frame.objects if obj.id == "isConnected:graph")
+    edge_ids = {obj.id for obj in frame.objects if obj.type.value == "edge"}
+
+    assert graph.meta.get("layout") == "graph"
+    assert "adjacency_matrix_projection" in graph.meta.get("visual_patterns", [])
+    assert "edge:0->1" in edge_ids or "edge:1->0" in edge_ids
+
+
+def test_scene_compiler_converts_localized_point_sets_to_geometry_primitive():
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "凸包",
+            "input_data": {},
+            "result": [[0, 0], [2, 0]],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "当前凸壳"}],
+                    "state": {
+                        "点集": [[0, 0], [1, 1], [1, 2], [2, 0]],
+                        "当前凸壳": [[0, 0], [2, 0]],
+                    },
+                    "reason": "维护当前凸壳。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    frame = compile_scene(trace).frames[0]
+    by_id = {obj.id: obj for obj in frame.objects}
+
+    assert by_id["点集"].meta.get("layout") == "geometry"
+    assert by_id["当前凸壳"].meta.get("layout") == "geometry"
+    assert "point:0" in by_id
+    assert "hull:0->1:0" in by_id
+    assert by_id["hull:0->1:0"].source == "point:0"
+    assert by_id["hull:0->1:0"].target == "point:1"
+
+
+def test_scene_compiler_and_renderer_use_set_grid_for_ragged_subset_answers(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "二进制掩码枚举子集",
+            "input_data": {"nums": [1, 2, 3]},
+            "result": [[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "answer"}],
+                    "role": "answer",
+                    "value": [[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]],
+                    "state": {
+                        "answer": [[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]],
+                    },
+                    "reason": "返回所有子集。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    scene = compile_scene(trace)
+    frame = scene.frames[0]
+    by_id = {obj.id: obj for obj in frame.objects}
+
+    assert by_id["answer"].meta.get("layout") == "set_grid"
+    assert by_id["answer[0]"].value == "[]"
+    assert by_id["answer[7][2]"].value == 3
+
+    artifact = BuildArtifact(
+        problem_title="二进制掩码枚举子集",
+        input_contract="nums: int[]",
+        input_data={"nums": [1, 2, 3]},
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="set_grid_variant",
+                name="set grid answer",
+                strategy="返回所有子集。",
+                code="def solve(input_data):\n    return [[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]]",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"set_grid_variant": scene},
+        validation=ValidationReport(checks=["set_grid_fixture"]),
+    )
+    html = save_html(artifact, tmp_path / "set_grid_answer.html").read_text(encoding="utf-8")
+    assert "set_grid" in LAYOUT_RENDERERS
+    assert "renderSetGrid" in html
+    assert "set-grid" in html
+
+
+def test_scene_compiler_emits_family_visual_hints_for_sparse_initial_frames():
+    examples = [
+        (
+            "数位 DP",
+            {"digits": [1, 2, 3]},
+            "digit_dp",
+            "digit_dp_state",
+        ),
+        (
+            "数组环检测",
+            {"nums": [1, 3, 1, 4, 2], "slow": 0, "fast": 0},
+            "linked_list",
+            "linked_list_pointer",
+        ),
+        (
+            "每日温度",
+            {"temperatures": [73, 74, 75], "stack": []},
+            "monotonic_stack",
+            "monotonic_stack",
+        ),
+        (
+            "第 K 大元素",
+            {"nums": [3, 2, 1], "k": 2},
+            "heap",
+            "heap_sift_path",
+        ),
+        (
+            "树状数组",
+            {"nums": [1, 2, 3]},
+            "range_structure",
+            "fenwick_lowbit",
+        ),
+        (
+            "Lowbit 分解",
+            {"remaining": 12},
+            "math_bit",
+            "lowbit_state",
+        ),
+        (
+            "Dijkstra 最短路径",
+            {"graph": {"A": {"B": 1}}, "priority_queue": [["A", 0]]},
+            "graph",
+            "graph_frontier",
+        ),
+        (
+            "Manacher 算法",
+            {"s_mod": "#a#b#a#"},
+            "string_specialized",
+            "manacher_radius",
+        ),
+        (
+            "稀疏表 RMQ",
+            {"nums": [1, 2, 3]},
+            "range_structure",
+            "sparse_table_blocks",
+        ),
+    ]
+
+    for algorithm, state, expected_family, expected_pattern in examples:
+        trace = SemanticTrace.model_validate(
+            {
+                "schema_version": "semantic-trace-v1",
+                "algorithm": algorithm,
+                "input_data": {},
+                "result": None,
+                "events": [
+                    {
+                        "step": 0,
+                        "op": "create",
+                        "targets": [{"id": next(iter(state.keys()))}],
+                        "state": state,
+                        "reason": "初始化。",
+                        "code_line": 1,
+                    }
+                ],
+            }
+        )
+        frame = compile_scene(trace).frames[0]
+
+        assert frame.evidence["visual_family"] == expected_family
+        patterns = {item["pattern"] for item in frame.evidence["visual_patterns"]}
+        assert expected_pattern in patterns
+
+
+def test_renderer_hides_semantic_target_badges_inside_primary_stage(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Dijkstra 最短路径",
+            "input_data": {},
+            "result": 0,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "pop",
+                    "targets": [{"id": "priority_queue"}],
+                    "state": {
+                        "graph": {"A": {"B": 1}},
+                        "priority_queue": [["A", 0]],
+                    },
+                    "reason": "从优先队列弹出当前候选节点。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="Dijkstra 最短路径",
+        input_data={},
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="Dijkstra",
+                strategy="优先队列驱动图搜索。",
+                code="def solve(input_data):\n    return 0",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["semantic_anchor_fixture"]),
+    )
+
+    out = save_html(artifact, tmp_path / "semantic_anchor.html")
+    html = out.read_text(encoding="utf-8")
+
+    assert "semantic-anchor-band" in html
+    assert "semantic-anchor-chip" in html
+    assert "target-kind=\"target\"" in html
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 790})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(100)
+            metrics = page.evaluate(
+                """() => ({
+                    sceneAnchorCount: document.querySelectorAll('#canvas .scene-fit > .semantic-anchor-band').length,
+                    sceneAnchorChipCount: document.querySelectorAll('#canvas .scene-fit > .semantic-anchor-band .semantic-anchor-chip').length,
+                    targetObjectCount: document.querySelectorAll('#canvas [data-object-id="priority_queue"], #canvas [data-object-id^="priority_queue["]').length,
+                })"""
+            )
+            assert metrics["sceneAnchorCount"] == 0
+            assert metrics["sceneAnchorChipCount"] == 0
+            assert metrics["targetObjectCount"] >= 1
+        finally:
+            browser.close()
+
+
+def test_renderer_hides_string_anchor_badge_without_geometry_relation(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Z Algorithm",
+            "input_data": {"text": "aabcaabx"},
+            "result": [0, 1, 0, 0, 3, 1, 0, 0],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "create",
+                    "targets": [{"id": "text"}],
+                    "state": {"text": "aabcaabx"},
+                    "reason": "初始化字符串 text。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="Z 算法",
+        input_data=trace.input_data,
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="Z Algorithm",
+                strategy="维护 Z-box。",
+                code="def solve(input_data):\n    return [0, 1, 0, 0, 3, 1, 0, 0]",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["string_anchor_fixture"]),
+    )
+
+    out = save_html(artifact, tmp_path / "z_anchor.html")
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 790})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(120)
+
+            metrics = page.evaluate(
+                """() => {
+                    const fit = document.querySelector('#canvas .scene-fit');
+                    const textObject = document.querySelector('#canvas .primary-scene [data-object-id="text"], #canvas .primary-scene [data-object-id^="text["]');
+                    const rect = node => {
+                        const box = node && node.getBoundingClientRect();
+                        return box ? { top: box.top, bottom: box.bottom, left: box.left, right: box.right, width: box.width, height: box.height } : null;
+                    };
+                    return {
+                        fit: rect(fit),
+                        anchorCount: document.querySelectorAll('#canvas .scene-fit > .semantic-anchor-band').length,
+                        chipCount: document.querySelectorAll('#canvas .scene-fit > .semantic-anchor-band .semantic-anchor-chip').length,
+                        textObject: rect(textObject),
+                        geometryCards: document.querySelectorAll('#canvas .geometry-relation-card').length,
+                    };
+                }"""
+            )
+
+            assert metrics["fit"] is not None
+            assert metrics["anchorCount"] == 0
+            assert metrics["chipCount"] == 0
+            assert metrics["textObject"] is not None
+            assert metrics["geometryCards"] == 0
+        finally:
+            browser.close()
+
+
+def test_renderer_renders_string_list_indices_without_null(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Rabin-Karp 字符串匹配",
+            "input_data": {"text": "abcdef", "pattern": "cde"},
+            "result": 2,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "answer"}],
+                    "state": {
+                        "text": ["a", "b", "c", "d", "e", "f"],
+                        "pattern": ["c", "d", "e"],
+                        "pattern_hash": 98340,
+                        "window_hash": 98340,
+                        "i": 2,
+                        "answer": 2,
+                    },
+                    "reason": "返回最终答案。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="Rabin-Karp 字符串匹配",
+        input_data=trace.input_data,
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="Rabin-Karp",
+                strategy="滚动哈希。",
+                code="def solve(input_data):\n    return 2",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["string_list_fixture"]),
+    )
+
+    out = save_html(artifact, tmp_path / "string_list_indices.html")
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 790})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(120)
+
+            metrics = page.evaluate(
+                """() => ({
+                    nullIndexCount: Array.from(document.querySelectorAll('#canvas .primary-scene .cell .idx'))
+                        .filter(node => node.textContent.trim() === 'null').length,
+                    textCellCount: document.querySelectorAll('#canvas .primary-scene [data-object-id^="text["]').length,
+                    patternCellCount: document.querySelectorAll('#canvas .primary-scene [data-object-id^="pattern["]').length,
+                    utilization: Number(document.querySelector('#canvas .objects')?.dataset.utilization || 0),
+                })"""
+            )
+
+            assert metrics["textCellCount"] >= 6
+            assert metrics["patternCellCount"] >= 3
+            assert metrics["nullIndexCount"] == 0
+            assert metrics["utilization"] >= 0.2
+        finally:
+            browser.close()
+
+
+def test_renderer_uses_pan_scroll_world_for_large_primary_canvas(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "Large Matrix",
+            "input_data": {},
+            "result": 0,
+            "events": [
+                {
+                    "step": 0,
+                    "op": "set",
+                    "targets": [{"id": "dp"}],
+                    "state": {"dp": [list(range(80))]},
+                    "reason": "展示大规模矩阵时保持格子可读，并允许用户移动主画布。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="Large Matrix",
+        input_data={},
+        expected_result=0,
+        verifier_result=0,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="Large Matrix",
+                strategy="大画布展示。",
+                code="def solve(input_data):\n    return 0",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=0,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["large_canvas_fixture"]),
+    )
+
+    out = save_html(artifact, tmp_path / "large_canvas.html")
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 790})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(120)
+            metrics = page.evaluate(
+                """() => {
+                    const fit = document.querySelector('#canvas .scene-fit');
+                    const surface = document.querySelector('#canvas .scene-scroll-surface');
+                    const world = document.querySelector('#canvas .scene-world');
+                    return {
+                        hasFit: !!fit,
+                        hasSurface: !!surface,
+                        hasWorld: !!world,
+                        fitMode: String(world?.dataset.fitMode || ''),
+                        fitScale: Number(world?.dataset.fitScale || 0),
+                        overflowX: fit ? getComputedStyle(fit).overflowX : '',
+                        overflowY: fit ? getComputedStyle(fit).overflowY : '',
+                        scrollWidth: fit ? fit.scrollWidth : 0,
+                        clientWidth: fit ? fit.clientWidth : 0,
+                        surfaceWidth: surface ? surface.getBoundingClientRect().width : 0,
+                        worldTransform: world ? getComputedStyle(world).transform : '',
+                    };
+                }"""
+            )
+            assert metrics["hasFit"] is True
+            assert metrics["hasSurface"] is True
+            assert metrics["hasWorld"] is True
+            assert metrics["fitMode"] == "pan-scroll"
+            assert metrics["fitScale"] >= 1.0
+            assert metrics["overflowX"] in {"auto", "scroll"}
+            assert metrics["scrollWidth"] > metrics["clientWidth"]
+            assert metrics["surfaceWidth"] > metrics["clientWidth"]
+            assert metrics["worldTransform"] != "none"
+        finally:
+            browser.close()
+
+
+def test_renderer_keeps_primary_nodes_clear_when_scene_badges_are_hidden(tmp_path: Path):
+    graph = {
+        "nodes": ["L1", "L2", "L3", "R1", "R2"],
+        "edges": [
+            {"u": "L1", "v": "R1"},
+            {"u": "L1", "v": "R2"},
+            {"u": "L2", "v": "R1"},
+            {"u": "L3", "v": "R2"},
+        ],
+        "directed": False,
+    }
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "二分图最大匹配",
+            "input_data": {},
+            "result": {"R1": "L1", "R2": "L3"},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "edge:L1->R2"}],
+                    "state": {"graph": graph, "match": {"R1": "L1", "R2": "L3"}},
+                    "reason": "高亮一条跨分区边时，固定浮层不能遮挡顶部节点。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="二分图最大匹配",
+        input_data={},
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="bipartite",
+                strategy="匈牙利算法。",
+                code="def solve(input_data):\n    return {}",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["overlay_clearance_fixture"]),
+    )
+    out = save_html(artifact, tmp_path / "overlay_clearance.html")
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 790})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(120)
+            metrics = page.evaluate(
+                """() => {
+                    const overlay = document.querySelector('#canvas .semantic-anchor-band, #canvas .answer-badge');
+                    const nodes = Array.from(document.querySelectorAll('#canvas .primary-scene svg .node'));
+                    const rect = node => {
+                        const r = node.getBoundingClientRect();
+                        return { left:r.left, top:r.top, right:r.right, bottom:r.bottom, width:r.width, height:r.height };
+                    };
+                    const intersects = (a, b) => a && b && a.right > b.left + 1 && a.left < b.right - 1 && a.bottom > b.top + 1 && a.top < b.bottom - 1;
+                    const overlayRect = overlay ? rect(overlay) : null;
+                    const nodeRects = nodes.map(rect);
+                    return {
+                        overlayPresent: !!overlayRect,
+                        nodeCount: nodeRects.length,
+                        blockedNodeCount: nodeRects.filter(r => intersects(r, overlayRect)).length,
+                        overlayBottom: overlayRect ? overlayRect.bottom : 0,
+                        topNodeTop: nodeRects.length ? Math.min(...nodeRects.map(r => r.top)) : 0,
+                    };
+                }"""
+            )
+            assert metrics["overlayPresent"] is False
+            assert metrics["nodeCount"] >= 5
+            assert metrics["blockedNodeCount"] == 0
+        finally:
+            browser.close()
+
+
+def test_renderer_keeps_support_dock_scrollable_when_answer_is_demoted(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "合并区间",
+            "input_data": {},
+            "result": [[i, i + 1] for i in range(12)],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "answer"}],
+                    "state": {
+                        "intervals": [[i, i + 1] for i in range(4)],
+                        "answer": [[i, i + 1] for i in range(12)],
+                    },
+                    "reason": "最终答案应作为辅助状态展示，但不能被静默截断。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="合并区间",
+        input_data={},
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="merge",
+                strategy="排序后合并。",
+                code="def solve(input_data):\n    return []",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["support_scroll_fixture"]),
+    )
+
+    out = save_html(artifact, tmp_path / "support_scroll.html")
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 790})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(120)
+            metrics = page.evaluate(
+                """() => {
+                    const dock = document.querySelector('#canvas .support-dock');
+                    const sceneAnswerBadge = document.querySelectorAll('#canvas .scene-fit > .answer-badge');
+                    return {
+                        exists: !!dock,
+                        clientHeight: dock ? dock.clientHeight : 0,
+                        scrollHeight: dock ? dock.scrollHeight : 0,
+                        overflowY: dock ? getComputedStyle(dock).overflowY : '',
+                        sceneAnswerBadgeCount: sceneAnswerBadge.length,
+                    };
+                }"""
+            )
+            assert metrics["exists"] is True
+            assert metrics["clientHeight"] >= 96
+            assert metrics["scrollHeight"] > metrics["clientHeight"]
+            assert metrics["overflowY"] in {"auto", "scroll"}
+            assert metrics["sceneAnswerBadgeCount"] == 0
+        finally:
+            browser.close()
+
+
+def test_renderer_keeps_graph_svg_nodes_inside_viewbox(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "无权图最短路径",
+            "input_data": {},
+            "result": {"A": 0, "B": 1, "C": 1, "D": 2},
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "answer"}],
+                    "state": {
+                        "graph": {"A": ["B", "C"], "B": ["A"], "C": ["A", "D"], "D": ["C"]},
+                        "answer": {"A": 0, "B": 1, "C": 1, "D": 2},
+                    },
+                    "reason": "最终图节点仍应完整留在 SVG 可视区内。",
+                    "code_line": 1,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="无权图最短路径",
+        input_data={},
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="BFS",
+                strategy="广度优先搜索。",
+                code="def solve(input_data):\n    return {}",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["graph_bounds_fixture"]),
+    )
+
+    out = save_html(artifact, tmp_path / "graph_bounds.html")
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 790})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(120)
+            metrics = page.evaluate(
+                """() => {
+                    const svg = document.querySelector('#canvas .primary-scene .graph-svg');
+                    const svgRect = svg && svg.getBoundingClientRect();
+                    const bad = Array.from(document.querySelectorAll('#canvas .primary-scene .graph-svg .node')).filter(node => {
+                        const rect = node.getBoundingClientRect();
+                        return rect.left < svgRect.left - 1 || rect.top < svgRect.top - 1 ||
+                            rect.right > svgRect.right + 1 || rect.bottom > svgRect.bottom + 1;
+                    });
+                    return { svgExists: !!svg, clippedNodeCount: bad.length };
+                }"""
+            )
+            assert metrics["svgExists"] is True
+            assert metrics["clippedNodeCount"] == 0
+        finally:
+            browser.close()
+
+
+def test_renderer_declares_digit_dp_state_extraction_from_recursion_stack(tmp_path: Path):
+    out = save_html(phase17_visual_pattern_artifact(), tmp_path / "digit_dp_helpers.html")
+    html = out.read_text(encoding="utf-8")
+
+    for marker in (
+        "digitDpStateForFrame",
+        "digitDpStateFromStack",
+        "递归栈",
+        "digit-dp-card",
+    ):
+        assert marker in html
 
 
 def _generic_state_change_trace() -> SemanticTrace:
@@ -2927,6 +4337,36 @@ def test_phase17_scene_compiler_emits_family_visual_pattern_meta():
     ]
     assert flow_edges
     assert any(obj.meta.get("capacity") is not None and obj.meta.get("residual") is not None for obj in flow_edges)
+
+
+def test_scene_compiler_marks_diff_prefix_only_when_endpoint_relation_exists():
+    scene = compile_scene(diff_prefix_trace())
+
+    assert scene.frames[0].evidence.get("visual_family") == "range_structure"
+    assert scene.frames[0].evidence.get("visual_family_pattern") != "diff_prefix"
+    assert scene.frames[1].evidence.get("visual_family") == "range_structure"
+    assert scene.frames[1].evidence.get("visual_family_pattern") == "diff_prefix"
+    assert any(
+        item.get("pattern") == "diff_prefix"
+        for item in scene.frames[1].evidence.get("visual_patterns", [])
+    )
+
+
+def test_scene_compiler_marks_geometry_relation_only_when_turn_relation_exists():
+    scene = compile_scene(geometry_trace())
+
+    assert scene.frames[0].evidence.get("visual_family") == "geometry"
+    assert scene.frames[0].evidence.get("visual_family_pattern") != "geometry_relation"
+    assert not any(
+        item.get("pattern") == "geometry_relation"
+        for item in scene.frames[0].evidence.get("visual_patterns", [])
+    )
+    assert scene.frames[1].evidence.get("visual_family") == "geometry"
+    assert scene.frames[1].evidence.get("visual_family_pattern") == "geometry_relation"
+    assert any(
+        item.get("pattern") == "geometry_relation"
+        for item in scene.frames[1].evidence.get("visual_patterns", [])
+    )
 
 
 def test_phase17_renderer_declares_generic_visual_pattern_runtime(tmp_path: Path):
@@ -3598,6 +5038,18 @@ def run_all():
         test_scene_compiler_hides_internal_trace_meta_from_rendered_state(Path(d))
         test_renderer_declares_process_evidence_and_preserves_raw_validation_report(Path(d))
         test_renderer_declares_compound_primitive_layout(Path(d))
+        test_renderer_declares_phase1_primary_stage_fit_and_raw_state_policy(Path(d))
+        test_renderer_declares_linked_list_and_math_bit_primitives(Path(d))
+        test_renderer_declares_rich_object_detail_payload(Path(d))
+        test_renderer_declares_algorithm_family_semantic_primitives(Path(d))
+        test_renderer_declares_specialized_family_teaching_primitives(Path(d))
+        test_renderer_hides_semantic_target_badges_inside_primary_stage(Path(d))
+        test_renderer_hides_string_anchor_badge_without_geometry_relation(Path(d))
+        test_renderer_renders_string_list_indices_without_null(Path(d))
+        test_renderer_uses_pan_scroll_world_for_large_primary_canvas(Path(d))
+        test_renderer_keeps_primary_nodes_clear_when_scene_badges_are_hidden(Path(d))
+        test_renderer_keeps_support_dock_scrollable_when_answer_is_demoted(Path(d))
+        test_renderer_keeps_graph_svg_nodes_inside_viewbox(Path(d))
         test_renderer_declares_generic_change_summary_in_teaching_panel(Path(d))
         test_renderer_declares_readonly_prediction_interactions(Path(d))
         test_renderer_declares_phase17_formula_expand_and_structured_wrong_feedback(Path(d))

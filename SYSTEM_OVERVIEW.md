@@ -55,6 +55,7 @@ AlgoLab 是一个可验证的算法可视化生成系统。
 - `process_validator.py` 保留外部 API，但当前是 DSL-era 轻量 sanity 层；算法族级 5500+ 行手写 invariant 不再维护。
 - family/process 报告仍保留 strong/fallback/uncovered 等 registry 口径，用于报告边界和降级说明。
 - direct HTML baseline 新增 `--hide-expected` 公平模式和 `audit_direct_html_answer.py` 答案审计。
+- 系统不再设置 trace 总帧数 / `max_events` 限制；`TraceSession` 和兼容 `Tracer` 都完整保留事件序列。当前只保留单步 `state` 大小保护，避免单帧携带超大对象。
 
 ## 3. 主链路总览
 
@@ -65,6 +66,9 @@ BenchmarkCase / Web / CLI
   -> LLM solution spec
   -> parse_variants()
   -> execute_variant()
+       -> solve(input_data)
+       -> DSL static guard
+       -> trace(input_data)
   -> SemanticTrace
   -> validate_trace()
   -> validate_process()
@@ -180,9 +184,10 @@ app.py / cli.py / scripts/run_llm_benchmark.py
   -> llm_client.py
   -> algolab/generation/prompts/tracker_system.txt
   -> algolab/schemas/semantic_trace.py
+  -> algolab/runtime/dsl.py
+  -> algolab/runtime/dsl_guard.py
   -> algolab/runtime/executor.py
   -> algolab/runtime/sandbox.py
-  -> algolab/runtime/dsl.py
   -> algolab/verification/contract_validator.py
   -> algolab/verification/trace_validator.py
   -> algolab/verification/process_validator.py
@@ -250,7 +255,7 @@ LLM 输出 JSON，不是最终 artifact：
 - 顶层只允许 `problem_title`、`input_contract`、`verifier_code`、`variants`。
 - variant 只允许 `id`、`name`、`strategy`、`time_complexity`、`space_complexity`、`code`、`tracker_code`。
 - 禁止输出 HTML、SceneGraph、events、metadata 等额外字段。
-- `trace(input_data)` 内使用 `sess = TraceSession(...)`，最后 `return sess.to_trace()`。
+- `trace(input_data)` 内使用 `sess = TraceSession(...)`，基于 `sess.to_trace()` 返回，并在返回前补齐事件 `code_line`。
 
 它回答：“模型给出的算法实现和可视化追踪实现是什么？”
 
@@ -417,7 +422,6 @@ def trace(input_data):
     sess = TraceSession(
         algorithm="不同路径",
         input_data=input_data,
-        max_events=80,
         pseudocode=["初始化 DP 表", "逐格转移", "返回右下角"],
     )
     dp = sess.table("dp", [[0] * input_data["n"] for _ in range(input_data["m"])])
@@ -425,7 +429,15 @@ def trace(input_data):
     dp[0, 0] = 1
     # ...
     sess.result(answer)
-    return sess.to_trace()
+    trace = sess.to_trace()
+    for event in trace["events"]:
+        if event.get("role") == "answer":
+            event["code_line"] = 8
+        elif event.get("op") == "set":
+            event["code_line"] = 6
+        else:
+            event["code_line"] = 3
+    return trace
 ```
 
 核心对象：
@@ -445,7 +457,6 @@ def trace(input_data):
 
 - 如果没有 create 事件，补一个输入初始化事件。
 - 如果设置了 `sess.result(answer)` 但没有 answer 事件，补一个 answer mark 事件。
-- 如果事件超过 `max_events`，按 anchor/sampling 压缩。
 - 重编号 `step`。
 - 返回 `semantic-trace-v1` dict。
 
@@ -453,7 +464,8 @@ def trace(input_data):
 
 - DSL 保证事件结构和 state snapshot 由 API 产生，不等于数学正确性自动证明。
 - `trace` 仍是模型生成代码，正常路径依赖沙箱执行和一致性校验；恶意代码不是生产级安全模型。
-- 大 trace 会压缩，因此 HTML 的帧数可能少于算法内部操作数。
+- 系统不再按总事件数压缩或采样；大 trace 会完整保留。可读性主要由 LLM 生成的事件密度和输入规模决定。
+- `code_line` 不由 DSL 自动推断；tracker 必须按 `solve(input_data)` 的真实行号在返回前补齐，否则页面代码高亮只能降级显示。
 
 ## 8. Sandbox / Executor
 
@@ -461,6 +473,7 @@ def trace(input_data):
 
 - `algolab/runtime/sandbox.py`
 - `algolab/runtime/executor.py`
+- `algolab/runtime/dsl_guard.py`
 
 沙箱执行流程：
 
@@ -477,17 +490,33 @@ validate_code_safety(code)
 - 拒绝危险 dunder 访问和构造。
 - 注入 `TraceSession`、旧 `Tracer` 和 DSL 对象。
 - 在子进程中执行生成代码。
+- 单次 `solve` / `trace` / `verify` 执行默认 30s 超时。
+- 执行前会用 `patch_trace_session_aliases()` 修复部分 `session` / `sess` 别名误用。
+
+DSL static guard：
+
+- `validate_dsl_method_usage()` 在执行 `tracker_code` 前运行。
+- 它只分析由 `TraceSession(...)` 和 `sess.array()`、`sess.graph()` 等工厂方法产生的 DSL 对象。
+- 如果模型调用了 DSL 白名单之外的方法或属性，会提前给出明确错误，而不是等沙箱执行触发普通 `AttributeError`。
+- 普通 Python `list` / `dict` / 局部变量不受这个 guard 限制。
 
 `execute_variant()` 检查：
 
 ```text
 solve(input_data) 可执行
+tracker_code 通过 DSL 静态方法检查
 trace(input_data) 可执行且返回 dict
-trace event budget 合法
+单步 state 大小合法
 SemanticTrace.model_validate(raw_trace)
 trace.input_data == input_data
 solve_result == trace.result
 ```
+
+执行细节：
+
+- `trace` 缺失 `input_data` 时，executor 会补成本次输入后再校验。
+- executor 会重编号 trace event 的 `step`。
+- `_validate_trace_budget()` 名称沿用，但现在只检查单步 `state` 字符串长度是否超过 20000，不再检查事件数量。
 
 pipeline 额外检查：
 
@@ -543,6 +572,7 @@ solve_result == verifier_result    如果 verifier 可执行且 expected 不冲�
 - 保留 `validate_process()`、`process_validation_registry()` 等 public API，兼容 pipeline、degradation、reports。
 - 对已经通过 `SemanticTrace.model_validate()` 的 trace 返回 `([], [])`。
 - registry 将主要算法族登记为 strong，用于报告和 family gate 口径。
+- 这里的 strong 表示“统一由 DSL 执行约束覆盖”，不是旧版逐算法族重算 invariant。
 - 不再维护旧版 `process_families/*` 的算法族重算 validator。
 
 这意味着当前 process 层的实际强约束主要来自：
@@ -840,7 +870,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 
 ### 为什么页面只有少数几帧？
 
-通常不是播放器问题，而是 `trace(input_data)` 事件少，或 `TraceSession.to_trace()` 因超过 `max_events` 进行了压缩。
+通常不是播放器问题。系统现在不按 `max_events` 压缩或采样 trace；如果页面只有少数帧，说明 `trace(input_data)` / tracker 本身只生成了少量事件，或 LLM 只记录了关键步骤。
 
 检查 artifact：
 
@@ -890,7 +920,8 @@ browser smoke 检查 HTML 可运行和核心 DOM 可见。它不重新执行算�
 - 任意未知算法题一次生成就正确。
 - LLM 生成的 verifier 永远独立且无同错。
 - 当前 DSL-era `process_validator` 不再做旧版每算法族重算 invariant。
-- 压缩后的大规模 trace 展示每一个内部操作。
+- 系统可以完整保留 tracker 已生成的事件，但不能凭空补出 tracker 没记录的内部步骤。
+- `code_line` 准确性主要依赖 LLM 按提示词在 tracker 返回前补齐；renderer 只能对缺失或越界行降级显示。
 - browser smoke 或 VLM screenshot 分数能替代答案 correctness。
 - direct HTML baseline 的 browser pass 能代表答案正确。
 

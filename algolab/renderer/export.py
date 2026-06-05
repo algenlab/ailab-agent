@@ -49,7 +49,7 @@ h1 {{ margin:0; font-size:18px; letter-spacing:0; }}
 .badge {{ border:1px solid var(--line); border-radius:999px; padding:3px 8px; background:#fff; color:var(--muted); font-size:11px; }}
 .badge.ok {{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }}
 .badge.warn {{ color:#92400e; border-color:#fde68a; background:#fffbeb; }}
-.workspace {{ display:grid; grid-template-columns:minmax(220px,260px) minmax(520px,1fr) minmax(280px,340px); gap:10px; padding:10px; min-height:0; align-items:start; }}
+.workspace {{ display:grid; grid-template-columns:minmax(220px,260px) minmax(680px,1fr) minmax(300px,340px); gap:10px; padding:10px; min-height:0; align-items:start; }}
 .col {{ display:grid; gap:10px; align-content:start; min-width:0; }}
 .task-col,.teaching-col {{ align-content:start; padding-right:2px; }}
 .task-col {{ max-height:min(560px, calc(100vh - 86px)); }}
@@ -77,13 +77,24 @@ h1 {{ margin:0; font-size:18px; letter-spacing:0; }}
 pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-height:1.4; }}
 .jsonbox {{ max-height:120px; border:1px solid var(--line); border-radius:6px; padding:8px; background:#fbfdff; }}
 .jsonbox.compact {{ max-height:96px; }}
-.hero {{ min-height:0; display:grid; grid-template-rows:auto minmax(240px,clamp(300px,46vh,450px)) auto auto; }}
+.hero {{ min-height:0; display:grid; grid-template-rows:auto minmax(460px,clamp(460px,64vh,700px)) auto auto; }}
 .step-head {{ padding:10px 12px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:10px; }}
 .step-head h2 {{ margin:0; font-size:16px; }}
 .step-head p {{ margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.35; max-height:36px; overflow:auto; }}
 .pill {{ border-radius:999px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; padding:5px 10px; height:fit-content; font-size:12px; text-transform:uppercase; }}
-.canvas {{ padding:12px; overflow:hidden; min-height:0; height:clamp(300px,46vh,450px); }}
-.scene-fit {{ position:relative; width:100%; height:100%; overflow:hidden; min-width:0; }}
+.canvas {{ padding:12px; overflow:hidden; min-height:0; height:clamp(460px,64vh,700px); }}
+.stage-grid {{ height:100%; min-height:0; display:grid; grid-template-rows:minmax(340px,1fr) minmax(96px,168px); gap:8px; }}
+.scene-fit {{ position:relative; width:100%; height:100%; overflow:hidden; min-width:0; min-height:300px; cursor:grab; touch-action:none; }}
+.scene-fit.dragging {{ cursor:grabbing; }}
+.scene-fit.scroll-fit {{ overflow:auto; scrollbar-gutter:stable; }}
+.scene-fit.pan-scroll {{ overflow:auto; scrollbar-gutter:stable both-edges; }}
+.view-tools {{ position:absolute; top:8px; right:8px; z-index:8; display:flex; gap:5px; pointer-events:auto; }}
+.view-tools button {{ border:1px solid #cbd5e1; border-radius:6px; background:rgba(255,255,255,.92); color:#334155; padding:4px 7px; font-size:11px; cursor:pointer; box-shadow:0 1px 2px rgba(15,23,42,.08); }}
+.view-tools button:hover {{ border-color:#93c5fd; color:#1d4ed8; background:#eff6ff; }}
+.stage-supplement {{ min-height:0; overflow:auto; display:grid; gap:8px; padding-right:2px; }}
+.stage-supplement:has(.support-dock) > .visual-quality-telemetry,
+.stage-supplement:has(.support-dock) > #dependency-detail {{ display:none; }}
+.stage-supplement:has(.visual-card) > #dependency-detail {{ display:none; }}
 .spatial-wrap {{ display:grid; gap:6px; min-height:0; }}
 .spatial-stage {{ width:100%; height:clamp(240px,34vh,330px); border:1px solid var(--line); border-radius:8px; background:#0b1220; display:block; }}
 .spatial-label {{ color:var(--muted); font-size:12px; }}
@@ -103,17 +114,78 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .tick.active .tick-label {{ color:#1d4ed8; }}
 .tick-op {{ color:var(--muted); font-size:11px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
 .objects {{ display:grid; gap:10px; width:max-content; max-width:none; min-width:0; transform-origin:top left; }}
+.scene-scroll-surface {{ position:relative; width:100%; height:100%; min-width:100%; min-height:100%; }}
+.scene-scroll-surface > .objects,
 .scene-fit > .objects {{ position:absolute; top:0; left:0; }}
-.compound-scene {{ grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); align-items:start; gap:12px; }}
+.scene-world {{ will-change:transform; }}
+.primary-scene {{ align-items:start; padding-top:56px; }}
+.compound-scene {{ width:min(760px,78vw); grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); align-items:start; gap:12px; }}
 .primitive-panel {{ min-width:0; max-width:100%; overflow:visible; border:1px solid #eef2f7; border-radius:7px; background:#fbfdff; padding:10px; }}
+.primary-scene > .primitive-panel {{ min-width:min(560px,74vw); min-height:210px; display:grid; align-content:center; justify-content:center; }}
+.primary-scene > .primitive-panel.primitive-graph,
+.primary-scene > .primitive-panel.primitive-tree,
+.primary-scene > .primitive-panel.primitive-recursion_tree,
+.primary-scene > .primitive-panel.primitive-geometry,
+.primary-scene > .primitive-panel.primitive-linked_list {{ min-width:min(760px,82vw); min-height:360px; }}
+.primary-scene.compound-scene > .primitive-panel {{ min-width:min(360px,42vw); min-height:180px; padding:8px; justify-content:stretch; }}
+.primary-scene.compound-scene > .primitive-panel.primitive-graph,
+.primary-scene.compound-scene > .primitive-panel.primitive-tree,
+.primary-scene.compound-scene > .primitive-panel.primitive-recursion_tree,
+.primary-scene.compound-scene > .primitive-panel.primitive-geometry,
+.primary-scene.compound-scene > .primitive-panel.primitive-linked_list {{ min-width:min(420px,46vw); min-height:240px; }}
+.primary-scene.compound-scene > .primitive-panel.primitive-matrix,
+.primary-scene.compound-scene > .primitive-panel.primitive-array,
+.primary-scene.compound-scene > .primitive-panel.primitive-string,
+.primary-scene.compound-scene > .primitive-panel.primitive-string_list {{ min-width:min(300px,34vw); min-height:170px; }}
+.primary-scene.compound-scene .view-title {{ font-size:12px; margin-bottom:6px; }}
+.primary-scene.compound-scene .graph-svg,
+.primary-scene.compound-scene .tree-svg,
+.primary-scene.compound-scene .geometry-svg,
+.primary-scene.compound-scene .heap-svg,
+.primary-scene.compound-scene .cycle-list-svg {{ height:clamp(190px,28vh,260px); }}
+.primary-scene.compound-scene .array-wrap {{ width:100%; }}
+.primary-scene.compound-scene .array {{ width:100%; max-width:100%; }}
+.primary-scene.compound-scene .cell {{ min-width:38px; min-height:36px; }}
+.dock-grid .graph-svg,
+.dock-grid .tree-svg,
+.dock-grid .geometry-svg,
+.dock-grid .heap-svg,
+.dock-grid .cycle-list-svg {{ height:96px; }}
+.scene-fit > .semantic-anchor-band {{ position:absolute; top:10px; left:10px; z-index:6; }}
+.semantic-anchor-band {{ width:min(520px,54vw); max-height:72px; overflow:hidden; border:1px solid #bfdbfe; border-radius:8px; background:rgba(239,246,255,.96); padding:8px 10px; display:flex; flex-wrap:wrap; align-items:center; gap:7px; box-shadow:0 1px 4px rgba(15,23,42,.10); }}
+.semantic-anchor-label {{ color:#1e3a8a; font-size:12px; font-weight:800; margin-right:2px; }}
+.semantic-anchor-chip {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; color:#1d4ed8; padding:4px 9px; font-size:12px; font-weight:750; overflow-wrap:anywhere; }}
+.semantic-anchor-chip[target-kind="dependency"] {{ border-color:#fcd34d; background:#fffbeb; color:#92400e; }}
+.semantic-anchor-chip[target-kind="target"] {{ border-color:#93c5fd; background:#dbeafe; color:#1d4ed8; }}
+.support-dock {{ min-height:min(120px,100%); max-height:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:7px; background:#f8fafc; padding:8px; scrollbar-gutter:stable; }}
+.support-dock h3,.raw-state-dock h3 {{ margin:0 0 6px; color:#475569; font-size:12px; }}
+.dock-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr)); gap:8px; min-width:0; }}
+.dock-grid .primitive-panel {{ padding:7px; background:#fff; }}
+.dock-grid .view-title {{ font-size:12px; margin-bottom:5px; }}
+.raw-state-dock {{ min-height:0; max-height:84px; overflow:hidden; border:1px dashed #cbd5e1; border-radius:7px; background:#fff; padding:7px 8px; }}
+.raw-state-dock summary {{ color:#64748b; font-size:12px; }}
 .primitive-panel .view-title {{ font-size:13px; margin-bottom:8px; }}
 .view-title {{ margin:0 0 10px; font-size:15px; }}
+.frame-stage-card {{ width:min(520px,70vw); min-height:168px; display:grid; align-content:center; justify-items:center; gap:10px; border:1px solid #bfdbfe; border-radius:8px; background:#eff6ff; color:#1e3a8a; padding:18px; text-align:center; }}
+.primary-scene.compound-scene .frame-stage-card {{ width:100%; min-height:132px; padding:12px; }}
+.dock-grid .frame-stage-card {{ width:100%; min-height:56px; padding:8px; gap:4px; }}
+.frame-stage-card strong {{ font-size:20px; max-width:100%; overflow-wrap:anywhere; }}
+.primary-scene.compound-scene .frame-stage-card strong {{ font-size:16px; line-height:1.25; }}
+.dock-grid .frame-stage-card strong {{ font-size:12px; line-height:1.2; }}
+.frame-stage-card span {{ font-size:12px; color:#475569; overflow-wrap:anywhere; }}
+.answer-badge {{ position:absolute; top:10px; right:10px; z-index:6; max-width:min(320px,42vw); border:1px solid #86efac; border-radius:8px; background:rgba(240,253,244,.96); color:#14532d; padding:8px 10px; box-shadow:0 1px 4px rgba(15,23,42,.12); font-size:12px; line-height:1.35; overflow-wrap:anywhere; }}
+.answer-badge strong {{ display:block; margin-bottom:2px; color:#166534; font-size:12px; }}
 .array {{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }}
 .array-wrap {{ display:grid; gap:8px; width:fit-content; max-width:100%; }}
 .cell {{ position:relative; min-width:42px; min-height:40px; border:1px solid var(--line); border-radius:7px; background:#fff; display:grid; place-items:center; font-weight:650; }}
+.primary-scene.compound-scene .array-wrap {{ width:100%; min-width:0; }}
+.primary-scene.compound-scene .array {{ width:100%; max-width:100%; min-width:0; }}
+.primary-scene.compound-scene .cell {{ min-width:38px; min-height:36px; }}
 .cell .idx {{ position:absolute; top:3px; left:5px; color:var(--muted); font-size:10px; font-weight:500; }}
 .pointer-row {{ display:grid; gap:8px; }}
 .pointer-slot {{ min-width:42px; min-height:24px; display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:center; gap:3px; }}
+.primary-scene.compound-scene .pointer-row {{ display:flex; flex-wrap:wrap; width:100%; gap:6px; }}
+.primary-scene.compound-scene .pointer-slot {{ width:38px; min-width:38px; min-height:20px; }}
 .pointer-tag {{ border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; border-radius:999px; padding:2px 7px; font-size:11px; line-height:1.4; font-weight:650; }}
 .hot {{ border-color:var(--blue)!important; background:#eff6ff!important; color:#1d4ed8; }}
 .dep {{ border-color:var(--amber)!important; background:#fffbeb!important; }}
@@ -123,6 +195,13 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .mcell {{ width:44px; height:34px; border:1px solid var(--line); border-radius:5px; background:#fff; display:grid; place-items:center; font-size:12px; font-weight:620; }}
 .mcell.pattern-dp-formula-substitution.role-dp-target {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
 .mcell.pattern-dp-formula-substitution.role-dp-dependency {{ border-color:#f59e0b; background:#fffbeb; }}
+.set-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(98px,1fr)); gap:8px; width:min(720px,78vw); max-width:100%; }}
+.set-card {{ min-height:52px; border:1px solid var(--line); border-radius:7px; background:#fff; padding:7px; display:grid; grid-template-columns:auto 1fr; gap:6px; align-items:center; }}
+.set-card.hot,.set-card.answer {{ border-color:#16a34a; background:#f0fdf4; }}
+.set-index {{ min-width:24px; height:24px; border-radius:999px; border:1px solid #cbd5e1; background:#f8fafc; color:#64748b; display:grid; place-items:center; font-size:11px; font-weight:700; }}
+.set-values {{ display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-width:0; }}
+.set-token {{ min-width:26px; min-height:24px; border:1px solid #bfdbfe; border-radius:6px; background:#eff6ff; color:#1d4ed8; display:grid; place-items:center; padding:2px 6px; font-size:12px; font-weight:700; }}
+.set-empty {{ color:#94a3b8; font-size:12px; font-weight:700; }}
 .cell.pattern-string-window {{ border-color:#f59e0b; background:#fffbeb; }}
 .cell.pattern-string-alignment.role-cursor {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
 .stack {{ width:min(360px,100%); display:flex; flex-direction:column-reverse; gap:6px; }}
@@ -130,28 +209,70 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .stack-item {{ border:1px solid var(--line); border-radius:6px; padding:9px 10px; background:#fff; }}
 .mapgrid {{ display:grid; gap:6px; }}
 .maprow {{ display:grid; grid-template-columns:minmax(80px,130px) 1fr; gap:8px; align-items:start; border:1px solid var(--line); border-radius:6px; padding:7px 8px; background:#fff; }}
-.graph-svg {{ width:100%; height:clamp(240px,34vh,320px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
+.graph-svg {{ width:100%; height:clamp(300px,42vh,380px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
 .edge {{ stroke:#b8c1d1; stroke-width:1.6; }}
+.edge.matching-edge,.edge.accepted-edge {{ stroke:#16a34a; stroke-width:4; }}
+.edge.rejected-edge {{ stroke:#dc2626; stroke-width:3; stroke-dasharray:6 5; }}
 .node circle {{ fill:#fff; stroke:#94a3b8; stroke-width:2; }}
 .node.hot circle {{ fill:#dbeafe; stroke:var(--blue); stroke-width:3; }}
 .node.dep circle {{ fill:#fffbeb; stroke:var(--amber); }}
 .node.answer circle {{ fill:#dcfce7; stroke:var(--green); }}
+.node.role-answer circle,.node.pattern-answer-projection circle {{ fill:#dcfce7; stroke:var(--green); stroke-width:3; }}
 .node.pattern-graph-frontier circle {{ stroke:#0f766e; stroke-width:3; }}
 .node.pattern-graph-path-highlight circle,.node.pattern-backtracking-choice circle {{ stroke:#16a34a; stroke-width:3; }}
 .node.pattern-backtracking-undo circle {{ stroke:#dc2626; stroke-dasharray:4 3; }}
 .edge.hot,.edge.dep,.edge.pattern-graph-relax-edge {{ stroke:#f59e0b; stroke-width:3; }}
 .edge.answer,.edge.pattern-graph-path-highlight,.edge.pattern-network-flow-augmenting-path {{ stroke:#16a34a; stroke-width:3; }}
+.edge.role-answer,.edge.pattern-answer-projection {{ stroke:#16a34a; stroke-width:3.2; }}
 .edge.pattern-network-flow-edge-label {{ stroke:#2563eb; stroke-width:2.4; }}
 .edge-label {{ fill:#334155; font-size:12px; font-weight:700; paint-order:stroke; stroke:#fff; stroke-width:3px; }}
+.flow-bottleneck-label rect {{ fill:#f0fdf4; stroke:#16a34a; stroke-width:1.2; rx:7; }}
+.flow-bottleneck-label text {{ fill:#166534; font-size:11px; font-weight:800; paint-order:stroke; stroke:#fff; stroke-width:2px; }}
 .return-bubble rect {{ fill:#f0fdf4; stroke:#16a34a; stroke-width:1.2; rx:7; }}
 .return-bubble text {{ fill:#166534; font-size:11px; font-weight:700; }}
-.tree-svg,.geometry-svg {{ width:100%; height:clamp(240px,34vh,320px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
+.tree-svg,.geometry-svg {{ width:100%; height:clamp(300px,42vh,380px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
 .geo-axis {{ stroke:#e5e7eb; stroke-width:1; }}
 .geo-segment {{ stroke:#64748b; stroke-width:2; fill:none; }}
 .geo-hull {{ stroke:#16a34a; stroke-width:2.4; fill:none; }}
 .geo-sweep {{ stroke:#dc2626; stroke-width:2; stroke-dasharray:6 5; }}
+.geo-candidate-point circle {{ fill:#dbeafe; stroke:#2563eb; stroke-width:3; r:10; }}
+.geo-hull-ghost-svg circle {{ fill:#f8fafc; stroke:#94a3b8; stroke-width:2; stroke-dasharray:4 3; opacity:.82; }}
+.geo-cross-vector {{ stroke:#dc2626; stroke-width:2.4; marker-end:url(#geo-arrowhead); }}
+.geo-cross-label {{ fill:#b91c1c; font-size:12px; font-weight:800; paint-order:stroke; stroke:#fff; stroke-width:3px; }}
 .heap {{ display:grid; gap:10px; justify-items:center; width:fit-content; max-width:100%; }}
 .heap-level {{ display:flex; gap:8px; justify-content:center; }}
+.linked-list-view {{ display:flex; align-items:center; gap:8px; min-width:max-content; padding:8px 2px 16px; }}
+.linked-node-wrap {{ display:grid; justify-items:center; gap:5px; }}
+.pointer-badges {{ min-height:22px; display:flex; flex-wrap:wrap; gap:4px; justify-content:center; }}
+.pointer-badge {{ border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#1d4ed8; padding:1px 6px; font-size:11px; font-weight:700; }}
+.linked-node {{ min-width:54px; min-height:42px; border:1px solid var(--line); border-radius:7px; background:#fff; display:grid; place-items:center; font-weight:700; padding:4px 8px; }}
+.linked-arrow {{ color:#64748b; font-size:18px; font-weight:800; }}
+.linked-arrow.ghost {{ color:#dc2626; text-decoration:line-through; opacity:.78; }}
+.linked-arrow.cycle {{ color:#7c3aed; }}
+.cycle-list-svg {{ width:100%; height:clamp(300px,42vh,380px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
+.cycle-edge {{ stroke:#64748b; stroke-width:2.2; fill:none; marker-end:url(#cycle-arrowhead); }}
+.cycle-edge.cycle {{ stroke:#7c3aed; stroke-width:3; stroke-dasharray:7 5; }}
+.cycle-node circle {{ fill:#fff; stroke:#94a3b8; stroke-width:2.4; }}
+.cycle-node.hot circle {{ fill:#dbeafe; stroke:#2563eb; stroke-width:3.2; }}
+.cycle-token {{ fill:#1d4ed8; font-size:11px; font-weight:800; paint-order:stroke; stroke:#fff; stroke-width:3px; }}
+.math-bit-panel {{ border:1px solid #dbeafe; border-radius:7px; background:#eff6ff; padding:9px 10px; display:grid; gap:8px; }}
+.math-bit-panel h3 {{ margin:0; color:#1e3a8a; font-size:12px; }}
+.math-bit-grid {{ display:grid; gap:7px; }}
+.gcd-chain,.fast-power-row {{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; color:#172033; font-size:12px; }}
+.math-token {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; color:#1d4ed8; padding:2px 8px; font-weight:700; }}
+.gcd-hero {{ width:min(760px,82vw); min-height:260px; display:grid; align-content:center; gap:14px; border:1px solid #bfdbfe; border-radius:8px; background:#f8fbff; padding:22px; }}
+.gcd-formula-line {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:24px; font-weight:800; color:#172033; }}
+.gcd-formula-line .remainder {{ border:2px solid #f59e0b; background:#fffbeb; color:#92400e; border-radius:8px; padding:2px 8px; }}
+.gcd-transition {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:#1e3a8a; font-size:15px; font-weight:750; }}
+.gcd-backsub {{ border:1px solid #c7d2fe; border-radius:7px; background:#eef2ff; color:#312e81; padding:8px 10px; font-size:13px; line-height:1.4; }}
+.bit-row {{ display:grid; grid-template-columns:64px 1fr; gap:7px; align-items:center; color:#172033; font-size:12px; }}
+.bit-cells {{ display:flex; gap:3px; }}
+.bit-cell {{ width:22px; height:24px; border:1px solid #cbd5e1; border-radius:5px; background:#fff; display:grid; place-items:center; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; font-weight:700; }}
+.bit-cell.on {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
+.sieve-grid {{ display:flex; flex-wrap:wrap; gap:5px; }}
+.sieve-num {{ width:30px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; display:grid; place-items:center; font-size:12px; font-weight:700; }}
+.sieve-num.prime {{ border-color:#16a34a; background:#f0fdf4; color:#166534; }}
+.sieve-num.composite {{ color:#94a3b8; text-decoration:line-through; background:#f8fafc; }}
 .dependency-flow {{ display:grid; gap:7px; margin-top:10px; max-width:100%; min-width:0; border:1px solid #fed7aa; border-radius:7px; background:#fff7ed; padding:9px 10px; }}
 .dependency-flow h3 {{ margin:0; color:#9a3412; font-size:12px; letter-spacing:0; }}
 .dependency-edge {{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; color:#7c2d12; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }}
@@ -168,6 +289,68 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .visual-card code {{ display:block; margin-top:4px; color:#1e3a8a; white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; }}
 .visual-chip-row {{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }}
 .visual-chip {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; padding:2px 7px; color:#1d4ed8; font-size:11px; }}
+.binary-pointer-panel,.digit-dp-card,.monotonic-stack-panel,.heap-sift-panel,.graph-metric-overlay,.tree-dp-overlay,.dp-dependency-window,.string-specialized-card,.fenwick-lowbit-panel,.sparse-table-blocks,.diff-prefix-panel,.geometry-relation-card,.network-augmenting-path-panel {{ background:#f8fafc; border-color:#cbd5e1; }}
+.dp-window-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(72px,1fr)); gap:6px; margin-top:6px; }}
+.dp-window-cell {{ min-height:38px; border:1px solid #d7deea; border-radius:6px; background:#fff; display:grid; gap:2px; place-items:center; font-size:11px; font-weight:700; }}
+.dp-current-cell {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
+.dp-dependency-arrow {{ display:inline-flex; align-items:center; gap:4px; color:#92400e; font-weight:700; }}
+.string-specialized-tracks,.range-hop-row,.sparse-block-row,.diff-impact-row,.augmenting-path-chain,.flow-delta-row {{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; }}
+.string-track {{ border:1px solid #bfdbfe; border-radius:7px; background:#fff; padding:5px 7px; display:grid; gap:3px; min-width:110px; }}
+.kmp-fallback-arc,.rolling-hash-track,.z-box-band,.manacher-radius-arc {{ border:1px solid #fed7aa; border-radius:999px; background:#fff7ed; color:#9a3412; padding:5px 10px; font-size:12px; font-weight:800; }}
+.z-box-band {{ border-color:#fb923c; background:#ffedd5; }}
+.manacher-radius-arc {{ border-color:#c084fc; background:#f5f3ff; color:#6d28d9; }}
+.fenwick-hop-arrow,.sparse-query-block,.diff-impact-point,.flow-delta-pill {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; color:#1d4ed8; padding:3px 8px; font-size:11px; font-weight:700; }}
+.geometry-relation-row {{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; }}
+.cross-turn-badge {{ border:1px solid #fecaca; border-radius:999px; background:#fef2f2; color:#b91c1c; padding:3px 8px; font-size:11px; font-weight:700; }}
+.geo-cross-arrow {{ color:#dc2626; font-weight:800; }}
+.hull-ghost-point {{ border:1px dashed #94a3b8; border-radius:999px; background:#f8fafc; color:#64748b; padding:3px 8px; font-size:11px; }}
+.bottleneck-badge {{ border:1px solid #86efac; border-radius:999px; background:#f0fdf4; color:#166534; padding:3px 8px; font-size:11px; font-weight:700; }}
+.graph-node-inline-metrics {{ fill:#475569; font-size:10px; font-weight:700; paint-order:stroke; stroke:#fff; stroke-width:3px; }}
+.visual-quality-telemetry {{ display:none; border:1px dashed #cbd5e1; border-radius:7px; background:#fff; color:#64748b; padding:6px 8px; font-size:11px; flex-wrap:wrap; gap:6px; }}
+.visual-quality-telemetry .visual-chip {{ color:#475569; border-color:#d7deea; background:#f8fafc; }}
+.pointer-track {{ display:grid; grid-template-columns:repeat(var(--slot-count, 8), minmax(30px,1fr)); gap:4px; margin-top:6px; align-items:end; }}
+.pointer-slot-cell {{ min-height:46px; border:1px solid #d7deea; border-radius:6px; background:#fff; display:grid; grid-template-rows:1fr auto; place-items:center; font-size:11px; font-weight:700; color:#334155; position:relative; overflow:hidden; }}
+.pointer-slot-cell.excluded {{ background:#f1f5f9; color:#94a3b8; }}
+.pointer-slot-cell.in-range {{ border-color:#bfdbfe; background:#eff6ff; }}
+.search-interval-band {{ grid-column:span var(--slot-count, 8); height:8px; border-radius:999px; background:linear-gradient(90deg,#dcfce7,#dbeafe,#f5f3ff); border:1px solid #bfdbfe; }}
+.pointer-marker-row {{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }}
+.pointer-marker {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; padding:2px 7px; font-size:11px; font-weight:700; }}
+.marker-low {{ border-color:#86efac; color:#166534; background:#f0fdf4; }}
+.marker-mid {{ border-color:#93c5fd; color:#1d4ed8; background:#eff6ff; }}
+.marker-high {{ border-color:#c4b5fd; color:#6d28d9; background:#f5f3ff; }}
+.digit-dp-state {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(86px,1fr)); gap:6px; margin-top:6px; }}
+.digit-dp-pill {{ border:1px solid #bfdbfe; border-radius:7px; background:#fff; padding:6px 7px; display:grid; gap:2px; }}
+.digit-dp-pill span {{ color:#64748b; font-size:10px; text-transform:uppercase; }}
+.digit-dp-pill strong {{ color:#1e3a8a; font-size:13px; }}
+.digit-row {{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }}
+.digit-cell {{ width:28px; height:28px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; display:grid; place-items:center; font-weight:700; }}
+.digit-cell.hot {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
+.mono-layout {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(92px,150px); gap:8px; align-items:start; }}
+.mono-array {{ display:flex; flex-wrap:wrap; gap:5px; }}
+.mono-cell {{ min-width:32px; min-height:34px; border:1px solid #d7deea; border-radius:6px; background:#fff; display:grid; place-items:center; font-weight:700; position:relative; }}
+.mono-cell.current {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
+.mono-stack {{ display:grid; gap:4px; align-content:end; }}
+.mono-stack-item {{ border:1px solid #fcd34d; border-radius:6px; background:#fffbeb; padding:4px 6px; font-size:11px; color:#92400e; }}
+.stack-pop-arrow {{ margin-top:6px; color:#c2410c; font-weight:700; font-size:12px; }}
+.heap-sift-row {{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:6px; }}
+.heap-sift-node {{ min-width:30px; min-height:30px; border:1px solid #cbd5e1; border-radius:999px; background:#fff; display:grid; place-items:center; font-size:12px; font-weight:700; }}
+.heap-sift-path {{ border-color:#2563eb; background:#dbeafe; color:#1d4ed8; }}
+.heap-svg {{ width:100%; height:clamp(300px,42vh,380px); border:1px solid var(--line); border-radius:8px; background:#fbfdff; }}
+.heap-edge {{ stroke:#94a3b8; stroke-width:2; }}
+.heap-edge.heap-sift-path {{ stroke:#2563eb; stroke-width:3.2; }}
+.heap-node circle {{ fill:#fff; stroke:#94a3b8; stroke-width:2.4; }}
+.heap-node.hot circle,.heap-node.heap-sift-path circle {{ fill:#dbeafe; stroke:#2563eb; stroke-width:3.2; }}
+.kruskal-edge-track,.backtracking-track,.bitmask-transition-track {{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; }}
+.kruskal-edge-pill,.backtracking-pill,.bitmask-pill {{ border:1px solid #cbd5e1; border-radius:999px; background:#fff; color:#334155; padding:4px 8px; font-size:11px; font-weight:750; }}
+.kruskal-edge-pill.current {{ border-color:#93c5fd; background:#eff6ff; color:#1d4ed8; }}
+.kruskal-edge-pill.accept {{ border-color:#86efac; background:#f0fdf4; color:#166534; }}
+.kruskal-edge-pill.reject {{ border-color:#fecaca; background:#fef2f2; color:#991b1b; }}
+.graph-metric-grid,.tree-dp-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:5px; margin-top:6px; }}
+.graph-node-metric,.tree-dp-badge {{ border:1px solid #d7deea; border-radius:7px; background:#fff; padding:5px 6px; font-size:11px; line-height:1.35; }}
+.graph-node-metric strong,.tree-dp-badge strong {{ display:block; color:#172033; font-size:12px; margin:0 0 2px; }}
+.relax-formula {{ margin-top:6px; border:1px solid #fed7aa; border-radius:7px; background:#fff7ed; color:#9a3412; padding:6px 7px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; overflow-wrap:anywhere; }}
+.frontier-dock {{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }}
+.frontier-dock .visual-chip {{ border-color:#99f6e4; color:#0f766e; background:#f0fdfa; }}
 .string-alignment {{ display:grid; gap:4px; overflow-x:auto; padding-bottom:2px; }}
 .string-row {{ display:flex; gap:4px; align-items:center; min-height:28px; }}
 .string-row-label {{ width:52px; flex:0 0 52px; color:#475569; font-weight:700; }}
@@ -186,6 +369,8 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .line {{ display:grid; grid-template-columns:42px 1fr; gap:10px; padding:1px 10px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.55; }}
 .lineno {{ color:#7f8ea3; text-align:right; }}
 .line.active {{ background:#1d4ed8; color:#fff; }}
+.line.fallback {{ background:#1f2937; color:#cbd5e1; }}
+.line.fallback .lineno {{ color:#fde68a; }}
 .state-grid {{ display:grid; gap:6px; overflow:visible; padding-right:2px; }}
 .state-row {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; }}
 .state-row strong {{ display:block; margin-bottom:4px; color:#374151; font-size:12px; }}
@@ -289,7 +474,9 @@ let variantIndex = 0;
 let stepIndex = 0;
 let timer = null;
 const SPATIAL_STATE = {{ renderer:null, scene:null, camera:null, canvas:null, resizeBound:false, fallbackReason:'', primitives:{{}}, layouts:[] }};
+const VIEW_STATE = {{ scale:1, x:0, y:0, userPan:false, auto:null, boundFit:null, drag:null }};
 window.SPATIAL_STATE = SPATIAL_STATE;
+window.VIEW_STATE = VIEW_STATE;
 const $ = id => document.getElementById(id);
 const setText = (id, value) => {{ const node = $(id); if (node) node.textContent = value; }};
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
@@ -435,40 +622,661 @@ function renderCanvas(f) {{
 function renderTeachingCanvas(f) {{
   const groups = groupedObjects(f);
   const containers = (f.objects || []).filter(o => o.type === 'container');
-  let html = `<div class="scene-fit"><div class="objects ${{containers.length > 1 ? 'compound-scene' : ''}}" data-primitive-count="${{containers.length}}">`;
-  if (containers.length) {{
-    for (const c of containers) html += renderPrimitivePanel(c, groups[c.id] || [], f.marks || []);
-  }} else {{
-    html += renderLooseObjects(f.objects || [], f.marks || []);
-  }}
+  const classified = classifyStageContainers(f, containers);
+  const fitMode = fitModeForFrame(f, classified.primary);
+  const familyRenderer = familyRendererForFrame(f, classified);
+  let html = `<div class="stage-grid" data-family-renderer="${{esc(familyRenderer)}}" data-visual-quality="${{esc(familyRenderer)}}" data-raw-state-not-primary="${{classified.raw.length ? 'raw_state_not_primary' : 'none'}}" data-teaching-relation="${{dependencyEdges(f).length || (f.evidence && (f.evidence.process || (f.evidence.visual_patterns || []).length)) ? 'teaching_relation_visible' : 'none'}}">`;
+  html += `<div class="scene-fit"><div class="view-tools" aria-label="主视图控制"><button type="button" onclick="resetSceneView()">适配</button><button type="button" onclick="zoomSceneToOne()">100%</button></div><div class="scene-scroll-surface"><div class="objects scene-world primary-scene ${{classified.primary.length > 1 ? 'compound-scene' : ''}}" data-primitive-count="${{classified.primary.length}}" data-fit-mode="${{esc(fitMode)}}">`;
+  html += renderPrimaryStage(classified.primary, groups, f.marks || [], f.objects || []);
+  html += '</div></div></div>';
+  html += '<div class="stage-supplement">';
+  html += renderMathBitPanel(f);
   html += renderVisualPatternPanel(f);
+  html += renderVisualQualityTelemetry(f, classified);
   html += renderDependencyFlow(f);
+  html += renderSupportDock(classified.support, groups, f.marks || []);
+  html += renderRawStateDock(classified.raw, groups, f.marks || []);
   html += '<div id="dependency-detail" class="dependency-detail">点击当前对象或依赖对象，查看它依赖谁、影响谁。</div>';
-  html += '</div></div>';
+  html += '</div>';
+  html += '</div>';
   $('canvas').innerHTML = html;
   fitSceneToCanvas();
+}}
+function familyRendererForFrame(f, classified) {{
+  const layouts = new Set((classified && classified.primary || []).map(c => String(c && c.meta && c.meta.layout || 'generic')));
+  const state = f && f.state || {{}};
+  const familyHint = visualFamilyHint(f);
+  if (familyHint) return familyHint;
+  const patterns = new Set((f && f.evidence && f.evidence.visual_patterns || []).map(item => String(item && item.pattern || item)).filter(Boolean));
+  for (const obj of f && f.objects || []) for (const pattern of objectPatterns(obj)) patterns.add(pattern);
+  if (patterns.has('network_flow_augmenting_path') || patterns.has('network_flow_edge_label') || state.augmenting_path) return 'network_flow';
+  if (layouts.has('geometry')) return 'geometry';
+  if (state.mask !== undefined || state.next_mask !== undefined || state.state_mask !== undefined || state.visited_mask !== undefined) return 'bitmask_dp';
+  if (state.sorted_edges || state.mst_edges || state.accepted_edges || state.rejected_edges) return 'kruskal';
+  if (patterns.has('range_query_path') || patterns.has('range_update_path') || state.query_path || state.update_path) return 'range_structure';
+  if (layouts.has('trie')) return 'trie';
+  if (layouts.has('graph')) return 'graph';
+  if (layouts.has('tree') || layouts.has('recursion_tree')) return treeDpNodeValues(state).length ? 'tree_dp' : 'tree';
+  if (state.tight !== undefined || state.memo_hit !== undefined || state.memo_key !== undefined) return 'digit_dp';
+  if (layouts.has('set_grid')) return 'math_bit';
+  if (layouts.has('matrix')) return 'dp_matrix';
+  if (layouts.has('string') || layouts.has('string_list')) return 'string_specialized';
+  if (layouts.has('linked_list')) return 'linked_list';
+  if (Array.isArray(state.stack) || Array.isArray(state.monotonic_stack)) return 'monotonic_stack';
+  if (Array.isArray(state.heap) || Array.isArray(state.min_heap) || Array.isArray(state.max_heap) || Array.isArray(state.priority_queue)) return 'heap';
+  return Array.from(layouts).filter(Boolean).join('+') || 'generic';
+}}
+function renderVisualQualityTelemetry(f, classified) {{
+  const family = familyRendererForFrame(f, classified);
+  const primaryCount = classified && classified.primary ? classified.primary.length : 0;
+  const supportCount = classified && classified.support ? classified.support.length : 0;
+  const rawCount = classified && classified.raw ? classified.raw.length : 0;
+  const hasTarget = !!((f && f.evidence && f.evidence.targets || []).length || (f && f.marks || []).some(m => m.role !== 'dependency'));
+  const hasRelation = dependencyEdges(f).length || !!(f && f.evidence && (f.evidence.process || (f.evidence.visual_patterns || []).length));
+  const chips = [
+    visualChip(`family_renderer=${{family}}`),
+    visualChip(`primary=${{primaryCount}}`),
+    visualChip(`support=${{supportCount}}`),
+    visualChip(`raw_dock=${{rawCount}}`),
+    visualChip(`active_target=${{hasTarget ? 'visible_or_pending' : 'none'}}`),
+    visualChip(`teaching_relation=${{hasRelation ? 'visible' : 'none'}}`),
+    visualChip('fit_mode=pending'),
+    visualChip('fit_scale=pending'),
+    visualChip('utilization=pending'),
+  ].join('');
+  return `<section id="visual-quality-telemetry" class="visual-quality-telemetry" data-visual-quality="visual_quality" data-family-renderer="${{esc(family)}}">${{chips}}</section>`;
+}}
+function classifyStageContainers(f, containers) {{
+  const rows = (containers || []).map(c => ({{ container:c, role:stageRoleForContainer(f, c) }}));
+  let primary = rows.filter(item => item.role === 'primary').map(item => item.container);
+  const support = rows.filter(item => item.role === 'support').map(item => item.container);
+  const raw = rows.filter(item => item.role === 'raw').map(item => item.container);
+  if (primary.length > 1) {{
+    const demoted = primary.filter(c => isSecondaryPrimaryContainer(f, c, primary));
+    if (demoted.length && primary.length - demoted.length >= 1) {{
+      primary = primary.filter(c => !demoted.includes(c));
+      support.unshift(...demoted);
+    }}
+  }}
+  if (!primary.length && support.length) primary = [support.shift()];
+  if (!primary.length && raw.length) primary = [raw.shift()];
+  return {{ primary, support, raw }};
+}}
+function isSecondaryPrimaryContainer(f, c, allPrimary) {{
+  if (!c || !Array.isArray(allPrimary) || allPrimary.length <= 1) return false;
+  const id = String(c.id || '');
+  const label = String(c.label || '');
+  const layout = String(c && c.meta && c.meta.layout || 'generic');
+  const hasStructuralPrimary = allPrimary.some(other => {{
+    const otherLayout = String(other && other.meta && other.meta.layout || 'generic');
+    return other !== c && ['graph','tree','trie','union_find','recursion_tree','linked_list','geometry','computational_graph'].includes(otherLayout);
+  }});
+  if ((layout === 'frame' || id.startsWith('frame:')) && (hasStructuralPrimary || !containerIsActive(f, c)) && allPrimary.some(other => other !== c)) return true;
+  const hasGraphPrimary = allPrimary.some(other => {{
+    const otherLayout = String(other && other.meta && other.meta.layout || 'generic');
+    return other !== c && (otherLayout === 'graph' || otherLayout === 'computational_graph');
+  }});
+  const linearAuxLayouts = new Set(['array','string','string_list','queue','deque','stack','heap']);
+  if (hasGraphPrimary && linearAuxLayouts.has(layout)) return true;
+  if (!isUnionFindLikeContainer(f, c)) return false;
+  return allPrimary.some(other => other !== c && !isUnionFindLikeContainer(f, other));
+}}
+function isUnionFindLikeContainer(f, c) {{
+  const id = String(c && c.id || '');
+  const label = String(c && c.label || '');
+  const text = `${{id}} ${{label}}`.toLowerCase();
+  if (text === 'uf uf' || text.includes('并查集') || text.includes('union_find') || text.includes('union-find') || text.includes('disjoint')) return true;
+  if (/\\buf\\b/.test(text) || /\\bparent\\b/.test(text) && /\\brank\\b/.test(text)) return true;
+  const state = f && f.state || {{}};
+  const value = state[id] !== undefined ? state[id] : state[label];
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value) && (Array.isArray(value.parent) || Array.isArray(value['parent'])) && (Array.isArray(value.rank) || Array.isArray(value['rank'])));
+}}
+function stageRoleForContainer(f, c) {{
+  const id = String(c && c.id || '');
+  const label = String(c && c.label || '');
+  const text = `${{id}} ${{label}}`;
+  const layout = String(c && c.meta && c.meta.layout || 'generic');
+  if (isAnswerLikeContainer(id)) return 'support';
+  const active = containerIsActive(f, c);
+  if (/递归栈|call[_ -]?stack|recursion[_ -]?stack/i.test(text)) return 'support';
+  if (layout === 'frame' || id.startsWith('frame:')) return active ? 'primary' : 'support';
+  const renderer = LAYOUT_RENDERERS[layout] || LAYOUT_RENDERERS.generic || 'map';
+  const rawIds = new Set(['capacity','cap','capacities','flow','flows','residual','residual_capacity','residuals','memo','cache','call_stack','query_path','update_path','cover_path','nodes','edges','visited','dist','parent']);
+  const rawLayouts = new Set(['map','generic']);
+  const primaryLayouts = new Set(['graph','tree','recursion_tree','geometry','matrix','set_grid','array','string','string_list','heap','stack','queue','deque','trie','union_find','linked_list','ml','computational_graph']);
+  const supportLayouts = new Set(['stack','queue','deque','heap','array','matrix','string','string_list']);
+  const isRaw = rawIds.has(id) || rawLayouts.has(renderer) || rawLayouts.has(layout);
+  if (active && primaryLayouts.has(layout)) return 'primary';
+  if (active && !isRaw) return 'primary';
+  if (primaryLayouts.has(layout) && !isRaw) return 'primary';
+  if (supportLayouts.has(layout) && !isRaw) return 'support';
+  if (isRaw) return 'raw';
+  return 'support';
+}}
+function containerIsActive(f, c) {{
+  const id = String(c && c.id || '');
+  const evidence = f && f.evidence || {{}};
+  const targets = new Set([...(evidence.targets || []), ...((f && f.marks || []).filter(m => m.role !== 'dependency').map(m => m.target))].map(String));
+  const deps = new Set([...(evidence.deps || []), ...((f && f.marks || []).filter(m => m.role === 'dependency').map(m => m.target))].map(String));
+  return targetTouchesContainer(id, targets) || targetTouchesContainer(id, deps);
+}}
+function isAnswerLikeContainer(id) {{
+  const raw = String(id || '');
+  return ['answer','ans','result'].includes(raw)
+    || raw.startsWith('answer[')
+    || raw.startsWith('ans[')
+    || raw.startsWith('result[');
+}}
+function targetTouchesContainer(containerId, ids) {{
+  if (!containerId || !ids) return false;
+  for (const id of ids) {{
+    if (id === containerId || id.startsWith(`${{containerId}}[`) || id.startsWith(`${{containerId}}:`)) return true;
+    if (id.startsWith('pointer:') && containerId && id.endsWith(containerId)) return true;
+  }}
+  return false;
+}}
+function renderPrimaryStage(primary, groups, marks, objects) {{
+  const f = frame();
+  if (!primary.length && isGcdLikeFrame(f)) return renderGcdHero(f);
+  const body = primary.length ? primary.map(c => renderPrimitivePanel(c, groups[c.id] || [], marks, 'primary')).join('') : renderLooseObjects(objects || [], marks);
+  return body;
+}}
+function renderSemanticAnchorBand(f) {{
+  const evidence = f && f.evidence || {{}};
+  const marks = f && f.marks || [];
+  const targets = unique([...(Array.isArray(evidence.targets) ? evidence.targets : []), ...marks.filter(m => m.role !== 'dependency').map(m => m.target)]).slice(0, 6);
+  const deps = unique([...(Array.isArray(evidence.deps) ? evidence.deps : []), ...marks.filter(m => m.role === 'dependency').map(m => m.target)]).slice(0, 6);
+  if (!targets.length && !deps.length) return '';
+  const targetChips = targets.map(id => semanticAnchorChip(f, id, 'target')).join('');
+  const depChips = deps.map(id => semanticAnchorChip(f, id, 'dependency')).join('');
+  return `<section class="semantic-anchor-band" data-stage-role="anchor" data-visual-pattern="semantic_target_anchor" aria-label="当前语义锚点"><span class="semantic-anchor-label">当前对象</span>${{targetChips}}${{depChips ? `<span class="semantic-anchor-label">依赖</span>${{depChips}}` : ''}}</section>`;
+}}
+function semanticAnchorChip(f, id, kind) {{
+  return `<span class="semantic-anchor-chip clickable-object" target-kind="${{esc(kind)}}" ${{clickableAttrs(id)}}>${{dependencyLabel(f, id)}}</span>`;
+}}
+function renderAnswerBadge(f) {{
+  const answer = answerValueForFrame(f);
+  const answerTarget = answerTargetForFrame(f);
+  if (answer.value === undefined && !answerTarget) return '';
+  const label = answer.key || (answerTarget ? String(answerTarget).replace(/\[.*$/, '') : 'answer');
+  const value = answer.value === undefined ? '结果更新' : compactValue(answer.value);
+  return `<section class="answer-badge clickable-object" data-stage-role="answer-badge" data-answer-like="true" ${{clickableAttrs(answerTarget || label)}}><strong>结果</strong><span>${{esc(label)}} = ${{esc(value)}}</span></section>`;
+}}
+function answerValueForFrame(f) {{
+  const state = f && f.state || {{}};
+  for (const key of ['answer','ans','result']) {{
+    if (Object.prototype.hasOwnProperty.call(state, key)) return {{ key, value:state[key] }};
+  }}
+  return {{ key:'', value:undefined }};
+}}
+function answerTargetForFrame(f) {{
+  const evidence = f && f.evidence || {{}};
+  const ids = [
+    ...(Array.isArray(evidence.targets) ? evidence.targets : []),
+    ...((f && f.marks || []).filter(m => m.role === 'answer').map(m => m.target)),
+  ].map(String);
+  return ids.find(id => isAnswerLikeContainer(id)) || '';
+}}
+function isGcdLikeFrame(f) {{
+  const state = f && f.state || {{}};
+  const a = numberOrNull(state.a ?? state.x);
+  const b = numberOrNull(state.b ?? state.y);
+  const hasGcdHint = hasVisualFamilyPattern(f, 'gcd_state') || hasVisualFamily(f, 'gcd');
+  if (hasGcdHint && (a !== null || b !== null)) return true;
+  return a !== null && b !== null && (
+    state.remainder !== undefined || state.mod !== undefined || state.gcd !== undefined ||
+    state.quotient !== undefined || state.q !== undefined || state.x_coeff !== undefined || state.y_coeff !== undefined
+  );
+}}
+function renderGcdHero(f) {{
+  const state = f && f.state || {{}};
+  const a = numberOrNull(state.a ?? state.x);
+  const b = numberOrNull(state.b ?? state.y);
+  const aText = a === null ? '?' : String(a);
+  const bText = b === null ? '?' : String(b);
+  const q = numberOrNull(state.quotient ?? state.q ?? (a !== null && b ? Math.floor(a / b) : null));
+  const r = numberOrNull(state.remainder ?? state.mod ?? (a !== null && b ? a % b : null));
+  let formulaLine = `<span>a</span><span>=</span><span>${{esc(aText)}}</span>`;
+  let next = '等待 b 进入同一条余数链';
+  if (a !== null && b !== null && b !== 0) {{
+    formulaLine = `<span>${{a}}</span><span>=</span><span>${{q ?? '?'}}</span><span>×</span><span>${{b}}</span><span>+</span><span class="remainder">${{r ?? '?'}}</span>`;
+    next = `余数 ${{r ?? '?'}} 传入下一轮：gcd(${{b}}, ${{r ?? '?'}})`;
+  }} else if (a !== null && b === 0) {{
+    formulaLine = `<span>gcd</span><span>(</span><span>${{a}}</span><span>,</span><span>0</span><span>)</span><span>=</span><span class="remainder">${{a}}</span>`;
+    next = `终止：第二个数为 0，答案是 ${{a}}`;
+  }} else if (a === null && b !== null) {{
+    formulaLine = `<span>b</span><span>=</span><span>${{b}}</span>`;
+  }}
+  const coeff = state.x_coeff !== undefined || state.y_coeff !== undefined || state.coeff_x !== undefined || state.coeff_y !== undefined
+    ? `<div class="gcd-backsub">回代：gcd = ${{esc(compactValue(state.x_coeff ?? state.coeff_x ?? '?'))}}·a + ${{esc(compactValue(state.y_coeff ?? state.coeff_y ?? '?'))}}·b</div>`
+    : '';
+  const answer = answerValueForFrame(f);
+  const answerBadge = answer.value !== undefined ? `<div class="gcd-backsub">结果：${{esc(answer.key || 'answer')}} = ${{esc(compactValue(answer.value))}}</div>` : '';
+  return `<section class="gcd-hero" data-stage-role="primary" data-visual-pattern="gcd_chain"><div class="gcd-formula-line">${{formulaLine}}</div><div class="gcd-transition"><span>${{esc(next)}}</span></div>${{coeff}}${{answerBadge}}</section>`;
+}}
+function renderSupportDock(support, groups, marks) {{
+  if (!support.length) return '';
+  return `<section class="support-dock" aria-label="辅助状态"><h3>辅助状态</h3><div class="dock-grid">${{support.map(c => renderPrimitivePanel(c, groups[c.id] || [], marks, 'support')).join('')}}</div></section>`;
+}}
+function renderRawStateDock(raw, groups, marks) {{
+  if (!raw.length) return '';
+  return `<details class="raw-state-dock"><summary>原始 state 证据（默认不进入主舞台）</summary><div class="dock-grid">${{raw.map(c => renderPrimitivePanel(c, groups[c.id] || [], marks, 'raw')).join('')}}</div></details>`;
+}}
+function fitModeForFrame(f, primary) {{
+  if ((primary || []).length > 1) return 'contain';
+  return 'contain';
 }}
 function fitSceneToCanvas() {{
   const host = $('canvas');
   const fit = host && host.querySelector('.scene-fit');
   const scene = fit && fit.querySelector('.objects');
+  const surface = fit && fit.querySelector('.scene-scroll-surface');
   if (!host || !fit || !scene) return;
+  bindScenePanZoom(fit, scene);
+  fit.classList.remove('scroll-fit', 'pan-scroll');
+  fit.scrollLeft = 0;
+  fit.scrollTop = 0;
+  syncSceneOverlays(fit);
+  VIEW_STATE.userPan = false;
   scene.style.transform = 'none';
   scene.style.width = '';
   scene.style.height = '';
+  if (surface) {{
+    surface.style.width = '';
+    surface.style.height = '';
+  }}
   const availableWidth = Math.max(1, fit.clientWidth);
   const availableHeight = Math.max(1, fit.clientHeight);
-  const contentWidth = Math.max(1, scene.scrollWidth);
-  const contentHeight = Math.max(1, scene.scrollHeight);
-  const scale = Math.min(1, availableWidth / contentWidth, availableHeight / contentHeight) * 0.995;
-  scene.style.transform = `scale(${{scale}})`;
+  const bounds = measureVisualBounds(scene);
+  const safePad = 18;
+  const topSafePad = Math.max(safePad, sceneOverlayBottom(fit) + 10);
+  const fitWidth = Math.max(1, availableWidth - safePad * 2);
+  const fitHeight = Math.max(1, availableHeight - topSafePad - safePad);
+  const rawScale = Math.min(fitWidth / bounds.width, fitHeight / bounds.height) * 0.985;
+  const fitMode = scene.dataset.fitMode || 'contain';
+  const minReadableScale = 1;
+  const maxUsefulScale = 1.85;
+  const minContainScale = 0.08;
+  const needsReadableFallback = rawScale < minReadableScale;
+  const scrollFit = needsReadableFallback;
+  const effectiveFitMode = scrollFit ? 'pan-scroll' : 'contain';
+  fit.classList.toggle('scroll-fit', scrollFit);
+  fit.classList.toggle('pan-scroll', scrollFit);
+  const scale = scrollFit ? minReadableScale : clampNumber(rawScale, minContainScale, maxUsefulScale);
+  const contentWidth = Math.max(1, Math.ceil(Math.max(scene.scrollWidth, bounds.left + bounds.width, bounds.width)));
+  const contentHeight = Math.max(1, Math.ceil(Math.max(scene.scrollHeight, bounds.top + bounds.height, bounds.height)));
+  const translateX = scrollFit ? safePad - bounds.left * scale : safePad - bounds.left * scale + Math.max(0, (availableWidth - bounds.width * scale - safePad * 2) / 2);
+  let translateY = scrollFit ? topSafePad - bounds.top * scale : topSafePad - bounds.top * scale + Math.max(0, (availableHeight - topSafePad - bounds.height * scale - safePad) / 2);
+  applySceneTransform(scene, scale, translateX, translateY);
+  const overlayDelta = fixedOverlayClearanceDelta(fit, scene);
+  if (overlayDelta > 0) {{
+    translateY += overlayDelta;
+    applySceneTransform(scene, scale, translateX, translateY);
+  }}
+  const effectiveTopSafePad = topSafePad + overlayDelta;
   scene.style.width = `${{contentWidth}}px`;
   scene.style.height = `${{contentHeight}}px`;
+  const surfaceWidth = scrollFit ? Math.max(availableWidth + 1, Math.ceil(bounds.width * scale + safePad * 2)) : availableWidth;
+  const surfaceHeight = scrollFit ? Math.max(availableHeight + 1, Math.ceil(bounds.height * scale + effectiveTopSafePad + safePad)) : availableHeight;
+  if (surface) {{
+    surface.style.width = `${{surfaceWidth}}px`;
+    surface.style.height = `${{surfaceHeight}}px`;
+    surface.dataset.scrollWidth = String(surfaceWidth);
+    surface.dataset.scrollHeight = String(surfaceHeight);
+  }}
   scene.dataset.fitScale = String(scale);
+  scene.dataset.fitMode = effectiveFitMode;
+  scene.dataset.requestedFitMode = fitMode;
+  scene.dataset.cameraMode = effectiveFitMode;
+  scene.dataset.visualBoundsLeft = String(bounds.left);
+  scene.dataset.visualBoundsTop = String(bounds.top);
+  scene.dataset.visualBoundsWidth = String(bounds.width);
+  scene.dataset.visualBoundsHeight = String(bounds.height);
+  scene.dataset.topSafePad = String(effectiveTopSafePad);
+  scene.dataset.overlayClearanceDelta = String(overlayDelta);
+  scene.dataset.utilization = String(Math.min(1, (bounds.width * scale * bounds.height * scale) / Math.max(1, availableWidth * availableHeight)));
+  VIEW_STATE.auto = {{ scale, x:translateX, y:translateY, bounds, mode:effectiveFitMode, scrollFit, surfaceWidth, surfaceHeight, safePad, topSafePad:effectiveTopSafePad, overlayDelta }};
+  updateVisualQualityTelemetry(scene);
+  if (scrollFit) requestAnimationFrame(() => scrollFocusedTarget(fit, scene));
 }}
-function renderPrimitivePanel(c, children, marks) {{
+function syncSceneOverlays(fit) {{
+  if (!fit) return;
+  const offset = fit.scrollLeft || fit.scrollTop ? `translate(${{fit.scrollLeft}}px, ${{fit.scrollTop}}px)` : '';
+  for (const node of fit.querySelectorAll(':scope > .view-tools, :scope > .semantic-anchor-band, :scope > .answer-badge')) {{
+    node.style.transform = offset;
+  }}
+}}
+function sceneOverlayBottom(fit) {{
+  if (!fit) return 0;
+  const fitRect = fit.getBoundingClientRect();
+  const overlays = Array.from(fit.querySelectorAll(':scope > .semantic-anchor-band, :scope > .answer-badge'));
+  const bottoms = overlays.map(node => node.getBoundingClientRect()).filter(rect => rect.width > 0 && rect.height > 0).map(rect => rect.bottom - fitRect.top);
+  return bottoms.length ? Math.max(...bottoms) : 0;
+}}
+function fixedOverlayClearanceDelta(fit, scene) {{
+  if (!fit || !scene) return 0;
+  const overlays = Array.from(fit.querySelectorAll(':scope > .semantic-anchor-band, :scope > .answer-badge'))
+    .map(node => node.getBoundingClientRect())
+    .filter(rect => rect.width > 0 && rect.height > 0);
+  if (!overlays.length) return 0;
+  const selectors = [
+    '.primary-scene svg .node',
+    '.primary-scene svg text',
+    '.primary-scene [data-object-id]',
+    '.primary-scene .cell',
+    '.primary-scene .mcell',
+    '.primary-scene .gcd-hero'
+  ];
+  const contentRects = Array.from(scene.querySelectorAll(selectors.join(','))).filter(node => {{
+    if (node.closest('.semantic-anchor-band') || node.closest('.answer-badge')) return false;
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+  }}).map(node => node.getBoundingClientRect());
+  let delta = 0;
+  const gap = 10;
+  for (const overlay of overlays) {{
+    for (const rect of contentRects) {{
+      const horizontalOverlap = rect.right > overlay.left + 1 && rect.left < overlay.right - 1;
+      const verticalConflict = rect.top < overlay.bottom + gap && rect.bottom > overlay.top - 1;
+      if (horizontalOverlap && verticalConflict) delta = Math.max(delta, overlay.bottom + gap - rect.top);
+    }}
+  }}
+  return Math.ceil(Math.max(0, delta));
+}}
+function measureVisualBounds(scene) {{
+  const selectors = [
+    '.primary-scene > .primitive-panel[data-stage-role="primary"]',
+    '.primary-scene svg',
+    '.primary-scene [data-object-id]',
+    '.primary-scene .cell',
+    '.primary-scene .mcell',
+    '.primary-scene .node',
+    '.primary-scene .edge-label',
+    '.primary-scene .gcd-hero'
+  ];
+  const sceneRect = scene.getBoundingClientRect();
+  const candidates = Array.from(scene.querySelectorAll(selectors.join(','))).filter(node => {{
+    if (node.closest('.semantic-anchor-band')) return false;
+    if (node.closest('.answer-badge')) return false;
+    const objectId = String(node.getAttribute('data-object-id') || '');
+    const panelId = String(node.closest('[data-object-id]') && node.closest('[data-object-id]').getAttribute('data-object-id') || '');
+    if (isAnswerLikeContainer(objectId) || isAnswerLikeContainer(panelId)) return false;
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+  }});
+  const rects = candidates.map(node => node.getBoundingClientRect()).filter(rect => rect.width > 0 && rect.height > 0);
+  if (!rects.length) {{
+    return {{ left:0, top:0, width:Math.max(1, scene.scrollWidth), height:Math.max(1, scene.scrollHeight) }};
+  }}
+  const left = Math.min(...rects.map(rect => rect.left)) - sceneRect.left;
+  const top = Math.min(...rects.map(rect => rect.top)) - sceneRect.top;
+  const right = Math.max(...rects.map(rect => rect.right)) - sceneRect.left;
+  const bottom = Math.max(...rects.map(rect => rect.bottom)) - sceneRect.top;
+  return {{ left, top, width:Math.max(1, right - left), height:Math.max(1, bottom - top) }};
+}}
+function applySceneTransform(scene, scale, x, y) {{
+  scene.style.transform = `translate(${{x}}px, ${{y}}px) scale(${{scale}})`;
+  VIEW_STATE.scale = scale;
+  VIEW_STATE.x = x;
+  VIEW_STATE.y = y;
+  if (scene) {{
+    scene.dataset.fitScale = String(scale);
+    scene.dataset.panX = String(x);
+    scene.dataset.panY = String(y);
+    if (VIEW_STATE.auto && VIEW_STATE.auto.scrollFit) syncSceneScrollSurface(scene, scale);
+  }}
+}}
+function syncSceneScrollSurface(scene, scale) {{
+  const fit = document.querySelector('#canvas .scene-fit');
+  const surface = fit && fit.querySelector('.scene-scroll-surface');
+  const auto = VIEW_STATE.auto;
+  if (!surface || !auto || !auto.bounds) return;
+  const safePad = auto.safePad || 18;
+  const topSafePad = auto.topSafePad || safePad;
+  const width = Math.max((fit && fit.clientWidth || 0) + 1, Math.ceil(auto.bounds.width * scale + safePad * 2));
+  const height = Math.max((fit && fit.clientHeight || 0) + 1, Math.ceil(auto.bounds.height * scale + topSafePad + safePad));
+  surface.style.width = `${{width}}px`;
+  surface.style.height = `${{height}}px`;
+  surface.dataset.scrollWidth = String(width);
+  surface.dataset.scrollHeight = String(height);
+  if (scene) scene.dataset.cameraMode = auto.scrollFit ? 'pan-scroll' : (auto.mode || 'contain');
+}}
+function bindScenePanZoom(fit, scene) {{
+  if (!fit || !scene || fit.dataset.panZoomBound === 'true') return;
+  fit.dataset.panZoomBound = 'true';
+  fit.addEventListener('scroll', () => syncSceneOverlays(fit));
+  fit.addEventListener('wheel', event => {{
+    if (!fit.contains(event.target)) return;
+    event.preventDefault();
+    const rect = fit.getBoundingClientRect();
+    const mx = event.clientX - rect.left;
+    const my = event.clientY - rect.top;
+    const oldScale = VIEW_STATE.scale || 1;
+    const newScale = clampNumber(oldScale * (event.deltaY > 0 ? 0.9 : 1.1), 0.12, 3.2);
+    const x = mx - (mx - VIEW_STATE.x) * (newScale / oldScale);
+    const y = my - (my - VIEW_STATE.y) * (newScale / oldScale);
+    VIEW_STATE.userPan = true;
+    applySceneTransform(scene, newScale, x, y);
+    updateVisualQualityTelemetry(scene);
+  }}, {{ passive:false }});
+  fit.addEventListener('pointerdown', event => {{
+    if (event.button !== 0 || event.target.closest('.view-tools')) return;
+    fit.setPointerCapture(event.pointerId);
+    fit.classList.add('dragging');
+    VIEW_STATE.drag = {{
+      pointerId:event.pointerId,
+      startX:event.clientX,
+      startY:event.clientY,
+      x:VIEW_STATE.x,
+      y:VIEW_STATE.y,
+      scrollLeft:fit.scrollLeft,
+      scrollTop:fit.scrollTop,
+      scrollMode:fit.classList.contains('pan-scroll')
+    }};
+  }});
+  fit.addEventListener('pointermove', event => {{
+    const drag = VIEW_STATE.drag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    VIEW_STATE.userPan = true;
+    if (drag.scrollMode) {{
+      fit.scrollLeft = Math.max(0, drag.scrollLeft + drag.startX - event.clientX);
+      fit.scrollTop = Math.max(0, drag.scrollTop + drag.startY - event.clientY);
+      return;
+    }}
+    applySceneTransform(scene, VIEW_STATE.scale, drag.x + event.clientX - drag.startX, drag.y + event.clientY - drag.startY);
+  }});
+  const endDrag = event => {{
+    const drag = VIEW_STATE.drag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    VIEW_STATE.drag = null;
+    fit.classList.remove('dragging');
+  }};
+  fit.addEventListener('pointerup', endDrag);
+  fit.addEventListener('pointercancel', endDrag);
+  fit.addEventListener('dblclick', event => {{
+    if (event.target.closest('.view-tools')) return;
+    resetSceneView();
+  }});
+}}
+function resetSceneView() {{
+  const scene = document.querySelector('#canvas .objects');
+  if (!scene || !VIEW_STATE.auto) return fitSceneToCanvas();
+  VIEW_STATE.userPan = false;
+  applySceneTransform(scene, VIEW_STATE.auto.scale, VIEW_STATE.auto.x, VIEW_STATE.auto.y);
+  scene.dataset.fitMode = VIEW_STATE.auto.mode || scene.dataset.fitMode || 'contain';
+  const fit = document.querySelector('#canvas .scene-fit');
+  if (fit) {{
+    fit.classList.toggle('scroll-fit', !!VIEW_STATE.auto.scrollFit);
+    fit.classList.toggle('pan-scroll', !!VIEW_STATE.auto.scrollFit);
+    fit.scrollLeft = 0;
+    fit.scrollTop = 0;
+    syncSceneOverlays(fit);
+    if (VIEW_STATE.auto.scrollFit) requestAnimationFrame(() => scrollFocusedTarget(fit, scene));
+  }}
+  updateVisualQualityTelemetry(scene);
+}}
+function zoomSceneToOne() {{
+  const scene = document.querySelector('#canvas .objects');
+  const fit = document.querySelector('#canvas .scene-fit');
+  if (!scene || !fit) return;
+  const auto = VIEW_STATE.auto || {{ x:18, y:18 }};
+  VIEW_STATE.userPan = true;
+  applySceneTransform(scene, 1, auto.x, auto.y);
+  updateVisualQualityTelemetry(scene);
+}}
+window.resetSceneView = resetSceneView;
+function updateVisualQualityTelemetry(scene) {{
+  const telemetry = $('visual-quality-telemetry');
+  if (!telemetry || !scene) return;
+  const family = telemetry.dataset.familyRenderer || '';
+  const scale = Number(scene.dataset.fitScale || 0);
+  const utilization = Number(scene.dataset.utilization || 0);
+  const chips = [
+    visualChip(`family_renderer=${{family}}`),
+    visualChip(`fit_mode=${{scene.dataset.fitMode || 'unknown'}}`),
+    visualChip(`fit_scale=${{scale ? scale.toFixed(2) : 'unknown'}}`),
+    visualChip(`utilization=${{utilization ? utilization.toFixed(2) : '0.00'}}`),
+    visualChip(`requested=${{scene.dataset.requestedFitMode || 'unknown'}}`),
+  ].join('');
+  telemetry.innerHTML = chips;
+}}
+function scrollFocusedTarget(fit, scene) {{
+  const focus = focusedSceneObject(scene);
+  if (!focus) return;
+  const fitRect = fit.getBoundingClientRect();
+  const focusRect = focus.getBoundingClientRect();
+  const safeTop = fitRect.top + sceneOverlayBottom(fit) + 10;
+  const safeLeft = fitRect.left + 8;
+  const safeRight = fitRect.right - 8;
+  const safeBottom = fitRect.bottom - 8;
+  const focusCenterViewportX = focusRect.left + focusRect.width / 2;
+  const focusCenterViewportY = focusRect.top + focusRect.height / 2;
+  if (
+    focusCenterViewportX >= safeLeft && focusCenterViewportX <= safeRight &&
+    focusCenterViewportY >= safeTop && focusCenterViewportY <= safeBottom
+  ) return;
+  const centerX = focusRect.left + focusRect.width / 2 - fitRect.left + fit.scrollLeft;
+  const centerY = focusRect.top + focusRect.height / 2 - fitRect.top + fit.scrollTop;
+  fit.scrollLeft = Math.max(0, centerX - fit.clientWidth / 2);
+  fit.scrollTop = Math.max(0, centerY - fit.clientHeight / 2);
+  syncSceneOverlays(fit);
+  const overlayDelta = fixedOverlayClearanceDelta(fit, scene);
+  if (overlayDelta > 0) {{
+    fit.scrollTop = Math.max(0, fit.scrollTop - overlayDelta);
+    syncSceneOverlays(fit);
+  }}
+}}
+function focusedSceneObject(scene) {{
+  const f = frame();
+  const evidence = f && f.evidence || {{}};
+  const orderedIds = [
+    ...(Array.isArray(evidence.targets) ? evidence.targets : []),
+    ...((f && f.marks || []).filter(m => m.role !== 'dependency').map(m => m.target)),
+    ...(Array.isArray(evidence.deps) ? evidence.deps : []),
+    ...((f && f.marks || []).filter(m => m.role === 'dependency').map(m => m.target)),
+  ].filter(Boolean).map(String);
+  for (const id of orderedIds) {{
+    const direct = sceneObjectBySemanticId(scene, id);
+    if (direct) return direct;
+  }}
+  return scene.querySelector('.hot[data-object-id], .dep[data-object-id], [data-object-id]');
+}}
+function sceneObjectBySemanticId(scene, id) {{
+  const direct = sceneObjectById(scene, id);
+  if (direct) return direct;
+  const proxies = semanticProxyIds(id);
+  for (const proxyId of proxies) {{
+    const proxy = sceneObjectById(scene, proxyId);
+    if (proxy) return proxy;
+  }}
+  if (String(id) === 'answer' || String(id) === 'result') {{
+    return scene.querySelector(answerStateProxySelectors()) || semanticFallbackObject(scene, id);
+  }}
+  return semanticFallbackObject(scene, id);
+}}
+function semanticFallbackObject(scene, id) {{
+  const raw = String(id || '');
+  if (!scene) return null;
+  if (raw.startsWith('frame:')) {{
+    const framePhaseMatch = raw.match(/^frame:(?:phase\\/)?([^()]+)$/);
+    if (framePhaseMatch && framePhaseMatch[1]) {{
+      const phaseText = framePhaseMatch[1].replace(/_/g, ' ');
+      const node = Array.from(scene.querySelectorAll('[data-object-id]')).find(item => String(item.getAttribute('data-object-id') || '').includes(phaseText));
+      if (node) return node;
+    }}
+    return scene.querySelector('.primary-scene [data-stage-role="primary"], [data-stage-role="primary"], [data-object-id]');
+  }}
+  const stateProxy = sceneObjectById(scene, raw)
+    || sceneObjectById(scene, `pointer:${{raw}}`)
+    || sceneObjectById(scene, `node:${{raw}}`);
+  if (stateProxy) return stateProxy;
+  const localCell = localStateCellProxy(scene, raw);
+  if (localCell) return localCell;
+  const prefixProxy = Array.from(scene.querySelectorAll('[data-object-id]')).find(item => {{
+    const objectId = String(item.getAttribute('data-object-id') || '');
+    return objectId === raw || objectId.startsWith(`${{raw}}[`) || objectId.endsWith(`:${{raw}}`);
+  }});
+  if (prefixProxy) return prefixProxy;
+  if (raw === 'answer' || raw === 'result') return scene.querySelector(answerStateProxySelectors());
+  return null;
+}}
+function localStateCellProxy(scene, raw) {{
+  const f = frame();
+  const evidence = f && f.evidence || {{}};
+  const eventCell = indexedReferenceCellProxy(scene, evidence.value);
+  if (eventCell) return eventCell;
+  const state = f && f.state || {{}};
+  const value = state[raw];
+  if (!Number.isInteger(Number(value))) return null;
+  const containerId = primaryLinearContainerId(f);
+  if (!containerId) return null;
+  return sceneObjectById(scene, `${{containerId}}[${{Number(value)}}]`);
+}}
+function indexedReferenceCellProxy(scene, value) {{
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const container = value.on ?? value.container ?? value.array ?? value.source;
+  const idx = value.idx ?? value.index ?? value.i;
+  if (!container || !Number.isInteger(Number(idx))) return null;
+  return sceneObjectById(scene, `${{container}}[${{Number(idx)}}]`);
+}}
+function primaryLinearContainerId(f) {{
+  const state = f && f.state || {{}};
+  for (const key of ['dp','nums','arr','array','values','temperatures','prices','heights']) {{
+    const value = state[key];
+    if (Array.isArray(value) && value.every(item => !Array.isArray(item) && (item === null || typeof item !== 'object'))) return key;
+  }}
+  const container = (f && f.objects || []).find(o => o && o.type === 'container' && o.meta && ['array','string'].includes(o.meta.layout));
+  return container ? container.id : '';
+}}
+function answerStateProxySelectors() {{
+  return '.answer-badge[data-object-id], .role-answer[data-object-id], .pattern-answer-projection[data-object-id], .answer[data-object-id], [data-object-id="answer"], [data-object-id="ans"], [data-object-id="result"], [data-object-id^="answer["], [data-object-id^="ans["], [data-object-id^="result["], .hot[data-object-id], .node.role-answer, .node.pattern-answer-projection, .node.answer, .node.hot, .cell.answer, .mcell.answer';
+}}
+function semanticProxyIds(id) {{
+  const raw = String(id || '');
+  const proxies = [];
+  const edgeMatch = raw.match(/^edge:([^>]+)->(.+)$/);
+  if (edgeMatch && edgeMatch[1] && edgeMatch[2]) {{
+    proxies.push(`edge-label:${{edgeMatch[1]}}->${{edgeMatch[2]}}`, `node:${{edgeMatch[1]}}`, `node:${{edgeMatch[2]}}`);
+  }}
+  const frameMatch = raw.match(/^frame:[^(]+\\(([^()]*)\\)$/);
+  if (frameMatch && frameMatch[1]) {{
+    proxies.push(`node:${{frameMatch[1]}}`, frameMatch[1]);
+  }}
+  const plainNodeMatch = raw.match(/^(?:current|node|vertex)[_:]([A-Za-z0-9_.-]+)$/);
+  if (plainNodeMatch && plainNodeMatch[1]) proxies.push(`node:${{plainNodeMatch[1]}}`);
+  return proxies;
+}}
+function sceneObjectById(scene, id) {{
+  return Array.from(scene.querySelectorAll('[data-object-id]')).find(node => node.getAttribute('data-object-id') === String(id));
+}}
+function clampNumber(value, min, max) {{
+  return Math.max(min, Math.min(max, Number.isFinite(value) ? value : 1));
+}}
+function renderPrimitivePanel(c, children, marks, stageRole='primary') {{
   const layout = c.meta && c.meta.layout || 'generic';
-  return `<section class="primitive-panel ${{primitivePanelClass(c)}}" data-layout="${{esc(layout)}}">${{renderContainer(c, children, marks)}}</section>`;
+  return `<section class="primitive-panel clickable-object ${{primitivePanelClass(c)}} ${{markClass(c.id, marks)}} ${{objectMetaClass(c)}}" ${{clickableAttrs(c.id)}} data-layout="${{esc(layout)}}" data-stage-role="${{esc(stageRole)}}">${{renderContainer(c, children, marks)}}</section>`;
 }}
 function primitivePanelClass(c) {{
   const layout = c && c.meta && c.meta.layout || 'generic';
@@ -481,8 +1289,23 @@ function renderVisualPatternPanel(f) {{
     renderStringAlignmentPattern(f),
     renderTreeReturnPattern(f),
     renderBacktrackingPattern(f),
+    renderKruskalTrackPattern(f),
     renderRangeStructurePattern(f),
     renderNetworkFlowPattern(f),
+    renderDpDependencyWindowPattern(f),
+    renderBitmaskTransitionPattern(f),
+    renderStringSpecializedPattern(f),
+    renderFenwickLowbitPattern(f),
+    renderSparseTableBlocksPattern(f),
+    renderDiffPrefixPattern(f),
+    renderGeometryRelationPattern(f),
+    renderNetworkFlowAugmentingPathPattern(f),
+    renderBinaryPointerPattern(f),
+    renderDigitDpPattern(f),
+    renderMonotonicStackPattern(f),
+    renderHeapSiftPattern(f),
+    renderGraphMetricOverlay(f),
+    renderTreeDpOverlay(f),
   ].filter(Boolean);
   if (!cards.length) return '';
   return `<section class="visual-patterns" aria-label="族级视觉模式">${{cards.join('')}}</section>`;
@@ -523,8 +1346,47 @@ function renderTreeReturnPattern(f) {{
 function renderBacktrackingPattern(f) {{
   const choices = objectsWithPattern(f, 'backtracking_choice');
   const undo = objectsWithPattern(f, 'backtracking_undo');
-  if (!choices.length && !undo.length) return '';
-  return `<article class="visual-card backtracking-pattern" data-visual-pattern="backtracking_choice"><strong>回溯选择 / 撤销</strong><div class="visual-chip-row">${{choices.slice(0, 6).map(o => visualChip(`选择 ${{o.id}}`)).join('')}}${{undo.slice(0, 6).map(o => visualChip(`撤销 ${{o.id}}`)).join('')}}</div></article>`;
+  const state = f && f.state || {{}};
+  const path = Array.isArray(state.path) ? state.path : Array.isArray(state.current_path) ? state.current_path : Array.isArray(state.partial) ? state.partial : [];
+  const candidates = Array.isArray(state.candidates) ? state.candidates : Array.isArray(state.remaining) ? state.remaining : [];
+  const depth = state.depth ?? state.level ?? path.length;
+  if (!choices.length && !undo.length && !path.length && !candidates.length) return '';
+  const track = [
+    `<span class="backtracking-pill">depth=${{esc(compactValue(depth))}}</span>`,
+    path.length ? `<span class="backtracking-pill">path: ${{esc(path.map(compactValue).join(' → '))}}</span>` : '',
+    candidates.length ? `<span class="backtracking-pill">候选: ${{esc(candidates.slice(0, 8).map(compactValue).join(', '))}}</span>` : '',
+  ].join('');
+  return `<article class="visual-card backtracking-pattern" data-visual-pattern="backtracking_choice"><strong>回溯 path / 候选 / 撤销</strong><div class="backtracking-track">${{track}}</div><div class="visual-chip-row">${{choices.slice(0, 6).map(o => visualChip(`选择 ${{o.id}}`)).join('')}}${{undo.slice(0, 6).map(o => visualChip(`撤销 ${{o.id}}`)).join('')}}</div></article>`;
+}}
+function renderKruskalTrackPattern(f) {{
+  const state = f && f.state || {{}};
+  const edges = state.sorted_edges || state.edge_order || state.edges;
+  const current = state.current_edge ?? state.edge ?? state.current;
+  const accepted = state.accepted_edges || state.mst_edges || state.selected_edges || state.mst;
+  const rejected = state.rejected_edges || state.skipped_edges || state.conflict_edges;
+  if (!Array.isArray(edges) || !edges.length || (!accepted && !rejected && current === undefined && !hasVisualFamily(f, 'kruskal'))) return '';
+  const pills = edges.slice(0, 12).map(edge => {{
+    const label = kruskalEdgeLabel(edge);
+    const cls = edgeMatchesValue(edge, current) ? 'current' : edgeInListValue(edge, accepted) ? 'accept' : edgeInListValue(edge, rejected) ? 'reject' : '';
+    return `<span class="kruskal-edge-pill ${{cls}}">${{esc(label)}}</span>`;
+  }}).join('');
+  return `<article class="visual-card kruskal-track-panel" data-visual-pattern="kruskal_edge_order"><strong>Kruskal 边排序 / 接纳轨道</strong><div class="kruskal-edge-track">${{pills}}</div></article>`;
+}}
+function kruskalEdgeLabel(edge) {{
+  if (Array.isArray(edge)) return edge.length >= 3 ? `${{edge[0]}}-${{edge[1]}} w=${{edge[2]}}` : edge.join('-');
+  if (edge && typeof edge === 'object') return `${{edge.u ?? edge.source ?? edge[0] ?? '?'}}-${{edge.v ?? edge.target ?? edge[1] ?? '?'}}${{edge.w !== undefined || edge.weight !== undefined ? ` w=${{edge.w ?? edge.weight}}` : ''}}`;
+  return compactValue(edge);
+}}
+function edgeInListValue(edge, list) {{
+  if (!list) return false;
+  const values = Array.isArray(list) ? list : Object.values(list);
+  return values.some(item => edgeMatchesValue(edge, item));
+}}
+function edgeMatchesValue(edge, value) {{
+  if (value === undefined || value === null) return false;
+  const label = kruskalEdgeLabel(edge);
+  if (String(value) === label || String(value) === compactValue(edge)) return true;
+  return edgePairMatches(edge, String(value.u ?? value.source ?? value[0] ?? ''), String(value.v ?? value.target ?? value[1] ?? ''));
 }}
 function renderRangeStructurePattern(f) {{
   const query = objectsWithPattern(f, 'range_query_path');
@@ -537,6 +1399,454 @@ function renderNetworkFlowPattern(f) {{
   const edges = objectsWithPattern(f, 'network_flow_edge_label').filter(o => o.type === 'edge');
   if (!edges.length) return '';
   return `<article class="visual-card network-flow-pattern" data-visual-pattern="network_flow_edge_label"><strong>网络流 residual / capacity</strong><div class="visual-chip-row">${{edges.slice(0, 8).map(o => visualChip(`${{o.id}} ${{edgeDisplayLabel(o)}}`)).join('')}}</div></article>`;
+}}
+function renderDpDependencyWindowPattern(f) {{
+  const targets = objectsWithPattern(f, 'dp_formula_substitution').filter(o => o.type === 'cell' || o.meta && o.meta.pattern_role === 'dp_target');
+  const arrows = objectsWithPattern(f, 'dp_dependency_arrow');
+  const evidence = f && f.evidence || {{}};
+  const deps = (evidence.deps || []).filter(id => String(id).includes('[')).slice(0, 6);
+  const targetIds = (evidence.targets || []).filter(id => String(id).includes('[')).slice(0, 3);
+  if (!targets.length && !arrows.length && !deps.length && !targetIds.length) return '';
+  const targetCells = (targets.length ? targets.map(o => o.id) : targetIds).slice(0, 4);
+  const depCells = arrows.length ? arrows.slice(0, 6).map(o => o.source || o.id) : deps;
+  const cells = [
+    ...depCells.map(id => `<span class="dp-window-cell">${{esc(id)}}</span>`),
+    ...targetCells.map(id => `<span class="dp-window-cell dp-current-cell">${{esc(id)}}</span>`),
+  ].join('');
+  const arrowRow = depCells.length && targetCells.length
+    ? `<div class="visual-chip-row"><span class="dp-dependency-arrow">${{esc(depCells.join(' + '))}} → ${{esc(targetCells.join(', '))}}</span></div>`
+    : '';
+  const formula = textOrEmpty(f && f.teaching && f.teaching.formula) || graphRelaxFormula(f, f && f.state || {{}});
+  return `<article class="visual-card dp-dependency-window" data-visual-pattern="dp_dependency_window"><strong>DP 当前格 / 依赖窗口</strong><div class="dp-window-grid">${{cells}}</div>${{arrowRow}}${{formula ? `<div class="relax-formula">${{esc(formula)}}</div>` : ''}}</article>`;
+}}
+function renderBitmaskTransitionPattern(f) {{
+  const state = f && f.state || {{}};
+  const mask = numberOrNull(state.mask ?? state.subset ?? state.state_mask);
+  const u = state.u ?? state.current_city ?? state.last ?? state.i;
+  const v = state.v ?? state.next_city ?? state.next ?? state.j;
+  const hasBitmask = mask !== null || state.next_mask !== undefined || state.new_mask !== undefined || state.visited_mask !== undefined || hasVisualFamily(f, 'state_compression') || hasVisualFamily(f, 'bitmask_dp');
+  if (!hasBitmask) return '';
+  const nextMask = numberOrNull(state.next_mask ?? state.new_mask ?? (mask !== null && v !== undefined && Number.isInteger(Number(v)) ? (mask | (1 << Number(v))) : null));
+  const n = numberOrNull(state.n ?? state.city_count ?? state.num_cities) ?? 4;
+  const visited = mask === null ? [] : Array.from({{length:Math.min(16, Math.max(1, n))}}, (_, i) => (mask & (1 << i)) ? i : null).filter(v => v !== null);
+  const formula = `dp[${{mask ?? '?'}}][${{compactValue(u ?? '?')}}] + dist[${{compactValue(u ?? '?')}}][${{compactValue(v ?? '?')}}] → dp[${{nextMask ?? '?'}}][${{compactValue(v ?? '?')}}]`;
+  return `<article class="visual-card bitmask-transition-panel" data-visual-pattern="bitmask_transition"><strong>状态压缩 mask 转移</strong><div class="bitmask-transition-track"><span class="bitmask-pill">mask=${{esc(compactValue(mask))}}</span><span class="bitmask-pill">bin=${{mask === null ? '?' : mask.toString(2).padStart(Math.min(16, n), '0')}}</span><span class="bitmask-pill">visited={{${{esc(visited.join(', '))}}}}</span><span class="bitmask-pill">${{esc(formula)}}</span></div></article>`;
+}}
+function renderStringSpecializedPattern(f) {{
+  const state = f && f.state || {{}};
+  const hasString = typeof state.text === 'string' || typeof state.pattern === 'string' || typeof state.s === 'string';
+  const fallback = state.fallback_from !== undefined || state.fallback_to !== undefined || objectsWithPattern(f, 'string_fallback_arc').length;
+  const hasHash = state.rolling_hash !== undefined || state.window_hash !== undefined || state.pattern_hash !== undefined;
+  const zBox = state.z_box || state.zbox || (state.l !== undefined && state.r !== undefined && (state.z || state.Z));
+  const manacher = state.center !== undefined || state.radius !== undefined || state.mirror !== undefined || state.C !== undefined || state.R !== undefined || Array.isArray(state.P) || hasVisualFamilyPattern(f, 'manacher_radius');
+  if (!hasString && !fallback && !hasHash && !zBox && !manacher) return '';
+  const tracks = [];
+  if (hasString) tracks.push(`<span class="string-track"><strong>text/pattern</strong><span>i=${{esc(compactValue(state.i ?? state.idx ?? ''))}} · j=${{esc(compactValue(state.j ?? ''))}}</span></span>`);
+  if (fallback) tracks.push(`<span class="kmp-fallback-arc">KMP fallback ${{esc(compactValue(state.fallback_from ?? '?'))}} ↩ ${{esc(compactValue(state.fallback_to ?? '?'))}}</span>`);
+  if (hasHash) tracks.push(`<span class="rolling-hash-track">rolling hash ${{esc(compactValue(state.window_hash ?? state.rolling_hash))}} / pattern ${{esc(compactValue(state.pattern_hash))}}</span>`);
+  if (zBox) {{
+    const box = Array.isArray(zBox) ? zBox : [state.l, state.r];
+    tracks.push(`<span class="z-box-band">Z-box [${{esc(compactValue(box[0]))}}, ${{esc(compactValue(box[1]))}}] · i=${{esc(compactValue(state.i ?? state.idx ?? '?'))}}</span>`);
+  }}
+  if (manacher) {{
+    const center = state.center ?? state.C ?? state.c;
+    const index = state.i ?? state.idx ?? state.index;
+    const radius = state.radius ?? (Array.isArray(state.P) && Number.isInteger(Number(index)) ? state.P[Number(index)] : undefined);
+    const mirror = state.mirror ?? (center !== undefined && index !== undefined ? 2 * Number(center) - Number(index) : undefined);
+    const right = state.right ?? state.R ?? state.r;
+    tracks.push(`<span class="manacher-radius-arc">中心线 center=${{esc(compactValue(center ?? '?'))}} · i=${{esc(compactValue(index ?? '?'))}} · 半径 P[i]=${{esc(compactValue(radius ?? '?'))}} · R=${{esc(compactValue(right ?? '?'))}} · mirror=${{esc(compactValue(mirror ?? '?'))}}</span>`);
+  }}
+  return `<article class="visual-card string-specialized-card" data-visual-pattern="string_specialized"><strong>字符串专项关系</strong><div class="string-specialized-tracks">${{tracks.join('')}}</div></article>`;
+}}
+function renderFenwickLowbitPattern(f) {{
+  const state = f && f.state || {{}};
+  const bit = state.bit || state.fenwick || state.fenwick_tree;
+  const index = pointerIndexValue(state, ['idx','index','i','pos']);
+  const explicitPath = Array.isArray(state.query_path) ? state.query_path : Array.isArray(state.update_path) ? state.update_path : Array.isArray(state.path) ? state.path : null;
+  const lowbit = numberOrNull(state.lowbit ?? (index === null ? null : (index & -index)));
+  if (!Array.isArray(bit) && !explicitPath && index === null && !hasVisualFamilyPattern(f, 'fenwick_lowbit')) return '';
+  const path = explicitPath || (index !== null && lowbit !== null ? [index, index + lowbit, index - lowbit].filter(n => n > 0) : []);
+  const fallbackPath = path.length ? path : [1, 2, 4].filter(n => !Array.isArray(bit) || n < bit.length);
+  const arrows = fallbackPath.slice(0, 8).map((value, i) => `<span class="fenwick-hop-arrow">${{esc(compactValue(value))}}${{i < fallbackPath.length - 1 ? ' →' : ''}}</span>`).join('');
+  const covers = Array.isArray(bit) ? bit.slice(1, 9).map((value, i) => {{
+    const idx = i + 1;
+    const width = idx & -idx;
+    return visualChip(`bit[${{idx}}] covers [${{idx - width + 1}},${{idx}}]`);
+  }}).join('') : primaryLinearValues(f, ['nums','values','arr']).slice(0, 6).map((_, i) => {{
+    const idx = i + 1;
+    const width = idx & -idx;
+    return visualChip(`bit[${{idx}}] covers [${{idx - width + 1}},${{idx}}]`);
+  }}).join('');
+  return `<article class="visual-card fenwick-lowbit-panel" data-visual-pattern="fenwick_lowbit"><strong>Fenwick lowbit 跳转</strong><div class="range-hop-row">${{arrows || visualChip(`idx=${{compactValue(index)}} lowbit=${{compactValue(lowbit)}}`)}}</div><div class="visual-chip-row">${{covers}}</div></article>`;
+}}
+function renderSparseTableBlocksPattern(f) {{
+  const state = f && f.state || {{}};
+  const table = state.st || state.sparse_table || state.sparse;
+  const l = pointerIndexValue(state, ['l','left','query_l']);
+  const r = pointerIndexValue(state, ['r','right','query_r']);
+  const k = pointerIndexValue(state, ['k','level','log']);
+  const explicit = state.query_blocks || state.blocks;
+  const hasSparse = Array.isArray(table) || Array.isArray(explicit) || (l !== null && r !== null && k !== null);
+  if (!hasSparse) return '';
+  const blocks = Array.isArray(explicit) ? explicit.slice(0, 2) : [[l, l === null || k === null ? r : l + Math.pow(2, k) - 1], [r === null || k === null ? l : r - Math.pow(2, k) + 1, r]];
+  return `<article class="visual-card sparse-table-blocks" data-visual-pattern="sparse_table_blocks"><strong>Sparse Table query blocks</strong><div class="sparse-block-row">${{blocks.map(block => `<span class="sparse-query-block">[${{esc(compactValue(block[0]))}}, ${{esc(compactValue(block[1]))}}]</span>`).join('')}}</div></article>`;
+}}
+function renderDiffPrefixPattern(f) {{
+  const state = f && f.state || {{}};
+  const diff = state.diff || state.difference || state.diff_array;
+  const prefix = state.prefix || state.prefix_sum || state.prefix_sums;
+  const l = pointerIndexValue(state, ['l','left','range_l']);
+  const r = pointerIndexValue(state, ['r','right','range_r']);
+  const delta = state.delta ?? state.add ?? state.value;
+  if (!Array.isArray(diff) && !Array.isArray(prefix) && (l === null || r === null)) return '';
+  const impacts = [
+    l !== null ? `<span class="diff-impact-point">diff[${{l}}] += ${{esc(compactValue(delta ?? 'x'))}}</span>` : '',
+    r !== null ? `<span class="diff-impact-point">diff[${{r + 1}}] -= ${{esc(compactValue(delta ?? 'x'))}}</span>` : '',
+    l !== null && r !== null ? `<span class="diff-impact-point">prefix[${{r + 1}}] - prefix[${{l}}]</span>` : '',
+  ].filter(Boolean).join('');
+  if (!impacts) return '';
+  return `<article class="visual-card diff-prefix-panel" data-visual-pattern="diff_prefix"><strong>差分 / 前缀双端依赖</strong><div class="diff-impact-row">${{impacts}}</div></article>`;
+}}
+function renderGeometryRelationPattern(f) {{
+  const state = f && f.state || {{}};
+  const geometry = state.geometry || state.points && {{ points:state.points }};
+  const points = geometry && Array.isArray(geometry.points) ? geometry.points : [];
+  const hull = geometry && Array.isArray(geometry.hull) ? geometry.hull : [];
+  const isGeometryFrame = hasVisualFamily(f, 'geometry') || (f && f.objects || []).some(o => o && o.meta && o.meta.layout === 'geometry') || points.length > 0 || hull.length > 0 || state.geometry !== undefined;
+  const current = state.current ?? state.candidate;
+  const popped = state.popped ?? state.removed ?? state.pop_point;
+  const cross = state.cross ?? state.cross_product ?? state.orientation;
+  const hasRelationSignal = hasVisualFamilyPattern(f, 'geometry_relation') || cross !== undefined || popped !== undefined || current !== undefined;
+  if (!isGeometryFrame || !hasRelationSignal) return '';
+  const turn = cross === undefined ? '' : Number(cross) > 0 ? 'left turn' : Number(cross) < 0 ? 'right turn' : 'collinear';
+  const row = [
+    hull.length ? visualChip(`hull: ${{hull.join('→')}}`) : '',
+    current !== undefined ? visualChip(`candidate=${{compactValue(current)}}`) : '',
+    cross !== undefined ? `<span class="cross-turn-badge">${{esc(turn)}} · cross=${{esc(compactValue(cross))}}</span>` : '',
+    cross !== undefined ? `<span class="geo-cross-arrow">叉积方向 →</span>` : '',
+    popped !== undefined ? `<span class="hull-ghost-point">popped ghost ${{esc(compactValue(popped))}}</span>` : '',
+  ].filter(Boolean).join('');
+  if (!row) return '';
+  return `<article class="visual-card geometry-relation-card" data-visual-pattern="geometry_relation"><strong>几何方向 / hull 关系</strong><div class="geometry-relation-row">${{row}}</div></article>`;
+}}
+function renderNetworkFlowAugmentingPathPattern(f) {{
+  const state = f && f.state || {{}};
+  const path = Array.isArray(state.augmenting_path) ? state.augmenting_path : Array.isArray(state.path) && objectsWithPattern(f, 'network_flow_augmenting_path').length ? state.path : [];
+  const edges = objectsWithPattern(f, 'network_flow_edge_label').filter(o => o.type === 'edge');
+  if (!path.length && !edges.length) return '';
+  const bottleneck = state.bottleneck ?? state.delta ?? state.augment ?? state.pushed;
+  const chain = path.length ? path.map(node => `<span class="flow-delta-pill">${{esc(compactValue(node))}}</span>`).join('<span>→</span>') : edges.slice(0, 4).map(edge => `<span class="flow-delta-pill">${{esc(edge.id)}}</span>`).join('<span>→</span>');
+  const deltas = edges.slice(0, 6).map(edge => `<span class="flow-delta-pill">${{esc(edge.id)}} ${{esc(edgeDisplayLabel(edge))}}</span>`).join('');
+  return `<article class="visual-card network-augmenting-path-panel" data-visual-pattern="network_flow_augmenting_path"><strong>增广路径 / 瓶颈</strong><div class="augmenting-path-chain">${{chain}}${{bottleneck !== undefined ? `<span class="bottleneck-badge">bottleneck=${{esc(compactValue(bottleneck))}}</span>` : ''}}</div><div class="flow-delta-row">${{deltas}}</div></article>`;
+}}
+function renderBinaryPointerPattern(f) {{
+  const state = f && f.state || {{}};
+  const low = pointerIndexValue(state, ['low','lo','left','l']);
+  const mid = pointerIndexValue(state, ['mid','middle']);
+  const high = pointerIndexValue(state, ['high','hi','right','r']);
+  if (low === null && mid === null && high === null) return '';
+  const values = primaryLinearValues(f);
+  const size = Math.max(values.length, ...[low, mid, high].filter(Number.isFinite).map(x => x + 1), 1);
+  const capped = Math.min(size, 32);
+  const lowBound = low === null ? 0 : low;
+  const highBound = high === null ? capped - 1 : Math.min(high, capped - 1);
+  const cells = Array.from({{length:capped}}, (_, i) => {{
+    const inRange = i >= lowBound && i <= highBound;
+    const value = i < values.length ? values[i] : i;
+    const marker = i === low ? 'L' : i === mid ? 'M' : i === high ? 'H' : '';
+    return `<span class="pointer-slot-cell ${{inRange ? 'in-range' : 'excluded'}}"><span>${{esc(value)}}</span><small>${{marker || i}}</small></span>`;
+  }}).join('');
+  const compare = binaryCompareText(f, state, mid);
+  const markers = [
+    low !== null ? `<span class="pointer-marker marker-low">low=${{low}}</span>` : '',
+    mid !== null ? `<span class="pointer-marker marker-mid">mid=${{mid}}</span>` : '',
+    high !== null ? `<span class="pointer-marker marker-high">high=${{high}}</span>` : '',
+  ].join('');
+  return `<article class="visual-card binary-pointer-panel" data-visual-pattern="binary_pointer"><strong>二分 / 指针区间</strong><div class="pointer-track" style="--slot-count:${{capped}}">${{cells}}<span class="search-interval-band"></span></div><div class="pointer-marker-row">${{markers}}</div>${{compare ? `<div class="relax-formula">${{esc(compare)}}</div>` : ''}}</article>`;
+}}
+function renderDigitDpPattern(f) {{
+  const state = digitDpStateForFrame(f);
+  const pos = pointerIndexValue(state, ['pos','position','digit_pos','idx']);
+  const hasDigitState = pos !== null || ['tight','started','lead','limit','memo_hit','memo_key'].some(key => state[key] !== undefined);
+  if (!hasDigitState && !hasVisualFamily(f, 'digit_dp')) return '';
+  const digits = digitSequenceForState(state);
+  const pills = [
+    ['pos', pos ?? 0],
+    ['tight', state.tight ?? state.limit],
+    ['started', state.started ?? state.lead],
+    ['memo', state.memo_hit ?? state.memo_key],
+    ['state', state.dp_state ?? state.state_key],
+  ].filter(([,value]) => value !== undefined && value !== null && value !== '');
+  const digitRow = digits.length ? `<div class="digit-row">${{digits.slice(0, 24).map((digit, index) => `<span class="digit-cell ${{index === pos ? 'hot' : ''}}">${{esc(digit)}}</span>`).join('')}}</div>` : '';
+  return `<article class="visual-card digit-dp-card" data-visual-pattern="digit_dp_state"><strong>数位 DP 当前状态</strong>${{digitRow}}<div class="digit-dp-state">${{pills.map(([key,value]) => `<span class="digit-dp-pill"><span>${{esc(key)}}</span><strong>${{esc(compactValue(value))}}</strong></span>`).join('')}}</div></article>`;
+}}
+function digitDpStateForFrame(f) {{
+  const original = f && f.state || {{}};
+  const extracted = digitDpStateFromTargets(f) || digitDpStateFromStack(original);
+  if (!extracted) return original;
+  return Object.assign({{}}, original, extracted);
+}}
+function digitDpStateFromTargets(f) {{
+  const ids = [
+    ...((f && f.evidence && Array.isArray(f.evidence.targets)) ? f.evidence.targets : []),
+    ...((f && f.evidence && Array.isArray(f.evidence.deps)) ? f.evidence.deps : []),
+  ].map(String);
+  for (const id of ids) {{
+    const parsed = digitDpStateFromCallText(id);
+    if (parsed) return parsed;
+  }}
+  return null;
+}}
+function digitDpStateFromStack(state) {{
+  const stack = state && (state.call_stack || state.recursion_stack || state['递归栈']);
+  if (!Array.isArray(stack) || !stack.length) return null;
+  for (let i = stack.length - 1; i >= 0; i -= 1) {{
+    const parsed = digitDpStateFromCallText(stack[i]);
+    if (parsed) return parsed;
+  }}
+  return null;
+}}
+function digitDpStateFromCallText(value) {{
+  const raw = String(value || '');
+  const match = raw.match(/dfs\\(([^()]*)\\)/i) || raw.match(/dp\\(([^()]*)\\)/i);
+  if (!match || !match[1]) return null;
+  const result = {{}};
+  for (const part of match[1].split(',')) {{
+    const cleaned = part.trim();
+    if (!cleaned) continue;
+    const pair = cleaned.split('=');
+    if (pair.length >= 2) {{
+      const key = pair[0].trim().replace(/^_+/, '');
+      result[key] = parseDigitDpScalar(pair.slice(1).join('=').trim());
+    }} else if (result.pos === undefined) {{
+      result.pos = parseDigitDpScalar(cleaned);
+    }}
+  }}
+  return Object.keys(result).length ? result : null;
+}}
+function parseDigitDpScalar(value) {{
+  const text = String(value || '').trim();
+  if (/^-?\\d+$/.test(text)) return Number(text);
+  if (/^(true|false)$/i.test(text)) return /^true$/i.test(text);
+  return text;
+}}
+function renderMonotonicStackPattern(f) {{
+  const state = f && f.state || {{}};
+  const stack = Array.isArray(state.stack) ? state.stack : Array.isArray(state.monotonic_stack) ? state.monotonic_stack : hasVisualFamily(f, 'monotonic_stack') ? [] : null;
+  const values = primaryLinearValues(f, ['temperatures','nums','arr','array','prices','heights']);
+  if (!stack || !values.length) return '';
+  const current = pointerIndexValue(state, ['i','idx','index','current_index']);
+  const answer = Array.isArray(state.answer) ? state.answer : Array.isArray(state.ans) ? state.ans : null;
+  const cells = values.slice(0, 28).map((value, i) => `<span class="mono-cell ${{i === current ? 'current' : ''}}">${{esc(value)}}<small>${{i}}</small></span>`).join('');
+  const stackItems = stack.slice(-8).map(item => `<span class="mono-stack-item">${{esc(compactValue(item))}}</span>`).join('');
+  const change = eventChangeRows(f).find(row => String(row.target || '').includes('answer') || String(row.target || '').includes('ans'));
+  const arrow = change ? `<div class="stack-pop-arrow">pop → ${{esc(change.target)}}：${{esc(compactValue(change.before))}} → ${{esc(compactValue(change.after))}}</div>` : '';
+  const compare = current !== null && stack.length ? `<div class="relax-formula">比较 current=${{current}} 与栈顶 ${{esc(compactValue(stack[stack.length - 1]))}}</div>` : '';
+  const answerHint = answer ? `<div class="visual-chip-row">${{visualChip(`answer: ${{compactValue(answer)}}`)}}</div>` : '';
+  return `<article class="visual-card monotonic-stack-panel" data-visual-pattern="monotonic_stack"><strong>单调栈扫描</strong><div class="mono-layout"><div class="mono-array">${{cells}}</div><div class="mono-stack">${{stackItems}}</div></div>${{compare}}${{arrow}}${{answerHint}}</article>`;
+}}
+function renderHeapSiftPattern(f) {{
+  const state = f && f.state || {{}};
+  const heap = Array.isArray(state.heap) ? state.heap : Array.isArray(state.min_heap) ? state.min_heap : Array.isArray(state.max_heap) ? state.max_heap : null;
+  const values = heap && heap.length ? heap : hasVisualFamily(f, 'heap') ? primaryLinearValues(f, ['heap','min_heap','max_heap','nums','values','arr']) : [];
+  if (!values || !values.length) return '';
+  const path = heapPathForState(state, values.length);
+  const capacity = state.k ?? state.capacity ?? state.heap_capacity;
+  const evicted = state.evicted ?? state.removed ?? state.popped;
+  const row = values.slice(0, 31).map((value, i) => `<span class="heap-sift-node ${{path.includes(i) ? 'heap-sift-path' : ''}}">${{esc(compactValue(value))}}</span>`).join('');
+  const chips = [
+    capacity !== undefined ? visualChip(`k=${{capacity}}`) : '',
+    evicted !== undefined ? visualChip(`淘汰=${{compactValue(evicted)}}`) : '',
+    path.length ? visualChip(`sift path=${{path.join('→')}}`) : '',
+  ].join('');
+  return `<article class="visual-card heap-sift-panel" data-visual-pattern="heap_sift_path"><strong>堆上浮 / 下沉路径</strong><div class="heap-sift-row">${{row}}</div><div class="visual-chip-row">${{chips}}</div></article>`;
+}}
+function renderGraphMetricOverlay(f) {{
+  const state = f && f.state || {{}};
+  const metricKeys = ['dist','distance','dfn','low','indegree','color'];
+  const metrics = metricKeys.filter(key => state[key] && typeof state[key] === 'object' && !Array.isArray(state[key]));
+  const frontier = graphFrontierValues(state);
+  const relax = graphRelaxFormula(f, state);
+  if (!metrics.length && !frontier.length && !relax) return '';
+  const nodeIds = unique(metrics.flatMap(key => Object.keys(state[key] || {{}}))).slice(0, 12);
+  const rows = nodeIds.map(node => {{
+    const parts = metrics.map(key => state[key][node] !== undefined ? `${{key}}=${{compactValue(state[key][node])}}` : '').filter(Boolean).join(' · ');
+    return `<span class="graph-node-metric"><strong>${{esc(node)}}</strong>${{esc(parts)}}</span>`;
+  }}).join('');
+  const frontierDock = frontier.length ? `<div class="frontier-dock">${{frontier.slice(0, 10).map(value => visualChip(`frontier ${{value}}`)).join('')}}</div>` : '';
+  return `<article class="visual-card graph-metric-overlay" data-visual-pattern="graph_metric_overlay"><strong>图节点指标 / frontier</strong><div class="graph-metric-grid">${{rows}}</div>${{frontierDock}}${{relax ? `<div class="relax-formula">${{esc(relax)}}</div>` : ''}}</article>`;
+}}
+function renderTreeDpOverlay(f) {{
+  const state = f && f.state || {{}};
+  const nodeValues = treeDpNodeValues(state);
+  if (!nodeValues.length) return '';
+  const rows = nodeValues.slice(0, 12).map(([node, value]) => {{
+    const take = value && typeof value === 'object' ? value.take ?? value.rob ?? value.include : undefined;
+    const skip = value && typeof value === 'object' ? value.skip ?? value.not_rob ?? value.exclude : undefined;
+    const ret = value && typeof value === 'object' ? value.return_value ?? value.best ?? value.value : value;
+    const parts = [
+      take !== undefined ? `take=${{compactValue(take)}}` : '',
+      skip !== undefined ? `skip=${{compactValue(skip)}}` : '',
+      ret !== undefined ? `return=${{compactValue(ret)}}` : '',
+    ].filter(Boolean).join(' · ');
+    return `<span class="tree-dp-badge"><strong>${{esc(node)}}</strong>${{esc(parts || compactValue(value))}}</span>`;
+  }}).join('');
+  return `<article class="visual-card tree-dp-overlay" data-visual-pattern="tree_dp_overlay"><strong>树形 DP take / skip / return</strong><div class="tree-dp-grid">${{rows}}</div></article>`;
+}}
+function renderMathBitPanel(f) {{
+  const items = mathBitItems(f);
+  if (!items.length) return '';
+  return `<section class="math-bit-panel" aria-label="数学和 bit 状态机"><h3>数学 / bit 状态机</h3><div class="math-bit-grid">${{items.join('')}}</div></section>`;
+}}
+function mathBitItems(frameOrState) {{
+  const f = frameOrState && frameOrState.evidence ? frameOrState : null;
+  const state = f ? (f.state || {{}}) : (frameOrState || {{}});
+  const items = [];
+  const a = numberOrNull(state.a ?? state.x);
+  const b = numberOrNull(state.b ?? state.y);
+  if (a !== null && b !== null && (state.remainder !== undefined || state.mod !== undefined || state.gcd !== undefined)) {{
+    const r = numberOrNull(state.remainder ?? state.mod ?? (b ? a % b : 0));
+    const q = numberOrNull(state.quotient ?? state.q ?? (b ? Math.floor(a / b) : 0));
+    items.push(`<div class="gcd-chain" data-math-kind="gcd"><span class="math-token">${{a}} = ${{q}} × ${{b}} + ${{r}}</span><span>余数流入下一轮</span><span class="math-token">gcd(${{b}}, ${{r}})</span></div>`);
+  }}
+  if (state.lowbit !== undefined || state.negative_x !== undefined || state.neg_x !== undefined || hasVisualFamilyPattern(f, 'lowbit_state')) {{
+    const x = numberOrNull(state.x ?? state.value ?? state.remaining ?? state.n);
+    const neg = numberOrNull(state.negative_x ?? state.neg_x ?? (x === null ? null : -x));
+    const low = numberOrNull(state.lowbit ?? (x === null ? null : (x & -x)));
+    items.push(renderBitRows([['x', x], ['-x', neg], ['x & -x', low]]));
+  }}
+  if (state.exponent !== undefined || state.exp !== undefined || state.power !== undefined || state.base !== undefined && state.result !== undefined) {{
+    const exp = numberOrNull(state.exponent ?? state.exp);
+    const bits = exp === null ? '' : exp.toString(2);
+    items.push(`<div class="fast-power-row" data-math-kind="fast_power"><span class="math-token">base=${{esc(state.base ?? '')}}</span><span class="math-token">result=${{esc(state.result ?? 1)}}</span>${{bits ? `<span class="math-token">exp₂=${{esc(bits)}}</span>` : ''}}<span>当前位为 1 时乘入 result，否则只平方 base。</span></div>`);
+  }}
+  const sieve = state.sieve || state.is_prime || state.prime || state.composite;
+  if (Array.isArray(sieve)) {{
+    items.push(renderSieveGrid(sieve, state.current_prime ?? state.prime_i ?? state.p));
+  }}
+  return items;
+}}
+function renderBitRows(rows) {{
+  const clean = rows.filter(([,value]) => value !== null && value !== undefined);
+  if (!clean.length) return '';
+  const width = Math.max(4, ...clean.map(([,value]) => Math.abs(Number(value)).toString(2).length));
+  return `<div data-math-kind="lowbit">${{clean.map(([label,value]) => {{
+    const bits = unsignedBits(Number(value), width);
+    return `<div class="bit-row"><span>${{esc(label)}}</span><span class="bit-cells">${{bits.map(bit => `<span class="bit-cell ${{bit === '1' ? 'on' : ''}}">${{bit}}</span>`).join('')}}</span></div>`;
+  }}).join('')}}</div>`;
+}}
+function unsignedBits(value, width) {{
+  const mask = width >= 30 ? value : (value & ((1 << width) - 1));
+  return Math.abs(mask).toString(2).padStart(width, '0').slice(-width).split('');
+}}
+function renderSieveGrid(values, currentPrime) {{
+  const current = numberOrNull(currentPrime);
+  const cells = values.map((value, index) => {{
+    const isPrime = value === true || value === 1 || value === 'prime';
+    const cls = isPrime ? 'prime' : 'composite';
+    const hot = current !== null && index % current === 0 && index >= current * current ? ' hot' : '';
+    return `<span class="sieve-num ${{cls}}${{hot}}">${{index}}</span>`;
+  }}).join('');
+  return `<div class="sieve-grid" data-math-kind="sieve">${{cells}}</div>`;
+}}
+function numberOrNull(value) {{
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}}
+function pointerIndexValue(state, keys) {{
+  for (const key of keys || []) {{
+    const n = numberOrNull(state && state[key]);
+    if (n !== null && Number.isInteger(n)) return n;
+  }}
+  return null;
+}}
+function visualFamilyHint(f) {{
+  const evidence = f && f.evidence || {{}};
+  return String(evidence.visual_family || '').trim();
+}}
+function hasVisualFamily(f, family) {{
+  return visualFamilyHint(f) === family;
+}}
+function hasVisualFamilyPattern(f, pattern) {{
+  const evidence = f && f.evidence || {{}};
+  if (String(evidence.visual_family_pattern || '') === pattern) return true;
+  return (evidence.visual_patterns || []).some(item => String(item && item.pattern || item) === pattern);
+}}
+function primaryLinearValues(f, preferredKeys) {{
+  const state = f && f.state || {{}};
+  const keys = [...(preferredKeys || []), 'nums','arr','array','values','temperatures','prices','heights','dp'];
+  for (const key of keys) {{
+    if (Array.isArray(state[key]) && state[key].every(item => !Array.isArray(item) && (item === null || typeof item !== 'object'))) return state[key];
+  }}
+  const containers = (f && f.objects || []).filter(o => o.type === 'container' && o.meta && ['array','string'].includes(o.meta.layout));
+  const container = containers[0];
+  if (!container) return [];
+  return (f.objects || [])
+    .filter(o => o.parent === container.id && o.type === 'cell')
+    .sort((a,b)=>(a.index??0)-(b.index??0))
+    .map(o => o.value);
+}}
+function binaryCompareText(f, state, mid) {{
+  const teaching = f && f.teaching || {{}};
+  if (teaching.formula) return teaching.formula;
+  const evidence = f && f.evidence || {{}};
+  if (evidence.process && evidence.process.summary) return evidence.process.summary;
+  const target = state.target ?? state.target_value ?? state.x ?? state.n;
+  if (mid !== null && target !== undefined) return `judge(mid=${{mid}}, target=${{compactValue(target)}})`;
+  return '';
+}}
+function digitSequenceForState(state) {{
+  const raw = state.digits ?? state.num_digits ?? state.number ?? state.n ?? state.s;
+  if (Array.isArray(raw)) return raw.map(String);
+  if (raw === undefined || raw === null || typeof raw === 'object') return [];
+  return String(raw).split('');
+}}
+function heapPathForState(state, heapLength) {{
+  const explicit = state.sift_path ?? state.heap_path ?? state.path;
+  if (Array.isArray(explicit)) return explicit.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n < heapLength);
+  const index = pointerIndexValue(state, ['heap_index','idx','i']);
+  if (index === null) return [];
+  const path = [];
+  let cur = index;
+  while (cur >= 0 && path.length < 12) {{
+    path.push(cur);
+    if (cur === 0) break;
+    cur = Math.floor((cur - 1) / 2);
+  }}
+  return path.reverse();
+}}
+function graphFrontierValues(state) {{
+  for (const key of ['frontier','queue','deque','stack','pq','priority_queue','open_set']) {{
+    const value = state[key];
+    if (Array.isArray(value)) return value.map(compactValue);
+  }}
+  return [];
+}}
+function graphRelaxFormula(f, state) {{
+  const teaching = f && f.teaching || {{}};
+  if (teaching.formula) return teaching.formula;
+  const evidence = f && f.evidence || {{}};
+  const edge = (evidence.deps || []).find(id => String(id).startsWith('edge:'));
+  const target = (evidence.targets || []).find(id => String(id).startsWith('node:'));
+  if (edge && target) return `${{edge}} relaxes ${{target}}`;
+  const current = state.current ?? state.u ?? state.node;
+  const next = state.next ?? state.v ?? state.neighbor;
+  const weight = state.weight ?? state.w;
+  if (current !== undefined && next !== undefined) return `dist[${{current}}] + ${{weight ?? 'w'}} < dist[${{next}}]`;
+  return '';
+}}
+function treeDpNodeValues(state) {{
+  for (const key of ['tree_dp','dp_tree','node_dp','returns','return_values']) {{
+    const value = state[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) return Object.entries(value);
+  }}
+  const take = state.take ?? state.rob ?? state.include;
+  const skip = state.skip ?? state.not_rob ?? state.exclude;
+  const node = state.node ?? state.current ?? state.current_node;
+  if (node !== undefined && (take !== undefined || skip !== undefined || state.return_value !== undefined)) {{
+    return [[String(node), {{ take, skip, return_value:state.return_value ?? state.best }}]];
+  }}
+  return [];
 }}
 function objectsWithPattern(f, pattern) {{
   return (f.objects || []).filter(o => objectPatterns(o).includes(pattern));
@@ -603,18 +1913,44 @@ function roleForObject(f, id) {{
   return mark && mark.role ? mark.role : '';
 }}
 function showDependencyDetail(encodedId) {{
-  const id = decodeURIComponent(encodedId);
   const f = frame();
+  const id = canonicalDetailObjectId(decodeURIComponent(encodedId), f);
   const edges = dependencyEdges(f);
   const deps = unique(edges.filter(edge => edge.target === id).map(edge => edge.source));
   const impacts = unique(edges.filter(edge => edge.source === id).map(edge => edge.target));
   const role = roleForObject(f, id);
+  const object = objectById(f).get(id);
+  const container = objectContainerInfo(f, object);
+  const objectId = object && object.id;
+  const change = eventChangeRows(f).find(row => row.target === id || objectId && row.target === objectId);
   const detail = $('dependency-detail');
   if (!detail) return;
   const depText = deps.length ? deps.map(x => `${{dependencyLabel(f, x)}} <code>${{esc(x)}}</code>`).join('，') : '无';
   const impactText = impacts.length ? impacts.map(x => `${{dependencyLabel(f, x)}} <code>${{esc(x)}}</code>`).join('，') : '无';
-  const roleText = role ? `<p>角色：${{esc(role)}}</p>` : '';
-  detail.innerHTML = `<strong>${{dependencyLabel(f, id)}} <code>${{esc(id)}}</code></strong>${{roleText}}<p>依赖对象：${{depText}}</p><p>影响对象：${{impactText}}</p><p>来源：SceneGraph marks、dependency arrows 和 evidence.deps / evidence.targets。</p>`;
+  const roleText = role ? `<p>角色：${{esc(role)}}</p>` : '<p>角色：未标注</p>';
+  const valueText = object && object.value !== undefined ? `<p>值：<code>${{esc(compactValue(object.value))}}</code></p>` : '';
+  const containerText = container ? `<p>所属容器：<code>${{esc(container.id)}}</code> · layout <code>${{esc(container.layout)}}</code></p>` : '';
+  const beforeAfterText = change && (change.before !== undefined || change.after !== undefined)
+    ? `<p>before：<code>${{esc(compactValue(change.before))}}</code></p><p>after：<code>${{esc(compactValue(change.after))}}</code></p>`
+    : '';
+  detail.innerHTML = `<strong>${{dependencyLabel(f, id)}} <code>${{esc(id)}}</code></strong>${{roleText}}${{valueText}}${{containerText}}${{beforeAfterText}}<p>依赖对象：${{depText}}</p><p>影响对象：${{impactText}}</p><p>来源：SceneGraph marks、dependency arrows 和 evidence.deps / evidence.targets。</p>`;
+}}
+function canonicalDetailObjectId(rawId, f) {{
+  const raw = String(rawId || '');
+  if (!['answer','ans','result'].includes(raw)) return raw;
+  const evidence = f && f.evidence || {{}};
+  const candidates = [
+    ...(Array.isArray(evidence.targets) ? evidence.targets : []),
+    ...((f && f.marks || []).filter(m => m.role === 'answer').map(m => m.target)),
+  ].map(String);
+  return candidates.find(id => isAnswerLikeContainer(id) && id !== raw) || raw;
+}}
+function objectContainerInfo(f, object) {{
+  if (!object) return null;
+  const parent = object.parent || '';
+  const container = (f.objects || []).find(o => o.type === 'container' && o.id === parent);
+  if (!container) return parent ? {{ id:parent, layout:'unknown' }} : null;
+  return {{ id:container.id, layout:container.meta && container.meta.layout || 'generic' }};
 }}
 function unique(items) {{
   return [...new Set((items || []).filter(Boolean).map(String))];
@@ -924,6 +2260,7 @@ function renderContainer(c, children, marks) {{
   const cells = children.filter(o => o.type === 'cell');
   const renderer = LAYOUT_RENDERERS[layout] || LAYOUT_RENDERERS.generic || 'map';
   if (renderer === 'matrix') return renderMatrix(c, cells, marks);
+  if (renderer === 'set_grid') return renderSetGrid(c, children, marks);
   if (renderer === 'array') return renderArray(c, cells, marks);
   if (renderer === 'string') return renderString(c, cells, marks);
   if (renderer === 'heap') return renderHeap(c, cells, marks);
@@ -931,22 +2268,83 @@ function renderContainer(c, children, marks) {{
   if (renderer === 'stack') return renderStack(c, cells, marks);
   if (renderer === 'graph') return renderGraph(c, children, marks);
   if (renderer === 'tree') return renderTree(c, children, marks, layout);
+  if (renderer === 'linked_list') return renderLinkedList(c, children, marks);
   if (renderer === 'geometry') return renderGeometry(c, children, marks);
   if (renderer === 'ml') return renderML(c, children, marks);
+  if (layout === 'frame') return renderFrameStage(c);
   if (renderer === 'map') return renderMap(c, children, marks);
   return renderMap(c, children, marks);
 }}
+function renderFrameStage(c) {{
+  return `<div class="frame-stage-card"><strong>${{esc(c.label || c.id.replace(/^frame:/,''))}}</strong><span>阶段切换 / 递归帧</span></div>`;
+}}
 function renderArray(c, cells, marks) {{
-  cells.sort((a,b)=>(a.index??0)-(b.index??0));
+  cells.sort((a,b)=>cellLinearIndex(a)-cellLinearIndex(b));
+  const state = frame().state || {{}};
+  if (shouldRenderFunctionalCycleArray(c, cells, state)) return renderFunctionalCycleArray(c, cells, marks, state);
   const pointers = currentPointersFor(c.id);
   const pointerByIndex = new Map();
   for (const p of pointers) {{
     if (!pointerByIndex.has(p.index)) pointerByIndex.set(p.index, []);
     pointerByIndex.get(p.index).push(p);
   }}
-  const cellHtml = cells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('');
+  const cellHtml = cells.map((o, i) => `<div class="cell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{esc(cellDisplayIndex(o, i))}}</span>${{esc(o.value)}}</div>`).join('');
   const pointerHtml = cells.map(o => `<div class="pointer-slot">${{(pointerByIndex.get(o.index) || []).map(p => `<span class="pointer-tag clickable-object" ${{clickableAttrs(p.id)}}>${{esc(p.label || p.id.replace('pointer:',''))}}</span>`).join('')}}</div>`).join('');
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="array-wrap"><div class="array">${{cellHtml}}</div><div class="pointer-row" style="grid-template-columns:repeat(${{Math.max(cells.length,1)}},42px)">${{pointerHtml}}</div></div></div>`;
+}}
+function cellLinearIndex(cell) {{
+  const index = Number(cell && cell.index);
+  if (Number.isInteger(index)) return index;
+  const row = Number(cell && cell.row);
+  const col = Number(cell && cell.col);
+  if (Number.isInteger(row) && Number.isInteger(col)) return row * 1000 + col;
+  if (Number.isInteger(row)) return row;
+  if (Number.isInteger(col)) return col;
+  return 0;
+}}
+function cellDisplayIndex(cell, fallback) {{
+  if (cell && cell.index !== undefined && cell.index !== null) return compactValue(cell.index);
+  const row = Number(cell && cell.row);
+  const col = Number(cell && cell.col);
+  if (Number.isInteger(row) && Number.isInteger(col)) return col === 0 ? String(row) : `${{row}},${{col}}`;
+  if (Number.isInteger(row)) return String(row);
+  if (Number.isInteger(col)) return String(col);
+  return String(fallback);
+}}
+function shouldRenderFunctionalCycleArray(c, cells, state) {{
+  if (!c || !cells || !cells.length || state.slow === undefined || state.fast === undefined) return false;
+  const values = cells.map(cell => Number(cell.value));
+  return values.every(value => Number.isInteger(value) && value >= 0 && value < cells.length);
+}}
+function renderFunctionalCycleArray(c, cells, marks, state) {{
+  const w=760,h=380,cx=w/2,cy=h/2+8,rx=250,ry=128;
+  const pos={{}};
+  cells.forEach((cell, i) => {{
+    const a=-Math.PI/2 + 2*Math.PI*i/Math.max(1, cells.length);
+    pos[i]=[cx+rx*Math.cos(a), cy+ry*Math.sin(a)];
+  }});
+  const edges = cells.map((cell, i) => {{
+    const target = Number(cell.value);
+    const a=pos[i], b=pos[target]; if(!a||!b) return '';
+    const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2 - (i === target ? 60 : 34);
+    const cls = target <= i ? 'cycle' : '';
+    return `<path class="cycle-edge ${{cls}} clickable-object" ${{clickableAttrs(`${{c.id}}[${{i}}]`)}} d="M${{a[0]}},${{a[1]}} Q${{mx}},${{my}} ${{b[0]}},${{b[1]}}"></path>`;
+  }}).join('');
+  const pointerNames = new Map();
+  for (const name of ['slow','fast']) {{
+    const idx = Number(state[name]);
+    if (!Number.isInteger(idx) || !pos[idx]) continue;
+    if (!pointerNames.has(idx)) pointerNames.set(idx, []);
+    pointerNames.get(idx).push(name);
+  }}
+  const nodes = cells.map((cell, i) => {{
+    const p=pos[i];
+    const tokens=(pointerNames.get(i) || []).map((name, j) => `<text class="cycle-token" x="0" y="${{-46 - j * 15}}" text-anchor="middle">${{esc(name)}}</text>`).join('');
+    const cls = `${{markClass(cell.id, marks)}} ${{objectMetaClass(cell)}} ${{pointerNames.has(i) ? 'hot' : ''}}`;
+    return `<g class="cycle-node node clickable-object ${{cls}}" ${{clickableAttrs(cell.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="34"></circle><text text-anchor="middle" y="-4" font-size="14" font-weight="800">${{i}}</text><text text-anchor="middle" y="15" font-size="11" fill="#64748b">→ ${{esc(cell.value)}}</text>${{tokens}}</g>`;
+  }}).join('');
+  const meet = Number(state.slow) === Number(state.fast) ? `<text x="${{cx}}" y="${{h - 26}}" text-anchor="middle" fill="#166534" font-size="13" font-weight="800">slow 与 fast 相遇：${{esc(compactValue(state.slow))}}</text>` : '';
+  return `<div><h3 class="view-title">${{esc(c.label || '环形下标链表')}}</h3><svg class="cycle-list-svg" viewBox="0 0 ${{w}} ${{h}}"><defs><marker id="cycle-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"></path></marker></defs>${{edges}}${{nodes}}${{meet}}</svg></div>`;
 }}
 function renderMatrix(c, cells, marks) {{
   const rows = Math.max(0, ...cells.map(o => o.row ?? 0)) + 1;
@@ -959,21 +2357,55 @@ function renderMatrix(c, cells, marks) {{
   }}
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="matrix" style="grid-template-columns:repeat(${{Math.max(cols,1)}},44px)">${{body}}</div></div>`;
 }}
+function renderSetGrid(c, children, marks) {{
+  const rows = new Map();
+  for (const o of children || []) {{
+    if (!Number.isInteger(Number(o.row))) continue;
+    const row = Number(o.row);
+    if (!rows.has(row)) rows.set(row, {{ label:null, cells:[] }});
+    if (o.type === 'label') rows.get(row).label = o;
+    if (o.type === 'cell') rows.get(row).cells.push(o);
+  }}
+  const cards = Array.from(rows.entries()).sort((a,b)=>a[0]-b[0]).map(([row, entry]) => {{
+    const label = entry.label || {{ id:`${{c.id}}[${{row}}]`, value:'[]', label:String(row) }};
+    const cells = (entry.cells || []).sort((a,b)=>(a.col??0)-(b.col??0));
+    const values = cells.length
+      ? cells.map(o => `<span class="set-token clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}>${{esc(o.value)}}</span>`).join('')
+      : `<span class="set-empty">${{esc(label.value || '[]')}}</span>`;
+    return `<article class="set-card clickable-object ${{markClass(label.id, marks)}} ${{objectMetaClass(label)}}" ${{clickableAttrs(label.id)}} data-set-row="${{row}}"><span class="set-index">${{esc(label.label || row)}}</span><span class="set-values">${{values}}</span></article>`;
+  }}).join('');
+  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="set-grid" data-visual-pattern="set_grid">${{cards}}</div></div>`;
+}}
 function renderString(c, cells, marks) {{
   return renderArray(c, cells, marks);
 }}
 function renderHeap(c, cells, marks) {{
   cells.sort((a,b)=>(a.index??0)-(b.index??0));
-  let html = `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="heap">`;
-  let idx = 0, level = 0;
-  while (idx < cells.length) {{
+  const w=760,h=380;
+  const state = frame().state || {{}};
+  const path = heapPathForState(state, Math.max(cells.length, 1));
+  const pathEdges = new Set(path.slice(1).map(i => `${{Math.floor((i - 1) / 2)}}-${{i}}`));
+  const pos={{}};
+  cells.forEach((cell, i) => {{
+    const level = Math.floor(Math.log2(i + 1));
+    const first = Math.pow(2, level) - 1;
+    const indexInLevel = i - first;
     const count = Math.pow(2, level);
-    const levelCells = cells.slice(idx, idx + count);
-    html += `<div class="heap-level">${{levelCells.map(o => `<div class="cell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{o.index}}</span>${{esc(o.value)}}</div>`).join('')}}</div>`;
-    idx += count; level += 1;
-  }}
-  html += '</div></div>';
-  return html;
+    pos[i] = [((indexInLevel + 1) * w) / (count + 1), 52 + level * 78];
+  }});
+  const edges = cells.slice(1).map((cell, i0) => {{
+    const i = i0 + 1;
+    const parent = Math.floor((i - 1) / 2);
+    const a=pos[parent], b=pos[i]; if(!a||!b) return '';
+    const cls = pathEdges.has(`${{parent}}-${{i}}`) ? 'heap-sift-path' : '';
+    return `<line class="heap-edge ${{cls}}" x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+  }}).join('');
+  const nodes = cells.map((cell, i) => {{
+    const p=pos[i];
+    const cls = `${{markClass(cell.id, marks)}} ${{objectMetaClass(cell)}} ${{path.includes(i) ? 'heap-sift-path' : ''}}`;
+    return `<g class="heap-node clickable-object ${{cls}}" ${{clickableAttrs(cell.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="28"></circle><text text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="750">${{esc(cell.value)}}</text><text y="45" text-anchor="middle" fill="#64748b" font-size="11">${{i}}</text></g>`;
+  }}).join('');
+  return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><svg class="heap-svg" viewBox="0 0 ${{w}} ${{h}}">${{edges}}${{nodes}}</svg></div>`;
 }}
 function renderStack(c, cells, marks) {{
   cells.sort((a,b)=>(a.index??0)-(b.index??0));
@@ -983,6 +2415,82 @@ function renderQueue(c, cells, marks) {{
   cells.sort((a,b)=>(a.index??0)-(b.index??0));
   const body = cells.map((o,i) => `<div class="cell clickable-object ${{markClass(o.id, marks)}} ${{objectMetaClass(o)}}" ${{clickableAttrs(o.id)}}><span class="idx">${{i===0?'头':i===cells.length-1?'尾':o.index}}</span>${{esc(o.value)}}</div>`).join('');
   return `<div><h3 class="view-title">${{esc(c.label || c.id)}}</h3><div class="queue">${{body}}</div></div>`;
+}}
+function renderLinkedList(c, children, marks) {{
+  const nodes = children.filter(o => o.type === 'node');
+  const edges = children.filter(o => o.type === 'edge');
+  const state = frame().state || {{}};
+  const outgoing = new Map(edges.map(e => [e.source, e]));
+  const incoming = new Set(edges.map(e => e.target));
+  let current = nodes.find(n => !incoming.has(n.id)) || nodes[0];
+  const ordered = [];
+  const seen = new Set();
+  while (current && !seen.has(current.id) && ordered.length <= nodes.length) {{
+    ordered.push(current);
+    seen.add(current.id);
+    const edge = outgoing.get(current.id);
+    current = edge ? nodes.find(n => n.id === edge.target) : null;
+  }}
+  for (const node of nodes) if (!seen.has(node.id)) ordered.push(node);
+  if (shouldRenderCycleLinkedList(state, ordered, edges)) return renderCycleLinkedList(c, ordered, edges, marks, state);
+  const pointers = linkedListPointers(state, ordered);
+  const edgeBySource = new Map(edges.map(e => [e.source, e]));
+  const body = ordered.map((node, index) => {{
+    const badges = (pointers.get(node.id) || []).map(name => `<span class="pointer-badge">${{esc(name)}}</span>`).join('');
+    const edge = edgeBySource.get(node.id);
+    const arrowCls = edge && edge.meta && edge.meta.old_direction ? 'ghost' : edge && edge.meta && edge.meta.cycle ? 'cycle' : '';
+    const arrow = index < ordered.length - 1 ? `<span class="linked-arrow ${{arrowCls}}">${{arrowCls === 'cycle' ? '↻' : '→'}}</span>` : '';
+    return `<div class="linked-node-wrap"><div class="pointer-badges">${{badges}}</div><div class="linked-node clickable-object ${{markClass(node.id, marks)}} ${{objectMetaClass(node)}}" ${{clickableAttrs(node.id)}}>${{esc(node.label || node.id.replace('node:',''))}}</div></div>${{arrow}}`;
+  }}).join('');
+  return `<div><h3 class="view-title">${{esc(c.label || '链表')}}</h3><div class="linked-list-view">${{body}}</div></div>`;
+}}
+function shouldRenderCycleLinkedList(state, ordered, edges) {{
+  if (!ordered.length) return false;
+  if (state && (state.has_cycle === true || state.cycle_entry !== undefined || state.meeting !== undefined)) return true;
+  if (state && state.slow !== undefined && state.fast !== undefined) return true;
+  const indexById = new Map(ordered.map((node, i) => [node.id, i]));
+  return edges.some(edge => edge.meta && edge.meta.cycle || indexById.has(edge.source) && indexById.has(edge.target) && indexById.get(edge.target) <= indexById.get(edge.source));
+}}
+function renderCycleLinkedList(c, ordered, edges, marks, state) {{
+  const w=760,h=380,cx=w/2,cy=h/2+6,rx=250,ry=126;
+  const pos={{}};
+  ordered.forEach((node, i) => {{
+    const a=-Math.PI/2 + 2*Math.PI*i/Math.max(1, ordered.length);
+    pos[node.id]=[cx+rx*Math.cos(a),cy+ry*Math.sin(a)];
+  }});
+  const indexById = new Map(ordered.map((node, i) => [node.id, i]));
+  const edgeSvg = edges.map(edge => {{
+    const a=pos[edge.source], b=pos[edge.target]; if(!a||!b) return '';
+    const cycle = edge.meta && edge.meta.cycle || indexById.get(edge.target) <= indexById.get(edge.source);
+    const cls = cycle ? 'cycle' : '';
+    if (cycle) {{
+      const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2 - 72;
+      return `<path class="cycle-edge ${{cls}} clickable-object" ${{clickableAttrs(edge.id)}} d="M${{a[0]}},${{a[1]}} Q${{mx}},${{my}} ${{b[0]}},${{b[1]}}"></path>`;
+    }}
+    return `<line class="cycle-edge clickable-object" ${{clickableAttrs(edge.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
+  }}).join('');
+  const pointers = linkedListPointers(state, ordered);
+  const nodeSvg = ordered.map(node => {{
+    const p=pos[node.id];
+    const cls=markClass(node.id, marks);
+    const tokens=(pointers.get(node.id) || []).map((name, i) => `<text class="cycle-token" x="0" y="${{-40 - i * 14}}" text-anchor="middle">${{esc(name)}}</text>`).join('');
+    return `<g class="cycle-node node clickable-object ${{cls}} ${{objectMetaClass(node)}}" ${{clickableAttrs(node.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="29"></circle><text text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="750">${{esc(node.label || node.id.replace('node:',''))}}</text>${{tokens}}</g>`;
+  }}).join('');
+  const meet = state.meeting !== undefined ? `<text x="${{cx}}" y="${{h - 24}}" text-anchor="middle" fill="#166534" font-size="13" font-weight="800">相遇点 / 入环证据：${{esc(compactValue(state.meeting ?? state.cycle_entry))}}</text>` : '';
+  return `<div><h3 class="view-title">${{esc(c.label || '环形链表')}}</h3><svg class="cycle-list-svg" viewBox="0 0 ${{w}} ${{h}}"><defs><marker id="cycle-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#64748b"></path></marker></defs>${{edgeSvg}}${{nodeSvg}}${{meet}}</svg></div>`;
+}}
+function linkedListPointers(state, orderedNodes) {{
+  const nodeIds = new Set((orderedNodes || []).map(n => n.id));
+  const byPlain = new Map((orderedNodes || []).map(n => [String(n.id).replace(/^node:/, ''), n.id]));
+  const result = new Map();
+  for (const key of ['head','prev','curr','current','next','slow','fast','tail']) {{
+    const raw = state && state[key];
+    const id = raw !== undefined && raw !== null ? (nodeIds.has(String(raw)) ? String(raw) : byPlain.get(String(raw)) || `node:${{raw}}`) : '';
+    if (!id || !nodeIds.has(id)) continue;
+    if (!result.has(id)) result.set(id, []);
+    result.get(id).push(key === 'current' ? 'curr' : key);
+  }}
+  return result;
 }}
 function renderMap(c, children, marks) {{
   const rows = children.filter(o => o.id !== c.id && o.type !== 'arrow');
@@ -1027,41 +2535,215 @@ function renderSparkline(value) {{
   return `<svg class="spark" viewBox="0 0 ${{w}} ${{h}}"><polyline points="${{pts}}" fill="none" stroke="#2563eb" stroke-width="2"></polyline></svg>`;
 }}
 function renderGraph(c, children, marks) {{
-  const nodes = children.filter(o => o.type === 'node');
+  let nodes = children.filter(o => o.type === 'node');
   const edges = children.filter(o => o.type === 'edge');
-  const w=720,h=340,cx=w/2,cy=h/2,r=Math.min(w,h)*.36;
-  const pos={{}};
-  nodes.forEach((n,i)=>{{ const a=-Math.PI/2 + 2*Math.PI*i/Math.max(1,nodes.length); pos[n.id]=[cx+r*Math.cos(a),cy+r*Math.sin(a)]; }});
+  const nodeIds = new Set(nodes.map(n => n.id));
+  for (const edge of edges) {{
+    for (const endpoint of [edge.source, edge.target]) {{
+      if (!endpoint || nodeIds.has(endpoint)) continue;
+      nodeIds.add(endpoint);
+      nodes.push({{ id:endpoint, type:'node', parent:c.id, label:String(endpoint).replace(/^node:/, '') }});
+    }}
+  }}
+  const state = frame().state || {{}};
+  const bottleneck = state.bottleneck ?? state.delta ?? state.augment ?? state.pushed;
+  const w=760,h=380;
+  const nodeRadius = nodes.length <= 5 ? 50 : nodes.length <= 10 ? 42 : 36;
+  const hasMetricText = nodes.some(n => graphNodeMetricText(frame(), n));
+  const pos=graphPositions(c, nodes, edges, state, w, h, nodeRadius, hasMetricText ? 30 : 10);
   const edgeSvg = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
-    const cls = `${{markClass(e.id, marks)}} ${{objectMetaClass(e)}}`;
+    const cls = `${{markClass(e.id, marks)}} ${{objectMetaClass(e)}} ${{graphEdgeSemanticClass(e, state)}}`;
     return `<line class="edge clickable-object ${{cls}}" ${{clickableAttrs(e.id)}} x1="${{a[0]}}" y1="${{a[1]}}" x2="${{b[0]}}" y2="${{b[1]}}"></line>`;
   }}).join('');
   const edgeLabels = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target], label=edgeDisplayLabel(e); if(!a||!b||!label) return '';
-    return `<text class="edge-label ${{objectMetaClass(e)}}" x="${{(a[0]+b[0])/2}}" y="${{(a[1]+b[1])/2 - 6}}" text-anchor="middle">${{esc(label)}}</text>`;
+    return `<text class="edge-label clickable-object ${{objectMetaClass(e)}}" ${{clickableAttrs(`edge-label:${{e.id.replace(/^edge:/,'')}}`)}} x="${{(a[0]+b[0])/2}}" y="${{(a[1]+b[1])/2 - 6}}" text-anchor="middle">${{esc(label)}}</text>`;
+  }}).join('');
+  const bottleneckLabels = bottleneck === undefined ? '' : edges.filter(e => objectPatterns(e).includes('network_flow_augmenting_path')).map(e => {{
+    const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
+    const x=(a[0]+b[0])/2, y=(a[1]+b[1])/2 + 18;
+    return `<g class="flow-bottleneck-label" transform="translate(${{x}},${{y}})"><rect x="-30" y="-12" width="60" height="22" rx="7"></rect><text text-anchor="middle" y="3">瓶颈 ${{esc(compactValue(bottleneck))}}</text></g>`;
   }}).join('');
   const nodeSvg = nodes.map(n => {{
     const p=pos[n.id]; const cls=`${{markClass(n.id, marks)}} ${{objectMetaClass(n)}}`;
-    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="23"></circle><text text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text></g>`;
+    const metric = graphNodeMetricText(frame(), n);
+    const metricText = metric ? `<text class="graph-node-inline-metrics" y="${{nodeRadius + 17}}" text-anchor="middle">${{esc(metric)}}</text>` : '';
+    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="${{nodeRadius}}"></circle><text text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="750">${{esc(n.label || n.id.replace('node:',''))}}</text>${{metricText}}</g>`;
   }}).join('');
-  return `<div><h3 class="view-title">${{esc(c.label || '图')}}</h3><svg class="graph-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{edgeLabels}}${{nodeSvg}}</svg></div>`;
+  return `<div><h3 class="view-title">${{esc(c.label || '图')}}</h3><svg class="graph-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{edgeLabels}}${{bottleneckLabels}}${{nodeSvg}}</svg></div>`;
+}}
+function graphPositions(c, nodes, edges, state, w, h, nodeRadius, bottomExtra) {{
+  const partition = bipartitePartitions(nodes, edges, state);
+  if (partition) return bipartiteGraphPositions(nodes, partition.left, partition.right, w, h, nodeRadius, bottomExtra);
+  const padX = nodeRadius + 26;
+  const padTop = nodeRadius + 14;
+  const padBottom = nodeRadius + bottomExtra;
+  const cx=w/2, cy=padTop + Math.max(1, h - padTop - padBottom) / 2;
+  const rx=Math.max(24, w / 2 - padX);
+  const ry=Math.max(24, (h - padTop - padBottom) / 2);
+  const pos={{}};
+  nodes.forEach((n,i)=>{{ const a=-Math.PI/2 + 2*Math.PI*i/Math.max(1,nodes.length); pos[n.id]=[cx+rx*Math.cos(a),cy+ry*Math.sin(a)]; }});
+  return pos;
+}}
+function bipartiteGraphPositions(nodes, leftIds, rightIds, w, h, nodeRadius, bottomExtra) {{
+  const nodeByKey = graphNodeKeyMap(nodes);
+  const left = unique(leftIds.map(id => nodeByKey.get(String(id)) || nodeByKey.get(`node:${{id}}`) || String(id)).filter(id => nodeByKey.has(id) || nodes.some(n => n.id === id)));
+  const right = unique(rightIds.map(id => nodeByKey.get(String(id)) || nodeByKey.get(`node:${{id}}`) || String(id)).filter(id => nodeByKey.has(id) || nodes.some(n => n.id === id)));
+  const assigned = new Set([...left, ...right]);
+  const leftovers = nodes.map(n => n.id).filter(id => !assigned.has(id));
+  leftovers.forEach((id, i) => (left.length <= right.length ? left : right).push(id));
+  const pos={{}};
+  const place = (ids, x) => {{
+    const padTop = nodeRadius + 14;
+    const padBottom = nodeRadius + bottomExtra;
+    const usable = Math.max(1, h - padTop - padBottom);
+    const gap = usable / Math.max(1, ids.length - 1);
+    ids.forEach((id, i) => pos[id] = [x, ids.length === 1 ? padTop + usable / 2 : padTop + i * gap]);
+  }};
+  place(left, w * 0.27);
+  place(right, w * 0.73);
+  return pos;
+}}
+function bipartitePartitions(nodes, edges, state) {{
+  const direct = directBipartitePartition(state);
+  if (direct) return direct;
+  const namedPartition = namedBipartitePartition(nodes);
+  if (namedPartition) return namedPartition;
+  const colorPartition = colorBipartitePartition(nodes, state);
+  if (colorPartition) return colorPartition;
+  const matchingPartition = matchingBipartitePartition(nodes, state);
+  if (matchingPartition) return matchingPartition;
+  return null;
+}}
+function namedBipartitePartition(nodes) {{
+  const left = [], right = [];
+  for (const node of nodes || []) {{
+    const raw = String(node.label || node.id || '').replace(/^node:/, '');
+    if (/^(l|left)[_:-]?\\w*/i.test(raw)) left.push(node.id);
+    else if (/^(r|right)[_:-]?\\w*/i.test(raw)) right.push(node.id);
+  }}
+  return left.length && right.length ? {{ left, right }} : null;
+}}
+function directBipartitePartition(state) {{
+  const left = state.left ?? state.Left ?? state.U ?? state.left_set ?? state.left_partition;
+  const right = state.right ?? state.Right ?? state.V ?? state.right_set ?? state.right_partition;
+  const partition = state.partition || state.partitions || state.bipartition;
+  const leftList = Array.isArray(left) ? left : partition && Array.isArray(partition.left) ? partition.left : partition && Array.isArray(partition.L) ? partition.L : null;
+  const rightList = Array.isArray(right) ? right : partition && Array.isArray(partition.right) ? partition.right : partition && Array.isArray(partition.R) ? partition.R : null;
+  if (leftList && rightList && (leftList.length || rightList.length)) return {{ left:leftList.map(String), right:rightList.map(String) }};
+  return null;
+}}
+function colorBipartitePartition(nodes, state) {{
+  const colors = state.color || state.colors || state.colour;
+  if (!colors || typeof colors !== 'object' || Array.isArray(colors)) return null;
+  const groups = new Map();
+  for (const node of nodes) {{
+    const candidates = graphNodeKeyCandidates(node);
+    const key = candidates.find(id => Object.prototype.hasOwnProperty.call(colors, id));
+    if (key === undefined) continue;
+    const color = String(colors[key]);
+    if (!groups.has(color)) groups.set(color, []);
+    groups.get(color).push(node.id);
+  }}
+  const entries = Array.from(groups.values()).filter(Boolean);
+  if (entries.length !== 2) return null;
+  return {{ left:entries[0], right:entries[1] }};
+}}
+function matchingBipartitePartition(nodes, state) {{
+  const matching = state.matching || state.matches || state.match || state.pair || state.pairs;
+  if (!matching) return null;
+  const left = [], right = [];
+  if (Array.isArray(matching)) {{
+    matching.forEach(item => {{
+      if (Array.isArray(item) && item.length >= 2) {{ left.push(String(item[0])); right.push(String(item[1])); }}
+      else if (item && typeof item === 'object') {{ left.push(String(item.u ?? item.left ?? item[0] ?? '')); right.push(String(item.v ?? item.right ?? item[1] ?? '')); }}
+    }});
+  }} else if (typeof matching === 'object') {{
+    Object.entries(matching).forEach(([k,v]) => {{ left.push(String(k)); right.push(String(v)); }});
+  }}
+  if (!left.length && !right.length) return null;
+  return {{ left:left.filter(Boolean), right:right.filter(Boolean) }};
+}}
+function graphNodeKeyMap(nodes) {{
+  const map = new Map();
+  for (const node of nodes) for (const key of graphNodeKeyCandidates(node)) map.set(key, node.id);
+  return map;
+}}
+function graphNodeKeyCandidates(node) {{
+  const raw = String(node && node.id || '');
+  const plain = raw.replace(/^node:/, '');
+  const label = String(node && node.label || '');
+  return unique([raw, plain, label]);
+}}
+function graphEdgeSemanticClass(edge, state) {{
+  const classes = [];
+  if (edgeInCollection(edge, state.accepted_edges || state.mst_edges || state.selected_edges)) classes.push('accepted-edge');
+  if (edgeInCollection(edge, state.rejected_edges || state.skipped_edges || state.conflict_edges)) classes.push('rejected-edge');
+  if (edgeInMatching(edge, state)) classes.push('matching-edge');
+  return classes.join(' ');
+}}
+function edgeInMatching(edge, state) {{
+  const matching = state.matching || state.matches || state.match || state.pair || state.pairs;
+  if (!matching) return false;
+  const u = String(edge.source || '').replace(/^node:/, '');
+  const v = String(edge.target || '').replace(/^node:/, '');
+  if (Array.isArray(matching)) return matching.some(item => edgePairMatches(item, u, v));
+  if (typeof matching === 'object') return Object.entries(matching).some(([a,b]) => edgeEndpointPairMatches(String(a), String(b), u, v));
+  return false;
+}}
+function edgeInCollection(edge, collection) {{
+  if (!collection) return false;
+  const u = String(edge.source || '').replace(/^node:/, '');
+  const v = String(edge.target || '').replace(/^node:/, '');
+  const values = Array.isArray(collection) ? collection : Object.values(collection);
+  return values.some(item => edgePairMatches(item, u, v) || String(item) === edge.id || String(item) === `${{u}}-${{v}}` || String(item) === `${{u}}->${{v}}`);
+}}
+function edgePairMatches(item, u, v) {{
+  if (Array.isArray(item) && item.length >= 2) return edgeEndpointPairMatches(String(item[0]), String(item[1]), u, v);
+  if (item && typeof item === 'object') return edgeEndpointPairMatches(String(item.u ?? item.source ?? item.left ?? ''), String(item.v ?? item.target ?? item.right ?? ''), u, v);
+  return false;
+}}
+function edgeEndpointPairMatches(a, b, u, v) {{
+  return (a === u && b === v) || (a === v && b === u);
+}}
+function graphNodeMetricText(f, node) {{
+  const state = f && f.state || {{}};
+  const rawId = String(node && node.id || '');
+  const plainId = rawId.replace(/^node:/, '');
+  const label = String(node && node.label || '');
+  const candidates = unique([rawId, plainId, label].filter(Boolean));
+  const parts = [];
+  for (const key of ['dist','distance','dfn','low','indegree','color']) {{
+    const table = state[key];
+    if (!table || typeof table !== 'object' || Array.isArray(table)) continue;
+    const found = candidates.find(id => Object.prototype.hasOwnProperty.call(table, id));
+    if (found === undefined) continue;
+    const shortKey = key === 'distance' ? 'dist' : key;
+    parts.push(`${{shortKey}}=${{compactValue(table[found])}}`);
+  }}
+  return parts.slice(0, 3).join(' · ');
 }}
 function renderTree(c, children, marks, layout) {{
   const nodes = children.filter(o => o.type === 'node');
   const edges = children.filter(o => o.type === 'edge');
-  const w=720,h=340;
+  const w=760,h=380;
   const roots = inferRoots(nodes, edges);
   const levels = treeLevels(nodes, edges, roots);
   const pos={{}};
+  const hasTreeMetricText = nodes.some(n => treeNodeMetricText(frame(), n, layout));
+  const hasReturnBubble = nodes.some(n => n.meta && n.meta.return_value !== undefined);
+  const topPad = hasReturnBubble ? 58 : 44;
+  const bottomPad = hasTreeMetricText ? 72 : 44;
+  const usableHeight = Math.max(1, h - topPad - bottomPad);
   levels.forEach((levelNodes, depth) => {{
-    const y = 48 + depth * Math.max(62, (h - 80) / Math.max(1, levels.length - 1));
+    const y = levels.length === 1 ? topPad + usableHeight / 2 : topPad + depth * usableHeight / Math.max(1, levels.length - 1);
     levelNodes.forEach((n, i) => {{
       const x = (i + 1) * w / (levelNodes.length + 1);
       pos[n.id] = [x, y];
     }});
   }});
-  nodes.forEach((n, i) => {{ if (!pos[n.id]) pos[n.id]=[(i+1)*w/(nodes.length+1), h-45]; }});
+  nodes.forEach((n, i) => {{ if (!pos[n.id]) pos[n.id]=[(i+1)*w/(nodes.length+1), h-bottomPad]; }});
   const edgeSvg = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
     const cls = `${{markClass(e.id, marks)}} ${{objectMetaClass(e)}}`;
@@ -1074,10 +2756,33 @@ function renderTree(c, children, marks, layout) {{
   const nodeSvg = nodes.map(n => {{
     const p=pos[n.id]; const cls=`${{markClass(n.id, marks)}} ${{objectMetaClass(n)}}`;
     const bubble = n.meta && n.meta.return_value !== undefined ? `<g class="return-bubble" transform="translate(17,-34)"><rect x="-4" y="-12" width="${{Math.max(34, String(compactValue(n.meta.return_value)).length * 7 + 10)}}" height="20" rx="7"></rect><text x="3" y="2">${{esc(compactValue(n.meta.return_value))}}</text></g>` : '';
-    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="22"></circle><text text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="650">${{esc(n.label || n.id.replace('node:',''))}}</text>${{bubble}}</g>`;
+    const metric = treeNodeMetricText(frame(), n, layout);
+    const metricText = metric ? `<text class="graph-node-inline-metrics" y="52" text-anchor="middle">${{esc(metric)}}</text>` : '';
+    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(n.id)}} transform="translate(${{p[0]}},${{p[1]}})"><circle r="34"></circle><text text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="750">${{esc(n.label || n.id.replace('node:',''))}}</text>${{metricText}}${{bubble}}</g>`;
   }}).join('');
   const label = layout === 'trie' ? 'Trie' : layout === 'union_find' ? '并查集' : layout === 'recursion_tree' ? '递归树' : '树';
   return `<div><h3 class="view-title">${{esc(c.label || label)}}</h3><svg class="tree-svg" viewBox="0 0 ${{w}} ${{h}}">${{edgeSvg}}${{edgeLabels}}${{nodeSvg}}</svg></div>`;
+}}
+function treeNodeMetricText(f, node, layout) {{
+  const state = f && f.state || {{}};
+  const graphMetric = graphNodeMetricText(f, node);
+  if (graphMetric) return graphMetric;
+  const rawId = String(node && node.id || '');
+  const plainId = rawId.replace(/^node:/, '');
+  const dpEntries = treeDpNodeValues(state);
+  const found = dpEntries.find(([key]) => String(key) === rawId || String(key) === plainId || `node:${{key}}` === rawId);
+  if (found) {{
+    const value = found[1];
+    if (value && typeof value === 'object') {{
+      const take = value.take ?? value.rob ?? value.include;
+      const skip = value.skip ?? value.not_rob ?? value.exclude;
+      const ret = value.return_value ?? value.best ?? value.value;
+      return [take !== undefined ? `take=${{compactValue(take)}}` : '', skip !== undefined ? `skip=${{compactValue(skip)}}` : '', ret !== undefined ? `ret=${{compactValue(ret)}}` : ''].filter(Boolean).slice(0, 2).join(' · ');
+    }}
+    return `dp=${{compactValue(value)}}`;
+  }}
+  if (layout === 'trie' && (node.meta && (node.meta.is_word || node.meta.terminal || node.meta.word_end) || /\\*$/.test(String(node.label || '')))) return 'word end';
+  return '';
 }}
 function inferRoots(nodes, edges) {{
   const targets = new Set(edges.map(e => e.target));
@@ -1106,6 +2811,10 @@ function renderGeometry(c, children, marks) {{
   const points = children.filter(o => o.type === 'node' && o.meta && Number.isFinite(Number(o.meta.x)) && Number.isFinite(Number(o.meta.y)));
   const edges = children.filter(o => o.type === 'edge');
   const sweeps = children.filter(o => o.meta && o.meta.layout === 'sweep_line');
+  const state = frame().state || {{}};
+  const candidate = state.candidate ?? state.current;
+  const popped = state.popped ?? state.removed ?? state.pop_point;
+  const cross = state.cross ?? state.cross_product ?? state.orientation;
   const w=720,h=340,pad=36;
   const xs = points.map(p => Number(p.meta.x)), ys = points.map(p => Number(p.meta.y));
   for (const s of sweeps) {{
@@ -1116,6 +2825,8 @@ function renderGeometry(c, children, marks) {{
   const sx=x => pad + (Number(x)-minX) * (w-2*pad) / Math.max(1, maxX-minX);
   const sy=y => h - pad - (Number(y)-minY) * (h-2*pad) / Math.max(1, maxY-minY);
   const byId = new Map(points.map(p => [p.id, p]));
+  const byAlias = new Map(points.flatMap(p => [[p.id, p], [p.meta && p.meta.alias, p], [String(p.label || ''), p], [`point:${{p.label}}`, p]].filter(item => item[0])));
+  const pointLookup = value => byAlias.get(String(value)) || byAlias.get(`point:${{value}}`);
   const edgeSvg = edges.map(e => {{
     const a=byId.get(e.source), b=byId.get(e.target); if(!a||!b) return '';
     const cls = e.meta && e.meta.shape === 'hull' ? 'geo-hull' : 'geo-segment';
@@ -1131,13 +2842,21 @@ function renderGeometry(c, children, marks) {{
   }}).join('');
   const pointSvg = points.map(p => {{
     const cls=markClass(p.id, marks); const x=sx(p.meta.x), y=sy(p.meta.y);
-    return `<g class="node clickable-object ${{cls}}" ${{clickableAttrs(p.id)}} transform="translate(${{x}},${{y}})"><circle r="7"></circle><text x="10" y="-8" font-size="12">${{esc(p.label)}}</text></g>`;
+    const relationCls = pointLookup(candidate) === p ? 'geo-candidate-point' : pointLookup(popped) === p ? 'geo-hull-ghost-svg' : '';
+    return `<g class="node clickable-object ${{cls}} ${{relationCls}}" ${{clickableAttrs(p.id)}} transform="translate(${{x}},${{y}})"><circle r="7"></circle><text x="10" y="-8" font-size="12">${{esc(p.label)}}</text></g>`;
   }}).join('');
-  return `<div><h3 class="view-title">${{esc(c.label || '几何平面')}}</h3><svg class="geometry-svg" viewBox="0 0 ${{w}} ${{h}}"><line class="geo-axis" x1="${{pad}}" y1="${{h-pad}}" x2="${{w-pad}}" y2="${{h-pad}}"></line><line class="geo-axis" x1="${{pad}}" y1="${{pad}}" x2="${{pad}}" y2="${{h-pad}}"></line>${{edgeSvg}}${{sweepSvg}}${{pointSvg}}</svg></div>`;
+  const candidatePoint = pointLookup(candidate);
+  const poppedPoint = pointLookup(popped);
+  const relationSvg = candidatePoint && poppedPoint && cross !== undefined ? (() => {{
+    const x1=sx(poppedPoint.meta.x), y1=sy(poppedPoint.meta.y), x2=sx(candidatePoint.meta.x), y2=sy(candidatePoint.meta.y);
+    const label = Number(cross) > 0 ? '左转' : Number(cross) < 0 ? '右转' : '共线';
+    return `<line class="geo-cross-vector" x1="${{x1}}" y1="${{y1}}" x2="${{x2}}" y2="${{y2}}"></line><text class="geo-cross-label" x="${{(x1+x2)/2+8}}" y="${{(y1+y2)/2-8}}">${{esc(label)}} cross=${{esc(compactValue(cross))}}</text>`;
+  }})() : '';
+  return `<div><h3 class="view-title">${{esc(c.label || '几何平面')}}</h3><svg class="geometry-svg" viewBox="0 0 ${{w}} ${{h}}"><defs><marker id="geo-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#dc2626"></path></marker></defs><line class="geo-axis" x1="${{pad}}" y1="${{h-pad}}" x2="${{w-pad}}" y2="${{h-pad}}"></line><line class="geo-axis" x1="${{pad}}" y1="${{pad}}" x2="${{pad}}" y2="${{h-pad}}"></line>${{edgeSvg}}${{sweepSvg}}${{relationSvg}}${{pointSvg}}</svg></div>`;
 }}
 function renderLooseObjects(objects, marks) {{
   const fake = {{id:'状态', label:'状态', meta:{{layout:'map'}}}};
-  return renderMap(fake, objects, marks);
+  return renderPrimitivePanel(fake, objects, marks, 'primary');
 }}
 function currentPointersFor(containerId) {{
   const f = frame();
@@ -1506,8 +3225,13 @@ function renderCode(code, info) {{
   const active = Number(info && info.active) || 1;
   const status = info && info.status === 'ok' ? 'ok' : 'warn';
   const label = info && info.label ? info.label : `当前代码行：第 ${{active}} 行`;
-  const sync = `<div class="code-sync ${{status}}" data-active-line="${{active}}"><span>${{esc(label)}}</span></div>`;
-  $('code').innerHTML = sync + lines.map((line,i)=>`<div class="line ${{i+1===active?'active':''}}"><span class="lineno">${{i+1}}</span><span>${{esc(line) || ' '}}</span></div>`).join('');
+  const sync = `<div class="code-sync ${{status}}" data-active-line="${{active}}" data-code-line-status="${{status}}"><span>${{esc(label)}}</span></div>`;
+  $('code').innerHTML = sync + lines.map((line,i)=>{{
+    const lineNo = i + 1;
+    const lineActive = status === 'ok' && lineNo === active;
+    const fallback = status !== 'ok' && lineNo === active;
+    return `<div class="line ${{lineActive ? 'active' : ''}} ${{fallback ? 'fallback' : ''}}"><span class="lineno">${{lineNo}}</span><span>${{esc(line) || ' '}}</span></div>`;
+  }}).join('');
 }}
 function play() {{
   if (timer) return stop();

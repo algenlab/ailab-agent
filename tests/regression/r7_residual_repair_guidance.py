@@ -107,9 +107,9 @@ def test_r7_tree_and_heap_residual_guidance_requires_current_node_and_heap_invar
     _assert_legacy_generation("树遍历 失败：Family contract tree 缺少 current node; heap_top 错误")
 
 
-def test_r7_range_timeout_guidance_requires_short_segment_and_fenwick_templates():
-    item = _assert_context("trace 执行超时：segment tree tracker exceeded max_events", failure_type="trace_size", category="trace_size")
-    assert "事件超过预算" in item["repair_instruction"]
+def test_r7_trace_size_guidance_focuses_on_single_event_state_budget():
+    item = _assert_context("trace 执行失败：单步 state 过大，请只保留可视化必要变量", failure_type="trace_size", category="trace_size")
+    assert "精简单步 state" in item["repair_instruction"]
 
 
 def test_r7_data_structure_guidance_covers_trie_linked_heap_union_find_and_range():
@@ -165,7 +165,7 @@ def run_all() -> None:
     test_r7_bounded_knapsack_guidance_allows_incremental_candidate_but_requires_final_max()
     test_r7_string_sliding_window_guidance_uses_single_text_window_contract()
     test_r7_tree_and_heap_residual_guidance_requires_current_node_and_heap_invariants()
-    test_r7_range_timeout_guidance_requires_short_segment_and_fenwick_templates()
+    test_r7_trace_size_guidance_focuses_on_single_event_state_budget()
     test_r7_data_structure_guidance_covers_trie_linked_heap_union_find_and_range()
     test_r7_scene_and_range_guidance_handles_trie_node_none_and_segment_tree_mark_evidence()
     test_r7_scene_guidance_requires_state_struct_for_every_node_ref()
