@@ -86,6 +86,7 @@ def test_llm_client_reads_local_api_settings_without_committing_key(tmp_path: Pa
                 "api_settings:",
                 '  base_url: "http://example.test/v1"',
                 '  api_key: "sk-test-local-only"',
+                '  model: "test-local-model"',
                 "",
             ]
         ),
@@ -113,6 +114,7 @@ def test_llm_client_reads_local_api_settings_without_committing_key(tmp_path: Pa
         llm_client._LOCAL_API_SETTINGS = old_cache
 
     assert config["base_url"] == "http://example.test/v1"
+    assert config["model"] == "test-local-model"
     assert config["api_key_configured"] is True
     assert config["api_key_source"] == str(settings_path)
     assert "sk-test-local-only" not in json.dumps(config)

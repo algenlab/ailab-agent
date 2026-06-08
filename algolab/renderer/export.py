@@ -535,6 +535,7 @@ function isKeyCompareFrame(f) {{
   const evidence = f && f.evidence || {{}};
   const timeline = evidence.timeline || {{}};
   if (timeline.keyframe) return true;
+  if (timeline.keyframe === false) return false;
   const op = textOrEmpty(evidence.operation || f && f.operation);
   return ['set','mark','move','compare','push','pop','enter','exit'].includes(op);
 }}
@@ -571,9 +572,13 @@ function renderStep() {{
   renderTimeline();
 }}
 function frameTitle(f) {{
+  const teaching = f && f.teaching || {{}};
+  if (textOrEmpty(teaching.what)) return textOrEmpty(teaching.what);
   return textOrEmpty(f && f.title) || frameOperation(f) || `步骤 ${{stepIndex + 1}}`;
 }}
 function frameDescription(f) {{
+  const teaching = f && f.teaching || {{}};
+  if (textOrEmpty(teaching.why)) return textOrEmpty(teaching.why);
   return textOrEmpty(f && f.description);
 }}
 function frameOperation(f) {{
@@ -784,12 +789,16 @@ function renderPrimaryStage(primary, groups, marks, objects) {{
 function renderSemanticAnchorBand(f) {{
   const evidence = f && f.evidence || {{}};
   const marks = f && f.marks || [];
-  const targets = unique([...(Array.isArray(evidence.targets) ? evidence.targets : []), ...marks.filter(m => m.role !== 'dependency').map(m => m.target)]).slice(0, 6);
+  const answerTarget = answerTargetForFrame(f);
+  const hasAnswerBadge = answerValueForFrame(f).value !== undefined || !!answerTarget;
+  const targets = unique([...(Array.isArray(evidence.targets) ? evidence.targets : []), ...marks.filter(m => m.role !== 'dependency').map(m => m.target)])
+    .filter(id => !(hasAnswerBadge && isAnswerLikeContainer(id)))
+    .slice(0, 6);
   const deps = unique([...(Array.isArray(evidence.deps) ? evidence.deps : []), ...marks.filter(m => m.role === 'dependency').map(m => m.target)]).slice(0, 6);
   if (!targets.length && !deps.length) return '';
   const targetChips = targets.map(id => semanticAnchorChip(f, id, 'target')).join('');
   const depChips = deps.map(id => semanticAnchorChip(f, id, 'dependency')).join('');
-  return `<section class="semantic-anchor-band" data-stage-role="anchor" data-visual-pattern="semantic_target_anchor" aria-label="当前语义锚点"><span class="semantic-anchor-label">当前对象</span>${{targetChips}}${{depChips ? `<span class="semantic-anchor-label">依赖</span>${{depChips}}` : ''}}</section>`;
+  return `<section class="semantic-anchor-band" data-stage-role="anchor" data-visual-pattern="semantic_target_anchor" aria-label="当前语义锚点">${{targetChips ? `<span class="semantic-anchor-label">当前对象</span>${{targetChips}}` : ''}}${{depChips ? `<span class="semantic-anchor-label">依赖</span>${{depChips}}` : ''}}</section>`;
 }}
 function semanticAnchorChip(f, id, kind) {{
   return `<span class="semantic-anchor-chip clickable-object" target-kind="${{esc(kind)}}" ${{clickableAttrs(id)}}>${{dependencyLabel(f, id)}}</span>`;

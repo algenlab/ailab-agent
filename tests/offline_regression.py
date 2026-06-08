@@ -528,6 +528,45 @@ def test_scene_compiler_emits_generic_timeline_evidence():
     assert second_timeline["keyframe_label"] == "写入最终答案。"
 
 
+def test_scene_compiler_limits_timeline_keyframes_without_dropping_frames():
+    events = []
+    for step in range(80):
+        role = "answer" if step == 79 else None
+        events.append(
+            {
+                "step": step,
+                "op": "set",
+                "targets": [{"id": f"dp[{step}]" if step < 79 else "answer"}],
+                "deps": [{"id": f"dp[{max(0, step - 1)}]"}] if step else [],
+                "state": {"dp": list(range(step + 1)), "answer": step if role == "answer" else None},
+                "role": role,
+                "reason": "写入最终答案。" if role == "answer" else f"更新第 {step} 项。",
+                "code_line": 2,
+            }
+        )
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "长时间线",
+            "input_data": {"n": 80},
+            "result": 79,
+            "events": events,
+        }
+    )
+
+    scene = compile_scene(trace)
+
+    assert len(scene.frames) == 80
+    keyframes = [frame for frame in scene.frames if frame.evidence["timeline"]["keyframe"] is True]
+    assert len(keyframes) == 50
+    demoted = [frame for frame in scene.frames if frame.evidence["timeline"]["keyframe"] is False]
+    assert len(demoted) == 30
+    assert scene.frames[-1].evidence["timeline"]["keyframe"] is True
+    assert demoted[0].evidence["timeline"]["keyframe_demoted"] is True
+    assert demoted[0].evidence["timeline"]["keyframe_limit"] == 50
+    assert demoted[0].evidence["timeline"]["keyframe_original_count"] == 80
+
+
 def test_scene_compiler_infers_timeline_phase_without_explicit_state_field():
     trace = SemanticTrace.model_validate(
         {
@@ -4249,6 +4288,7 @@ def test_renderer_declares_variant_comparison_without_scene_mixing(tmp_path: Pat
 
     keyframe_block = html.split("function isKeyCompareFrame", 1)[1].split("function selectVariant", 1)[0]
     assert "timeline.keyframe" in keyframe_block
+    assert "timeline.keyframe === false" in keyframe_block
     assert "evidence.operation" in keyframe_block
     assert "algorithm" not in keyframe_block
     assert "problem_title" not in keyframe_block
@@ -5026,6 +5066,7 @@ def run_all():
         test_stable_renderer_exposes_correctness_and_step_evidence(Path(d))
         test_renderer_uses_p1_information_architecture(Path(d))
         test_scene_compiler_emits_generic_timeline_evidence()
+        test_scene_compiler_limits_timeline_keyframes_without_dropping_frames()
         test_scene_compiler_infers_timeline_phase_without_explicit_state_field()
         test_renderer_uses_semantic_timeline_with_generic_fallback(Path(d))
         test_tracker_prompt_requests_phase_labels_without_stage_targets()

@@ -32,7 +32,7 @@ DEFAULT_API_RETRY_DELAY_S = 2.0
 
 
 def _model_name(model: str | None = None) -> str:
-    return model or os.environ.get("ALGOLAB_LLM_MODEL") or DEFAULT_MODEL
+    return model or os.environ.get("ALGOLAB_LLM_MODEL") or api_settings().get("model") or DEFAULT_MODEL
 
 
 def _timeout_s() -> float:
@@ -90,6 +90,7 @@ def api_settings() -> dict:
     return {
         "base_url": os.environ.get("ALGOLAB_LLM_BASE_URL") or local.get("base_url") or DEFAULT_BASE_URL,
         "api_key": os.environ.get("ALGOLAB_LLM_API_KEY") or local.get("api_key") or "",
+        "model": local.get("model") or "",
         "source": "env" if os.environ.get("ALGOLAB_LLM_API_KEY") else local.get("source", ""),
     }
 
@@ -139,6 +140,7 @@ def _normalize_api_settings(data: object) -> dict:
     return {
         "base_url": str(section.get("base_url") or "").strip(),
         "api_key": str(section.get("api_key") or "").strip(),
+        "model": str(section.get("model") or "").strip(),
     }
 
 
@@ -158,11 +160,12 @@ def _parse_simple_yaml_api_settings(text: str) -> dict:
         if not sep:
             continue
         cleaned = value.strip().strip('"').strip("'")
-        if key in {"base_url", "api_key"}:
+        if key in {"base_url", "api_key", "model"}:
             values[key] = cleaned
     return {
         "base_url": values.get("base_url", ""),
         "api_key": values.get("api_key", ""),
+        "model": values.get("model", ""),
     }
 
 

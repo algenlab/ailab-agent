@@ -10,6 +10,9 @@ from algolab.schemas.scene_graph import SceneFrame, SceneGraph, SceneObject, Sce
 from algolab.schemas.semantic_trace import SemanticEvent, SemanticOp, SemanticTrace
 
 
+MAX_TIMELINE_KEYFRAMES = 50
+
+
 def compile_scene(trace: SemanticTrace) -> SceneGraph:
     frames: list[SceneFrame] = []
     previous_state: dict[str, Any] = {}
@@ -18,6 +21,7 @@ def compile_scene(trace: SemanticTrace) -> SceneGraph:
         frame = compile_frame(trace, event, previous_state=previous_state, total_steps=total_steps)
         frames.append(frame)
         previous_state = frame.state
+    _limit_timeline_keyframes(frames)
     return SceneGraph(
         algorithm=trace.algorithm,
         input_data=trace.input_data,
@@ -645,6 +649,75 @@ def _timeline_keyframe_label(event: SemanticEvent, teaching: dict[str, Any]) -> 
         if isinstance(value, str) and value.strip():
             return value.strip()
     return _title_for_event(event)
+
+
+def _limit_timeline_keyframes(frames: list[SceneFrame], max_keyframes: int = MAX_TIMELINE_KEYFRAMES) -> None:
+    key_indices = [index for index, frame in enumerate(frames) if _frame_timeline(frame).get("keyframe") is True]
+    if len(key_indices) <= max_keyframes:
+        return
+    if max_keyframes <= 0:
+        selected: set[int] = set()
+    else:
+        priority = {key_indices[0], key_indices[-1]}
+        priority.update(index for index in key_indices if _is_priority_keyframe(frames[index]))
+        if len(priority) > max_keyframes:
+            selected = set(_evenly_sample_sorted(sorted(priority), max_keyframes))
+        else:
+            slots = max_keyframes - len(priority)
+            remaining = [index for index in key_indices if index not in priority]
+            selected = set(priority)
+            selected.update(_evenly_sample_sorted(remaining, slots))
+    original_count = len(key_indices)
+    for index in key_indices:
+        timeline = _frame_timeline(frames[index])
+        timeline["keyframe_limit"] = max_keyframes
+        timeline["keyframe_original_count"] = original_count
+        if index not in selected:
+            timeline["keyframe"] = False
+            timeline["keyframe_demoted"] = True
+
+
+def _frame_timeline(frame: SceneFrame) -> dict[str, Any]:
+    evidence = frame.evidence if isinstance(frame.evidence, dict) else {}
+    timeline = evidence.get("timeline")
+    if not isinstance(timeline, dict):
+        timeline = {}
+        evidence["timeline"] = timeline
+        frame.evidence = evidence
+    return timeline
+
+
+def _is_priority_keyframe(frame: SceneFrame) -> bool:
+    evidence = frame.evidence if isinstance(frame.evidence, dict) else {}
+    timeline = evidence.get("timeline") if isinstance(evidence.get("timeline"), dict) else {}
+    role = evidence.get("role") or timeline.get("role")
+    phase = timeline.get("phase")
+    return role in {"answer", "conflict"} or phase == "返回结果"
+
+
+def _evenly_sample_sorted(indices: list[int], limit: int) -> list[int]:
+    if limit <= 0 or not indices:
+        return []
+    if len(indices) <= limit:
+        return list(indices)
+    if limit == 1:
+        return [indices[0]]
+    selected: list[int] = []
+    seen: set[int] = set()
+    span = len(indices) - 1
+    for slot in range(limit):
+        position = round(slot * span / (limit - 1))
+        index = indices[position]
+        if index not in seen:
+            selected.append(index)
+            seen.add(index)
+    for index in indices:
+        if len(selected) >= limit:
+            break
+        if index not in seen:
+            selected.append(index)
+            seen.add(index)
+    return sorted(selected)
 
 
 def _objects_from_state(state: dict[str, Any], input_data: Any) -> list[SceneObject]:

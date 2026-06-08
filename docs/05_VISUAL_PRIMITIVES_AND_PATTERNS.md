@@ -175,7 +175,7 @@ SemanticTrace event
 - 左侧题目与输入区：题目描述、输入、expected、解法、解法对比、重新生成 payload。
 - 中间主可视化区：SceneGraph objects、controls、语义时间线。
 - 右侧教学与证据区：讲解、系统校验、本步证据、状态、交互、代码。
-- 底部 / 中部时间线：每帧 phase、keyframe、operation。
+- 底部 / 中部时间线：每帧 phase、keyframe、operation；SceneGraph 保留完整帧，但 keyframe 标记最多 50 个。
 - Debug Drawer：raw validation、raw state、release gate、artifact JSON。
 
 页面允许增强：

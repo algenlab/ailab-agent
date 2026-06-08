@@ -95,6 +95,7 @@ def generate_lab(problem: str, input_json: str, strategy: str, user_code: str, e
         user_code=user_code,
         expected_result=expected,
         solution_count=int(solutions),
+        teaching_enrichment=True,
     )
 
     try:

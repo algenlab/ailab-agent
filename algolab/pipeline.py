@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from algolab.compiler.scene_compiler import compile_scene
+from algolab.generation.teaching_enricher import enrich_scene_teaching
 from algolab.generation.solution_generator import generate_solution_spec, parse_variants, repair_solution_spec
 from algolab.runtime.executor import canonical, execute_variant, results_equivalent, run_verifier
 from algolab.runtime.sandbox import run_function
@@ -126,6 +127,16 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
                     )
                 )
             scene = compile_scene(materialized.trace)
+            teaching_warnings = enrich_scene_teaching(
+                scene,
+                materialized.trace,
+                problem=request.problem,
+                code=materialized.code,
+                enabled=request.teaching_enrichment,
+            )
+            warnings.extend(f"{materialized.name}: {w}" for w in teaching_warnings)
+            if request.teaching_enrichment and not teaching_warnings:
+                checks.append(f"{materialized.name}：教学讲解/交互增强已应用")
             scene_errors, scene_warnings = validate_scene(scene)
             if scene_errors:
                 raise ValueError("; ".join(scene_errors))

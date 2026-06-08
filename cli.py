@@ -37,6 +37,12 @@ def main() -> int:
     parser.add_argument("--expected", default="", help="可选：期望输出 JSON 字符串或文件")
     parser.add_argument("--solutions", type=int, default=2, help="希望生成的解法数量")
     parser.add_argument("--output", default="output/algolab.html", help="输出 HTML 路径")
+    parser.add_argument(
+        "--teaching-enrichment",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="是否在 trace 校验后调用 LLM 生成讲解和交互增强",
+    )
     args = parser.parse_args()
 
     default_problem = (
@@ -55,6 +61,7 @@ def main() -> int:
         user_code=user_code,
         expected_result=expected,
         solution_count=args.solutions,
+        teaching_enrichment=args.teaching_enrichment,
     )
     artifact = build_artifact(request)
     out = save_html(artifact, args.output)
