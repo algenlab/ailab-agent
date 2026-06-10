@@ -184,7 +184,7 @@ def test_trace_digest_limits_long_trace_but_keeps_answer_and_state_change_frames
     assert digest["trace_summary"]["total_events"] == 40
 
 
-def test_trace_digest_default_includes_all_events_without_frame_limit():
+def test_trace_digest_default_keeps_small_trace_under_frame_limit():
     events = [_event(0, "create", ["nums"], {"nums": [1, 2, 3], "answer": None})]
     for index in range(1, 12):
         events.append(_event(index, "compare", ["nums[0]"], {"nums": [1, 2, 3], "i": index}))
@@ -199,11 +199,32 @@ def test_trace_digest_default_includes_all_events_without_frame_limit():
     assert len(digest["frames"]) == len(trace.events)
 
 
-def test_enrich_scene_teaching_default_sends_all_events_to_llm_first():
+def test_trace_digest_default_caps_large_trace_at_30_key_frames():
+    events = [_event(0, "create", ["nums"], {"nums": [1, 2, 3], "answer": None})]
+    for index in range(1, 44):
+        state = {"nums": [1, 2, 3], "i": index, "answer": None}
+        events.append(_event(index, "compare", ["nums[0]"], state, deps=["nums[1]"]))
+    events.append(_event(44, "set", ["answer"], {"answer": 6}, value=6, before=None, after=6))
+    events.append(_event(45, "mark", ["answer"], {"answer": 6}, role="answer", value=6))
+    trace = _trace(events)
+
+    selected = select_teaching_events(trace)
+    selected_steps = [event.step for event in selected]
+    digest = build_trace_digest(trace, problem="求和", code="def solve(input_data): ...")
+
+    assert len(selected) == 30
+    assert selected_steps[0] == 0
+    assert 44 in selected_steps
+    assert 45 in selected_steps
+    assert digest["trace_summary"]["total_events"] == 46
+    assert len(digest["frames"]) == 30
+
+
+def test_enrich_scene_teaching_default_sends_at_most_30_key_frames_to_llm_first():
     events = [_event(0, "create", ["nums"], {"nums": [1, 2, 3]})]
-    for index in range(1, 6):
+    for index in range(1, 44):
         events.append(_event(index, "compare", ["nums[0]"], {"nums": [1, 2, 3], "i": index}))
-    events.append(_event(6, "mark", ["answer"], {"answer": 6}, role="answer", value=6))
+    events.append(_event(44, "mark", ["answer"], {"answer": 6}, role="answer", value=6))
     trace = _trace(events)
     scene = compile_scene(trace)
     selected_counts = []
@@ -213,13 +234,15 @@ def test_enrich_scene_teaching_default_sends_all_events_to_llm_first():
 
         payload = json.loads(user_prompt)
         selected_counts.append(len(payload["frames"]))
-        return {"frames": [{"step": 6, "teaching": {"what": "返回求和结果", "why": "answer 已写入。"}}]}
+        selected_steps = [frame["step"] for frame in payload["frames"]]
+        assert 44 in selected_steps
+        return {"frames": [{"step": 44, "teaching": {"what": "返回求和结果", "why": "answer 已写入。"}}]}
 
     warnings = enrich_scene_teaching(scene, trace, chat_fn=fake_chat)
 
     assert warnings == []
-    assert selected_counts == [len(trace.events)]
-    assert scene.frames[6].teaching["what"] == "返回求和结果"
+    assert selected_counts == [30]
+    assert scene.frames[44].teaching["what"] == "返回求和结果"
 
 
 def test_enrich_scene_teaching_retries_with_smaller_digest_after_llm_failure():

@@ -49,7 +49,7 @@ h1 {{ margin:0; font-size:18px; letter-spacing:0; }}
 .badge {{ border:1px solid var(--line); border-radius:999px; padding:3px 8px; background:#fff; color:var(--muted); font-size:11px; }}
 .badge.ok {{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }}
 .badge.warn {{ color:#92400e; border-color:#fde68a; background:#fffbeb; }}
-.workspace {{ display:grid; grid-template-columns:minmax(220px,260px) minmax(680px,1fr) minmax(300px,340px); gap:10px; padding:10px; min-height:0; align-items:start; }}
+.workspace {{ display:grid; grid-template-columns:minmax(280px,300px) minmax(660px,1fr) minmax(280px,300px); gap:10px; padding:10px; min-height:0; align-items:start; }}
 .col {{ display:grid; gap:10px; align-content:start; min-width:0; }}
 .task-col,.teaching-col {{ align-content:start; padding-right:2px; }}
 .task-col {{ max-height:min(560px, calc(100vh - 86px)); }}
@@ -82,8 +82,8 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .step-head h2 {{ margin:0; font-size:16px; }}
 .step-head p {{ margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.35; max-height:36px; overflow:auto; }}
 .pill {{ border-radius:999px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; padding:5px 10px; height:fit-content; font-size:12px; text-transform:uppercase; }}
-.canvas {{ padding:12px; overflow:hidden; min-height:0; height:clamp(460px,64vh,700px); }}
-.stage-grid {{ height:100%; min-height:0; display:grid; grid-template-rows:minmax(340px,1fr) minmax(96px,168px); gap:8px; }}
+.canvas {{ padding:12px; overflow:auto; min-height:0; height:clamp(460px,64vh,700px); }}
+.stage-grid {{ height:100%; min-height:100%; display:grid; grid-template-rows:minmax(340px,1fr) minmax(140px,200px); gap:8px; }}
 .scene-fit {{ position:relative; width:100%; height:100%; overflow:hidden; min-width:0; min-height:300px; cursor:grab; touch-action:none; }}
 .scene-fit.dragging {{ cursor:grabbing; }}
 .scene-fit.scroll-fit {{ overflow:auto; scrollbar-gutter:stable; }}
@@ -91,7 +91,7 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .view-tools {{ position:absolute; top:8px; right:8px; z-index:8; display:flex; gap:5px; pointer-events:auto; }}
 .view-tools button {{ border:1px solid #cbd5e1; border-radius:6px; background:rgba(255,255,255,.92); color:#334155; padding:4px 7px; font-size:11px; cursor:pointer; box-shadow:0 1px 2px rgba(15,23,42,.08); }}
 .view-tools button:hover {{ border-color:#93c5fd; color:#1d4ed8; background:#eff6ff; }}
-.stage-supplement {{ min-height:0; overflow:auto; display:grid; gap:8px; padding-right:2px; }}
+.stage-supplement {{ min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; display:grid; gap:8px; padding-right:2px; }}
 .stage-supplement:has(.support-dock) > .visual-quality-telemetry,
 .stage-supplement:has(.support-dock) > #dependency-detail {{ display:none; }}
 .stage-supplement:has(.visual-card) > #dependency-detail {{ display:none; }}
@@ -361,13 +361,14 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .clickable-object:hover {{ outline:2px solid #60a5fa; outline-offset:1px; }}
 .code-panel {{ padding:9px; }}
 .code-panel h2 {{ margin-bottom:7px; }}
-.code {{ background:#101827; color:#dbeafe; border-radius:7px; overflow:visible; }}
-.code pre {{ overflow:visible; }}
+.code {{ max-width:100%; background:#101827; color:#dbeafe; border-radius:7px; overflow:auto; scrollbar-gutter:stable; }}
+.code pre {{ overflow:auto; }}
 .code-sync {{ display:flex; align-items:center; gap:8px; padding:5px 9px; border-bottom:1px solid rgba(148,163,184,.25); background:#0f172a; color:#bfdbfe; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.3; }}
 .code-sync.ok {{ color:#bbf7d0; }}
 .code-sync.warn {{ color:#fde68a; background:#1f2937; }}
-.line {{ display:grid; grid-template-columns:42px 1fr; gap:10px; padding:1px 10px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.55; }}
-.lineno {{ color:#7f8ea3; text-align:right; }}
+.line {{ display:grid; grid-template-columns:28px minmax(max-content,1fr); gap:8px; width:max-content; min-width:100%; padding:1px 8px 1px 4px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.55; }}
+.lineno {{ color:#7f8ea3; text-align:right; font-size:11px; user-select:none; }}
+.code-text {{ min-width:max-content; white-space:pre; }}
 .line.active {{ background:#1d4ed8; color:#fff; }}
 .line.fallback {{ background:#1f2937; color:#cbd5e1; }}
 .line.fallback .lineno {{ color:#fde68a; }}
@@ -2879,6 +2880,14 @@ function renderTimeline() {{
     const title = `${{i + 1}} / ${{frames().length}} · ${{label}} · ${{op}}`;
     return `<button class="tick ${{i===stepIndex?'active':''}} ${{meta.keyframe ? 'keyframe' : 'ordinary'}}" data-step="${{i}}" data-phase="${{esc(textOrEmpty(meta.phase) || label)}}" title="${{esc(title)}}" aria-label="${{esc(title)}}" onclick="go(${{i}})"><span class="tick-label">${{esc(label)}}</span><span class="tick-op">${{esc(op)}}</span></button>`;
   }}).join('');
+  requestAnimationFrame(syncActiveTimelineTick);
+}}
+function syncActiveTimelineTick() {{
+  const timeline = $('timeline');
+  if (!timeline) return;
+  const active = timeline.querySelector('.tick.active');
+  if (!active) return;
+  active.scrollIntoView({{block:'nearest', inline:'center', behavior:'auto'}});
 }}
 function timelineMeta(f) {{
   const evidence = f && f.evidence || {{}};
@@ -3239,7 +3248,7 @@ function renderCode(code, info) {{
     const lineNo = i + 1;
     const lineActive = status === 'ok' && lineNo === active;
     const fallback = status !== 'ok' && lineNo === active;
-    return `<div class="line ${{lineActive ? 'active' : ''}} ${{fallback ? 'fallback' : ''}}"><span class="lineno">${{lineNo}}</span><span>${{esc(line) || ' '}}</span></div>`;
+    return `<div class="line ${{lineActive ? 'active' : ''}} ${{fallback ? 'fallback' : ''}}"><span class="lineno">${{lineNo}}</span><span class="code-text">${{esc(line) || ' '}}</span></div>`;
   }}).join('');
 }}
 function play() {{

@@ -4,9 +4,42 @@ from __future__ import annotations
 
 from algolab.schemas.semantic_trace import SemanticTrace
 from algolab.verification.process_validator import validate_process
-from tests.benchmark_cases import benchmark_cases
+from tests.benchmark_cases import LEETCODE_STYLE_PROBLEM_OVERRIDES, BenchmarkCase, benchmark_cases
 
 from tests.regression.helpers import *
+
+
+def test_leetcode_style_problem_overrides_only_replace_problem_descriptions():
+    from tests.benchmark_families import array_pointer, dp, expansion, graph, hash_sort_linked_greedy, string, tree_range_math
+
+    raw_cases = (
+        *dp.cases()[:1],
+        *array_pointer.cases()[:1],
+        *array_pointer.cases()[1:],
+        *dp.cases()[1:],
+        *graph.cases(),
+        *string.cases(),
+        *hash_sort_linked_greedy.cases(),
+        *tree_range_math.cases(),
+        *expansion.cases(),
+    )
+    raw_by_id = {case.id: case for case in raw_cases}
+
+    assert LEETCODE_STYLE_PROBLEM_OVERRIDES
+    overridden_count = 0
+    for case in benchmark_cases():
+        raw = raw_by_id[case.id]
+        if case.id in LEETCODE_STYLE_PROBLEM_OVERRIDES:
+            overridden_count += 1
+            assert case.problem == LEETCODE_STYLE_PROBLEM_OVERRIDES[case.id]
+        else:
+            assert case.problem == raw.problem
+        for field in BenchmarkCase.__dataclass_fields__:
+            if field == "problem":
+                continue
+            assert getattr(case, field) == getattr(raw, field), (case.id, field)
+
+    assert overridden_count == len(LEETCODE_STYLE_PROBLEM_OVERRIDES)
 
 def test_benchmark_cases_are_multi_input_release_ready():
     cases = benchmark_cases()

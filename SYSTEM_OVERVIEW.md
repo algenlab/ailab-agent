@@ -60,7 +60,7 @@ AlgoLab 是一个可验证的算法可视化生成系统。
 - family/process 报告仍保留 strong/fallback/uncovered 等 registry 口径，用于报告边界和降级说明。
 - direct HTML baseline 新增 `--hide-expected` 公平模式和 `audit_direct_html_answer.py` 答案审计。
 - 系统不再设置 trace 总帧数 / `max_events` 限制；`TraceSession` 和兼容 `Tracer` 都完整保留事件序列。当前只保留单步 `state` 大小保护，避免单帧携带超大对象。
-- teaching enrichment 默认把完整 trace digest 一次性给 LLM；只有调用方显式传入 `max_frames` 时才按事件打分截取关键帧。全量调用失败时会自动用 3 帧摘要降级重试，并以 warning 形式记录，不阻塞核心 artifact 生成。
+- teaching enrichment 默认最多把 30 个关键 trace frames 给 LLM；完整 trace 仍保存在 artifact 中用于审计。首轮 enrichment 失败时会自动用 3 帧摘要降级重试，并以 warning 形式记录，不阻塞核心 artifact 生成。
 
 ## 3. 主链路总览
 
@@ -252,7 +252,7 @@ app.py / cli.py / scripts/run_llm_benchmark.py
 说明：
 
 - `teaching_enrichment` 控制是否在 trace 校验后调用 LLM 生成讲解和交互增强。schema 默认值是 `False`，避免底层测试或离线批处理意外调用真实模型。
-- Web UI 和 CLI 在构造 `ProblemInput` 时默认设置为 `True`；CLI 支持 `--no-teaching-enrichment` 关闭。
+- Web UI、CLI 和 `scripts/run_llm_benchmark.py` 在构造 `ProblemInput` 时默认设置为 `True`；CLI / benchmark 支持 `--no-teaching-enrichment` 关闭。
 - `case_id`、`family_id`、`subfamily_id` 是内部评测和结果等价归一化字段，不暴露给 LLM prompt。
 
 ### 6.2 LLM Solution Spec
@@ -439,21 +439,22 @@ TEACHING_SYSTEM_PROMPT in algolab/generation/teaching_enricher.py
 
 `state` 和大对象会被 `_compact_value()` 压缩，避免单个 prompt frame 携带过长内容；这只是 prompt 压缩，不会改变原始 trace 或 artifact。
 
-#### 默认全量 trace 行为
+#### 默认 30 关键帧行为
 
 当前默认值：
 
 ```text
-MAX_TEACHING_FRAMES = None
+MAX_TEACHING_FRAMES = 30
 ```
 
 含义：
 
-- 默认 `select_teaching_events(trace)` 返回 `trace.events` 的完整列表。
-- 默认 `build_trace_digest(trace)` 把完整 trace event 序列放入 `digest["frames"]`。
-- 因此一个 case 给 LLM 的 frame 数量等于 `len(trace.events)`。
+- 默认 `select_teaching_events(trace)` 按事件打分选择最多 30 个关键帧。
+- 默认 `build_trace_digest(trace)` 只把这 30 个关键帧放入 `digest["frames"]`。
+- 如果当前 trace 本身少于 30 帧，则仍会完整发送这些帧。
+- 完整 trace 不会被截断，仍保存在 `BuildArtifact.variants[].trace.events` 和 `SceneGraph.frames` 中。
 
-只有显式传入 `max_frames` 时，才会启用关键帧选择：
+显式传入 `max_frames` 时，可以覆盖默认预算：
 
 ```python
 build_trace_digest(trace, max_frames=8)
@@ -474,10 +475,10 @@ enrich_scene_teaching(scene, trace, max_frames=6)
 `enrich_scene_teaching()` 是 best-effort：
 
 - `enabled=False` 时直接跳过。
-- 默认首轮使用完整 trace digest。
+- 默认首轮使用最多 30 个关键帧的 trace digest。
 - 如果首轮 LLM 调用、JSON 解析或 schema 校验失败，会自动用 `RETRY_TEACHING_FRAMES = 3` 生成小摘要重试。
 - 如果重试成功，只应用重试结果。
-- 如果全部失败，返回 warning，例如 `teaching enrichment skipped: all frames: ... | 3 frames: ...`。
+- 如果全部失败，返回 warning，例如 `teaching enrichment skipped: 30 frames: ... | 3 frames: ...`。
 - pipeline 会把 warning 写入 `artifact.validation.warnings`，但不会把 teaching enrichment 失败作为核心 release gate 阻塞条件。
 
 这意味着 AlgoLab 的 correctness/release 证据仍来自 solve/trace/scene/verifier 等确定性链路；LLM teaching enrichment 是可降级的教学增强层。
@@ -507,7 +508,7 @@ Renderer 当前会优先使用 enriched teaching：
 
 #### 实验观察
 
-当前全量 trace 模式下，`permutations` benchmark 首个样例有 38 个 trace events，完整发送给 LLM 后成功生成：
+早期全量 trace 模式下，`permutations` benchmark 首个样例有 38 个 trace events，完整发送给 LLM 后成功生成：
 
 ```text
 frames = 38
@@ -515,7 +516,7 @@ teaching_frames = 38
 interaction_frames = 7
 ```
 
-该实验也暴露了全量 trace 的成本：LLM 调用耗时和 token 都会明显高于 6 帧摘要模式。因此当前代码按用户需求默认全量发送，但保留显式 `max_frames` 和 3 帧降级重试作为工程兜底。
+该实验也暴露了全量 trace 的成本：LLM 调用耗时和 token 都会明显上升。因此当前默认改为最多 30 个关键帧；保留显式 `max_frames` 和 3 帧降级重试作为工程兜底。
 
 ### 6.7 ValidationReport
 
@@ -929,6 +930,7 @@ benchmark 内置的 `browser_smoke_html_paths()` 做轻量检查：
 - `scripts/run_direct_html_baseline.py`
 - `scripts/run_no_process_validator_ablation.py`
 - `scripts/run_no_scenegraph_compiler_ablation.py`
+- `scripts/export_component_ablation_artifacts.py`
 - `scripts/baseline_experiment_utils.py`
 
 典型 conditions：
@@ -938,6 +940,15 @@ benchmark 内置的 `browser_smoke_html_paths()` 做轻量检查：
 - `direct_html_no_expected`
 - `no_process_validator`
 - `no_scenegraph_compiler`
+- `full / no_teaching / no_interaction / no_teaching_interaction`
+
+从已成功的 `BuildArtifact` 派生 teaching / interaction 开关产物，不重新调用 LLM：
+
+```bash
+/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/export_component_ablation_artifacts.py \
+  --artifact-dir output/stage1_verified_20cases_deepseek \
+  --output-dir output/component_ablation_artifacts
+```
 - `no_repair`
 
 `build_evaluation_report.py` 会把 direct HTML 识别为 baseline，并将其排除在严格机器 correctness gate 聚合之外。
@@ -1091,7 +1102,7 @@ output/teaching_overlay_visual_check/multi_case_llm/llm_teaching_report*.json
 output/teaching_overlay_visual_check/multi_case_llm/screenshots/*.png
 ```
 
-例如全量 trace teaching enrichment 的 `permutations` 结果：
+例如早期 full trace teaching enrichment 的 `permutations` 结果：
 
 ```text
 output/teaching_overlay_visual_check/multi_case_llm/permutations.html
@@ -1143,22 +1154,22 @@ PY
 
 ### 现在给 LLM 的关键帧最多是多少？
 
-默认没有固定最多值。`MAX_TEACHING_FRAMES = None`，所以默认给 LLM 的 frame 数等于当前 trace 的 event 数：
+默认最多 30 个。`MAX_TEACHING_FRAMES = 30`，所以默认给 LLM 的 frame 数为：
 
 ```text
-llm_teaching_frames = len(trace.events)
+llm_teaching_frames = min(30, len(trace.events))
 ```
 
-如果调用方显式传入 `max_frames`，才会按事件打分选最多 `max_frames` 个关键帧。默认全量调用失败时，系统会用 3 帧摘要降级重试。
+如果调用方显式传入 `max_frames`，会按该值选择最多 `max_frames` 个关键帧。默认 30 帧调用失败时，系统会用 3 帧摘要降级重试。
 
 ### 为什么全量 trace teaching enrichment 很慢？
 
-全量 trace 会显著增加 prompt token 和模型输出 token。当前 `permutations` 首个样例 38 帧全量发送后可以成功，但真实调用耗时约 512 秒，且 token 用量明显高于 6 帧摘要模式。
+全量 trace 会显著增加 prompt token 和模型输出 token。早期 `permutations` 首个样例 38 帧全量发送后可以成功，但真实调用耗时约 512 秒，且 token 用量明显高于摘要模式。
 
 这是设计取舍：
 
-- 全量 trace 给 LLM 更完整的上下文，能为更多步骤生成讲解。
-- 代价是延迟、token、空返回/截断风险都会上升。
+- 30 个关键帧给 LLM 较完整的阶段上下文，同时避免大规模输入时 prompt 无上限增长。
+- 代价是超长 trace 中未入选的普通帧只能使用系统默认讲解。
 - 代码保留显式 `max_frames` 和 3 帧降级重试，便于后续在质量和成本之间重新调整。
 
 ### LLM teaching enrichment 失败会不会让 artifact 失败？
@@ -1209,7 +1220,7 @@ browser smoke 检查 HTML 可运行和核心 DOM 可见。它不重新执行算�
 - 当前 DSL-era `process_validator` 不再做旧版每算法族重算 invariant。
 - 系统可以完整保留 tracker 已生成的事件，但不能凭空补出 tracker 没记录的内部步骤。
 - LLM teaching enrichment 可以改善讲解和交互，但不能证明讲解文字绝对教学最优，也不能替代 trace/verifier correctness。
-- 全量 trace teaching enrichment 的延迟和 token 成本可能很高；长 trace 下仍可能触发模型空返回、截断或降级重试。
+- 默认 30-keyframe teaching enrichment 可限制 LLM prompt 增长；如果显式运行 full trace 压力消融，延迟和 token 成本仍可能很高，长 trace 下仍可能触发模型空返回、截断或降级重试。
 - `code_line` 准确性主要依赖 LLM 按提示词在 tracker 返回前补齐；renderer 只能对缺失或越界行降级显示。
 - browser smoke 或 VLM screenshot 分数能替代答案 correctness。
 - direct HTML baseline 的 browser pass 能代表答案正确。

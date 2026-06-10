@@ -16,6 +16,8 @@ from algolab.compiler.scene_compiler import compile_scene
 from app import benchmark_preset_choices, load_benchmark_preset
 import algolab.generation.solution_generator as solution_generator
 import scripts.run_llm_benchmark as llm_benchmark
+from scripts.export_component_ablation_artifacts import VARIANTS as ABLATION_VARIANTS
+from scripts.export_component_ablation_artifacts import component_counts, derive_artifact
 from algolab.generation.solution_generator import (
     build_contract_with_repair,
     normalize_contract_spec,
@@ -4209,6 +4211,33 @@ def test_renderer_declares_readonly_prediction_interactions(tmp_path: Path):
     assert "algorithm" not in checker_block
 
 
+def test_component_ablation_export_strips_optional_teaching_and_interaction():
+    artifact = golden_visual_artifact()
+    source_counts = component_counts(artifact)
+    assert source_counts["scene_teaching_frames"] > 0
+    assert source_counts["scene_interaction_frames"] > 0
+
+    no_teaching = derive_artifact(artifact, ABLATION_VARIANTS["no_teaching"])
+    no_teaching_counts = component_counts(no_teaching)
+    assert no_teaching_counts["scene_teaching_frames"] == 0
+    assert no_teaching_counts["trace_teaching_events"] == 0
+    assert no_teaching_counts["scene_interaction_frames"] == source_counts["scene_interaction_frames"]
+
+    no_interaction = derive_artifact(artifact, ABLATION_VARIANTS["no_interaction"])
+    no_interaction_counts = component_counts(no_interaction)
+    assert no_interaction_counts["scene_teaching_frames"] == source_counts["scene_teaching_frames"]
+    assert no_interaction_counts["scene_interaction_frames"] == 0
+    assert no_interaction_counts["trace_interaction_events"] == 0
+
+    stripped = derive_artifact(artifact, ABLATION_VARIANTS["no_teaching_interaction"])
+    stripped_counts = component_counts(stripped)
+    assert stripped_counts["scene_teaching_frames"] == 0
+    assert stripped_counts["scene_interaction_frames"] == 0
+    assert stripped_counts["trace_teaching_events"] == 0
+    assert stripped_counts["trace_interaction_events"] == 0
+    assert component_counts(artifact) == source_counts
+
+
 def test_renderer_declares_phase17_formula_expand_and_structured_wrong_feedback(tmp_path: Path):
     out = save_html(golden_visual_artifact(), tmp_path / "phase17_interaction_learning.html")
     html = out.read_text(encoding="utf-8")
@@ -5037,6 +5066,7 @@ def run_all():
         test_golden_visual_matrix_declares_core_examples_and_contracts,
         test_golden_visual_matrix_compiles_core_examples_without_renderer_branches,
         test_golden_visual_matrix_declares_prediction_interactions_for_core_examples,
+        test_component_ablation_export_strips_optional_teaching_and_interaction,
         test_scene_compiler_emits_user_readable_process_evidence_for_golden_examples,
         test_phase17_scene_compiler_emits_family_visual_pattern_meta,
         test_ml_correctness_accepts_linear_regression_gradient_and_loss_curve,

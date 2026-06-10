@@ -29,8 +29,8 @@
 需要收紧或调整的地方：
 
 - 关于扩大 benchmark 的建议，本轮收口不采纳。实验固定使用已有 71-case deterministic benchmark；工作重点是把 71/71 的 correctness、visual、teaching、baseline、ablation 和 cost 证据链做完整、可复现、可追溯。
-- 当前 `scripts/run_llm_benchmark.py` 构造 `ProblemInput` 时没有打开 `teaching_enrichment`，所以 `output/aaai/llm_algolab_full_*` 主要证明 full pipeline release gate，不代表 LLM teaching overlay 已纳入标准 benchmark。teaching 应作为新 condition 或显式 flag 单独跑。
-- 全量 trace teaching enrichment 虽然已经按用户需求实现，但真实 `permutations` 38 帧实验耗时约 512 秒，token 成本很高。论文里应把 full trace vs selected frames 写成质量/成本 trade-off，不应默认承诺所有长 trace 都低延迟。
+- 当前 `scripts/run_llm_benchmark.py` 构造 `ProblemInput` 时默认打开 `teaching_enrichment`，并支持 `--no-teaching-enrichment` 用于消融。后续报告必须显式记录 `teaching_enrichment=true/false`，避免把无交互旧产物误读为标准 benchmark。
+- teaching enrichment 当前默认最多发送 30 个关键帧给 LLM，完整 trace 仍保存在 artifact 中用于审计。早期 full trace 的 `permutations` 38 帧实验耗时约 512 秒，token 成本很高；full trace 只作为可选压力/成本消融，不作为标准收口条件。
 - 如果引用外部工作和 AAAI deadline，最终论文前必须重新核对官方来源。本文档只把它们作为实验动机，不把外部事实当成本地机器证据。
 
 ## 3. 当前本地证据快照
@@ -138,7 +138,7 @@ answer audit 只审计 direct HTML 成功打开的页面里是否能找到可见
 
 ### 3.4 Teaching overlay 实验
 
-全量 trace teaching enrichment:
+早期 full trace teaching enrichment 证据:
 
 ```text
 output/teaching_overlay_visual_check/multi_case_llm/permutations.html
@@ -156,7 +156,7 @@ interaction_frames = 7
 llm_calls = 2
 ```
 
-这证明最新 teaching overlay 可以全量读取 trace 并生成讲解/交互，但它还不是 `run_llm_benchmark.py` 的标准 condition。下一轮实验必须把 teaching 纳入可重复 benchmark，而不是只保留临时目录证据。
+这证明最新 teaching overlay 可以全量读取 trace 并生成讲解/交互。当前 `run_llm_benchmark.py` 默认开启该能力；下一轮实验必须重新生成标准 benchmark 产物，不能复用无交互的旧目录作为 teaching 证据。
 
 ### 3.5 Renderer visual audit
 
@@ -199,9 +199,9 @@ output/renderer_visual_audit/
 | condition | 目的 | 当前状态 |
 |---|---|---|
 | `algolab_full` | 主系统 release gate | 已有 DeepSeek/Gemini 71/71 输出，需要重跑 frozen final |
-| `algolab_full_teaching_full_trace` | 主系统 + teaching overlay 全量 trace | 只有临时 `permutations` 证据，需要纳入 benchmark |
-| `algolab_full_teaching_selected_6` | teaching overlay 选 6 帧摘要 | 需要显式实验，用于质量/成本 trade-off |
-| `algolab_full_no_teaching` | teaching ablation | 当前 `run_llm_benchmark.py` 默认近似此条件 |
+| `algolab_full_teaching_30_keyframes` | 主系统 + teaching overlay，默认最多 30 个关键帧进 LLM | 当前标准 teaching 条件，需要纳入 benchmark |
+| `algolab_full_no_teaching` | teaching ablation | 使用 `--no-teaching-enrichment` |
+| `algolab_full_teaching_3_keyframes` | teaching overlay 选 3 帧摘要 | fallback / 低成本消融，可选 |
 | `direct_html_no_expected` | 公平 direct HTML baseline | 已有输出，需要固定最终模型/timeout |
 | `direct_html_no_expected_answer_audit` | direct HTML 可见答案审计 | 已有输出，需要进入主表 |
 | `no_repair` | repair 贡献 | 需要用最新系统复跑 |
@@ -373,10 +373,10 @@ Browser pass 只能说明 artifact 可打开，不能单独作为 correctness。
 
 | metric | 含义 | 口径 |
 |---|---|---|
-| `teaching_enabled` | 是否启用 LLM teaching enrichment | none/full_trace/6_frames |
-| `frames_sent_to_llm` | 送给 LLM 的 trace frame 数 | full trace 为 `len(trace.events)` |
+| `teaching_enabled` | 是否启用 LLM teaching enrichment | none/30_keyframes/3_keyframes/explicit_full_trace |
+| `frames_sent_to_llm` | 送给 LLM 的 trace frame 数 | 默认不超过 30；小 trace 等于 `len(trace.events)` |
 | `teaching_frames` | 最终带讲解的 frame 数 | 衡量覆盖率 |
-| `teaching_coverage` | `teaching_frames / num_frames` | full trace 预期更高 |
+| `teaching_coverage` | `teaching_frames / num_frames` | 30_keyframes 应高于 no teaching；未入选普通帧需报告 |
 | `interaction_frames` | 带交互题的 frame 数 | 衡量交互覆盖 |
 | `interaction_coverage` | `interaction_frames / num_frames` | 不要求每帧都有交互 |
 | `choice_validity` | choice interaction 的答案是否在 options 中 | 必须为 100% |
@@ -425,7 +425,7 @@ Ablation 必须报告：
 | `html_size_kb` | HTML 体积 | mean / p95 / max |
 | `artifact_size_kb` | artifact 总体积 | mean / p95 / max |
 
-teaching full trace 必须额外报告 `num_frames` 与 `latency_teaching_s`、`prompt_tokens` 的关系，防止只报告视觉效果而隐藏长 trace 成本。
+teaching 30-keyframe condition 必须额外报告 `num_frames`、`frames_sent_to_llm` 与 `latency_teaching_s`、`prompt_tokens` 的关系，防止只报告视觉效果而隐藏长 trace 成本。
 
 ### 6.10 最终聚合口径
 
@@ -433,7 +433,7 @@ teaching full trace 必须额外报告 `num_frames` 与 `latency_teaching_s`、`
 
 - Overall：71-case 总体 `x/71`。
 - Family：每个 major family 的 `x/y`，避免某一类失败被整体均值掩盖。
-- Condition：`algolab_full`、`teaching_full_trace`、`teaching_6_frames`、direct HTML、ablation 分开报告。
+- Condition：`algolab_full`、`teaching_30_keyframes`、`teaching_no_teaching`、direct HTML、ablation 分开报告；`teaching_full_trace` 只作为可选压力/成本消融。
 
 所有百分比必须同时给出分子和分母，例如 `71/71 (100.0%)`，不能只写百分比。
 
@@ -676,12 +676,12 @@ bash scripts/run_browser_smoke_container.sh
 
 | metric | 自动评估方法 | 通过口径 |
 |---|---|---|
-| `teaching_enabled` | 从 condition 或 `ProblemInput.teaching_enrichment` 记录。 | 取值固定为 `none`、`full_trace`、`6_frames`。 |
-| `frames_sent_to_llm` | 记录 `select_teaching_events(trace, max_frames)` 的返回长度。 | full trace 等于 `len(trace.events)`；6 frames 不超过 6。 |
+| `teaching_enabled` | 从 condition 或 `ProblemInput.teaching_enrichment` 记录。 | 取值固定为 `none`、`30_keyframes`，特殊消融可记录显式 `max_frames`。 |
+| `frames_sent_to_llm` | 记录 `select_teaching_events(trace, max_frames)` 的返回长度。 | 默认不超过 30；若 trace 少于 30 帧则等于 `len(trace.events)`。 |
 | `teaching_frames` | 统计 `frame.teaching` 中 `what` 或 `why` 非空的帧数。 | 不要求 100%，但必须报告覆盖率。 |
-| `teaching_coverage` | `teaching_frames / num_frames`。 | full trace 预期高于 no teaching / 6 frames。 |
+| `teaching_coverage` | `teaching_frames / num_frames`。 | 默认 30-keyframe enrichment 预期高于 no teaching；大规模输入需同时报告未入选普通帧数量。 |
 | `interaction_frames` | 统计 `frame.interaction` 非空的帧数。 | 不要求每帧都有交互，但必须报告分子分母。 |
-| `interaction_coverage` | `interaction_frames / num_frames`。 | 用于比较 none/full_trace/6_frames。 |
+| `interaction_coverage` | `interaction_frames / num_frames`。 | 用于比较 none/30_keyframes 以及其它显式 `max_frames` 消融。 |
 | `choice_validity` | 静态检查 choice 的 options、answer、prompt、option_explanations。 | `answer` 必须是 options 原文，目标 100%。 |
 | `interaction_valid` | 浏览器中真实点击 choice/input/judge，并比较点击前后 `JSON.stringify(frames())`。 | 有反馈，正确答案反馈正确，交互不修改 trace/result。 |
 | `explanation_duplication_count` | 规则检查 teaching/current step/why/answer/interaction 文案重复。 | 越低越好；重复完全相同或高相似度记 1。 |
@@ -784,27 +784,27 @@ teaching_audit_ok
 新增脚本输出：
 
 ```text
-output/repro_aaai_r2_teaching_full_trace/teaching_metrics.json
-output/repro_aaai_r2_teaching_full_trace/teaching_metrics.csv
-output/repro_aaai_r2_teaching_full_trace/teaching_quality_audit.json
-output/repro_aaai_r2_teaching_full_trace/teaching_quality_audit.md
+output/repro_aaai_r2_teaching_30_keyframes/teaching_metrics.json
+output/repro_aaai_r2_teaching_30_keyframes/teaching_metrics.csv
+output/repro_aaai_r2_teaching_30_keyframes/teaching_quality_audit.json
+output/repro_aaai_r2_teaching_30_keyframes/teaching_quality_audit.md
 ```
 
 重要边界：
 
 - teaching 指标只评估讲解/交互质量，不进入 answer correctness。
-- full trace condition 的 `frames_sent_to_llm` 不限制为 6；必须记录真实 `len(trace.events)`。
-- 如果 teaching LLM 失败并 fallback 到 3 frames，report 中必须记录 `teaching_fallback_used=true`，不能混入 full trace 成功组。
+- 默认 condition 的 `frames_sent_to_llm` 不超过 30；必须同时记录 `num_frames` / `num_events`，说明有多少普通帧未进入 LLM。
+- 如果 teaching LLM 失败并 fallback 到 3 frames，report 中必须记录 `teaching_fallback_used=true`，不能混入 30_keyframes 成功组。
 
 ## 7. Teaching overlay 专项实验
 
 ### 7.1 实验问题
 
-RQ-T1：全量 trace teaching 是否显著增加 teaching/interaction coverage？
+RQ-T1：30-keyframe teaching 是否显著增加 teaching/interaction coverage？
 
-RQ-T2：全量 trace teaching 相比 6 帧摘要，是否提升解释质量或交互质量？
+RQ-T2：30-keyframe teaching 相比 3 帧 fallback，是否提升解释质量或交互质量？
 
-RQ-T3：全量 trace teaching 的 token / latency 成本是否可接受？
+RQ-T3：30-keyframe teaching 的 token / latency 成本是否可接受？
 
 RQ-T4：teaching overlay 是否保持 trace immutability，即不修改 operation/state/result/evidence？
 
@@ -813,9 +813,9 @@ RQ-T4：teaching overlay 是否保持 trace immutability，即不修改 operatio
 | condition | trace frames sent to LLM | expected |
 |---|---:|---|
 | `no_teaching` | 0 | 只有 scene compiler fallback teaching |
-| `teaching_full_trace` | `len(trace.events)` | 更多 step-level teaching，更多 interaction，成本最高 |
-| `teaching_6_frames` | up to 6 scored frames | 低成本关键帧教学 |
+| `teaching_30_keyframes` | up to 30 scored frames | 标准 teaching 条件，兼顾覆盖和成本 |
 | `teaching_3_frames` | up to 3 scored frames | fallback / budget baseline |
+| `teaching_full_trace_optional` | `len(trace.events)` | 可选压力/成本消融，不作为默认收口前置 |
 
 ### 7.3 需要的代码入口
 
@@ -825,13 +825,12 @@ RQ-T4：teaching overlay 是否保持 trace immutability，即不修改 operatio
 teaching_enrichment: bool
 ```
 
-但 `scripts/run_llm_benchmark.py` 的 `make_request()` 当前没有打开该字段，也没有暴露 `max_teaching_frames`。下一轮需要：
+`scripts/run_llm_benchmark.py` 的 `make_request()` 当前已默认打开该字段，但还没有暴露 `max_teaching_frames`。下一轮需要：
 
-1. 给 `run_llm_benchmark.py` 增加参数：
+1. 给 `run_llm_benchmark.py` 补充参数：
 
 ```text
---teaching-enrichment / --no-teaching-enrichment
---teaching-max-frames full|6|3
+--teaching-max-frames 30|3|full-optional
 ```
 
 2. 或新增专门实验脚本：
@@ -861,7 +860,7 @@ trace_mutation_detected
 - SceneGraph 中只有 `frame.teaching` / `frame.interaction` 被 overlay 修改。
 - choice interaction 的 `answer` 必须匹配 options 原文。
 - browser smoke 中点击 quiz 不修改 trace/result。
-- full trace condition 至少在 71-case sample0 上报告成功率、平均 token 和平均耗时。
+- teaching_30_keyframes condition 至少在 71-case sample0 上报告成功率、平均 token 和平均耗时；full trace 仅作为可选压力/成本消融。
 
 ## 8. 过程正确性审计
 
@@ -1046,7 +1045,7 @@ browser_failed = 0
 目标：
 
 - 把 teaching enrichment 纳入标准 benchmark。
-- 至少跑 `no_teaching`、`teaching_full_trace`、`teaching_6_frames`。
+- 至少跑 `no_teaching`、`teaching_30_keyframes`；可选跑 `teaching_3_frames` 和 `teaching_full_trace_optional`。
 - 报告讲解帧、交互帧、token、latency、失败/降级次数。
 
 前置开发：
@@ -1057,7 +1056,7 @@ browser_failed = 0
 验收：
 
 - 71-case sample0 都有报告行。
-- full trace condition 不修改 trace facts。
+- teaching_30_keyframes condition 不修改 trace facts。
 - choice answer problems 为 0。
 - 生成 contact sheet 或抽样截图。
 
@@ -1248,7 +1247,7 @@ mean_artifact_kb
 1. 最新代码重跑 `algolab_full` 71-case，browser smoke 开启。
 2. 重跑 direct HTML no-expected，并跑 answer audit。
 3. 重跑 no repair / no SceneGraph / no process validator 三个 ablation。
-4. 跑 teaching overlay 3 条件：none / full trace / 6 frames。
+4. 跑 teaching overlay 条件：none / 30 keyframes；可选补 3 keyframes / full trace 压力消融。
 5. 跑 trace replay audit。
 6. 生成 desktop 截图和 renderer visual audit。
 7. 把所有数字落到统一 CSV / JSON / Markdown 表。

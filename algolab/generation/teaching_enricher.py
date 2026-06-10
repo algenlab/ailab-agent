@@ -17,7 +17,7 @@ from algolab.schemas.scene_graph import SceneGraph
 from algolab.schemas.semantic_trace import Interaction, SemanticEvent, SemanticTrace, TeachingStep
 
 
-MAX_TEACHING_FRAMES: int | None = None
+MAX_TEACHING_FRAMES: int | None = 30
 RETRY_TEACHING_FRAMES = 3
 MAX_STATE_CHARS = 1600
 MAX_VALUE_CHARS = 320
@@ -25,7 +25,7 @@ MAX_VALUE_CHARS = 320
 
 TEACHING_SYSTEM_PROMPT = """你是 AlgoLab 的算法教学增强器。
 
-你会收到一个已经通过验证的完整 SemanticTrace 摘要。trace 是事实来源。
+你会收到一个已经通过验证的 SemanticTrace 摘要。trace 是事实来源。
 只输出 JSON，不要 markdown，不要解释。
 
 你只能补充每个 step 的 teaching 和 interaction：

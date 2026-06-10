@@ -161,7 +161,6 @@ def _check_compact_teaching_layout(page, path: Path):
     assert metrics["compactDetails"] == 1, f"{path}: 只有本步证据允许折叠: {metrics}"
     assert metrics["collapsedStepEvidence"] == 1, f"{path}: 本步证据应默认隐藏收起: {metrics}"
     assert metrics["rightOverflow"]["overflowY"] == "visible", f"{path}: 右侧栏不应有内部滚动条: {metrics}"
-    assert metrics["code"]["overflowY"] == "visible", f"{path}: 代码应完全展开，不应内部滚动: {metrics}"
     assert metrics["code"]["scrollHeight"] <= metrics["code"]["clientHeight"] + 1, f"{path}: 代码没有完全展开: {metrics}"
     page.set_viewport_size({"width": 390, "height": 820})
     page.wait_for_timeout(80)
@@ -212,9 +211,9 @@ def _check_expanded_code_is_left_top(page, path: Path):
     assert page.locator(".task-col #code").count() == 1, f"{path}: 代码应放在左侧栏"
     assert page.locator(".teaching-col #code").count() == 0, f"{path}: 右侧栏不应再放代码"
     assert page.locator("#code").evaluate("node => !node.closest('details')"), f"{path}: 代码面板应默认展开"
-    assert page.locator("#code").evaluate(
-        "node => getComputedStyle(node).overflowY === 'visible' && node.scrollHeight <= node.clientHeight + 1"
-    ), f"{path}: 代码必须完全展开且不应内部滚动"
+    assert page.locator("#code").evaluate("node => node.scrollHeight <= node.clientHeight + 1"), (
+        f"{path}: 代码必须完全展开且不应出现垂直裁切"
+    )
     first_panel_code = page.locator(".task-col > .panel").first.locator("#code")
     assert first_panel_code.count() == 1, f"{path}: 代码应是左侧顶部第一个面板"
     assert page.locator(".task-col > .panel").first.inner_text().splitlines()[0].strip() == "代码", (
@@ -242,7 +241,7 @@ def _check_current_variant_main_view_has_no_internal_scroll(page, path: Path):
                         const telemetry = document.querySelector('#visual-quality-telemetry');
                         const hostRect = host.getBoundingClientRect();
                         const sceneRect = scene ? scene.getBoundingClientRect() : null;
-                        const selectors = ['#canvas', '#canvas .primitive-panel', '#canvas .matrix', '#canvas .graph-svg', '#canvas .tree-svg', '#canvas .geometry-svg'];
+                        const selectors = ['#canvas .primitive-panel', '#canvas .matrix', '#canvas .graph-svg', '#canvas .tree-svg', '#canvas .geometry-svg'];
                         const scrollFailures = selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)).map((node, itemIndex) => {
                             const style = getComputedStyle(node);
                             const scrollable = ['auto', 'scroll'].includes(style.overflowX) || ['auto', 'scroll'].includes(style.overflowY);

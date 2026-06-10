@@ -76,6 +76,10 @@ def test_llm_benchmark_request_uses_problem_and_expected():
     assert request.expected_result == sample.expected
     assert request.strategy_hint == case.strategy
     assert request.solution_count == 2
+    assert request.teaching_enrichment is True
+
+    no_teaching_request = make_request(case, sample, solutions=2, teaching_enrichment=False)
+    assert no_teaching_request.teaching_enrichment is False
 
 
 def test_llm_client_reads_local_api_settings_without_committing_key(tmp_path: Path):

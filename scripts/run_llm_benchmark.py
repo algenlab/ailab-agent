@@ -339,13 +339,20 @@ def _limit_tasks_per_family(
     return tuple(limited)
 
 
-def make_request(case: BenchmarkCase | UnseenBenchmarkCase, sample: BenchmarkInput, *, solutions: int) -> ProblemInput:
+def make_request(
+    case: BenchmarkCase | UnseenBenchmarkCase,
+    sample: BenchmarkInput,
+    *,
+    solutions: int,
+    teaching_enrichment: bool = True,
+) -> ProblemInput:
     return ProblemInput(
         problem=case.problem,
         input_data=sample.input_data,
         strategy_hint=case.strategy,
         expected_result=sample.expected,
         solution_count=solutions,
+        teaching_enrichment=teaching_enrichment,
         case_id=case.id,
         family_id=case.family_id,
         subfamily_id=case.subfamily_id,
@@ -383,7 +390,12 @@ def run_one(
 ) -> dict[str, Any]:
     started = time.time()
     clear_model_calls()
-    request = make_request(case, sample, solutions=args.solutions)
+    request = make_request(
+        case,
+        sample,
+        solutions=args.solutions,
+        teaching_enrichment=getattr(args, "teaching_enrichment", True),
+    )
     output_stem = f"llm_{case.id}_{sample_index}"
     output_html = args.output_dir / f"{output_stem}.html"
     phase_log: list[dict[str, Any]] = []
@@ -1205,6 +1217,7 @@ def write_report(
         "timeout_s": args.timeout_s,
         "strict_warnings": args.strict_warnings,
         "browser_smoke": args.browser_smoke,
+        "teaching_enrichment": getattr(args, "teaching_enrichment", True),
         "write_each": args.write_each,
         "concurrency": getattr(args, "concurrency", 1),
         "family": getattr(args, "family", []),
@@ -1337,6 +1350,12 @@ def main() -> int:
     parser.add_argument("--timeout-s", type=int, default=1200, help="单个样例最大运行秒数；0 表示不限制")
     parser.add_argument("--strict-warnings", action=argparse.BooleanOptionalAction, default=True, help="有 warning 时判为失败")
     parser.add_argument("--browser-smoke", action=argparse.BooleanOptionalAction, default=False, help="对本次通过的 HTML 产物执行浏览器 smoke")
+    parser.add_argument(
+        "--teaching-enrichment",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="是否在 trace 校验后调用 LLM 生成讲解和交互增强；默认开启，可用 --no-teaching-enrichment 关闭",
+    )
     parser.add_argument("--output-dir", type=Path, default=Path("output/llm_benchmark"), help="输出目录")
     parser.add_argument("--fail-fast", action="store_true", help="遇到第一个失败立即退出")
     parser.add_argument("--write-each", action=argparse.BooleanOptionalAction, default=True, help="每个样例结束后立即写入当前 report")
