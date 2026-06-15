@@ -262,6 +262,16 @@ def build_direct_visual_stage_repair_prompt(
             "Browser layout failure report:",
             json.dumps(_compact_value(failure_report), ensure_ascii=False),
             "",
+            "Browser layout repair guidance:",
+            "If a highlight/selection/range overlay causes overlap, convert it to a non-blocking outline, halo, underline, side band, or low-opacity layer with pointer-events:none."
+            " Do not cover nodes, cells, bars, points, intervals, edges, or text with solid fill."
+            "不要用实心填充覆盖节点、格子、柱子或文字。"
+            " Give non-blocking overlays semantic class/data-visual names such as range-highlight, current-outline, selection-halo, or active-band; do not use opaque data-visual=\"true\"."
+            " Mark background, plot areas, legends, and SVG groups as containers/backdrops, not as data marks."
+            " Put labels in a side lane, label lane, legend, caption, or callout area instead of placing them on top of dense geometry."
+            " Keep the viewBox/layout skeleton stable across frames; increase padding/margins before shrinking labels."
+            " Use separate SVG groups for background, data marks, non-blocking highlights, and labels so the browser audit can distinguish them.",
+            "",
             "Creative Shell repair contract:",
             "系统 shell 负责代码、讲解、交互、答案和 timeline。你只能修主视图 stage。"
             "必须只输出 <style>、可选 <template id=\"creative-stage-template\">、以及定义 window.renderCreativeStage(ctx) 的 <script>。"

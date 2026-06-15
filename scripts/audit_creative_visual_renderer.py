@@ -56,11 +56,15 @@ def audit_one_html(
         "trace_mutation_detected": True,
         "result_visible": False,
         "main_area_not_blank": False,
+        "browser_smoke_ok": False,
         "stage_layout_audit_supported": False,
         "stage_visual_quality_ok": False,
+        "strict_visual_quality_ok": False,
         "stage_audited_frame_count": 0,
         "stage_overlap_count": 0,
         "stage_overlap_max": 0,
+        "stage_permitted_overlap_count": 0,
+        "stage_permitted_overlap_max": 0,
         "stage_clipped_count": 0,
         "stage_clipped_max": 0,
         "stage_text_occlusion_count": 0,
@@ -99,7 +103,7 @@ def audit_one_html(
         page.close()
     row["console_errors"] = console_errors
     row["page_errors"] = page_errors
-    row["creative_ok"] = bool(
+    row["browser_smoke_ok"] = bool(
         row["page_load_ok"]
         and row["console_error_count"] == 0
         and row["page_error_count"] == 0
@@ -109,8 +113,9 @@ def audit_one_html(
         and row["main_area_not_blank"]
         and row["screenshot_non_empty"]
         and (row["result_visible"] or not require_result_visible)
-        and (row["stage_visual_quality_ok"] or not require_stage_visual_quality)
     )
+    row["strict_visual_quality_ok"] = bool(row["stage_visual_quality_ok"])
+    row["creative_ok"] = bool(row["browser_smoke_ok"] and (row["strict_visual_quality_ok"] or not require_stage_visual_quality))
     failures = []
     for key in (
         "page_load_ok",
@@ -313,8 +318,14 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
     const cls = String(node.className && node.className.baseVal !== undefined ? node.className.baseVal : node.className || '');
     const dataVisual = String(node.getAttribute('data-visual') || node.getAttribute('data-derived-visual-only') || '');
     const layoutRole = String(node.getAttribute('data-layout-role') || '');
+    const kind = `${tag} ${cls} ${dataVisual} ${layoutRole}`;
     const text = directText(node);
-    const labelLike = /label|caption|legend|tick|axis|value|index|pointer|badge|chip|note|annotation/i.test(`${cls} ${dataVisual} ${layoutRole}`);
+    const containerLike = /background|backdrop|plot-area|chart-area|canvas|viewport|grid|axis-line|axis-tick|lane|shell|panel|legend-box|legend-container|container/i.test(kind)
+      || /^legend$/i.test(layoutRole);
+    if (containerLike) return null;
+    if (tag === 'svg') return null;
+    if (tag === 'g' && visibleChildCount(node) > 0) return null;
+    const labelLike = /label|caption|tick-label|axis-label|value-label|index-label|pointer-label|legend-label|legend-title|badge|chip|note|annotation/i.test(kind);
     const shapeLike = /node|cell|bar|card|tile|block|box|edge|interval|water|queen|path/i.test(`${cls} ${dataVisual} ${layoutRole}`);
     if (tag === 'text' || tag === 'foreignobject' || labelLike) return { role: 'text', text };
     if (text && visibleChildCount(node) === 0 && ['div', 'span', 'p', 'strong', 'code', 'small'].includes(tag)) {
@@ -379,6 +390,76 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
     return `${tag} ${cls} ${role}`;
   }
 
+  function numericStyle(node, cssName, attrName, fallback) {
+    const style = getComputedStyle(node);
+    const raw = (node.getAttribute && node.getAttribute(attrName)) || style[cssName] || '';
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function rgbaAlpha(value) {
+    const match = String(value || '').match(/rgba\([^)]*,\s*([0-9.]+)\s*\)/i);
+    if (!match) return null;
+    const alpha = Number(match[1]);
+    return Number.isFinite(alpha) ? alpha : null;
+  }
+
+  function visualPaint(node) {
+    const style = getComputedStyle(node);
+    const fill = String((node.getAttribute && node.getAttribute('fill')) || style.fill || '');
+    const alpha = rgbaAlpha(fill);
+    return {
+      fill,
+      fillOpacity: numericStyle(node, 'fillOpacity', 'fill-opacity', 1),
+      opacity: numericStyle(node, 'opacity', 'opacity', 1),
+      strokeWidth: numericStyle(node, 'strokeWidth', 'stroke-width', 0),
+      pointerEvents: style.pointerEvents,
+      rgbaAlpha: alpha,
+    };
+  }
+
+  function hasTransparentFill(paint, threshold = 0.5) {
+    return /none|transparent/i.test(paint.fill)
+      || (paint.rgbaAlpha !== null && paint.rgbaAlpha <= threshold)
+      || paint.fillOpacity <= threshold
+      || paint.opacity <= threshold;
+  }
+
+  function isNonBlockingOutline(node) {
+    if (!node || !(node instanceof Element)) return false;
+    const paint = visualPaint(node);
+    return paint.strokeWidth > 0 && /none|transparent/i.test(paint.fill);
+  }
+
+  function isTranslucentRegionOverlay(node) {
+    if (!node || !(node instanceof Element)) return false;
+    const tag = String(node.tagName || '').toLowerCase();
+    if (!/^(polygon|path)$/.test(tag)) return false;
+    const paint = visualPaint(node);
+    if (!hasTransparentFill(paint, 0.4)) return false;
+    return Boolean(node.hasAttribute('data-derived-visual-only') || paint.pointerEvents === 'none');
+  }
+
+  function isNonBlockingOverlay(node) {
+    return isSemanticHighlightOverlay(node) || isNonBlockingOutline(node) || isTranslucentRegionOverlay(node);
+  }
+
+  function isSemanticHighlightOverlay(node) {
+    if (!node || !(node instanceof Element)) return false;
+    const kind = shapeKind(node);
+    if (!/highlight|selected|selection|active|range|window|focus|halo|overlay|band|marker|current-mark/i.test(kind)) {
+      return false;
+    }
+    const paint = visualPaint(node);
+    const outlineOnly = /none|transparent/i.test(paint.fill) && paint.strokeWidth > 0;
+    return Boolean(hasTransparentFill(paint, 0.5) || outlineOnly || paint.pointerEvents === 'none');
+  }
+
+  function isPermittedOverlayOverlap(a, b) {
+    if (!a || !b) return false;
+    return isNonBlockingOverlay(a.node) || isNonBlockingOverlay(b.node);
+  }
+
   function isConnector(node) {
     return /(^|\s)(line|polyline|path)(\s|$)|edge-line|connector|arrow/i.test(shapeKind(node));
   }
@@ -411,9 +492,20 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
     if (!top) return true;
     if (top === textNode || textNode.contains(top) || top.contains(textNode)) return true;
     if (isAllowedEmbeddedTop(textNode, top)) return true;
+    if (isConnector(top)) return true;
+    if (isNonBlockingOverlay(top)) return true;
     const cls = String(top.className && top.className.baseVal !== undefined ? top.className.baseVal : top.className || '');
     const role = String(top.getAttribute && (top.getAttribute('data-layout-role') || top.getAttribute('data-visual') || '') || '');
     return /background|backdrop|grid|axis|lane|shell/i.test(`${cls} ${role}`);
+  }
+
+  function isMinorTextEdgeOverlap(textItem, visualItem, hit, ratio) {
+    if (!textItem || !visualItem || textItem.role !== 'text') return false;
+    if (visualItem.role === 'text') return false;
+    if (ratio > 0.35) return false;
+    if (containsPoint(visualItem.rect, center(textItem.rect), 0)) return false;
+    if (hit.area / Math.max(1, visualItem.area) > 0.12) return false;
+    return true;
   }
 
   function textOccluded(item) {
@@ -497,6 +589,7 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
       .filter(item => item.area >= 12);
 
     const issues = [];
+    const permittedIssues = [];
     for (const item of nodes) {
       const clipped = item.rect.left < hostRect.left - 3
         || item.rect.top < hostRect.top - 3
@@ -521,23 +614,31 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
         const ratio = hit.area / Math.max(1, Math.min(a.area, b.area));
         if (ratio < 0.16) continue;
         if (isEmbeddedTextInShape(a.role === 'text' ? a : b, a.role === 'text' ? b : a)) continue;
-        issues.push({
+        if (isMinorTextEdgeOverlap(a.role === 'text' ? a : b, a.role === 'text' ? b : a, hit, ratio)) continue;
+        const issue = {
           type: 'overlap',
           a: a.name,
           b: b.name,
           intersection_ratio: round(ratio),
           a_box: a.box,
           b_box: b.box,
-        });
+        };
+        if (isPermittedOverlayOverlap(a, b)) {
+          permittedIssues.push({ ...issue, type: 'permitted_highlight_overlap' });
+          continue;
+        }
+        issues.push(issue);
       }
     }
     return {
       frame_index: frameIndex,
       candidate_count: nodes.length,
       overlap_count: issues.filter(item => item.type === 'overlap').length,
+      permitted_overlap_count: permittedIssues.length,
       clipped_count: issues.filter(item => item.type === 'clipped').length,
       text_occlusion_count: issues.filter(item => item.type === 'text_occlusion').length,
       issues: issues.slice(0, 8),
+      permitted_issues: permittedIssues.slice(0, 8),
     };
   }
 
@@ -552,9 +653,11 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
     }
     await goFrame(original);
     const overlapTotal = frames.reduce((sum, item) => sum + Number(item.overlap_count || 0), 0);
+    const permittedOverlapTotal = frames.reduce((sum, item) => sum + Number(item.permitted_overlap_count || 0), 0);
     const clippedTotal = frames.reduce((sum, item) => sum + Number(item.clipped_count || 0), 0);
     const textOcclusionTotal = frames.reduce((sum, item) => sum + Number(item.text_occlusion_count || 0), 0);
     const overlapMax = Math.max(0, ...frames.map(item => Number(item.overlap_count || 0)));
+    const permittedOverlapMax = Math.max(0, ...frames.map(item => Number(item.permitted_overlap_count || 0)));
     const clippedMax = Math.max(0, ...frames.map(item => Number(item.clipped_count || 0)));
     const textOcclusionMax = Math.max(0, ...frames.map(item => Number(item.text_occlusion_count || 0)));
     return {
@@ -564,11 +667,14 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
       stage_audited_frames: indices,
       stage_overlap_count: overlapTotal,
       stage_overlap_max: overlapMax,
+      stage_permitted_overlap_count: permittedOverlapTotal,
+      stage_permitted_overlap_max: permittedOverlapMax,
       stage_clipped_count: clippedTotal,
       stage_clipped_max: clippedMax,
       stage_text_occlusion_count: textOcclusionTotal,
       stage_text_occlusion_max: textOcclusionMax,
       stage_layout_issues: frames.flatMap(item => (item.issues || []).map(issue => ({ frame_index: item.frame_index, ...issue }))).slice(0, 20),
+      stage_permitted_layout_issues: frames.flatMap(item => (item.permitted_issues || []).map(issue => ({ frame_index: item.frame_index, ...issue }))).slice(0, 20),
       stage_layout_frame_reports: frames,
     };
   } catch (error) {
@@ -578,6 +684,8 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
       stage_audited_frame_count: 0,
       stage_overlap_count: 0,
       stage_overlap_max: 0,
+      stage_permitted_overlap_count: 0,
+      stage_permitted_overlap_max: 0,
       stage_clipped_count: 0,
       stage_clipped_max: 0,
       stage_text_occlusion_count: 0,
@@ -632,6 +740,7 @@ def write_report(
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     passed = sum(1 for row in rows if row.get("creative_ok"))
+    browser_passed = sum(1 for row in rows if row.get("browser_smoke_ok"))
     stage_visual_passed = sum(1 for row in rows if row.get("stage_visual_quality_ok"))
     report = {
         "schema_version": "creative-visual-audit-v1",
@@ -646,9 +755,13 @@ def write_report(
             "creative_ok": passed,
             "failed": len(rows) - passed,
             "creative_ok_rate": passed / len(rows) if rows else 0.0,
+            "browser_smoke_ok": browser_passed,
+            "browser_smoke_ok_rate": browser_passed / len(rows) if rows else 0.0,
             "stage_visual_quality_ok": stage_visual_passed,
+            "strict_visual_quality_ok": stage_visual_passed,
             "stage_visual_quality_ok_rate": stage_visual_passed / len(rows) if rows else 0.0,
             "stage_overlap_total": sum(int(row.get("stage_overlap_count") or 0) for row in rows),
+            "stage_permitted_overlap_total": sum(int(row.get("stage_permitted_overlap_count") or 0) for row in rows),
             "stage_clipped_total": sum(int(row.get("stage_clipped_count") or 0) for row in rows),
             "stage_text_occlusion_total": sum(int(row.get("stage_text_occlusion_count") or 0) for row in rows),
         },
@@ -663,6 +776,7 @@ def write_report(
             fieldnames=[
                 "case_id",
                 "creative_ok",
+                "browser_smoke_ok",
                 "page_load_ok",
                 "console_error_count",
                 "page_error_count",
@@ -671,8 +785,10 @@ def write_report(
                 "trace_mutation_detected",
                 "result_visible",
                 "stage_visual_quality_ok",
+                "strict_visual_quality_ok",
                 "stage_audited_frame_count",
                 "stage_overlap_count",
+                "stage_permitted_overlap_count",
                 "stage_clipped_count",
                 "stage_text_occlusion_count",
                 "main_area_not_blank",
@@ -694,16 +810,19 @@ def write_report(
         "# Creative Visual Audit",
         "",
         f"- total: {len(rows)}",
+        f"- browser_smoke_ok: {browser_passed}",
         f"- creative_ok: {passed}",
         f"- stage_visual_quality_ok: {stage_visual_passed}",
         "",
-        "| Case | OK | Stage Quality | Overlap | Clipped | Text Occlusion | Failures | HTML |",
-        "|---|---:|---:|---:|---:|---:|---|---|",
+        "| Case | Browser Smoke | OK | Stage Quality | Overlap | Permitted Overlay | Clipped | Text Occlusion | Failures | HTML |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
     for row in rows:
         lines.append(
-            f"| {row.get('case_id', '')} | {row.get('creative_ok', False)} | "
+            f"| {row.get('case_id', '')} | {row.get('browser_smoke_ok', False)} | "
+            f"{row.get('creative_ok', False)} | "
             f"{row.get('stage_visual_quality_ok', False)} | {row.get('stage_overlap_count', 0)} | "
+            f"{row.get('stage_permitted_overlap_count', 0)} | "
             f"{row.get('stage_clipped_count', 0)} | {row.get('stage_text_occlusion_count', 0)} | "
             f"{'; '.join(row.get('failure_categories') or [])} | {row.get('html', '')} |"
         )

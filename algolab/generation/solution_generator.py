@@ -209,7 +209,8 @@ def _preserve_scope_locked_fields(
 ) -> dict[str, Any]:
     categories = {str(item.get("repair_category") or "") for item in repair_context}
     scopes = {str(item.get("repair_scope") or "") for item in repair_context}
-    lock_code = categories == {"demo_state"} or scopes == {"tracker_only"}
+    tracker_only_scopes = {"tracker_only", "tracker_only_execution"}
+    lock_code = categories == {"demo_state"} or (bool(scopes) and scopes <= tracker_only_scopes)
     lock_tracker = scopes == {"code_only"}
     lock_verifier = lock_code or lock_tracker
     if not lock_code and not lock_tracker and not lock_verifier:

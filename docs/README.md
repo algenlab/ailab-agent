@@ -24,6 +24,9 @@
 
 8. [06_EVALUATION_AND_BENCHMARK.md](06_EVALUATION_AND_BENCHMARK.md)
 9. [08_AAAI_EXPERIMENT_PLAN.md](08_AAAI_EXPERIMENT_PLAN.md)
+10. [12_REPRODUCIBLE_AAAI_EXPERIMENT_PLAN.md](12_REPRODUCIBLE_AAAI_EXPERIMENT_PLAN.md)
+11. [13_LLM_DIRECT_VISUAL_RENDERER_DESIGN.md](13_LLM_DIRECT_VISUAL_RENDERER_DESIGN.md)
+12. [14_AAAI_EXPERIMENT_METRICS_AND_PROTOCOL.md](14_AAAI_EXPERIMENT_METRICS_AND_PROTOCOL.md)
 
 ## 文档分工
 
@@ -36,6 +39,12 @@
 - `06_EVALUATION_AND_BENCHMARK.md`：评估指标、baseline、消融和失败分类。
 - `07_ROADMAP_AND_TASKS.md`：最终产品设计方案和分阶段可执行任务。
 - `08_AAAI_EXPERIMENT_PLAN.md`：P17 收口后的 AAAI 实验冻结、真实浏览器截图、LLM benchmark、baseline / ablation 和论文产物执行计划。
+- `09_LLM_SUCCESS_REPAIR_PLAN.md`：真实 LLM 生成成功率和 repair 机制优化计划。
+- `10_RENDERER_VISUAL_OPTIMIZATION_DESIGN.md`：renderer 视觉质量、布局和截图审计优化设计。
+- `11_RENDERER_FIT_AND_SEMANTIC_UPGRADE_PLAN.md`：renderer fit、语义锚点和稳定布局升级计划。
+- `12_REPRODUCIBLE_AAAI_EXPERIMENT_PLAN.md`：frozen 71-case AAAI 可复现实验收口计划。
+- `13_LLM_DIRECT_VISUAL_RENDERER_DESIGN.md`：verified artifact 后的 Creative View / direct visual renderer 设计。
+- `14_AAAI_EXPERIMENT_METRICS_AND_PROTOCOL.md`：AAAI 指标体系、Stage1/Stage2 结果口径、baseline/ablation 和论文表格协议。
 
 ## 子目录
 

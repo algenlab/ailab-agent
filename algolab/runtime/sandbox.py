@@ -5,9 +5,11 @@ from __future__ import annotations
 import ast
 import builtins as py_builtins
 import json
+import linecache
 import math
 import multiprocessing as mp
 import queue
+import traceback
 from typing import Any
 
 
@@ -202,6 +204,7 @@ def build_namespace() -> dict[str, Any]:
         "map": map,
         "max": max,
         "min": min,
+        "next": next,
         "ord": ord,
         "pow": pow,
         "range": range,
@@ -244,18 +247,43 @@ def json_clone(value: Any) -> Any:
     return json.loads(json.dumps(value, ensure_ascii=False))
 
 
+def _generated_filename(function_name: str) -> str:
+    safe_name = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in str(function_name or "fn"))
+    return f"<algolab_generated_{safe_name}>"
+
+
+def _cache_generated_source(filename: str, code: str) -> None:
+    lines = [line + "\n" for line in code.splitlines()]
+    linecache.cache[filename] = (len(code), None, lines, filename)
+
+
+def _format_generated_exception(exc: Exception, filename: str) -> str:
+    summary = f"{type(exc).__name__}: {exc}"
+    frames = [frame for frame in traceback.extract_tb(exc.__traceback__) if frame.filename == filename]
+    if not frames:
+        return summary
+    lines = [summary, "Generated code traceback:"]
+    for frame in frames[-8:]:
+        lines.append(f'  File "{frame.filename}", line {frame.lineno}, in {frame.name}')
+        if frame.line:
+            lines.append(f"    {frame.line.strip()}")
+    return "\n".join(lines)
+
+
 def _worker(code: str, function_name: str, input_data: Any, queue: mp.Queue):
+    filename = _generated_filename(function_name)
     try:
         code = patch_trace_session_aliases(code, function_name)
         validate_code_safety(code)
+        _cache_generated_source(filename, code)
         namespace = build_namespace()
-        exec(code, namespace)
+        exec(compile(code, filename, "exec"), namespace)
         fn = namespace.get(function_name)
         if not callable(fn):
             raise SandboxError(f"代码必须定义 {function_name}(input_data)")
         queue.put(("ok", _call_generated(fn, function_name, json_clone(input_data), namespace)))
     except Exception as exc:  # pragma: no cover - executed in child process
-        queue.put(("error", f"{type(exc).__name__}: {exc}"))
+        queue.put(("error", _format_generated_exception(exc, filename)))
 
 
 def _call_generated(fn: Any, function_name: str, input_data: Any, namespace: dict[str, Any]) -> Any:

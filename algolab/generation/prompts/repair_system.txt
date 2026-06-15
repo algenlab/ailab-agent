@@ -88,7 +88,7 @@
 | Trie `trace 结果 0` 或前缀计数不一致 | 不要手写 `trie.root/node.children` DFS；插入所有 words 后用 `trie.prefix_count(prefix)`，`search(prefix)` 不能当计数 |
 | `dictionary update sequence element` 且 Kruskal/MST | 单条边是三元组，不要 `dict(edge)`；必须 `for u, v, w in edges:` 或 `u, v, w = edge` |
 | `module 'xxx' is not allowed` | 只能用白名单模块 |
-| `cannot unpack non-iterable int object` | 循环解包写错；遍历 digits/数组并需要下标和值时必须写 `for i, x in enumerate(seq)`，不要写 `for i, x in seq` |
+| `cannot unpack non-iterable int object` | 优先看错误里的 generated code traceback 和源码行；通常是把非二元组对象当二元组解包，或把需要复合 key 的 DSL/容器传成单值。只修 traceback 指向行附近逻辑 |
 | `list indices must be integers or slices, not NoneType` | 链表/指针算法里 `curr` 已经是 `None` 还被当下标使用；先判断 `curr is not None`，反转链表要先保存 `next` 再改链接 |
 | `结果 10/19 与 expected 18` 或数位 DP 不含 7 | 题目统计的是 `1..n` 的正整数，0 不能计入；`n=20` 时只排除 7 和 17，答案必须是 18；用 `dfs(pos,tight,started)`，memo key 用字符串，不要用九进制转换或最高位粗算 |
 

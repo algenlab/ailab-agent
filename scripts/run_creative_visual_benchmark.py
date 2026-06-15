@@ -124,6 +124,13 @@ def write_case_outputs(
         "attempt_reports": [],
         "layout_repair_attempts": 0,
         "layout_audit_reports": [],
+        "browser_smoke_ok": False,
+        "stage_visual_quality_ok": False,
+        "strict_visual_quality_ok": False,
+        "stage_overlap_count": 0,
+        "stage_permitted_overlap_count": 0,
+        "stage_clipped_count": 0,
+        "stage_text_occlusion_count": 0,
         "creative_ok": False,
         "fallback_used": True,
         "html": "",
@@ -172,6 +179,7 @@ def write_case_outputs(
     else:
         layout_reports = []
     model_calls = collect_case_model_calls(attempt_reports, layout_reports, fallback=result.model_calls)
+    layout_status = summarize_layout_status(layout_reports)
     row = {
         **base_row,
         "creative_ok": result.creative_ok,
@@ -180,6 +188,7 @@ def write_case_outputs(
         "attempt_reports": attempt_reports,
         "layout_repair_attempts": sum(1 for item in layout_reports if item.get("kind") == "layout_repair"),
         "layout_audit_reports": layout_reports,
+        **layout_status,
         "html": str(html_path) if result.creative_ok else "",
         "raw_output": str(raw_path),
         "errors": result.errors,
@@ -221,6 +230,9 @@ def enforce_stage_visual_quality(
         stage_audit_max_frames=stage_audit_max_frames,
     )
     reports.append({"kind": "layout_audit", "attempt": 0, "audit": _layout_failure_report(audit_row)})
+    best_audit_row = audit_row
+    best_result = current_result
+    best_stage = current_stage
     if audit_row.get("creative_ok"):
         return current_result, reports
 
@@ -249,25 +261,29 @@ def enforce_stage_visual_quality(
         }
         reports.append(repair_report)
         if not repair_result.creative_ok:
-            current_stage = repair_result.raw_output or current_stage
             continue
 
         candidate_path = html_dir / f"{stem}_layout_repair{attempt}.html"
         candidate_path.write_text(repair_result.html, encoding="utf-8")
-        audit_row = run_stage_layout_audit(
+        candidate_audit_row = run_stage_layout_audit(
             candidate_path,
             audit_dir / f"{stem}_layout_attempt{attempt}",
             wait_ms=wait_ms,
             stage_audit_max_frames=stage_audit_max_frames,
         )
-        reports.append({"kind": "layout_audit", "attempt": attempt, "audit": _layout_failure_report(audit_row)})
-        current_result = repair_result
-        current_stage = repair_result.raw_output or repair_result.extracted_html or current_stage
-        if audit_row.get("creative_ok"):
+        reports.append({"kind": "layout_audit", "attempt": attempt, "audit": _layout_failure_report(candidate_audit_row)})
+        if candidate_audit_row.get("creative_ok"):
             html_path.write_text(repair_result.html, encoding="utf-8")
             return repair_result, reports
+        if is_better_layout_audit(candidate_audit_row, best_audit_row):
+            best_audit_row = candidate_audit_row
+            best_result = repair_result
+            best_stage = repair_result.raw_output or repair_result.extracted_html or best_stage
+        current_result = best_result
+        current_stage = best_stage
+        audit_row = best_audit_row
 
-    return _layout_failed_result(current_result, audit_row, reports), reports
+    return _layout_failed_result(best_result, best_audit_row, reports), reports
 
 
 def run_stage_layout_audit(
@@ -296,22 +312,95 @@ def _layout_failure_report(row: dict[str, Any]) -> dict[str, Any]:
     keys = [
         "case_id",
         "creative_ok",
+        "browser_smoke_ok",
         "failure_categories",
+        "strict_visual_quality_ok",
         "stage_visual_quality_ok",
         "stage_audited_frame_count",
         "stage_audited_frames",
         "stage_overlap_count",
         "stage_overlap_max",
+        "stage_permitted_overlap_count",
+        "stage_permitted_overlap_max",
         "stage_clipped_count",
         "stage_clipped_max",
         "stage_text_occlusion_count",
         "stage_text_occlusion_max",
         "stage_layout_issues",
+        "stage_permitted_layout_issues",
+        "stage_layout_frame_reports",
         "console_errors",
         "page_errors",
         "failure_reason",
+        "screenshot",
     ]
     return {key: row.get(key) for key in keys if key in row}
+
+
+def layout_audit_score(row: dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int]:
+    """Lower is better; strict pass beats partial layout improvements."""
+
+    overlap = int(row.get("stage_overlap_count") or 0)
+    clipped = int(row.get("stage_clipped_count") or 0)
+    text = int(row.get("stage_text_occlusion_count") or 0)
+    permitted = int(row.get("stage_permitted_overlap_count") or 0)
+    weighted = clipped * 1000 + overlap * 20 + text * 10
+    return (
+        0 if row.get("creative_ok") else 1,
+        0 if row.get("browser_smoke_ok") else 1,
+        0 if row.get("strict_visual_quality_ok", row.get("stage_visual_quality_ok")) else 1,
+        weighted,
+        clipped,
+        overlap,
+        text,
+        permitted,
+    )
+
+
+def is_better_layout_audit(candidate: dict[str, Any], incumbent: dict[str, Any] | None) -> bool:
+    if incumbent is None:
+        return True
+    return layout_audit_score(candidate) < layout_audit_score(incumbent)
+
+
+def best_layout_audit(layout_reports: list[dict[str, Any]]) -> dict[str, Any]:
+    audits = [item.get("audit") or {} for item in layout_reports if item.get("kind") == "layout_audit"]
+    best: dict[str, Any] = {}
+    for audit in audits:
+        if is_better_layout_audit(audit, best if best else None):
+            best = audit
+    return best
+
+
+def summarize_layout_status(layout_reports: list[dict[str, Any]]) -> dict[str, Any]:
+    audits = [item.get("audit") or {} for item in layout_reports if item.get("kind") == "layout_audit"]
+    if not audits:
+        return {}
+    first = audits[0]
+    last = audits[-1]
+    best = best_layout_audit(layout_reports) or last
+    return {
+        "browser_smoke_ok": bool(best.get("browser_smoke_ok")),
+        "stage_visual_quality_ok": bool(best.get("stage_visual_quality_ok")),
+        "strict_visual_quality_ok": bool(best.get("strict_visual_quality_ok", best.get("stage_visual_quality_ok"))),
+        "stage_overlap_count": int(best.get("stage_overlap_count") or 0),
+        "stage_permitted_overlap_count": int(best.get("stage_permitted_overlap_count") or 0),
+        "stage_clipped_count": int(best.get("stage_clipped_count") or 0),
+        "stage_text_occlusion_count": int(best.get("stage_text_occlusion_count") or 0),
+        "initial_browser_smoke_ok": bool(first.get("browser_smoke_ok")),
+        "initial_stage_visual_quality_ok": bool(first.get("stage_visual_quality_ok")),
+        "initial_stage_overlap_count": int(first.get("stage_overlap_count") or 0),
+        "initial_stage_permitted_overlap_count": int(first.get("stage_permitted_overlap_count") or 0),
+        "initial_stage_clipped_count": int(first.get("stage_clipped_count") or 0),
+        "initial_stage_text_occlusion_count": int(first.get("stage_text_occlusion_count") or 0),
+        "last_browser_smoke_ok": bool(last.get("browser_smoke_ok")),
+        "last_stage_visual_quality_ok": bool(last.get("stage_visual_quality_ok")),
+        "last_strict_visual_quality_ok": bool(last.get("strict_visual_quality_ok", last.get("stage_visual_quality_ok"))),
+        "last_stage_overlap_count": int(last.get("stage_overlap_count") or 0),
+        "last_stage_permitted_overlap_count": int(last.get("stage_permitted_overlap_count") or 0),
+        "last_stage_clipped_count": int(last.get("stage_clipped_count") or 0),
+        "last_stage_text_occlusion_count": int(last.get("stage_text_occlusion_count") or 0),
+    }
 
 
 def _layout_failed_result(
@@ -346,6 +435,8 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
     ended_at = now_iso()
     attempted = sum(1 for row in rows if row.get("creative_attempted"))
     passed = sum(1 for row in rows if row.get("creative_ok"))
+    browser_passed = sum(1 for row in rows if row.get("browser_smoke_ok"))
+    strict_visual_passed = sum(1 for row in rows if row.get("strict_visual_quality_ok") or row.get("stage_visual_quality_ok"))
     failed = attempted - passed
     usage = summarize_model_usage(rows)
     report = {
@@ -369,7 +460,15 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
             "creative_ok": passed,
             "failed": failed,
             "fallback_used": sum(1 for row in rows if row.get("fallback_used")),
+            "browser_smoke_ok": browser_passed,
+            "browser_smoke_ok_rate": browser_passed / attempted if attempted else 0.0,
+            "strict_visual_quality_ok": strict_visual_passed,
+            "strict_visual_quality_ok_rate": strict_visual_passed / attempted if attempted else 0.0,
             "layout_repair_attempts": sum(int(row.get("layout_repair_attempts") or 0) for row in rows),
+            "stage_overlap_total": sum(int(row.get("stage_overlap_count") or 0) for row in rows),
+            "stage_permitted_overlap_total": sum(int(row.get("stage_permitted_overlap_count") or 0) for row in rows),
+            "stage_clipped_total": sum(int(row.get("stage_clipped_count") or 0) for row in rows),
+            "stage_text_occlusion_total": sum(int(row.get("stage_text_occlusion_count") or 0) for row in rows),
             "creative_ok_rate": passed / attempted if attempted else 0.0,
             "model_call_count": usage["model_call_count"],
             "usage_available_count": usage["usage_available_count"],
@@ -392,8 +491,14 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
                 "case_id",
                 "creative_attempted",
                 "creative_ok",
+                "browser_smoke_ok",
+                "strict_visual_quality_ok",
                 "fallback_used",
                 "layout_repair_attempts",
+                "stage_overlap_count",
+                "stage_permitted_overlap_count",
+                "stage_clipped_count",
+                "stage_text_occlusion_count",
                 "model_call_count",
                 "usage_available_count",
                 "llm_duration_s",
@@ -413,8 +518,14 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
                     "case_id": row.get("case_id", ""),
                     "creative_attempted": row.get("creative_attempted", False),
                     "creative_ok": row.get("creative_ok", False),
+                    "browser_smoke_ok": row.get("browser_smoke_ok", False),
+                    "strict_visual_quality_ok": row.get("strict_visual_quality_ok", row.get("stage_visual_quality_ok", False)),
                     "fallback_used": row.get("fallback_used", True),
                     "layout_repair_attempts": row.get("layout_repair_attempts", 0),
+                    "stage_overlap_count": row.get("stage_overlap_count", 0),
+                    "stage_permitted_overlap_count": row.get("stage_permitted_overlap_count", 0),
+                    "stage_clipped_count": row.get("stage_clipped_count", 0),
+                    "stage_text_occlusion_count": row.get("stage_text_occlusion_count", 0),
                     **summarize_row_usage(row),
                     "html": row.get("html", ""),
                     "artifact_json": row.get("artifact_json", ""),
@@ -428,21 +539,26 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
         "",
         f"- artifacts: {len(rows)}",
         f"- attempted: {attempted}",
+        f"- browser_smoke_ok: {browser_passed}",
         f"- creative_ok: {passed}",
+        f"- strict_visual_quality_ok: {strict_visual_passed}",
         f"- fallback_used: {sum(1 for row in rows if row.get('fallback_used'))}",
         f"- layout_repair_attempts: {sum(int(row.get('layout_repair_attempts') or 0) for row in rows)}",
         f"- model_call_count: {usage['model_call_count']}",
         f"- llm_duration_s: {usage['llm_duration_s']}",
         f"- total_tokens: {usage['total_tokens']}",
         "",
-        "| Case | Creative | Fallback | Layout Repairs | LLM s | Tokens | HTML | Errors |",
-        "|---|---:|---:|---:|---:|---:|---|---|",
+        "| Case | Browser | Creative | Strict Visual | Fallback | Layout Repairs | Overlap | Permitted Overlay | Clipped | Text Occlusion | LLM s | Tokens | HTML | Errors |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
     for row in rows:
         row_usage = summarize_row_usage(row)
         lines.append(
-            f"| {row.get('case_id', '')} | {row.get('creative_ok', False)} | "
+            f"| {row.get('case_id', '')} | {row.get('browser_smoke_ok', False)} | "
+            f"{row.get('creative_ok', False)} | {row.get('strict_visual_quality_ok', row.get('stage_visual_quality_ok', False))} | "
             f"{row.get('fallback_used', True)} | {row.get('layout_repair_attempts', 0)} | "
+            f"{row.get('stage_overlap_count', 0)} | {row.get('stage_permitted_overlap_count', 0)} | "
+            f"{row.get('stage_clipped_count', 0)} | {row.get('stage_text_occlusion_count', 0)} | "
             f"{row_usage['llm_duration_s']} | {row_usage['total_tokens']} | {row.get('html', '')} | "
             f"{'; '.join(str(item) for item in row.get('errors') or [])} |"
         )

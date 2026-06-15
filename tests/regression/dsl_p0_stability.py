@@ -5,6 +5,7 @@ from __future__ import annotations
 from algolab.generation import solution_generator
 from algolab.generation.repair import build_solution_repair_prompt
 from algolab.runtime.executor import execute_variant, results_equivalent
+from algolab.runtime.sandbox import SandboxError, run_function
 from algolab.schemas.input import ProblemInput
 from algolab.schemas.semantic_trace import SemanticTrace, SolutionVariant
 from algolab.verification.demo_readiness import validate_variant_demo_readiness
@@ -176,6 +177,37 @@ def test_repair_prompt_locks_scope_for_demo_state_and_result_mismatch():
     assert "不要重写已正确的 solve_code/code" in mismatch_prompt
 
 
+def test_sandbox_trace_error_includes_generated_code_location():
+    code = (
+        "def trace(input_data):\n"
+        "    sess = TraceSession('runtime error', input_data)\n"
+        "    value = input_data['value']\n"
+        "    return 10 / 0\n"
+    )
+
+    try:
+        run_function(code, "trace", {"value": 1})
+    except SandboxError as exc:
+        message = str(exc)
+    else:  # pragma: no cover - defensive assertion
+        raise AssertionError("trace should fail")
+
+    assert "trace 执行失败" in message
+    assert "Generated code traceback" in message
+    assert 'File "<algolab_generated_trace>", line 4, in trace' in message
+    assert "return 10 / 0" in message
+
+
+def test_sandbox_allows_next_over_generator_expressions():
+    code = (
+        "def solve(input_data):\n"
+        "    nums = input_data['nums']\n"
+        "    return next(x for x in nums if x > 1)\n"
+    )
+
+    assert run_function(code, "solve", {"nums": [1, 2, 3]}) == 2
+
+
 def test_demo_state_repair_preserves_previous_solve_code_even_if_llm_rewrites_it():
     previous_code = "def solve(input_data):\n    return 1\n"
     rewritten_code = "def solve(input_data):\n    return 999\n"
@@ -227,6 +259,81 @@ def test_demo_state_repair_preserves_previous_solve_code_even_if_llm_rewrites_it
         solution_generator._chat_json = original
 
     assert repaired["variants"][0]["code"] == previous_code
+
+
+def test_trace_execution_repair_locks_to_tracker_code_only():
+    prompts: list[str] = []
+    previous_code = "def solve(input_data):\n    return 3\n"
+    previous_verifier = "def verify(input_data):\n    return 3\n"
+    repaired_tracker = (
+        "def trace(input_data):\n"
+        "    sess = TraceSession('fixed trace', input_data)\n"
+        "    sess.result(3)\n"
+        "    return sess.to_trace()\n"
+    )
+
+    def fake_chat_json(_system_prompt: str, user_prompt: str, *, kind: str):
+        prompts.append(user_prompt)
+        return {
+            "problem_title": "LCS",
+            "input_contract": "text1/text2",
+            "verifier_code": "def verify(input_data):\n    return 999\n",
+            "variants": [
+                {
+                    "id": "dp",
+                    "name": "dp",
+                    "strategy": "repair trace",
+                    "time_complexity": "O(mn)",
+                    "space_complexity": "O(mn)",
+                    "code": "def solve(input_data):\n    return 999\n",
+                    "tracker_code": repaired_tracker,
+                }
+            ],
+        }
+
+    request = ProblemInput(
+        problem="给定 text1 和 text2，返回最长公共子序列长度。",
+        input_data={"text1": "abcde", "text2": "ace"},
+        expected_result=3,
+        strategy_hint="二维动态规划",
+        solution_count=1,
+    )
+    previous = {
+        "problem_title": "LCS",
+        "input_contract": "text1/text2",
+        "verifier_code": previous_verifier,
+        "variants": [
+            {
+                "id": "dp",
+                "name": "dp",
+                "strategy": "dp",
+                "time_complexity": "O(mn)",
+                "space_complexity": "O(mn)",
+                "code": previous_code,
+                "tracker_code": "def trace(input_data):\n    raise TypeError('boom')\n",
+            }
+        ],
+    }
+    errors = [
+        "二维动态规划 失败：trace 执行失败：TypeError: cannot unpack non-iterable int object\n"
+        'Generated code traceback:\n  File "<algolab_generated_trace>", line 31, in trace\n'
+        "    value = helper()\n"
+    ]
+    context = build_repair_context(errors, request=request, previous=previous)
+    assert context[0]["repair_scope"] == "tracker_only_execution"
+
+    original = solution_generator._chat_json
+    solution_generator._chat_json = fake_chat_json
+    try:
+        repaired = solution_generator.repair_solution_spec(request, previous, errors)
+    finally:
+        solution_generator._chat_json = original
+
+    assert "失败发生在 trace/tracker_code 执行阶段" in prompts[0]
+    assert "只修 tracker_code" in prompts[0]
+    assert repaired["verifier_code"] == previous_verifier
+    assert repaired["variants"][0]["code"] == previous_code
+    assert repaired["variants"][0]["tracker_code"] == repaired_tracker
 
 
 def test_result_mismatch_repair_locks_tracker_when_trace_matches_expected():
@@ -369,7 +476,10 @@ def run_all() -> None:
     test_array_setitem_at_current_length_appends_for_dynamic_path_arrays()
     test_demo_missing_state_is_degraded_warning_not_blocking_error()
     test_repair_prompt_locks_scope_for_demo_state_and_result_mismatch()
+    test_sandbox_trace_error_includes_generated_code_location()
+    test_sandbox_allows_next_over_generator_expressions()
     test_demo_state_repair_preserves_previous_solve_code_even_if_llm_rewrites_it()
+    test_trace_execution_repair_locks_to_tracker_code_only()
     test_result_mismatch_repair_locks_tracker_when_trace_matches_expected()
     import tempfile
     from pathlib import Path

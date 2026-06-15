@@ -211,7 +211,11 @@ def _specific_repair_instruction(message: str, *, request: ProblemInput | None =
         )
     ).lower() if request is not None else ""
     if "cannot unpack non-iterable int object" in text:
-        return "循环解包写错：如果遍历 digits/数组并需要下标和值，必须写 for index, digit in enumerate(digits)，不要写 for index, digit in digits。"
+        return (
+            "优先查看 Generated code traceback 指向的源码行，不要只按错误类型猜。"
+            "该错误通常表示某处把非二元组对象当成二元组解包，或把需要复合 key 的 DSL/容器传成了单值；"
+            "只修改 traceback 指向的 generated code 行附近逻辑。"
+        )
     if "list indices must be integers or slices, not nonetype" in text:
         return "列表下标变成 None：链表/指针算法必须先判断 curr is not None，再访问 values[curr] 或 nodes[curr]；反转链表要先保存 next，再改 curr.next。"
     if "list indices must be integers or slices, not list" in text or "list indices must be integers or slices, not range" in text:
@@ -264,6 +268,8 @@ def _repair_scope_for_message(
     request: ProblemInput | None,
     failure_type: str,
 ) -> str:
+    if failure_type == "execution" and _is_trace_execution_failure(message):
+        return "tracker_only_execution"
     if failure_type != "result_mismatch" or request is None or request.expected_result is None:
         return ""
     parsed = _parse_solve_trace_results(message)
@@ -281,6 +287,15 @@ def _repair_scope_for_message(
     return "consistency_only"
 
 
+def _is_trace_execution_failure(message: str) -> bool:
+    text = str(message or "").lower()
+    return (
+        "trace 执行失败" in message
+        or "tracker_code 执行失败" in message
+        or ("trace" in text and ("执行失败" in message or "execution failed" in text))
+    )
+
+
 def _scope_repair_instruction(repair_scope: str) -> str:
     if repair_scope == "code_only":
         return (
@@ -293,6 +308,12 @@ def _scope_repair_instruction(repair_scope: str) -> str:
             "证据归因：solve_result 等于 expected_result，solve/code 当前答案正确；"
             "trace_result 与 expected_result 不一致。只修 tracker_code 的计算逻辑或 sess.result(...)，"
             "不要重写已正确的 solve/code 或 verifier_code。"
+        )
+    if repair_scope == "tracker_only_execution":
+        return (
+            "证据归因：solve/code 已经成功执行，失败发生在 trace/tracker_code 执行阶段。"
+            "只修 tracker_code 中 traceback 指向的生成代码行附近逻辑；"
+            "不要重写 solve/code 或 verifier_code。"
         )
     if repair_scope == "code_and_tracker":
         return (

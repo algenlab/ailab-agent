@@ -30,6 +30,8 @@ def validate_trace(trace: SemanticTrace) -> tuple[list[str], list[str]]:
                 warnings.append(f"第 {i} 步 target 含空格：{target.id}")
             if _looks_like_legacy_map_target(target.id):
                 errors.append(f"第 {i} 步旧式 map target 已废弃，请使用方括号格式：{target.id}")
+            if _looks_like_quoted_map_target(target.id):
+                errors.append(f"第 {i} 步 map target 不要使用引号，请使用无引号方括号格式：{target.id}")
             parsed = parse_target(target.id)
             if parsed.kind == "edge" and (not parsed.source or not parsed.target):
                 errors.append(f"第 {i} 步 edge target 格式非法：{target.id}")
@@ -216,6 +218,13 @@ def _looks_like_legacy_map_target(target_id: str) -> bool:
     if "[" in key or "]" in key:
         return False
     return bool(item) and key.isidentifier() and "->" not in item
+
+
+def _looks_like_quoted_map_target(target_id: str) -> bool:
+    if "[" not in target_id or not target_id.endswith("]"):
+        return False
+    inner = target_id.rsplit("[", 1)[1][:-1].strip()
+    return len(inner) >= 2 and inner[0] in {"'", '"'} and inner[-1] == inner[0]
 
 
 def _map_base_name(target_id: str) -> str:

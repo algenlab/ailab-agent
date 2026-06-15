@@ -131,6 +131,37 @@ def test_injected_artifact_has_runtime_aliases_for_llm_direct_code():
     assert payload["result"] == artifact.variants[0].result
 
 
+def test_stage_shell_runtime_payload_preserves_teaching_and_interaction_fields():
+    artifact = fixture_artifact()
+    scene = next(iter(artifact.scenes.values()))
+    scene.frames[0].teaching = {
+        "what": "读取有序数组",
+        "why": "二分查找依赖有序性缩小边界。",
+        "hint": "观察 low/high/mid。",
+    }
+    scene.frames[0].interaction = {
+        "type": "choice",
+        "prompt": "二分查找为什么能缩小一半区间？",
+        "options": ["数组有序", "数组无序"],
+        "answer": "数组有序",
+        "explanation": "中点比较只有在有序数组上才能排除一侧。",
+        "wrong_explanation": "无序时中点大小不能说明目标在哪一侧。",
+    }
+
+    html = render_direct_visual_stage_shell_html(artifact, GOOD_STAGE_FRAGMENT)
+    match = re.search(r'<script type="application/json" id="algolab-artifact"[^>]*>(.*?)</script>', html)
+    assert match
+    payload = json.loads(match.group(1))
+    runtime_frame = payload["frames"][0]
+    scene_frame = payload["scene"]["frames"][0]
+    alias_frame = payload["scenes"]["0"]["frames"][0]
+
+    assert runtime_frame["teaching"]["what"] == "读取有序数组"
+    assert runtime_frame["interaction"]["answer"] == "数组有序"
+    assert scene_frame["teaching"] == runtime_frame["teaching"]
+    assert alias_frame["interaction"] == runtime_frame["interaction"]
+
+
 def test_render_direct_visual_html_writes_verified_artifact_data():
     artifact = fixture_artifact()
     html = render_direct_visual_html(artifact, GOOD_CREATIVE_HTML)
@@ -283,6 +314,33 @@ def test_build_direct_visual_stage_repair_prompt_targets_layout_only():
     assert "只输出 <style>" in prompt
     assert "不要输出完整 HTML" in prompt
     assert "stage_overlap_count" in prompt
+
+
+def test_build_direct_visual_stage_repair_prompt_guides_nonblocking_highlights():
+    artifact = fixture_artifact()
+    prompt = build_direct_visual_stage_repair_prompt(
+        artifact,
+        broken_stage=GOOD_STAGE_FRAGMENT,
+        failure_report={
+            "stage_layout_issues": [
+                {
+                    "type": "overlap",
+                    "frame_index": 0,
+                    "a": "rect#2 range-highlight",
+                    "b": "rect#3 candidate",
+                    "intersection_ratio": 1,
+                }
+            ],
+            "stage_overlap_count": 1,
+        },
+    )
+
+    assert "outline" in prompt
+    assert "halo" in prompt
+    assert "side lane" in prompt
+    assert "不要用实心填充覆盖节点、格子、柱子或文字" in prompt
+    assert 'data-visual="true"' in prompt
+    assert "range-highlight" in prompt
 
 
 def test_repair_direct_visual_stage_shell_html_accepts_fake_chat_fn():

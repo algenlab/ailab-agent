@@ -33,13 +33,51 @@ TEACHING_SYSTEM_PROMPT = """你是 AlgoLab 的算法教学增强器。
 - interaction 字段只允许 type/prompt/options/answer/explanation/wrong_explanation/option_explanations。
 - frames 数组中的每一项只能包含 step、teaching、interaction 三个顶层字段。
 - 不要修改、复述或发明 op、targets、deps、state、result、code_line。
-- interaction 的答案必须能由当前 frame 的 state/deps/teaching 支撑。
-- 尽量为所有 frame 补充 teaching，优先为答案帧、状态转移帧和容易误解的关键帧补充 interaction。
-- 所有中文字段必须短：what/why/hint 各不超过 28 个汉字。
-- 每个 frame 最多补一个 interaction；如果不确定就填 null。
-- choice 最多 2 个 options；不要写长 option_explanations。
+- interaction 的答案必须能由当前 frame 的 state、before、after、value、deps、targets、reason、next_summary 或 teaching 直接推出。
+
+teaching 规则：
+- 所有收到的 frame 都尽量补 teaching。
+- what 说明当前操作，why 说明为什么这样做。
+- 若 frame 有 deps/before/after/value/state_diff，优先写 formula 或 invariant。
+- 字段应短而具体；不要为了变短省略关键变量、依赖对象、状态变化或转移依据。
+
+interaction 规则：
+- 不要求每个 frame 都有 interaction。
+- 但关键学习帧必须优先生成 interaction，除非无法从当前 frame 事实推出唯一答案。
+- 关键学习帧包括：
+  1. key_learning_frame=true 的帧。
+  2. role 是 answer 的帧。
+  3. op 是 compare、set、move、push、pop、link、unlink 的帧。
+  4. 有 deps 的帧。
+  5. 有 before/after/state_diff/value 的状态转移帧。
+  6. targets 指向 answer、ans、result、dp、dist、low、dfn、parent、stack、queue、window、mid、left、right 的帧。
+  7. reason 表示分支选择、边界移动、松弛、转移、入队、出队、更新答案的帧。
+- 如果关键学习帧数量 <= 8，关键学习帧尽量全部生成 interaction。
+- 如果关键学习帧数量 > 8，至少选择 8 个最有教学价值的关键学习帧生成 interaction。
+- 覆盖必须包含：首个关键转移帧、至少一个分支/比较帧、至少一个 deps 依赖帧、答案帧。
+- 非关键帧、纯 enter/exit、纯说明帧、重复机械帧可以填 null。
+- 不要为了提高数量生成无意义问题。
+
+interaction 类型选择：
+- choice：用于“下一步会选哪个 / 为什么移动哪边 / 哪个依赖来源正确”。
+- input：用于“当前 dp/dist/answer/mid/low/dfn 变成几”这类确定值。
+- judge：用于“这个说法是否正确 / 这个不变量是否仍成立”。
+
+interaction 写法：
+- 每个 frame 最多补一个 interaction。
+- choice 最多 2 个 options。
 - choice 的 answer 必须是 options 中的某一项原文，不要输出数字下标。
-- 如果输出预算不足，只返回最关键的 1 个 frame，必须保证 JSON 完整闭合。
+- prompt 要具体，优先 20-45 个汉字；复杂步骤允许更长。
+- explanation 必须说明依据，优先 30-70 个汉字；复杂转移允许更长。
+- wrong_explanation 必须指出错因，优先 20-60 个汉字。
+- option_explanations 可以省略；如果写，每项优先 20-50 个汉字。
+- 不要为了变短省略关键变量、依赖对象、状态变化或转移依据。
+- 如果不能从当前 frame 事实推出唯一答案，interaction 填 null。
+
+输出预算规则：
+- 优先压缩文字，不要丢掉关键 interaction。
+- 如果预算不足，至少返回所有带 interaction 的关键帧，以及首帧和答案帧。
+- 必须保证 JSON 完整闭合。
 
 必须严格按这个格式输出：
 {"frames":[{"step":0,"teaching":{"what":"...","why":"..."},"interaction":null}]}
@@ -90,6 +128,7 @@ def build_trace_digest(
         prev_event = trace.events[event.step - 1] if event.step > 0 else None
         next_event = trace.events[event.step + 1] if event.step + 1 < len(trace.events) else None
         previous_state = prev_event.state if prev_event is not None else {}
+        key_learning_reasons = key_learning_reasons_for_event(event)
         frames.append(
             {
                 "step": event.step,
@@ -106,6 +145,8 @@ def build_trace_digest(
                 "state_diff": _state_diff(previous_state, event.state),
                 "prev_summary": _event_summary(prev_event),
                 "next_summary": _event_summary(next_event),
+                "key_learning_frame": bool(key_learning_reasons),
+                "key_learning_reasons": key_learning_reasons,
             }
         )
     return {
@@ -209,6 +250,58 @@ def enrich_scene_teaching(
             frame_label = "all" if attempt_frames is None else str(attempt_frames)
             failures.append(f"{frame_label} frames: {type(exc).__name__}: {exc}")
     return ["teaching enrichment skipped: " + " | ".join(failures)]
+
+
+def compute_interaction_coverage(trace: SemanticTrace, scene: SceneGraph) -> dict[str, Any]:
+    """Summarize whether high-value learning frames received interactions."""
+
+    frame_by_step = {frame.step: frame for frame in scene.frames}
+    total_frames = len(scene.frames)
+    interaction_steps = {
+        step
+        for step, frame in frame_by_step.items()
+        if isinstance(frame.interaction, dict) and str(frame.interaction.get("prompt") or "").strip()
+    }
+    key_learning_steps = [event.step for event in trace.events if key_learning_reasons_for_event(event)]
+    key_learning_interaction_steps = [step for step in key_learning_steps if step in interaction_steps]
+    deps_steps = [event.step for event in trace.events if event.deps]
+    deps_interaction_steps = [step for step in deps_steps if step in interaction_steps]
+    answer_steps = [event.step for event in trace.events if _is_answer_event(event)]
+    return {
+        "total_frames": total_frames,
+        "interaction_frames": len(interaction_steps),
+        "interaction_rate": _safe_rate(len(interaction_steps), total_frames),
+        "key_learning_frames": len(key_learning_steps),
+        "key_learning_interaction_frames": len(key_learning_interaction_steps),
+        "key_learning_interaction_rate": _safe_rate(len(key_learning_interaction_steps), len(key_learning_steps)),
+        "deps_frames": len(deps_steps),
+        "deps_interaction_frames": len(deps_interaction_steps),
+        "deps_frame_interaction_rate": _safe_rate(len(deps_interaction_steps), len(deps_steps)),
+        "answer_frames": len(answer_steps),
+        "answer_frame_interaction_present": bool(answer_steps) and any(step in interaction_steps for step in answer_steps),
+        "missing_key_learning_steps": [step for step in key_learning_steps if step not in interaction_steps],
+        "interaction_steps": sorted(interaction_steps),
+        "key_learning_steps": key_learning_steps,
+    }
+
+
+def key_learning_reasons_for_event(event: SemanticEvent) -> list[str]:
+    """Return reasons that make a trace event worth an interaction prompt."""
+
+    reasons: list[str] = []
+    if _is_answer_event(event):
+        reasons.append("answer")
+    if event.op.value in {"compare", "set", "move", "push", "pop", "link", "unlink"}:
+        reasons.append("operation")
+    if event.deps:
+        reasons.append("deps")
+    if event.before is not None or event.after is not None or event.value is not None:
+        reasons.append("state_transition")
+    if any(_interaction_target(target.id) for target in event.targets):
+        reasons.append("important_target")
+    if _reason_implies_decision(event.reason):
+        reasons.append("decision_reason")
+    return reasons
 
 
 def _teaching_attempt_frame_counts(max_frames: int | None) -> list[int | None]:
@@ -317,10 +410,62 @@ def _answer_like(target: str) -> bool:
     return raw in {"answer", "ans", "result"} or raw.startswith(("answer[", "ans[", "result["))
 
 
+def _is_answer_event(event: SemanticEvent) -> bool:
+    target_ids = [target.id for target in event.targets]
+    return event.role == "answer" or any(_answer_like(target) for target in target_ids) or "answer" in event.state
+
+
 def _important_target(target: str) -> bool:
     raw = str(target)
     prefixes = ("answer", "ans", "result", "dist", "dp", "parent", "visited", "path")
     return raw in prefixes or raw.startswith(tuple(f"{prefix}[" for prefix in prefixes))
+
+
+def _interaction_target(target: str) -> bool:
+    raw = str(target)
+    prefixes = (
+        "answer",
+        "ans",
+        "result",
+        "dp",
+        "dist",
+        "low",
+        "dfn",
+        "parent",
+        "stack",
+        "queue",
+        "window",
+        "mid",
+        "left",
+        "right",
+    )
+    return raw in prefixes or raw.startswith(tuple(f"{prefix}[" for prefix in prefixes))
+
+
+def _reason_implies_decision(reason: str) -> bool:
+    text = str(reason or "")
+    keywords = (
+        "分支",
+        "选择",
+        "边界",
+        "移动",
+        "松弛",
+        "转移",
+        "入队",
+        "出队",
+        "更新答案",
+        "淘汰",
+        "收缩",
+        "扩张",
+        "比较",
+    )
+    return any(keyword in text for keyword in keywords)
+
+
+def _safe_rate(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return numerator / denominator
 
 
 def _event_summary(event: SemanticEvent | None) -> str:

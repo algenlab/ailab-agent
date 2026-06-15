@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from algolab.compiler.scene_compiler import compile_scene
 from algolab.generation.teaching_enricher import (
+    TEACHING_SYSTEM_PROMPT,
     apply_teaching_overlay,
     build_trace_digest,
+    compute_interaction_coverage,
     enrich_scene_teaching,
     select_teaching_events,
 )
@@ -160,6 +162,41 @@ def test_apply_teaching_overlay_maps_choice_answer_index_to_option_text():
 
     assert warnings == []
     assert scene.frames[1].interaction["answer"] == "是"
+
+
+def test_teaching_prompt_requires_interactions_on_key_learning_frames_without_hard_word_caps():
+    assert "关键学习帧" in TEACHING_SYSTEM_PROMPT
+    assert "必须优先生成 interaction" in TEACHING_SYSTEM_PROMPT
+    assert "不要求每个 frame 都有 interaction" in TEACHING_SYSTEM_PROMPT
+    assert "不要为了变短省略关键变量" in TEACHING_SYSTEM_PROMPT
+    assert "如果不确定就填 null" not in TEACHING_SYSTEM_PROMPT
+    assert "不超过 36 个汉字" not in TEACHING_SYSTEM_PROMPT
+    assert "不超过 40 个汉字" not in TEACHING_SYSTEM_PROMPT
+
+
+def test_compute_interaction_coverage_counts_key_learning_frames():
+    trace = _trace(
+        [
+            _event(0, "create", ["nums"], {"nums": [1, 2, 3]}),
+            _event(1, "compare", ["mid"], {"mid": 1}, deps=["target"], value="nums[mid] < target"),
+            _event(2, "move", ["left"], {"left": 2}, before=0, after=2, reason="目标在右侧"),
+            _event(3, "set", ["answer"], {"answer": 2}, before=None, after=2, role="answer", value=2),
+        ]
+    )
+    scene = compile_scene(trace)
+    scene.frames[1].interaction = {"type": "choice", "prompt": "下一步移动哪边？", "options": ["左边", "右边"], "answer": "右边"}
+    scene.frames[3].interaction = {"type": "judge", "prompt": "当前已经得到答案吗？", "answer": True}
+
+    report = compute_interaction_coverage(trace, scene)
+
+    assert report["total_frames"] == 4
+    assert report["interaction_frames"] == 2
+    assert report["key_learning_frames"] == 3
+    assert report["key_learning_interaction_frames"] == 2
+    assert report["key_learning_interaction_rate"] == 2 / 3
+    assert report["answer_frame_interaction_present"] is True
+    assert report["deps_frame_interaction_rate"] == 1.0
+    assert report["missing_key_learning_steps"] == [2]
 
 
 def test_trace_digest_limits_long_trace_but_keeps_answer_and_state_change_frames():

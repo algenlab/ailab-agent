@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import argparse
 from pathlib import Path
+from unittest.mock import patch
 
 from pydantic import ValidationError
 
@@ -1186,33 +1187,35 @@ def test_contract_prompt_states_json_expected_and_verifier_boundaries():
     assert "HTML" in prompt and "Three.js" in prompt
 
 
-def test_tracker_prompt_requires_tracer_api():
+def test_tracker_prompt_requires_trace_session_dsl():
     prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
-    assert "Tracer" in prompt
-    assert "tracer.set" in prompt
-    assert "不要直接手写 events.append" in prompt
+    assert "TraceSession" in prompt
+    assert "sess = TraceSession" in prompt
+    assert "不要混用 `session`、`tracer`、`trace_session`" in prompt
+    assert "DSL API" in prompt
 
 
-def test_tracker_prompt_requires_teaching_and_complete_key_set_events():
+def test_tracker_prompt_requires_code_line_and_dsl_event_contract():
     prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
 
-    assert "teaching" in prompt
     assert "每个关键事件" in prompt
-    assert "what" in prompt and "why" in prompt
-    assert "关键 set 事件" in prompt
-    for field in ("deps", "value", "state", "reason", "code_line"):
+    assert "关键事件必须填写准确 code_line" in prompt
+    assert "set/move/push/pop/link/unlink" in prompt
+    for field in ("state", "reason", "code_line"):
         assert field in prompt
-    assert "禁止旧字段" in prompt
-    assert "type" in prompt and "target" in prompt
-    assert "旧式 map target" in prompt
-    assert "seen:2" in prompt and "dist:A" in prompt
+    assert "禁止新增、删除、重命名字段" in prompt
+    assert "不要再像旧版" in prompt
+    assert "tracer.create" in prompt
 
 
-def test_repair_prompt_converts_sparse_trace_to_tracer_api():
+def test_repair_prompt_preserves_trace_session_dsl():
     prompt = Path("algolab/generation/prompts/repair_system.txt").read_text(encoding="utf-8")
-    assert "Tracer API" in prompt
-    assert "events.append" in prompt
-    assert "tracer.set" in prompt
+    assert "不要重写 DSL 风格" in prompt
+    assert "不要回退到旧 `Tracer` API" in prompt
+    assert "sess = TraceSession" in prompt
+    assert "DSL API 提醒" in prompt
+    assert "tracer.create / tracer.set" in prompt
+    assert "generated code traceback" in prompt
 
 
 def test_contract_prompt_examples_normalize_for_two_sum_dp_graph_stack():
@@ -1413,14 +1416,14 @@ def test_solution_repair_context_classifies_failure_types_and_step_targets():
 
     prompt = captured["prompt"]
     assert "结构化错误上下文" in prompt
-    assert "schema_error" in prompt
-    assert "target_error" in prompt
-    assert "process_error" in prompt
+    assert "trace_schema" in prompt
+    assert "generation" in prompt
     assert "coverage_error" in prompt
-    assert "scene_error" in prompt
+    assert "trace(input_data) 必须 return sess.to_trace()" in prompt
     assert '"step": 3' in prompt
-    assert '"target": "seen:2"' in prompt
-    assert '"target": "dp[1][1]"' in prompt
+    assert '"step": 4' in prompt
+    assert "旧式 map target" in prompt
+    assert '"dp[1][1]"' in prompt
 
 
 def test_llm_benchmark_report_summarizes_repair_failure_type_transitions():
@@ -1688,28 +1691,37 @@ def test_process_validator_accepts_map_container_dependency():
 
 def test_process_validation_registry_declares_core_families():
     registry = {profile.family: profile for profile in process_validation_registry()}
-    required = {"dp", "bfs", "binary_search", "monotonic_stack", "hash", "tree", "union_find"}
+    required = {
+        "dp_1d",
+        "dp_2d",
+        "dp_core",
+        "basic_graph",
+        "shortest_path_mst",
+        "binary_search",
+        "monotonic_stack",
+        "hash_map",
+        "tree_bst_lca",
+        "tree_dp",
+        "union_find",
+    }
 
     assert required <= set(registry)
     for family in required:
         profile = registry[family]
         assert profile.coverage_rule
-        assert profile.failure_type
-        assert profile.status in {"strong", "fallback"}
-        if profile.status == "strong":
-            assert profile.checks, family
-        else:
-            assert profile.checks == ()
-            assert profile.failure_type in {"process_fallback", "process_uncovered"}
+        assert "DSL-era" in profile.coverage_rule
+        assert profile.failure_type == "process_invariant"
+        assert profile.status == "strong"
+        assert profile.checks == ()
 
-    assert process_validation_profile_for_family("二维 DP").family == "dp"
-    assert process_validation_profile_for_family("BFS/DFS 基础图").family == "bfs"
+    assert process_validation_profile_for_family("二维 DP").family == "dp_2d"
+    assert process_validation_profile_for_family("BFS/DFS 基础图").family == "basic_graph"
     assert process_validation_profile_for_family("栈 / 队列 / 单调栈").family == "monotonic_stack"
     hash_profile = process_validation_profile_for_family("哈希表 / map")
-    assert hash_profile.family == "hash"
+    assert hash_profile.family == "hash_map"
     assert hash_profile.status == "strong"
-    assert "_validate_hash_map_process" in hash_profile.checks
-    assert process_validation_profile_for_family("树 / BST / LCA").family == "tree"
+    assert hash_profile.checks == ()
+    assert process_validation_profile_for_family("树 / BST / LCA").family == "tree_bst_lca"
     assert process_validation_profile_for_family("并查集").family == "union_find"
 
 
@@ -1719,7 +1731,7 @@ def test_process_validation_unknown_family_uses_fallback_not_strong_validation()
     assert profile.family == "uncovered"
     assert profile.status == "fallback"
     assert profile.checks == ()
-    assert profile.coverage_rule == "基础 schema / scene / answer gate；不声明算法族强过程不变量"
+    assert "DSL-era" in profile.coverage_rule
     assert profile.failure_type == "process_uncovered"
 
 
@@ -4953,6 +4965,42 @@ def test_pipeline_expected_result_allows_single_solution_release():
     assert errors == []
 
 
+def test_pipeline_records_teaching_interaction_coverage_check():
+    def fake_teaching_chat(_system_prompt, _user_prompt, *, kind):
+        assert kind == "teaching"
+        return {
+            "frames": [
+                {"step": 0, "teaching": {"what": "读取输入 x", "why": "后续答案来自输入。"}, "interaction": None},
+                {
+                    "step": 1,
+                    "teaching": {"what": "写入答案", "why": "常量题答案确定为 1。"},
+                    "interaction": {
+                        "type": "input",
+                        "prompt": "当前 answer 应写成多少？",
+                        "answer": 1,
+                        "explanation": "本步 after 和 state 都显示 answer 为 1。",
+                        "wrong_explanation": "忽略 after/state 会导致答案来源不清。",
+                    },
+                },
+            ]
+        }
+
+    request = ProblemInput(problem="常量题", input_data={"x": 1}, expected_result=1, teaching_enrichment=True)
+
+    with patch("llm_client.chat_json", fake_teaching_chat):
+        artifact, errors = _try_materialize(request, _good_spec())
+
+    assert errors == []
+    coverage_checks = [check for check in artifact.validation.checks if "teaching_interaction_coverage" in check]
+    assert coverage_checks
+    coverage = json.loads(coverage_checks[0].split("teaching_interaction_coverage ", 1)[1])
+    assert coverage["total_frames"] == 2
+    assert coverage["interaction_frames"] == 1
+    assert coverage["key_learning_frames"] == 1
+    assert coverage["key_learning_interaction_frames"] == 1
+    assert coverage["answer_frame_interaction_present"] is True
+
+
 def test_pipeline_blocks_unobservable_process_even_with_expected_result():
     request = ProblemInput(problem="常量题", input_data={"x": 1}, expected_result=1)
     trace_literal = {
@@ -5015,9 +5063,9 @@ def run_all():
         test_contract_validator_supports_expected_user_and_generated_oracles,
         test_contract_validator_blocks_oracle_expected_mismatch_and_timeout,
         test_contract_prompt_states_json_expected_and_verifier_boundaries,
-        test_tracker_prompt_requires_tracer_api,
-        test_tracker_prompt_requires_teaching_and_complete_key_set_events,
-        test_repair_prompt_converts_sparse_trace_to_tracer_api,
+        test_tracker_prompt_requires_trace_session_dsl,
+        test_tracker_prompt_requires_code_line_and_dsl_event_contract,
+        test_repair_prompt_preserves_trace_session_dsl,
         test_contract_prompt_examples_normalize_for_two_sum_dp_graph_stack,
         test_contract_repair_loop_fixes_truncated_json,
         test_contract_repair_loop_handles_validator_and_oracle_failures,
@@ -5030,7 +5078,7 @@ def run_all():
         test_trace_validator_rejects_legacy_map_colon_targets,
         test_trace_validator_accepts_input_tree_and_points_targets,
         test_execute_variant_rejects_quoted_map_targets,
-        test_execute_variant_rejects_excessive_trace_events,
+        test_execute_variant_preserves_long_trace_events,
         test_process_validator_accepts_map_container_dependency,
         test_process_validation_registry_declares_core_families,
         test_process_validation_unknown_family_uses_fallback_not_strong_validation,
@@ -5082,6 +5130,7 @@ def run_all():
         test_scene_validator_rejects_empty_visual_frame,
         test_pipeline_requires_process_evidence,
         test_pipeline_expected_result_allows_single_solution_release,
+        test_pipeline_records_teaching_interaction_coverage_check,
         test_pipeline_blocks_unobservable_process_even_with_expected_result,
         test_pipeline_bad_verifier_blocks_release,
     ]
