@@ -28,6 +28,12 @@ from algolab.generation.direct_visual_renderer import (
 )
 from algolab.schemas.validation import BuildArtifact
 from llm_client import llm_config
+from scripts.creative_quality_gate import (
+    compact_creative_quality_report,
+    creative_quality_score,
+    is_better_creative_quality_report,
+    run_creative_quality_gate,
+)
 
 
 def now_iso() -> str:
@@ -51,16 +57,92 @@ def collect_artifacts(artifact_dir: Path, glob_pattern: str, *, case_filters: se
 
 
 def load_problem_map(report: Path | None) -> dict[str, str]:
+    from tests.benchmark_cases import benchmark_cases
+
+    result: dict[str, str] = {
+        case.id: case.problem
+        for case in benchmark_cases()
+        if str(case.problem or "").strip()
+    }
     if report is None or not report.exists():
-        return {}
+        return result
     data = json.loads(report.read_text(encoding="utf-8"))
-    result: dict[str, str] = {}
     for item in data.get("results") or []:
         case_id = str(item.get("case_id") or "")
-        title = str(item.get("title") or "")
-        if case_id and title:
+        problem = str(
+            item.get("problem_description")
+            or item.get("problem")
+            or ""
+        ).strip()
+        title = str(item.get("title") or "").strip()
+        if case_id and problem:
+            result[case_id] = problem
+        elif case_id and title and case_id not in result:
             result[case_id] = title
     return result
+
+
+def infer_stage1_model_from_report(report: Path | None) -> str:
+    """Infer the Stage1 generation model recorded by a benchmark report."""
+
+    if report is None or not report.exists():
+        return ""
+    try:
+        data = json.loads(report.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return ""
+    results = data.get("results")
+    if isinstance(results, list):
+        for item in results:
+            if not isinstance(item, dict):
+                continue
+            model = str(item.get("model") or "").strip()
+            if model:
+                return model
+            calls = item.get("model_calls")
+            if isinstance(calls, list):
+                for call in calls:
+                    if not isinstance(call, dict):
+                        continue
+                    if str(call.get("kind") or "") == "generation":
+                        model = str(call.get("model") or "").strip()
+                        if model:
+                            return model
+                for call in calls:
+                    if isinstance(call, dict):
+                        model = str(call.get("model") or "").strip()
+                        if model:
+                            return model
+    llm = data.get("llm")
+    if isinstance(llm, dict):
+        model = str(llm.get("model") or "").strip()
+        if model:
+            return model
+    model_config = data.get("model_config")
+    if isinstance(model_config, dict):
+        llm_config_data = model_config.get("llm")
+        if isinstance(llm_config_data, dict):
+            model = str(llm_config_data.get("model") or "").strip()
+            if model:
+                return model
+    return ""
+
+
+def resolve_generation_model(
+    *,
+    explicit_model: str | None,
+    artifact_dir: Path,
+    problem_report: Path | None,
+) -> str | None:
+    """Resolve Stage2 text LLM, defaulting to the Stage1 benchmark model."""
+
+    if str(explicit_model or "").strip():
+        return str(explicit_model).strip()
+    for report in (problem_report, artifact_dir / "llm_benchmark_report.json"):
+        model = infer_stage1_model_from_report(report)
+        if model:
+            return model
+    return None
 
 
 def infer_case_id(path: Path) -> str:
@@ -86,6 +168,10 @@ def write_case_outputs(
     timeout_retries: int,
     require_stage_visual_quality: bool,
     layout_repair_retries: int,
+    require_creative_quality: bool,
+    creative_quality_repair_retries: int,
+    creative_quality_vlm: bool,
+    vlm_model: str | None,
     stage_audit_wait_ms: int,
     stage_audit_max_frames: int,
 ) -> dict[str, Any]:
@@ -118,12 +204,20 @@ def write_case_outputs(
         "timeout_retries": timeout_retries,
         "require_stage_visual_quality": require_stage_visual_quality,
         "layout_repair_retries": layout_repair_retries,
+        "require_creative_quality": require_creative_quality,
+        "creative_quality_repair_retries": creative_quality_repair_retries,
+        "creative_quality_vlm": creative_quality_vlm,
+        "vlm_model": vlm_model or "",
         "stage_audit_wait_ms": stage_audit_wait_ms,
         "stage_audit_max_frames": stage_audit_max_frames,
         "attempt_count": 0,
         "attempt_reports": [],
         "layout_repair_attempts": 0,
         "layout_audit_reports": [],
+        "creative_quality_repair_attempts": 0,
+        "creative_quality_reports": [],
+        "creative_quality_ok": False,
+        "creative_quality_score": 0,
         "browser_smoke_ok": False,
         "stage_visual_quality_ok": False,
         "strict_visual_quality_ok": False,
@@ -157,7 +251,26 @@ def write_case_outputs(
     html_path = html_dir / f"{stem}.html"
     if result.creative_ok:
         html_path.write_text(result.html, encoding="utf-8")
-        if require_stage_visual_quality:
+        if require_creative_quality:
+            result, layout_reports = enforce_creative_quality(
+                artifact=artifact,
+                result=result,
+                html_path=html_path,
+                html_dir=html_dir,
+                raw_dir=raw_dir,
+                audit_dir=audit_dir,
+                stem=stem,
+                initial_stage=result.raw_output or result.extracted_html,
+                problem_description=problem_description,
+                model=model,
+                mode=mode,
+                wait_ms=stage_audit_wait_ms,
+                stage_audit_max_frames=stage_audit_max_frames,
+                repair_retries=creative_quality_repair_retries,
+                enable_vlm=creative_quality_vlm,
+                vlm_model=vlm_model,
+            )
+        elif require_stage_visual_quality:
             result, layout_reports = enforce_stage_visual_quality(
                 artifact=artifact,
                 result=result,
@@ -180,6 +293,7 @@ def write_case_outputs(
         layout_reports = []
     model_calls = collect_case_model_calls(attempt_reports, layout_reports, fallback=result.model_calls)
     layout_status = summarize_layout_status(layout_reports)
+    creative_quality_status = summarize_creative_quality_status(layout_reports)
     row = {
         **base_row,
         "creative_ok": result.creative_ok,
@@ -188,7 +302,14 @@ def write_case_outputs(
         "attempt_reports": attempt_reports,
         "layout_repair_attempts": sum(1 for item in layout_reports if item.get("kind") == "layout_repair"),
         "layout_audit_reports": layout_reports,
+        "creative_quality_repair_attempts": sum(
+            1 for item in layout_reports if item.get("kind") == "creative_quality_repair"
+        ),
+        "creative_quality_reports": [
+            item for item in layout_reports if item.get("kind") in {"creative_quality_gate", "creative_quality_repair"}
+        ],
         **layout_status,
+        **creative_quality_status,
         "html": str(html_path) if result.creative_ok else "",
         "raw_output": str(raw_path),
         "errors": result.errors,
@@ -284,6 +405,140 @@ def enforce_stage_visual_quality(
         audit_row = best_audit_row
 
     return _layout_failed_result(best_result, best_audit_row, reports), reports
+
+
+def enforce_creative_quality(
+    *,
+    artifact: BuildArtifact,
+    result: DirectVisualRenderResult,
+    html_path: Path,
+    html_dir: Path,
+    raw_dir: Path,
+    audit_dir: Path,
+    stem: str,
+    initial_stage: str,
+    problem_description: str,
+    model: str | None,
+    mode: str,
+    wait_ms: int,
+    stage_audit_max_frames: int,
+    repair_retries: int,
+    enable_vlm: bool,
+    vlm_model: str | None,
+) -> tuple[DirectVisualRenderResult, list[dict[str, Any]]]:
+    """Run the unified Creative Quality gate and repair stage-shell failures."""
+
+    reports: list[dict[str, Any]] = []
+    current_result = result
+    current_stage = initial_stage
+
+    gate = run_creative_quality_audit(
+        html_path,
+        audit_dir / f"{stem}_creative_quality_attempt0",
+        problem_description=problem_description,
+        wait_ms=wait_ms,
+        stage_audit_max_frames=stage_audit_max_frames,
+        enable_vlm=enable_vlm,
+        vlm_model=vlm_model,
+    )
+    append_creative_quality_reports(reports, attempt=0, gate=gate)
+    best_gate = gate
+    best_result = current_result
+    best_stage = current_stage
+    if gate.get("creative_quality_ok"):
+        return current_result, reports
+
+    if mode != "stage_shell":
+        failed = _creative_quality_failed_result(current_result, gate, reports)
+        return failed, reports
+
+    for attempt in range(1, max(0, int(repair_retries)) + 1):
+        repair_result = repair_direct_visual_stage_shell_html(
+            artifact,
+            broken_stage=current_stage,
+            failure_report=compact_creative_quality_report(gate),
+            problem_description=problem_description,
+            model=model,
+        )
+        repair_raw_path = raw_dir / f"{stem}_creative_quality_repair{attempt}_raw.txt"
+        repair_raw_path.write_text(repair_result.raw_output, encoding="utf-8")
+        repair_report: dict[str, Any] = {
+            "kind": "creative_quality_repair",
+            "attempt": attempt,
+            "creative_ok": repair_result.creative_ok,
+            "raw_output": str(repair_raw_path),
+            "errors": repair_result.errors,
+            "warnings": repair_result.warnings,
+            "model_calls": repair_result.model_calls,
+        }
+        reports.append(repair_report)
+        if not repair_result.creative_ok:
+            continue
+
+        candidate_path = html_dir / f"{stem}_creative_quality_repair{attempt}.html"
+        candidate_path.write_text(repair_result.html, encoding="utf-8")
+        candidate_gate = run_creative_quality_audit(
+            candidate_path,
+            audit_dir / f"{stem}_creative_quality_attempt{attempt}",
+            problem_description=problem_description,
+            wait_ms=wait_ms,
+            stage_audit_max_frames=stage_audit_max_frames,
+            enable_vlm=enable_vlm,
+            vlm_model=vlm_model,
+        )
+        append_creative_quality_reports(reports, attempt=attempt, gate=candidate_gate)
+        if candidate_gate.get("creative_quality_ok"):
+            html_path.write_text(repair_result.html, encoding="utf-8")
+            return repair_result, reports
+        if is_better_creative_quality_report(candidate_gate, best_gate):
+            best_gate = candidate_gate
+            best_result = repair_result
+            best_stage = repair_result.raw_output or repair_result.extracted_html or best_stage
+        current_result = best_result
+        current_stage = best_stage
+        gate = best_gate
+
+    return _creative_quality_failed_result(best_result, best_gate, reports), reports
+
+
+def run_creative_quality_audit(
+    html_path: Path,
+    output_dir: Path,
+    *,
+    problem_description: str,
+    wait_ms: int,
+    stage_audit_max_frames: int,
+    enable_vlm: bool,
+    vlm_model: str | None,
+) -> dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return run_creative_quality_gate(
+        html_path,
+        output_dir,
+        problem_description=problem_description,
+        wait_ms=wait_ms,
+        stage_audit_max_frames=stage_audit_max_frames,
+        enable_vlm=enable_vlm,
+        vlm_model=vlm_model,
+    )
+
+
+def append_creative_quality_reports(reports: list[dict[str, Any]], *, attempt: int, gate: dict[str, Any]) -> None:
+    reports.append(
+        {
+            "kind": "creative_quality_gate",
+            "attempt": attempt,
+            "gate": compact_creative_quality_report(gate),
+            "model_calls": (gate.get("vlm") or {}).get("model_calls") if isinstance(gate.get("vlm"), dict) else [],
+        }
+    )
+    reports.append(
+        {
+            "kind": "layout_audit",
+            "attempt": attempt,
+            "audit": gate.get("playwright") or {},
+        }
+    )
 
 
 def run_stage_layout_audit(
@@ -403,6 +658,43 @@ def summarize_layout_status(layout_reports: list[dict[str, Any]]) -> dict[str, A
     }
 
 
+def best_creative_quality_gate(reports: list[dict[str, Any]]) -> dict[str, Any]:
+    gates = [item.get("gate") or {} for item in reports if item.get("kind") == "creative_quality_gate"]
+    best: dict[str, Any] = {}
+    for gate in gates:
+        if is_better_creative_quality_report(gate, best if best else None):
+            best = gate
+    return best
+
+
+def summarize_creative_quality_status(reports: list[dict[str, Any]]) -> dict[str, Any]:
+    gates = [item.get("gate") or {} for item in reports if item.get("kind") == "creative_quality_gate"]
+    if not gates:
+        return {}
+    first = gates[0]
+    last = gates[-1]
+    best = best_creative_quality_gate(reports) or last
+    best_vlm = best.get("vlm") if isinstance(best.get("vlm"), dict) else {}
+    first_vlm = first.get("vlm") if isinstance(first.get("vlm"), dict) else {}
+    last_vlm = last.get("vlm") if isinstance(last.get("vlm"), dict) else {}
+    return {
+        "creative_quality_ok": bool(best.get("creative_quality_ok")),
+        "creative_quality_score": int(best.get("score") or creative_quality_score(best)),
+        "creative_quality_hard_failures": list(best.get("hard_failures") or []),
+        "creative_quality_soft_failures": list(best.get("soft_failures") or []),
+        "vlm_creative_quality_ok": bool(best_vlm.get("ok")),
+        "vlm_scenario_salience_score": best_vlm.get("scenario_salience_score"),
+        "vlm_algorithm_readability_score": best_vlm.get("algorithm_readability_score"),
+        "vlm_generic_algorithm_visual": bool(best_vlm.get("is_generic_algorithm_visual")),
+        "initial_creative_quality_ok": bool(first.get("creative_quality_ok")),
+        "initial_creative_quality_score": int(first.get("score") or creative_quality_score(first)),
+        "initial_vlm_scenario_salience_score": first_vlm.get("scenario_salience_score"),
+        "last_creative_quality_ok": bool(last.get("creative_quality_ok")),
+        "last_creative_quality_score": int(last.get("score") or creative_quality_score(last)),
+        "last_vlm_scenario_salience_score": last_vlm.get("scenario_salience_score"),
+    }
+
+
 def _layout_failed_result(
     result: DirectVisualRenderResult,
     audit_row: dict[str, Any],
@@ -430,6 +722,33 @@ def _layout_failed_result(
     )
 
 
+def _creative_quality_failed_result(
+    result: DirectVisualRenderResult,
+    gate: dict[str, Any],
+    reports: list[dict[str, Any]],
+) -> DirectVisualRenderResult:
+    return DirectVisualRenderResult(
+        creative_ok=False,
+        html="",
+        raw_output=result.raw_output,
+        extracted_html=result.extracted_html,
+        prompt=result.prompt,
+        errors=list(result.errors)
+        + [
+            "creative_quality_gate_failed: "
+            + json.dumps(compact_creative_quality_report(gate), ensure_ascii=False, sort_keys=True)
+        ],
+        warnings=list(result.warnings),
+        model_calls=list(result.model_calls)
+        + [
+            call
+            for report in reports
+            if report.get("kind") in {"layout_repair", "creative_quality_repair"}
+            for call in (report.get("model_calls") or [])
+        ],
+    )
+
+
 def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: str, args: argparse.Namespace) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     ended_at = now_iso()
@@ -437,6 +756,7 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
     passed = sum(1 for row in rows if row.get("creative_ok"))
     browser_passed = sum(1 for row in rows if row.get("browser_smoke_ok"))
     strict_visual_passed = sum(1 for row in rows if row.get("strict_visual_quality_ok") or row.get("stage_visual_quality_ok"))
+    creative_quality_passed = sum(1 for row in rows if row.get("creative_quality_ok"))
     failed = attempted - passed
     usage = summarize_model_usage(rows)
     report = {
@@ -451,8 +771,13 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
         "timeout_retries": args.timeout_retries,
         "require_stage_visual_quality": args.require_stage_visual_quality,
         "layout_repair_retries": args.layout_repair_retries,
+        "require_creative_quality": getattr(args, "require_creative_quality", False),
+        "creative_quality_repair_retries": getattr(args, "creative_quality_repair_retries", 0),
+        "creative_quality_vlm": getattr(args, "creative_quality_vlm", False),
+        "vlm_model": getattr(args, "vlm_model", "") or "",
         "stage_audit_max_frames": args.stage_audit_max_frames,
         "requested_model": args.model or "",
+        "generation_model": getattr(args, "generation_model", "") or args.model or "",
         "llm": llm_config(),
         "summary": {
             "total_artifacts": len(rows),
@@ -464,7 +789,12 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
             "browser_smoke_ok_rate": browser_passed / attempted if attempted else 0.0,
             "strict_visual_quality_ok": strict_visual_passed,
             "strict_visual_quality_ok_rate": strict_visual_passed / attempted if attempted else 0.0,
+            "creative_quality_ok": creative_quality_passed,
+            "creative_quality_ok_rate": creative_quality_passed / attempted if attempted else 0.0,
             "layout_repair_attempts": sum(int(row.get("layout_repair_attempts") or 0) for row in rows),
+            "creative_quality_repair_attempts": sum(
+                int(row.get("creative_quality_repair_attempts") or 0) for row in rows
+            ),
             "stage_overlap_total": sum(int(row.get("stage_overlap_count") or 0) for row in rows),
             "stage_permitted_overlap_total": sum(int(row.get("stage_permitted_overlap_count") or 0) for row in rows),
             "stage_clipped_total": sum(int(row.get("stage_clipped_count") or 0) for row in rows),
@@ -493,12 +823,18 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
                 "creative_ok",
                 "browser_smoke_ok",
                 "strict_visual_quality_ok",
+                "creative_quality_ok",
+                "creative_quality_score",
                 "fallback_used",
                 "layout_repair_attempts",
+                "creative_quality_repair_attempts",
                 "stage_overlap_count",
                 "stage_permitted_overlap_count",
                 "stage_clipped_count",
                 "stage_text_occlusion_count",
+                "vlm_scenario_salience_score",
+                "vlm_algorithm_readability_score",
+                "vlm_generic_algorithm_visual",
                 "model_call_count",
                 "usage_available_count",
                 "llm_duration_s",
@@ -520,12 +856,18 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
                     "creative_ok": row.get("creative_ok", False),
                     "browser_smoke_ok": row.get("browser_smoke_ok", False),
                     "strict_visual_quality_ok": row.get("strict_visual_quality_ok", row.get("stage_visual_quality_ok", False)),
+                    "creative_quality_ok": row.get("creative_quality_ok", False),
+                    "creative_quality_score": row.get("creative_quality_score", 0),
                     "fallback_used": row.get("fallback_used", True),
                     "layout_repair_attempts": row.get("layout_repair_attempts", 0),
+                    "creative_quality_repair_attempts": row.get("creative_quality_repair_attempts", 0),
                     "stage_overlap_count": row.get("stage_overlap_count", 0),
                     "stage_permitted_overlap_count": row.get("stage_permitted_overlap_count", 0),
                     "stage_clipped_count": row.get("stage_clipped_count", 0),
                     "stage_text_occlusion_count": row.get("stage_text_occlusion_count", 0),
+                    "vlm_scenario_salience_score": row.get("vlm_scenario_salience_score", ""),
+                    "vlm_algorithm_readability_score": row.get("vlm_algorithm_readability_score", ""),
+                    "vlm_generic_algorithm_visual": row.get("vlm_generic_algorithm_visual", ""),
                     **summarize_row_usage(row),
                     "html": row.get("html", ""),
                     "artifact_json": row.get("artifact_json", ""),
@@ -542,23 +884,28 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
         f"- browser_smoke_ok: {browser_passed}",
         f"- creative_ok: {passed}",
         f"- strict_visual_quality_ok: {strict_visual_passed}",
+        f"- creative_quality_ok: {creative_quality_passed}",
         f"- fallback_used: {sum(1 for row in rows if row.get('fallback_used'))}",
         f"- layout_repair_attempts: {sum(int(row.get('layout_repair_attempts') or 0) for row in rows)}",
+        f"- creative_quality_repair_attempts: {sum(int(row.get('creative_quality_repair_attempts') or 0) for row in rows)}",
         f"- model_call_count: {usage['model_call_count']}",
         f"- llm_duration_s: {usage['llm_duration_s']}",
         f"- total_tokens: {usage['total_tokens']}",
         "",
-        "| Case | Browser | Creative | Strict Visual | Fallback | Layout Repairs | Overlap | Permitted Overlay | Clipped | Text Occlusion | LLM s | Tokens | HTML | Errors |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
+        "| Case | Browser | Creative | Strict Visual | Creative Quality | CQ Score | Fallback | Layout Repairs | CQ Repairs | Overlap | Permitted Overlay | Clipped | Text Occlusion | VLM Scenario | LLM s | Tokens | HTML | Errors |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
     for row in rows:
         row_usage = summarize_row_usage(row)
         lines.append(
             f"| {row.get('case_id', '')} | {row.get('browser_smoke_ok', False)} | "
             f"{row.get('creative_ok', False)} | {row.get('strict_visual_quality_ok', row.get('stage_visual_quality_ok', False))} | "
+            f"{row.get('creative_quality_ok', False)} | {row.get('creative_quality_score', 0)} | "
             f"{row.get('fallback_used', True)} | {row.get('layout_repair_attempts', 0)} | "
+            f"{row.get('creative_quality_repair_attempts', 0)} | "
             f"{row.get('stage_overlap_count', 0)} | {row.get('stage_permitted_overlap_count', 0)} | "
             f"{row.get('stage_clipped_count', 0)} | {row.get('stage_text_occlusion_count', 0)} | "
+            f"{row.get('vlm_scenario_salience_score', '')} | "
             f"{row_usage['llm_duration_s']} | {row_usage['total_tokens']} | {row.get('html', '')} | "
             f"{'; '.join(str(item) for item in row.get('errors') or [])} |"
         )
@@ -576,7 +923,9 @@ def collect_case_model_calls(
     for report in attempt_reports:
         calls.extend(call for call in (report.get("model_calls") or []) if isinstance(call, dict))
     for report in layout_reports:
-        if report.get("kind") == "layout_repair":
+        if report.get("kind") in {"layout_repair", "creative_quality_repair"}:
+            calls.extend(call for call in (report.get("model_calls") or []) if isinstance(call, dict))
+        if report.get("kind") == "creative_quality_gate":
             calls.extend(call for call in (report.get("model_calls") or []) if isinstance(call, dict))
     if not calls:
         calls.extend(call for call in (fallback or []) if isinstance(call, dict))
@@ -670,6 +1019,29 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=0,
         help="How many LLM stage-only layout repair attempts to run after the browser layout gate fails.",
+    )
+    parser.add_argument(
+        "--require-creative-quality",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run the unified Creative Quality gate: browser/layout checks plus optional VLM scenario salience checks.",
+    )
+    parser.add_argument(
+        "--creative-quality-repair-retries",
+        type=int,
+        default=0,
+        help="How many LLM stage-only repair attempts to run after the Creative Quality gate fails.",
+    )
+    parser.add_argument(
+        "--creative-quality-vlm",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable Gemini/VLM scenario salience checks inside the Creative Quality gate.",
+    )
+    parser.add_argument(
+        "--vlm-model",
+        default=None,
+        help="Optional VLM model override for --creative-quality-vlm, e.g. gemini-3-flash-preview.",
     )
     parser.add_argument(
         "--stage-audit-wait-ms",
@@ -825,10 +1197,16 @@ def _is_timeout_result(result: DirectVisualRenderResult) -> bool:
 
 def main() -> int:
     args = parse_args()
-    apply_llm_overrides(args)
     started_at = now_iso()
     artifact_dir = args.artifact_dir.resolve()
     output_dir = args.output_dir.resolve()
+    generation_model = resolve_generation_model(
+        explicit_model=args.model,
+        artifact_dir=artifact_dir,
+        problem_report=args.problem_report,
+    )
+    args.generation_model = generation_model or ""
+    apply_llm_overrides(args)
     artifacts = collect_artifacts(artifact_dir, args.artifact_glob, case_filters=set(args.case))
     if args.max_artifacts and args.max_artifacts > 0:
         artifacts = artifacts[: args.max_artifacts]
@@ -847,12 +1225,16 @@ def main() -> int:
             output_dir=output_dir,
             problem_description=problem_description,
             prompt_only=bool(args.prompt_only),
-            model=args.model,
+            model=generation_model,
             timeout_s=int(args.timeout_s),
             mode=args.mode,
             timeout_retries=int(args.timeout_retries),
             require_stage_visual_quality=bool(args.require_stage_visual_quality),
             layout_repair_retries=int(args.layout_repair_retries),
+            require_creative_quality=bool(args.require_creative_quality),
+            creative_quality_repair_retries=int(args.creative_quality_repair_retries),
+            creative_quality_vlm=bool(args.creative_quality_vlm),
+            vlm_model=args.vlm_model,
             stage_audit_wait_ms=int(args.stage_audit_wait_ms),
             stage_audit_max_frames=int(args.stage_audit_max_frames),
         )
@@ -873,8 +1255,11 @@ def apply_llm_overrides(args: argparse.Namespace) -> None:
         os.environ["ALGOLAB_LLM_TIMEOUT_S"] = str(int(args.timeout_s))
     if int(args.llm_max_tokens) > 0:
         os.environ["ALGOLAB_LLM_MAX_TOKENS"] = str(int(args.llm_max_tokens))
-    if args.model:
-        os.environ["ALGOLAB_LLM_MODEL"] = str(args.model)
+    generation_model = getattr(args, "generation_model", None) or args.model
+    if generation_model:
+        os.environ["ALGOLAB_LLM_MODEL"] = str(generation_model)
+    if getattr(args, "vlm_model", None):
+        os.environ["ALGOLAB_VLM_MODEL"] = str(args.vlm_model)
 
 
 if __name__ == "__main__":

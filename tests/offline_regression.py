@@ -683,12 +683,10 @@ def test_renderer_uses_semantic_timeline_with_generic_fallback(tmp_path: Path):
 def test_tracker_prompt_requests_phase_labels_without_stage_targets():
     prompt = Path("algolab/generation/prompts/tracker_system.txt").read_text(encoding="utf-8")
 
-    assert 'state["phase"]' in prompt or '"phase"' in prompt
-    assert "初始化" in prompt
+    assert 'with sess.step("阶段标题")' in prompt
+    assert "阶段分段" in prompt
     assert "主循环" in prompt
-    assert "关键转移" in prompt
-    assert "返回结果" in prompt
-    assert "不要发明阶段 target" in prompt
+    assert 'with sess.step("..."):' in prompt
 
 
 def test_tracker_prompt_requires_accurate_code_lines_for_key_events():
@@ -2644,8 +2642,9 @@ def test_renderer_declares_phase1_primary_stage_fit_and_raw_state_policy(tmp_pat
     ):
         assert marker in html
 
-    assert "height:clamp(460px,64vh,700px)" in html
-    assert "grid-template-rows:minmax(340px,1fr) minmax(96px,168px)" in html
+    assert "height:clamp(460px,calc(100dvh - 20px),800px)" in html
+    assert "grid-template-rows:auto minmax(0,1fr) auto auto" in html
+    assert "grid-template-rows:minmax(0,1fr) minmax(160px,min(46%,300px))" in html
     assert "const minReadableScale = 1" in html
     assert "const maxUsefulScale = 1.85" in html
     assert "translate(" in html
@@ -3091,7 +3090,7 @@ def test_renderer_and_audit_use_semantic_target_proxy_for_focus(tmp_path: Path):
     for marker in (
         "sceneObjectBySemanticIdInAudit",
         "semanticProxyIdsInAudit",
-        "document.querySelector('#canvas .primary-scene')",
+        "document.querySelectorAll('#canvas .primary-scene [data-stage-role=\"primary\"]')",
         "semantic-anchor-chip",
         "node:${frameMatch[1]}",
         "semanticFallbackObjectInAudit",
@@ -3765,6 +3764,103 @@ def test_renderer_uses_pan_scroll_world_for_large_primary_canvas(tmp_path: Path)
             assert metrics["scrollWidth"] > metrics["clientWidth"]
             assert metrics["surfaceWidth"] > metrics["clientWidth"]
             assert metrics["worldTransform"] != "none"
+        finally:
+            browser.close()
+
+
+def test_renderer_keeps_stage_canvas_from_nested_vertical_overflow_on_short_viewport(tmp_path: Path):
+    trace = SemanticTrace.model_validate(
+        {
+            "schema_version": "semantic-trace-v1",
+            "algorithm": "每日温度",
+            "input_data": {"temperatures": [73, 74, 75, 71, 69, 72, 76, 73]},
+            "result": [1, 1, 4, 2, 1, 1, 0, 0],
+            "events": [
+                {
+                    "step": 0,
+                    "op": "mark",
+                    "targets": [{"id": "temperatures[1]"}],
+                    "role": "current",
+                    "state": {
+                        "temperatures": [73, 74, 75, 71, 69, 72, 76, 73],
+                        "stack": [0],
+                        "answer": [0, 0, 0, 0, 0, 0, 0, 0],
+                    },
+                    "reason": "高亮 temperatures[1]",
+                    "code_line": 6,
+                }
+            ],
+        }
+    )
+    artifact = BuildArtifact(
+        problem_title="每日温度",
+        input_contract="输入 temperatures 数组。",
+        input_data=trace.input_data,
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="v1",
+                name="单调栈",
+                strategy="维护递减栈。",
+                code="def solve(input_data):\n    return [1, 1, 4, 2, 1, 1, 0, 0]",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"v1": compile_scene(trace)},
+        validation=ValidationReport(checks=["short_viewport_stage_fixture"]),
+    )
+
+    out = save_html(artifact, tmp_path / "short_viewport_stage.html")
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 851, "height": 587})
+            page.goto(out.resolve().as_uri())
+            page.wait_for_timeout(120)
+            metrics = page.evaluate(
+                """() => {
+                    const canvas = document.querySelector('#canvas');
+                    const stage = document.querySelector('#canvas .stage-grid');
+                    const sceneFit = document.querySelector('#canvas .scene-fit');
+                    const supplement = document.querySelector('#canvas .stage-supplement');
+                    const controls = document.querySelector('.controls');
+                    const timeline = document.querySelector('#timeline');
+                    const rect = node => {
+                        const r = node && node.getBoundingClientRect();
+                        return r ? { top:r.top, bottom:r.bottom, height:r.height } : null;
+                    };
+                    return {
+                        canvasClientHeight: canvas ? canvas.clientHeight : 0,
+                        canvasScrollHeight: canvas ? canvas.scrollHeight : 0,
+                        canvasOverflowY: canvas ? getComputedStyle(canvas).overflowY : '',
+                        stageClientHeight: stage ? stage.clientHeight : 0,
+                        stageScrollHeight: stage ? stage.scrollHeight : 0,
+                        sceneFitHeight: sceneFit ? sceneFit.clientHeight : 0,
+                        supplementHeight: supplement ? supplement.clientHeight : 0,
+                        supplementScrollHeight: supplement ? supplement.scrollHeight : 0,
+                        canvasRect: rect(canvas),
+                        stageRect: rect(stage),
+                        controlsRect: rect(controls),
+                        timelineRect: rect(timeline),
+                    };
+                }"""
+            )
+            assert metrics["canvasClientHeight"] > 0
+            assert metrics["sceneFitHeight"] >= 180
+            assert metrics["supplementHeight"] >= 150
+            assert metrics["canvasOverflowY"] in {"hidden", "clip"}
+            assert metrics["canvasScrollHeight"] <= metrics["canvasClientHeight"] + 2
+            assert metrics["stageScrollHeight"] <= metrics["stageClientHeight"] + 2
+            assert metrics["stageRect"]["bottom"] <= metrics["canvasRect"]["bottom"] + 1
+            assert metrics["controlsRect"]["top"] >= metrics["canvasRect"]["bottom"] - 1
+            assert metrics["timelineRect"]["top"] >= metrics["controlsRect"]["bottom"] - 1
+            assert metrics["supplementScrollHeight"] >= metrics["supplementHeight"]
         finally:
             browser.close()
 
@@ -5167,6 +5263,7 @@ def run_all():
         test_renderer_hides_string_anchor_badge_without_geometry_relation(Path(d))
         test_renderer_renders_string_list_indices_without_null(Path(d))
         test_renderer_uses_pan_scroll_world_for_large_primary_canvas(Path(d))
+        test_renderer_keeps_stage_canvas_from_nested_vertical_overflow_on_short_viewport(Path(d))
         test_renderer_keeps_primary_nodes_clear_when_scene_badges_are_hidden(Path(d))
         test_renderer_keeps_support_dock_scrollable_when_answer_is_demoted(Path(d))
         test_renderer_keeps_graph_svg_nodes_inside_viewbox(Path(d))

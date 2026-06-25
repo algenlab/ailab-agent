@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import llm_client
 from scripts.run_vlm_screenshot_eval import build_report, write_report
@@ -380,6 +381,83 @@ def test_vlm_config_uses_dedicated_timeout_default_and_env_override():
             os.environ["ALGOLAB_VLM_MAX_TOKENS"] = old_max_tokens
 
 
+def test_gemini_vision_uses_native_generate_content_endpoint():
+    class FakeResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {"text": '{"ok": true}'},
+                            ]
+                        }
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 10,
+                    "candidatesTokenCount": 3,
+                    "totalTokenCount": 13,
+                },
+                "modelVersion": "gemini-3-flash-preview",
+            }
+
+    calls = []
+
+    def fake_post(url, headers, json, timeout):
+        calls.append({"url": url, "headers": headers, "json": json, "timeout": timeout})
+        return FakeResponse()
+
+    old_env = {
+        key: os.environ.get(key)
+        for key in (
+            "ALGOLAB_LLM_BASE_URL",
+            "ALGOLAB_LLM_API_KEY",
+            "ALGOLAB_VLM_TIMEOUT_S",
+            "ALGOLAB_VLM_MAX_TOKENS",
+        )
+    }
+    old_cache = llm_client._LOCAL_API_SETTINGS
+    try:
+        os.environ["ALGOLAB_LLM_BASE_URL"] = "https://oneapi-comate.baidu-int.com/v1"
+        os.environ["ALGOLAB_LLM_API_KEY"] = "sk-test-local-only"
+        os.environ["ALGOLAB_VLM_TIMEOUT_S"] = "12"
+        os.environ["ALGOLAB_VLM_MAX_TOKENS"] = "34"
+        llm_client._LOCAL_API_SETTINGS = None
+        with patch("requests.post", fake_post):
+            result = llm_client.chat_vision_with_metadata(
+                "system prompt",
+                "user prompt",
+                "abcd",
+                model="gemini-3-flash-preview",
+            )
+    finally:
+        for key, value in old_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        llm_client._LOCAL_API_SETTINGS = old_cache
+
+    assert result["content"] == '{"ok": true}'
+    assert result["model_call"]["model"] == "gemini-3-flash-preview"
+    assert result["model_call"]["usage_available"] is True
+    assert result["model_call"]["prompt_tokens"] == 10
+    assert result["model_call"]["completion_tokens"] == 3
+    assert result["model_call"]["total_tokens"] == 13
+    assert calls[0]["url"] == "https://oneapi-comate.baidu-int.com/v1beta/models/gemini-3-flash-preview:generateContent"
+    assert calls[0]["timeout"] == 12.0
+    assert calls[0]["json"]["generationConfig"]["maxOutputTokens"] == 34
+    assert calls[0]["json"]["contents"][0]["role"] == "user"
+    assert calls[0]["json"]["contents"][0]["parts"][0]["text"] == "system prompt\n\nuser prompt"
+    assert calls[0]["json"]["contents"][0]["parts"][1]["inlineData"]["mimeType"] == "image/png"
+
+
 def run_all():
     test_fake_vlm_legal_json_records_scores_usage_and_versions()
     test_fake_vlm_invalid_json_does_not_stop_batch_and_preserves_fields()
@@ -390,6 +468,7 @@ def run_all():
     test_usage_unavailable_is_explicit_and_summary_tokens_are_null()
     test_write_report_outputs_json_and_csv_files()
     test_vlm_config_uses_dedicated_timeout_default_and_env_override()
+    test_gemini_vision_uses_native_generate_content_endpoint()
 
 
 if __name__ == "__main__":

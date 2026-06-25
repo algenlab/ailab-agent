@@ -495,8 +495,10 @@ def chat_vision_with_metadata(
     model: str | None = None,
 ) -> dict:
     """Call a multimodal model and return text plus timing/token metadata."""
-    client = get_client()
     resolved_model = _vision_model_name(model)
+    if _is_gemini_model(resolved_model):
+        return _chat_gemini_vision_with_metadata(system_prompt, user_text, image_b64, model=resolved_model)
+    client = get_client()
     started_at = _now_iso()
     start = time.perf_counter()
     response = client.chat.completions.create(
@@ -524,6 +526,103 @@ def chat_vision_with_metadata(
             "duration_s": round(time.perf_counter() - start, 3),
             **usage,
         },
+    }
+
+
+def _is_gemini_model(model: str) -> bool:
+    return "gemini" in str(model or "").lower()
+
+
+def _chat_gemini_vision_with_metadata(
+    system_prompt: str,
+    user_text: str,
+    image_b64: str,
+    *,
+    model: str,
+) -> dict:
+    """Call Gemini through the native generateContent endpoint used by oneapi-comate."""
+
+    import requests
+
+    settings = api_settings()
+    base_url = str(settings["base_url"] or DEFAULT_BASE_URL).rstrip("/")
+    if base_url.endswith("/v1"):
+        base_url = base_url[:-3] + "/v1beta"
+    elif not base_url.endswith("/v1beta"):
+        base_url = base_url + "/v1beta"
+    url = f"{base_url}/models/{model}:generateContent"
+    started_at = _now_iso()
+    start = time.perf_counter()
+    response = requests.post(
+        url,
+        headers={
+            "Authorization": f"Bearer {settings['api_key']}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": system_prompt + "\n\n" + user_text},
+                        {"inlineData": {"mimeType": "image/png", "data": image_b64}},
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": _vision_max_tokens(),
+            },
+        },
+        timeout=_vision_timeout_s(),
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"Gemini vision request failed: HTTP {response.status_code}: {response.text[:1000]}")
+    payload = response.json()
+    ended_at = _now_iso()
+    usage = _gemini_usage_metadata(payload)
+    return {
+        "content": _gemini_response_text(payload),
+        "model_call": {
+            "kind": "vlm_eval",
+            "model": model,
+            "started_at": started_at,
+            "ended_at": ended_at,
+            "duration_s": round(time.perf_counter() - start, 3),
+            **usage,
+        },
+    }
+
+
+def _gemini_response_text(payload: dict) -> str:
+    candidates = payload.get("candidates") if isinstance(payload, dict) else None
+    if not isinstance(candidates, list) or not candidates:
+        return ""
+    content = candidates[0].get("content") if isinstance(candidates[0], dict) else None
+    parts = content.get("parts") if isinstance(content, dict) else None
+    if not isinstance(parts, list):
+        return ""
+    return "".join(str(part.get("text") or "") for part in parts if isinstance(part, dict))
+
+
+def _gemini_usage_metadata(payload: dict) -> dict:
+    usage = payload.get("usageMetadata") if isinstance(payload, dict) else None
+    if not isinstance(usage, dict):
+        return {
+            "usage_available": False,
+            "prompt_tokens": None,
+            "completion_tokens": None,
+            "total_tokens": None,
+        }
+    prompt_tokens = usage.get("promptTokenCount")
+    completion_tokens = usage.get("candidatesTokenCount")
+    total_tokens = usage.get("totalTokenCount")
+    usage_available = all(isinstance(value, int) for value in (prompt_tokens, completion_tokens, total_tokens))
+    return {
+        "usage_available": usage_available,
+        "prompt_tokens": prompt_tokens if usage_available else None,
+        "completion_tokens": completion_tokens if usage_available else None,
+        "total_tokens": total_tokens if usage_available else None,
     }
 
 

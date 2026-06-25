@@ -209,6 +209,35 @@ def test_render_direct_visual_stage_shell_html_wraps_llm_stage_with_deterministi
     assert artifact.problem_title in html
 
 
+def test_stage_shell_step_evidence_defaults_collapsed_like_stage1():
+    artifact = fixture_artifact()
+    html = render_direct_visual_stage_shell_html(artifact, GOOD_STAGE_FRAGMENT)
+
+    evidence_panel = html.split('id="step-evidence-panel"', 1)[1].split('<section class="panel section"><h2>交互</h2>', 1)[0]
+    assert '<details class="compact-details step-evidence-details">' in evidence_panel
+    assert "<summary>本步证据</summary>" in evidence_panel
+    assert 'id="step-evidence" class="step-evidence"' in evidence_panel
+    assert "open" not in evidence_panel.split("<summary>", 1)[0]
+    assert ".compact-details[open] summary::after { content:'收起'; }" in html
+
+
+def test_stage_shell_pseudocode_uses_code_block_line_layout():
+    artifact = fixture_artifact()
+    first_scene = next(iter(artifact.scenes.values()))
+    first_scene.pseudocode = ["if nums[i] > best:", "    best = nums[i]"]
+
+    html = render_direct_visual_stage_shell_html(artifact, GOOD_STAGE_FRAGMENT)
+
+    assert ".code,.pseudo { max-width:100%;" in html
+    assert "background:#101827;" in html
+    assert ".pseudo .code-text { min-width:max-content; white-space:pre; }" in html
+    render_block = html.split("function renderPseudocode", 1)[1].split("function renderTeaching", 1)[0]
+    assert 'class="line pseudo-line' in render_block
+    assert 'class="lineno"' in render_block
+    assert 'class="code-text"' in render_block
+    assert '    best = nums[i]' in html
+
+
 def test_render_direct_visual_html_raises_on_empty_html():
     artifact = fixture_artifact()
     try:
@@ -234,6 +263,9 @@ def test_build_direct_visual_stage_prompt_limits_llm_to_stage_contract():
     artifact = fixture_artifact()
     prompt = build_direct_visual_stage_prompt(artifact, problem_description="接雨水题目描述")
     assert "接雨水题目描述" in prompt
+    assert "Scenario grounding requirement" in prompt
+    assert "data-scenario-role" in prompt
+    assert "Generic algorithm visuals are invalid" in prompt
     assert "Creative Shell contract" in prompt
     assert "renderCreativeStage" in prompt
     assert "只输出 stage 资产" in prompt
@@ -341,6 +373,30 @@ def test_build_direct_visual_stage_repair_prompt_guides_nonblocking_highlights()
     assert "不要用实心填充覆盖节点、格子、柱子或文字" in prompt
     assert 'data-visual="true"' in prompt
     assert "range-highlight" in prompt
+
+
+def test_build_direct_visual_stage_repair_prompt_guides_scenario_quality_repairs():
+    artifact = fixture_artifact()
+    prompt = build_direct_visual_stage_repair_prompt(
+        artifact,
+        broken_stage=GOOD_STAGE_FRAGMENT,
+        failure_report={
+            "kind": "creative_quality_gate",
+            "soft_failures": ["scenario_salience_low", "generic_algorithm_visual"],
+            "vlm": {
+                "scenario_salience_score": 2,
+                "algorithm_readability_score": 4,
+                "issues": ["主视图仍像普通算法图，缺少题目中的应用场景对象"],
+            },
+        },
+        problem_description="城市应急调度中心需要为救援车选择最短道路。",
+    )
+
+    assert "Creative scenario repair guidance" in prompt
+    assert "scenario_salience_low" in prompt
+    assert "generic_algorithm_visual" in prompt
+    assert "城市应急调度中心" in prompt
+    assert "data-scenario-role" in prompt
 
 
 def test_repair_direct_visual_stage_shell_html_accepts_fake_chat_fn():

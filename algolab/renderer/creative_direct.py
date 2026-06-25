@@ -344,18 +344,26 @@ h1 {{ margin:0; font-size:18px; letter-spacing:0; }}
 .tab.active,.variant-card.active {{ border-color:var(--blue); box-shadow:inset 3px 0 0 var(--blue); }}
 .tab strong,.variant-card strong {{ display:block; font-size:13px; }}
 .tab span,.variant-card span {{ display:block; margin-top:4px; color:var(--muted); font-size:12px; line-height:1.25; }}
-.code {{ display:grid; gap:0; max-height:300px; overflow:auto; background:#101827; color:#dbeafe; border-radius:7px; }}
-.line {{ display:grid; grid-template-columns:42px 1fr; gap:10px; padding:1px 10px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.55; }}
-.lineno {{ color:#7f8ea3; text-align:right; }}
+.code,.pseudo {{ max-width:100%; display:grid; gap:0; max-height:300px; overflow:auto; background:#101827; color:#dbeafe; border-radius:7px; scrollbar-gutter:stable; }}
+.line {{ display:grid; grid-template-columns:28px minmax(max-content,1fr); gap:8px; width:max-content; min-width:100%; padding:1px 8px 1px 4px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.55; }}
+.lineno {{ color:#7f8ea3; text-align:right; font-size:11px; user-select:none; }}
+.code-text {{ min-width:max-content; white-space:pre; }}
 .line.active {{ background:#1d4ed8; color:#fff; }}
-.pseudo {{ margin-top:8px; border:1px solid var(--line); border-radius:7px; background:#fbfdff; padding:8px; display:grid; gap:5px; }}
-.pseudo-row {{ display:grid; grid-template-columns:24px 1fr; gap:7px; font-size:12px; color:#334155; }}
-.pseudo-row.active {{ color:#1d4ed8; font-weight:700; }}
+.pseudo {{ margin-top:8px; }}
+.pseudo .code-text {{ min-width:max-content; white-space:pre; }}
+.pseudo-empty {{ color:#dbeafe; }}
 .state-row,.evidence-line,.change-row {{ display:grid; grid-template-columns:minmax(80px,120px) minmax(0,1fr); gap:8px; align-items:start; padding:5px 0; border-bottom:1px solid #eef2f7; font-size:12px; }}
 .state-row:last-child,.evidence-line:last-child,.change-row:last-child {{ border-bottom:0; }}
 code,pre {{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }}
 pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-height:1.4; }}
 .jsonbox {{ max-height:150px; border:1px solid var(--line); border-radius:6px; padding:8px; background:#fbfdff; }}
+.step-evidence {{ display:grid; gap:6px; overflow:visible; padding-right:2px; }}
+.compact-details {{ margin-top:8px; }}
+.compact-details summary {{ list-style:none; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; color:#374151; font-size:12px; font-weight:700; }}
+.compact-details summary::-webkit-details-marker {{ display:none; }}
+.compact-details summary::after {{ content:'展开'; border:1px solid var(--line); border-radius:999px; padding:1px 6px; color:var(--muted); background:#fff; font-size:11px; font-weight:500; }}
+.compact-details[open] summary::after {{ content:'收起'; }}
+.compact-details > :not(summary) {{ margin-top:7px; }}
 .teaching {{ display:grid; gap:8px; }}
 .teach-row,.evidence-block,.interaction {{ border:1px solid #e5e7eb; border-radius:7px; background:#fbfdff; padding:8px; font-size:12px; }}
 .teach-row strong,.evidence-block strong,.interaction strong {{ display:block; margin-bottom:5px; color:#374151; }}
@@ -412,7 +420,12 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
     </section>
     <aside class="col teaching-col">
       <section id="teaching-panel" class="panel section"><h2>讲解</h2><div id="teaching"></div></section>
-      <section id="step-evidence-panel" class="panel section"><h2>本步证据</h2><div id="step-evidence"></div></section>
+      <section id="step-evidence-panel" class="panel section">
+        <details class="compact-details step-evidence-details">
+          <summary>本步证据</summary>
+          <div id="step-evidence" class="step-evidence"></div>
+        </details>
+      </section>
       <section class="panel section"><h2>交互</h2><div id="interaction"></div></section>
       <section class="panel section"><h2>当前状态</h2><div id="state"></div></section>
     </aside>
@@ -551,15 +564,15 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
     const active = Number(frame().code_line || (frame().evidence && frame().evidence.code_line) || 1);
     const lines = code ? code.split('\\n') : [];
     $('code').innerHTML = lines.length
-      ? lines.map((line, i) => `<div class="line ${{i + 1 === active ? 'active' : ''}}"><span class="lineno">${{i + 1}}</span><span>${{esc(line) || ' '}}</span></div>`).join('')
-      : '<div class="line"><span class="lineno">-</span><span>当前 artifact 没有代码文本，见伪代码。</span></div>';
+      ? lines.map((line, i) => `<div class="line ${{i + 1 === active ? 'active' : ''}}"><span class="lineno">${{i + 1}}</span><span class="code-text">${{esc(line) || ' '}}</span></div>`).join('')
+      : '<div class="line"><span class="lineno">-</span><span class="code-text">当前 artifact 没有代码文本，见伪代码。</span></div>';
   }}
   function renderPseudocode() {{
     const rows = Array.isArray(scene().pseudocode) ? scene().pseudocode : [];
     const active = Number(frame().code_line || 1);
     $('pseudocode').innerHTML = rows.length
-      ? rows.map((line, i) => `<div class="pseudo-row ${{i + 1 === active ? 'active' : ''}}"><span>${{i + 1}}</span><span>${{esc(line)}}</span></div>`).join('')
-      : '<div class="pseudo-row"><span>-</span><span>无伪代码。</span></div>';
+      ? rows.map((line, i) => `<div class="line pseudo-line ${{i + 1 === active ? 'active' : ''}}"><span class="lineno">${{i + 1}}</span><span class="code-text">${{esc(line) || ' '}}</span></div>`).join('')
+      : '<div class="line pseudo-line pseudo-empty"><span class="lineno">-</span><span class="code-text">无伪代码。</span></div>';
   }}
   function renderTeaching(f) {{
     const teaching = f.teaching || {{}};

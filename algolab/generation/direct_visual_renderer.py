@@ -166,6 +166,16 @@ def build_direct_visual_stage_prompt(
             "Selected frame examples:",
             json.dumps(digest["selected_frames"], ensure_ascii=False),
             "",
+            "Scenario grounding requirement:",
+            "Problem is a visual design spec, not only a title. "
+            "If it contains a concrete application story, the main stage must visibly instantiate that story. "
+            "Use at least three domain-specific objects/labels/actions from Problem inside ctx.host and mark core scene objects with data-scenario-role. "
+            "Generic algorithm visuals are invalid if they only show arrays/tables/graphs with variable names. "
+            "Map the algorithm structure into the story: warehouse grids become shelf aisles with a robot and endpoints; "
+            "temperature arrays become greenhouse forecast/ventilation views; graph shortest paths become city roads with rescue dispatch; "
+            "interval bars become meeting-room booking windows; two-sum arrays become picking bins/order fulfillment slots. "
+            "Keep trace/state/result semantics unchanged.",
+            "",
             "Creative Shell contract:",
             "系统已经生成完整页面外壳。你只输出 stage 资产，不输出完整 HTML。"
             "Shell 会负责代码/伪代码、讲解、证据、交互、timeline、答案和切帧控件。"
@@ -271,6 +281,12 @@ def build_direct_visual_stage_repair_prompt(
             " Put labels in a side lane, label lane, legend, caption, or callout area instead of placing them on top of dense geometry."
             " Keep the viewBox/layout skeleton stable across frames; increase padding/margins before shrinking labels."
             " Use separate SVG groups for background, data marks, non-blocking highlights, and labels so the browser audit can distinguish them.",
+            "",
+            "Creative scenario repair guidance:",
+            "If the failure report contains scenario_salience_low or generic_algorithm_visual, rebuild the main stage around the Problem story, not around a generic array/table/graph."
+            " Use visible domain objects, labels, and actions from Problem as primary marks inside ctx.host."
+            " Mark core story objects with data-scenario-role and keep algorithm state marks readable with data-visual/data-layout-role."
+            "Do not change trace/state/result semantics; map the existing algorithm state into the scenario instead.",
             "",
             "Creative Shell repair contract:",
             "系统 shell 负责代码、讲解、交互、答案和 timeline。你只能修主视图 stage。"

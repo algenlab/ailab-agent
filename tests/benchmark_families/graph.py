@@ -968,7 +968,11 @@ def cases() -> tuple[BenchmarkCase, ...]:
         BenchmarkCase(
             id="dijkstra_shortest_path",
             title="Dijkstra 最短路",
-            problem="给定非负权有向图 weighted_graph 和起点 start，返回所有可达点最短距离。",
+            problem=(
+                "城市应急调度中心维护一张非负耗时的有向道路网 weighted_graph，"
+                "每个节点表示路口，每条边权表示从一个路口到另一个路口的通行时间。"
+                "给定救援车辆出发路口 start，返回它到所有可达路口的最短通行时间。"
+            ),
             family="最短路 / MST",
             input_contract="输入 weighted_graph 邻接表和 start。",
             variant_name="堆优化 Dijkstra",

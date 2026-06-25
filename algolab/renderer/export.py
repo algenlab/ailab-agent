@@ -77,14 +77,14 @@ h1 {{ margin:0; font-size:18px; letter-spacing:0; }}
 pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-height:1.4; }}
 .jsonbox {{ max-height:120px; border:1px solid var(--line); border-radius:6px; padding:8px; background:#fbfdff; }}
 .jsonbox.compact {{ max-height:96px; }}
-.hero {{ min-height:0; display:grid; grid-template-rows:auto minmax(460px,clamp(460px,64vh,700px)) auto auto; }}
+.hero {{ height:clamp(460px,calc(100dvh - 20px),800px); min-height:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto auto; }}
 .step-head {{ padding:10px 12px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:10px; }}
 .step-head h2 {{ margin:0; font-size:16px; }}
 .step-head p {{ margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.35; max-height:36px; overflow:auto; }}
 .pill {{ border-radius:999px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; padding:5px 10px; height:fit-content; font-size:12px; text-transform:uppercase; }}
-.canvas {{ padding:12px; overflow:auto; min-height:0; height:clamp(460px,64vh,700px); }}
-.stage-grid {{ height:100%; min-height:100%; display:grid; grid-template-rows:minmax(340px,1fr) minmax(140px,200px); gap:8px; }}
-.scene-fit {{ position:relative; width:100%; height:100%; overflow:hidden; min-width:0; min-height:300px; cursor:grab; touch-action:none; }}
+.canvas {{ padding:12px; overflow:hidden; min-height:0; height:auto; }}
+.stage-grid {{ height:100%; min-height:0; display:grid; grid-template-rows:minmax(0,1fr) minmax(160px,min(46%,300px)); gap:8px; }}
+.scene-fit {{ position:relative; width:100%; height:100%; overflow:hidden; min-width:0; min-height:0; cursor:grab; touch-action:none; }}
 .scene-fit.dragging {{ cursor:grabbing; }}
 .scene-fit.scroll-fit {{ overflow:auto; scrollbar-gutter:stable; }}
 .scene-fit.pan-scroll {{ overflow:auto; scrollbar-gutter:stable both-edges; }}
@@ -157,7 +157,7 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .semantic-anchor-chip {{ border:1px solid #bfdbfe; border-radius:999px; background:#fff; color:#1d4ed8; padding:4px 9px; font-size:12px; font-weight:750; overflow-wrap:anywhere; }}
 .semantic-anchor-chip[target-kind="dependency"] {{ border-color:#fcd34d; background:#fffbeb; color:#92400e; }}
 .semantic-anchor-chip[target-kind="target"] {{ border-color:#93c5fd; background:#dbeafe; color:#1d4ed8; }}
-.support-dock {{ min-height:min(120px,100%); max-height:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:7px; background:#f8fafc; padding:8px; scrollbar-gutter:stable; }}
+.support-dock {{ min-height:0; max-height:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:7px; background:#f8fafc; padding:8px; scrollbar-gutter:stable; }}
 .support-dock h3,.raw-state-dock h3 {{ margin:0 0 6px; color:#475569; font-size:12px; }}
 .dock-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr)); gap:8px; min-width:0; }}
 .dock-grid .primitive-panel {{ padding:7px; background:#fff; }}

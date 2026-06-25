@@ -6,6 +6,8 @@
 
 主链路还支持一个独立的 LLM teaching enrichment 阶段：在 solver、trace、process、demo 和 SceneGraph 编译通过后，系统把已验证 trace 的摘要交给 LLM，只允许补充 `SceneFrame.teaching` 和 `SceneFrame.interaction`。这个阶段不允许修改 trace 事实、算法状态、答案、targets、deps、object、mark、evidence 或 code_line；失败时只进入 warning，不作为核心 correctness gate。
 
+当前代码还包含 Stage2 `Creative View` 展示层：它读取已经通过 release gate 的 `BuildArtifact`，由 LLM 只生成主视图 stage 资产，固定 Creative Shell 继续复用 Stage1 的代码、伪代码、讲解、证据、交互和状态面板。Stage2 可以用 Playwright 和可选 VLM 做视觉质量门禁与修复，但它仍是展示质量实验，不是算法 correctness 来源。
+
 一句话概括：
 
 ```text
@@ -31,6 +33,7 @@ LLM 生成可执行算法与 DSL 追踪代码
 6. `algolab/compiler/scene_compiler.py`：`SemanticTrace -> SceneGraph`。
 7. `algolab/renderer/export.py`：`BuildArtifact -> HTML + JSON`。
 8. `scripts/run_llm_benchmark.py` 和 `scripts/run_direct_html_baseline.py`：论文实验的真实执行入口。
+9. `algolab/generation/direct_visual_renderer.py`、`algolab/renderer/creative_direct.py`、`scripts/run_creative_visual_benchmark.py`、`scripts/creative_quality_gate.py`：Stage2 Creative View 生成、shell 组装、浏览器/VLM 质量门禁和 repair loop。
 
 最重要的边界：
 
@@ -85,7 +88,8 @@ AlgoLab 是一个可验证的算法可视化生成系统。
 - LLM benchmark 支持 repair rounds、candidate regeneration、strict warning、browser smoke、family/gate-layer 过滤、deterministic/unseen case set。
 - benchmark 和 evaluation 脚本会记录 condition、failure type、phase timing、candidate summary、model calls、token usage、browser smoke、release gate 等证据。
 - direct HTML baseline、no-process-validator ablation、no-SceneGraph-compiler ablation、component teaching/interaction ablation 都有独立脚本；这些脚本的 condition 不能与 `algolab_full` 混用。
-- direct / creative visual renderer 是 verified artifact 后的实验性展示层。它读取已通过 release gate 的 `BuildArtifact`，让 LLM 生成 creative HTML 或 stage assets，再通过 sanitizer/browser layout audit 检查；它不负责算法 correctness。
+- Stage2 direct / creative visual renderer 是 verified artifact 后的实验性展示层。当前默认 `stage_shell` 模式：系统生成完整 Creative Shell，LLM 只生成 `<style>`、可选 `<template>` 和 `window.renderCreativeStage(ctx)`。shell 负责代码、伪代码、讲解、证据、交互、timeline、状态和答案面板，因此 Stage2 不重新生成 teaching / interaction。
+- Stage2 Creative View 可以启用统一 Creative Quality gate：Playwright 检查页面加载、主视图非空、切帧、trace/result 未被修改、overlap/clipping/text occlusion；可选 VLM 结合截图和题目描述评估场景显著性、算法状态可读性和是否为通用算法图。失败时仅影响 creative report / fallback，不影响主 `algolab_full` release gate。
 
 最近架构变化：
 
@@ -98,7 +102,7 @@ AlgoLab 是一个可验证的算法可视化生成系统。
 - 系统不再设置 trace 总帧数 / `max_events` 限制；`TraceSession` 和兼容 `Tracer` 都完整保留事件序列。当前只保留单步 `state` 大小保护，避免单帧携带超大对象。
 - teaching enrichment 默认最多把 30 个关键 trace frames 给 LLM；完整 trace 仍保存在 artifact 中用于审计。首轮 enrichment 失败时会自动用 3 帧摘要降级重试，并以 warning 形式记录，不阻塞核心 artifact 生成。
 - `correctness_contract` 相关 schema 和 validator 已存在，但当前主 prompt 不要求 solution spec 输出该字段；它是额外 correctness 证据扩展，不是主链路必需条件。
-- `VisualPlan` / creative renderer 相关代码仍保留，但主 `save_html()` 的稳定页面由 deterministic renderer 生成。
+- `VisualPlan` / creative renderer 相关代码仍保留，但主 `save_html()` 的稳定页面由 deterministic renderer 生成；Stage2 Creative View 由独立 benchmark 脚本在 verified artifact 之后运行。
 
 ## 3. 主链路总览
 
@@ -1136,8 +1140,11 @@ llm_benchmark_report.json
 位置：
 
 - `algolab/generation/direct_visual_renderer.py`
+- `algolab/generation/prompts/direct_visual_stage_system.txt`
+- `algolab/generation/prompts/direct_visual_stage_repair_system.txt`
 - `algolab/renderer/creative_direct.py`
 - `scripts/run_creative_visual_benchmark.py`
+- `scripts/creative_quality_gate.py`
 - `scripts/audit_creative_visual_renderer.py`
 - `docs/13_LLM_DIRECT_VISUAL_RENDERER_DESIGN.md`
 
@@ -1146,12 +1153,24 @@ llm_benchmark_report.json
 输入：
 
 - 已经生成并通过主链路 release gate 的 `BuildArtifact` JSON。
-- problem description、input、verified result、trace summary、selected frames、state key summary、release gate。
+- problem description、input、verified result、algorithm、pseudocode、trace summary、selected frames、state key summary、release gate。
+
+`scripts/run_creative_visual_benchmark.py` 通过 `load_problem_map()` 优先从 `tests.benchmark_cases.benchmark_cases()` 读取 benchmark 原题描述；如果提供 `--problem-report`，会用 report 中的 `problem_description` / `problem` 补充或覆盖；仍然取不到时才退回 `artifact.problem_title`。因此 Stage2 prompt 中的 `Problem:` 字段可能是完整题目描述，也可能只是标题。当前 system prompt 明确要求：如果题目描述缺失或只有标题，LLM 必须基于题目标题、`ctx.input`、算法名、伪代码和 trace 自行选择合适的视觉隐喻；如果题目描述包含具体应用场景，主视图必须优先场景化，而不是只画通用数组、表格、时间轴或图结构。
 
 两种生成模式：
 
-- full HTML：LLM 生成完整 creative HTML，系统注入只读 artifact JSON。
-- stage shell：系统提供确定性 shell，LLM 只输出 stage CSS/template/script，`window.renderCreativeStage(ctx)` 绘制主视图。
+- `full_html`：旧模式，LLM 生成完整 creative HTML，系统注入只读 artifact JSON。
+- `stage_shell`：当前默认模式，系统提供确定性 Creative Shell，LLM 只输出 stage 资产：`<style id="creative-stage-style">`、可选 `<template id="creative-stage-template">`、以及定义 `window.renderCreativeStage(ctx)` 的 `<script>`。
+
+`stage_shell` 的运行时边界：
+
+- shell 由 `algolab/renderer/creative_direct.py` 生成，负责完整页面外壳。
+- LLM stage 只能向 `ctx.host` 绘制主视图。
+- `ctx` 提供只读 `artifact`、`variant`、`scene`、`frame`、`frames`、`frameIndex`、`input`、`result`、`state`、`evidence`、`esc()`、`compact()` 和 `template`。
+- 题目输入只读 `ctx.input`，验证答案只读 `ctx.result`。
+- Stage2 不允许重新求解、修改 artifact、覆盖 trace/result/state/frames，也不允许生成 shell 面板。
+- 代码、伪代码、讲解、本步证据、交互、当前状态、timeline、播放控件、答案和 release gate badge 均由 shell 从 verified artifact 渲染。
+- 因此 Stage2 的 teaching / interaction 应复用 Stage1 artifact 中的 `SceneFrame.teaching` 和 `SceneFrame.interaction`；LLM creative stage 不重新生成这些内容。
 
 关键边界：
 
@@ -1159,6 +1178,47 @@ llm_benchmark_report.json
 - sanitizer 会检查空 HTML、缺少 `<html>` / `<style>` / `<script>`、stage asset 合法性等基础结构。
 - browser/layout audit 检查页面是否可打开、主画面是否非空、帧切换是否工作、trace/result 是否被修改。
 - creative failure 使用 fallback，不影响主 `algolab_full` release gate。
+
+Stage2 prompt 的场景化要求：
+
+- `Problem` 被当作视觉设计规格，不只是标题。
+- 如果 `Problem` 有具体应用故事，主视图必须可见地实例化该故事。
+- 主视图至少出现 3 个来自题目描述的领域对象、标签或动作，并用 `data-scenario-role` 标记核心对象。
+- 只在标题或角落写一个业务词不合格。
+- 通用算法结构只能作为底层布局，必须映射到业务对象、空间、设备、角色或动作。
+- 当前 prompt 内置典型映射：仓库 DP -> 货架通道/机器人/充电点/打包站；订单 two-sum -> 货位/拣货箱/订单缺口；会议 interval merge -> 会议室占用窗口；温室 daily temperatures -> 温室/温度预报/通风或遮阳策略；应急 Dijkstra -> 城市路口/道路耗时/救援车辆/调度队列。
+
+Creative Quality gate：
+
+- 入口：`scripts/creative_quality_gate.py`。
+- Playwright 部分复用 `scripts/audit_creative_visual_renderer.py`，检查 page load、console/page errors、主视图非空、截图非空、range/切帧、trace mutation、stage overlap、permitted overlap、clipping 和 text occlusion。
+- 可选 VLM 部分通过 `chat_vision_with_metadata()` 对截图和题目描述一起评估，不只看截图，也不只按美观评分。
+- VLM 固定输出字段包括 `scenario_salience_score`、`algorithm_readability_score`、`is_generic_algorithm_visual`、`algorithm_state_visible`、`scenario_objects_visible`、`issues`、`repair_advice` 和 `confidence`。
+- 默认阈值：`scenario_salience_score >= 3.5`，`algorithm_readability_score >= 3.0`；低于阈值或被判为 generic algorithm visual 会进入 soft failures。
+- Playwright hard failures 和可选 VLM failures 合并为 `creative_quality_ok`，并计算 `creative_quality_score`，用于 repair loop 中选择更好的候选。
+
+Repair loop：
+
+- `--require-stage-visual-quality` 启用仅浏览器布局 gate；`--layout-repair-retries` 控制 stage-only 布局修复轮数。
+- `--require-creative-quality` 启用统一 Creative Quality gate；`--creative-quality-vlm` 启用 VLM 场景评估；`--creative-quality-repair-retries` 控制统一质量修复轮数。
+- repair prompt 会携带 compact failure report、上一版 stage assets、题目描述、input、verified result、trace summary、state key summary 和 selected frames。
+- repair 仍然只允许输出 stage assets，不允许输出完整 HTML 或修改 artifact。
+- 当前 repair 是 stage 级重生成，不是 AST/DOM patch；它可能提升场景感或布局分数，但不能保证每轮都精准修改失败 bbox。
+
+产物：
+
+- `html/`：生成或修复后的 creative HTML。
+- `raw_llm/`：LLM 原始输出。
+- `prompts/`：每个 case 的 Stage2 prompt。
+- `audit/`：generation report、layout gate、creative quality gate、browser screenshots、VLM 结果。
+- `creative_benchmark_report.json`：批次总报告，包含 `generation_model`、`render_mode`、creative/browser/strict/quality 汇总、repair attempts、token/latency 和逐 case errors。
+- `case_metrics.csv` 与 `creative_benchmark_report.md`：便于表格化检查的摘要。
+
+模型选择：
+
+- `--model` 显式指定 Stage2 文本 LLM。
+- 如果未指定，`resolve_generation_model()` 会优先从 `--problem-report` 或 `artifact_dir/llm_benchmark_report.json` 推断 Stage1 generation model，使 Stage2 默认与 Stage1 文本 LLM 对齐。
+- VLM 默认模型来自 `llm_client.py` 的 `gemini-3-flash-preview`，也可用 `--vlm-model` 或 `ALGOLAB_VLM_MODEL` 覆盖。
 
 论文中应把它写成“展示质量/视觉自由度实验”，不能把 creative view 的 browser pass 当成算法 correctness。
 
@@ -1170,6 +1230,9 @@ llm_benchmark_report.json
 
 - `kind="generation"`：生成 solution spec / repair spec。
 - `kind="teaching"`：根据已验证 trace digest 生成 teaching overlay。
+- `kind="direct_visual"` / `kind="direct_visual_stage"`：Stage2 direct/creative visual 生成。
+- `kind="direct_visual_repair"` / `kind="direct_visual_stage_repair"`：Stage2 creative repair。
+- `kind="vlm_eval"`：Stage2 Creative Quality gate 的截图评审。
 
 读取顺序：
 
@@ -1207,6 +1270,22 @@ DEFAULT_MAX_TOKENS = 32768
 DEFAULT_JSON_RETRIES = 4
 DEFAULT_API_RETRIES = 2
 ```
+
+VLM 配置：
+
+```text
+VISION_MODEL = gemini-3-flash-preview
+VISION_TIMEOUT_S = 600
+VISION_MAX_TOKENS = 4096
+```
+
+VLM 使用同一套 `ALGOLAB_LLM_BASE_URL` / `ALGOLAB_LLM_API_KEY` 读取逻辑，并额外支持：
+
+- `ALGOLAB_VLM_MODEL`
+- `ALGOLAB_VLM_TIMEOUT_S`
+- `ALGOLAB_VLM_MAX_TOKENS`
+
+`chat_vision_with_metadata()` 对非 Gemini 模型走 OpenAI-compatible chat completion multimodal payload；如果模型名包含 `gemini`，当前代码会把 base URL 从 `/v1` 转成 `/v1beta`，调用 `models/{model}:generateContent` 原生 Gemini endpoint，并把图片作为 `inlineData` 发送。返回的 `usageMetadata` 会被转换为统一的 `prompt_tokens`、`completion_tokens`、`total_tokens` 字段，供 benchmark report 汇总。
 
 ## 14. 常用命令
 
@@ -1390,6 +1469,7 @@ schema validators, demo/scene gates, and artifact-level release evidence.
 - `algolab_full_no_teaching`：关闭 teaching enrichment，衡量 correctness 与教学 overlay 的分离。
 - `algolab_full_teaching_30_keyframes`：默认 teaching overlay，统计 teaching frames、interaction frames、token、latency。
 - `direct_html_no_expected`：公平 direct HTML baseline，expected 不给模型，只跑 browser smoke 和 answer audit。
+- `stage2_creative_view` / `creative_stage_shell`：verified artifact 之后的展示增强条件，只评价 creative visual / scenario grounding / layout quality，不进入 answer correctness 或 release gate 分母。
 - `no_repair`：`--max-rounds 0`，衡量 repair 的贡献。
 - `no_process_validator`：关闭 process validator API，衡量 process 层 report/gate 贡献。
 - `no_scenegraph_compiler`：trace-only HTML，衡量 SceneGraph compiler 和 fixed runtime 的贡献。
@@ -1405,6 +1485,7 @@ schema validators, demo/scene gates, and artifact-level release evidence.
 - SceneGraph validity。
 - browser smoke。
 - teaching/interaction quality。
+- Stage2 creative quality：browser layout、scenario salience、algorithm readability、generic visual flag、repair attempts。
 - model calls、token、latency。
 - failure phase / failure type。
 
@@ -1413,6 +1494,7 @@ schema validators, demo/scene gates, and artifact-level release evidence.
 - 用 browser pass 代表算法 correctness。
 - 用 VLM screenshot score 代表 correctness。
 - 用 direct HTML answer audit 代表 trace/process/SceneGraph gate。
+- 用 Stage2 Creative View 的 `creative_ok` / `creative_quality_ok` 代表算法 correctness。
 - 把当前 DSL-era `process_validator` 写成每个算法族都有手写 invariant proof。
 - 把 frozen benchmark 的 100% 通过率写成任意算法题 100% 保证。
 
@@ -1428,6 +1510,7 @@ schema validators, demo/scene gates, and artifact-level release evidence.
 - teaching enrichment 失败会降级为 warning，不会破坏核心 artifact 生成链路。
 - 通过 release gate 的 artifact 才进入主链路 HTML 发布口径。
 - direct HTML baseline 与 AlgoLab full pipeline 在 report 中保持不同 condition。
+- Stage2 Creative View 只能在 verified artifact 之后运行；它可以提升题面场景化展示，并通过 Playwright/VLM 记录 visual quality 证据，但不改变 Stage1 artifact 的 correctness 状态。
 
 系统不能完全保证：
 
@@ -1440,5 +1523,6 @@ schema validators, demo/scene gates, and artifact-level release evidence.
 - `code_line` 准确性主要依赖 LLM 按提示词在 tracker 返回前补齐；renderer 只能对缺失或越界行降级显示。
 - browser smoke 或 VLM screenshot 分数能替代答案 correctness。
 - direct HTML baseline 的 browser pass 能代表答案正确。
+- Stage2 repair loop 不能保证每轮都精准修复 browser audit 的具体 bbox；当前实现是 stage 资产级重生成，只能通过后续 gate 选择更优候选。
 
 新的算法族上线前，需要补 deterministic case、DSL 使用样例、trace/scene/browser 回归，以及必要的 evaluation/report 口径。
