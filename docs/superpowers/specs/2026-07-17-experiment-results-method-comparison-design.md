@@ -12,7 +12,7 @@
 2. Direct HTML：单次自由生成完整 HTML/CSS/JavaScript。
 3. WebGen-Agent：外部网页生成 agent baseline。
 4. Direct + HTMLCure：对 Direct HTML 进行 HTMLCure 修复；主表使用 strict self-contained 口径。
-5. Direct + BrowserRepair：基于浏览器反馈重写 Direct HTML；主表使用最佳固定预算 1-call 条件。
+5. Direct + BrowserRepair：基于浏览器反馈重写 Direct HTML；主表使用最佳固定预算 1-call first-call control，并明确真正反馈重写从 call 2 开始。
 
 Direct-to-SceneGraph、VerifiedTrace-to-LLM-HTML、no-repair、no-interaction 等属于消融，不与上述完整方法混排。
 
@@ -36,7 +36,7 @@ Direct-to-SceneGraph、VerifiedTrace-to-LLM-HTML、no-repair、no-interaction �
 - 主方法比较统一使用 200 个任务的 sample index 0。
 - AlgoTutorGen 主行使用 selected-final 结果，并明确 primary 为 195/200、五题来自记录在案的 targeted retry。
 - HTMLCure 主行使用 strict self-contained 结果；blocked-external 91/200 只作为敏感性分析。
-- BrowserRepair 主行使用固定预算 1-call，不从多预算中逐题选择最优结果。
+- BrowserRepair 主行使用固定预算 1-call first-call control，不从多预算中逐题选择最优结果，也不把它相对主 Direct 行的数值差解释为 repair gain。
 - 没有完全相同审计字段的方法不得用空值伪装为可比结果；必须从冻结报告重新汇总或明确标注不可用。
 - Machine OK 始终定义为九项浏览器行为的合取，不把教学文本质量、视觉审美或真人学习效果混入其中。
 - 一个核心数字只在主表完整出现一次，后文用引用和解释代替重复表格。
