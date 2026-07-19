@@ -10,6 +10,7 @@ import os
 import queue
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -174,6 +175,8 @@ def write_case_outputs(
     vlm_model: str | None,
     stage_audit_wait_ms: int,
     stage_audit_max_frames: int,
+    language: str = "zh",
+    language_retries: int = 0,
 ) -> dict[str, Any]:
     case_id = infer_case_id(artifact_path)
     stem_suffix = "creative_stage" if mode == "stage_shell" else "creative"
@@ -188,7 +191,11 @@ def write_case_outputs(
     prompt = (
         build_direct_visual_stage_prompt(artifact, problem_description=problem_description)
         if mode == "stage_shell"
-        else build_direct_visual_prompt(artifact, problem_description=problem_description)
+        else build_direct_visual_prompt(
+            artifact,
+            problem_description=problem_description,
+            language=language,
+        )
     )
     prompt_path = prompt_dir / f"{stem}_prompt.txt"
     prompt_path.write_text(prompt, encoding="utf-8")
@@ -202,6 +209,8 @@ def write_case_outputs(
         "render_mode": mode,
         "timeout_s": timeout_s,
         "timeout_retries": timeout_retries,
+        "language": language,
+        "language_retries": language_retries,
         "require_stage_visual_quality": require_stage_visual_quality,
         "layout_repair_retries": layout_repair_retries,
         "require_creative_quality": require_creative_quality,
@@ -244,6 +253,8 @@ def write_case_outputs(
         timeout_s=timeout_s,
         mode=mode,
         timeout_retries=timeout_retries,
+        language=language,
+        language_retries=language_retries,
     )
     raw_path = raw_dir / f"{stem}_raw.txt"
     raw_path.write_text(result.raw_output, encoding="utf-8")
@@ -778,6 +789,8 @@ def write_report(rows: list[dict[str, Any]], output_dir: Path, *, started_at: st
         "stage_audit_max_frames": args.stage_audit_max_frames,
         "requested_model": args.model or "",
         "generation_model": getattr(args, "generation_model", "") or args.model or "",
+        "language": getattr(args, "language", "zh"),
+        "concurrency": getattr(args, "concurrency", 1),
         "llm": llm_config(),
         "summary": {
             "total_artifacts": len(rows),
@@ -1056,6 +1069,9 @@ def parse_args() -> argparse.Namespace:
         help="Representative frames audited by the stage layout gate; 0 audits all frames.",
     )
     parser.add_argument("--prompt-only", action="store_true", help="Write prompts without calling the LLM")
+    parser.add_argument("--language", choices=["zh", "en"], default="zh")
+    parser.add_argument("--language-retries", type=int, default=2)
+    parser.add_argument("--concurrency", type=int, default=1)
     return parser.parse_args()
 
 
@@ -1067,6 +1083,8 @@ def generate_with_timeout_retries(
     timeout_s: int,
     mode: str,
     timeout_retries: int,
+    language: str = "zh",
+    language_retries: int = 0,
 ) -> tuple[DirectVisualRenderResult, list[dict[str, Any]]]:
     attempts: list[dict[str, Any]] = []
     max_timeout_retries = max(0, int(timeout_retries))
@@ -1074,6 +1092,7 @@ def generate_with_timeout_retries(
     api_retry_delay_s = max(0.0, _env_float("ALGOLAB_LLM_API_RETRY_DELAY_S", 0.0))
     timeout_failures = 0
     api_failures = 0
+    language_failures = 0
     attempt = 0
     last = DirectVisualRenderResult(creative_ok=False, errors=["no_generation_attempt"])
     while True:
@@ -1084,9 +1103,11 @@ def generate_with_timeout_retries(
             model=model,
             timeout_s=timeout_s,
             mode=mode,
+            language=language,
         )
         timed_out = _is_timeout_result(result)
         retryable_api_error = _is_retryable_api_result(result)
+        english_only_violation = _is_english_only_violation(result)
         attempts.append(
             {
                 "attempt": attempt,
@@ -1095,6 +1116,7 @@ def generate_with_timeout_retries(
                 "warnings": result.warnings,
                 "timed_out": timed_out,
                 "retryable_api_error": retryable_api_error,
+                "english_only_violation": english_only_violation,
                 "model_calls": result.model_calls,
             }
         )
@@ -1109,6 +1131,9 @@ def generate_with_timeout_retries(
             if api_retry_delay_s:
                 time.sleep(api_retry_delay_s)
             continue
+        if english_only_violation and language_failures < max(0, int(language_retries)):
+            language_failures += 1
+            continue
         break
     return last, attempts
 
@@ -1120,13 +1145,20 @@ def generate_with_process_timeout(
     model: str | None,
     timeout_s: int,
     mode: str = "full_html",
+    language: str = "zh",
 ) -> DirectVisualRenderResult:
     if timeout_s <= 0:
-        return _generate_for_mode(artifact, problem_description=problem_description, model=model, mode=mode)
+        return _generate_for_mode(
+            artifact,
+            problem_description=problem_description,
+            model=model,
+            mode=mode,
+            language=language,
+        )
     result_queue: mp.Queue = mp.Queue()
     process = mp.Process(
         target=_generate_worker,
-        args=(artifact.model_dump_json(), problem_description, model, mode, result_queue),
+        args=(artifact.model_dump_json(), problem_description, model, mode, language, result_queue),
     )
     process.start()
     deadline = time.time() + timeout_s
@@ -1173,11 +1205,18 @@ def _generate_worker(
     problem_description: str,
     model: str | None,
     mode: str,
+    language: str,
     queue: mp.Queue,
 ) -> None:
     try:
         artifact = BuildArtifact.model_validate_json(artifact_json)
-        result = _generate_for_mode(artifact, problem_description=problem_description, model=model, mode=mode)
+        result = _generate_for_mode(
+            artifact,
+            problem_description=problem_description,
+            model=model,
+            mode=mode,
+            language=language,
+        )
         queue.put(
             {
                 "type": "result",
@@ -1203,10 +1242,16 @@ def _generate_for_mode(
     problem_description: str,
     model: str | None,
     mode: str,
+    language: str,
 ) -> DirectVisualRenderResult:
     if mode == "stage_shell":
         return generate_direct_visual_stage_shell_html(artifact, problem_description=problem_description, model=model)
-    return generate_direct_visual_html(artifact, problem_description=problem_description, model=model)
+    return generate_direct_visual_html(
+        artifact,
+        problem_description=problem_description,
+        model=model,
+        language=language,
+    )
 
 
 def _is_timeout_result(result: DirectVisualRenderResult) -> bool:
@@ -1229,6 +1274,10 @@ def _is_retryable_api_result(result: DirectVisualRenderResult) -> bool:
         "rate limit",
     ]
     return any(marker in text for marker in retryable_markers)
+
+
+def _is_english_only_violation(result: DirectVisualRenderResult) -> bool:
+    return any("english_only_violation" in str(error) for error in result.errors)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -1264,12 +1313,12 @@ def main() -> int:
         raise SystemExit(f"no BuildArtifact JSON files found in {artifact_dir}")
     problem_map = load_problem_map(args.problem_report)
     rows: list[dict[str, Any]] = []
-    for index, artifact_path in enumerate(artifacts, start=1):
+
+    def run_artifact(artifact_path: Path) -> dict[str, Any]:
         artifact = BuildArtifact.model_validate_json(artifact_path.read_text(encoding="utf-8"))
         case_id = infer_case_id(artifact_path)
         problem_description = problem_map.get(case_id) or artifact.problem_title
-        print(f"CREATIVE {index}/{len(artifacts)} {case_id}", flush=True)
-        row = write_case_outputs(
+        return write_case_outputs(
             artifact_path=artifact_path,
             artifact=artifact,
             output_dir=output_dir,
@@ -1287,9 +1336,30 @@ def main() -> int:
             vlm_model=args.vlm_model,
             stage_audit_wait_ms=int(args.stage_audit_wait_ms),
             stage_audit_max_frames=int(args.stage_audit_max_frames),
+            language=args.language,
+            language_retries=int(args.language_retries),
         )
-        rows.append(row)
-        write_report(rows, output_dir, started_at=started_at, args=args)
+
+    if int(args.concurrency) > 1:
+        with ThreadPoolExecutor(max_workers=max(1, int(args.concurrency))) as executor:
+            futures = {}
+            for index, artifact_path in enumerate(artifacts, start=1):
+                case_id = infer_case_id(artifact_path)
+                print(f"CREATIVE {index}/{len(artifacts)} {case_id}", flush=True)
+                futures[executor.submit(run_artifact, artifact_path)] = case_id
+            for future in as_completed(futures):
+                row = future.result()
+                rows.append(row)
+                rows.sort(key=lambda item: str(item.get("case_id") or ""))
+                print(f"CREATIVE_DONE {row.get('case_id')} ok={row.get('creative_ok')}", flush=True)
+                write_report(rows, output_dir, started_at=started_at, args=args)
+    else:
+        for index, artifact_path in enumerate(artifacts, start=1):
+            case_id = infer_case_id(artifact_path)
+            print(f"CREATIVE {index}/{len(artifacts)} {case_id}", flush=True)
+            row = run_artifact(artifact_path)
+            rows.append(row)
+            write_report(rows, output_dir, started_at=started_at, args=args)
     report_path = write_report(rows, output_dir, started_at=started_at, args=args)
     passed = sum(1 for row in rows if row.get("creative_ok"))
     attempted = sum(1 for row in rows if row.get("creative_attempted"))

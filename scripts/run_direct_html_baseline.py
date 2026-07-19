@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from llm_client import _model_name, chat_text_with_metadata, clear_model_calls, consume_model_calls
+from algolab.generation.language import english_only_errors, english_output_requirement, normalize_output_language
 from scripts.baseline_experiment_utils import add_common_args, run_benchmark
 from scripts.run_llm_benchmark import (
     BenchmarkCase,
@@ -30,7 +31,16 @@ from scripts.run_llm_benchmark import (
 )
 
 
-def _system_prompt() -> str:
+def _system_prompt(language: str = "zh") -> str:
+    if normalize_output_language(language) == "en":
+        return (
+            "You generate interactive algorithm-tutoring webpages. Return one complete, self-contained HTML file "
+            "and no Markdown. Build an AlgoLab-style teaching page with readable code, current-step state, a step "
+            "timeline, working controls, explanations, learner prediction checkpoints, immediate correct and incorrect "
+            "feedback, hints, show-answer actions, a visible learning log, and the final answer. Do not load external "
+            "resources or claim that the page passed AlgoLab SceneGraph, release-gate, or machine validation. "
+            + english_output_requirement()
+        )
     return (
         "你是算法教学页面生成器。直接输出一个完整、可离线打开的单文件 HTML，不要输出 markdown。"
         "你要生成 AlgoLab-style 算法教学页：包含代码、当前步状态、步骤时间线、可交互控件、讲解、预测题、即时反馈、学习日志和最终答案。"
@@ -43,7 +53,42 @@ def _user_prompt(
     sample: BenchmarkInput,
     *,
     expected_visible_to_model: bool = True,
+    language: str = "zh",
 ) -> str:
+    if normalize_output_language(language) == "en":
+        lines = [
+            f"Title: {case.title}",
+            f"Problem: {case.problem}",
+            f"Algorithm family: {case.family}",
+            f"Strategy hint: {case.strategy}",
+            f"Input JSON: {json.dumps(sample.input_data, ensure_ascii=False)}",
+        ]
+        if expected_visible_to_model:
+            lines.append(f"Expected output JSON: {json.dumps(sample.expected, ensure_ascii=False)}")
+        else:
+            lines.append("The reference answer is hidden. Solve the task and display the final answer clearly.")
+        lines.extend(
+            [
+                "Requirements:",
+                "1. Return HTML only and do not load external resources.",
+                "2. Create a complete algorithm-tutoring page, not a standalone animation.",
+                "3. Include these ids: #title, #subtitle, #top-result, #top-solution, #code, #step-title, #step-desc, #op, #canvas, #prev, #play, #next, #range, #counter, #timeline, #teaching, #state, #step-evidence, and #answer.",
+                "4. #code must show readable solve pseudocode or a JavaScript/Python implementation and highlight the active line as the step changes.",
+                "5. #counter must initially look like 1 / N with N at least 2. #timeline must contain N clickable .tick elements, each with .tick-label and .tick-op.",
+                "6. #prev, #next, and #range must change steps and synchronize #counter, #step-title, #step-desc, #canvas, #state, #teaching, #step-evidence, and the active timeline tick.",
+                "7. #canvas must be a visible DOM container for the current algorithm objects and text state; do not make #canvas itself a canvas or SVG node.",
+                "8. Visualize the relevant array, matrix, graph, tree, queue, map, DP table, or other algorithm objects, with clear colors for current, dependent, and answer objects.",
+                "9. Every .tick must be a button or clickable element and visibly contain both <span class=\"tick-label\"> and <span class=\"tick-op\">.",
+                "10. #state must show a current-state JSON summary. #teaching must explain what happens, why it happens, an invariant or common error. #step-evidence must show operation, targets, dependencies, and before/after state changes.",
+                "11. From initial page load, #answer.textContent must equal the task's bare final-return JSON. Do not wrap it in a result or answer object unless the task itself returns such an object.",
+                "12. Key steps need learner checkpoints with answer controls, a submit button, a hint button, a show-answer button, and an immediate feedback region.",
+                "13. Correct and incorrect feedback must be grounded in current state, and every submission must append a visible entry to the learning log.",
+                "14. Cover initialization, key transitions, and final-answer confirmation. Close the HTML document completely.",
+                "15. This is a direct_html_baseline. Do not claim AlgoLab SceneGraph, release-gate, or machine-gate validation.",
+                "16. " + english_output_requirement(),
+            ]
+        )
+        return "\n".join(lines)
     lines = [
         f"题目：{case.title}",
         f"描述：{case.problem}",
@@ -85,7 +130,35 @@ def _repair_prompt(
     previous_html: str,
     errors: list[str],
     expected_visible_to_model: bool,
+    language: str = "zh",
 ) -> str:
+    if normalize_output_language(language) == "en":
+        lines = [
+            "The previous direct-HTML baseline failed. Return a repaired, complete, self-contained HTML file only.",
+            f"Title: {case.title}",
+            f"Problem: {case.problem}",
+            f"Algorithm family: {case.family}",
+            f"Strategy hint: {case.strategy}",
+            f"Input JSON: {json.dumps(sample.input_data, ensure_ascii=False)}",
+        ]
+        if expected_visible_to_model:
+            lines.append(f"Expected output JSON: {json.dumps(sample.expected, ensure_ascii=False)}")
+        else:
+            lines.append("The reference answer is hidden. Solve the task and display its final answer clearly.")
+        lines.extend(
+            [
+                "Failure details:",
+                *[f"- {error}" for error in errors],
+                "Repair requirements:",
+                "- Return only one complete offline HTML document. Rewrite it from scratch if the previous response is incomplete.",
+                "- Preserve all required AlgoLab-style ids, at least two meaningful steps, synchronized navigation, a visible final answer, learner checkpoints, distinct correct and incorrect feedback, hint and show-answer actions, and a visible learning log.",
+                "- Do not load external resources or claim private validation.",
+                "- " + english_output_requirement(),
+                "Previous HTML:",
+                previous_html[-12000:],
+            ]
+        )
+        return "\n".join(lines)
     lines = [
         "上一版 direct HTML baseline 失败，请修复后重新输出完整单文件 HTML。",
         f"题目：{case.title}",
@@ -468,6 +541,7 @@ def run_one_direct_html(
     output_html = args.output_dir / f"{output_stem}.html"
     metadata = result_metadata(case, sample_index, args)
     expected_visible = bool(getattr(args, "expected_visible_to_model", True))
+    language = normalize_output_language(getattr(args, "language", "zh"))
     baseline = str(getattr(args, "baseline", "direct_html_baseline"))
     max_rounds = max(0, int(getattr(args, "max_rounds", 0) or 0))
     browser_repair_enabled = bool(getattr(args, "browser_smoke", False) and max_rounds > 0)
@@ -483,7 +557,12 @@ def run_one_direct_html(
         for attempt in range(max_rounds + 1):
             attempt_started = time.time()
             if attempt == 0:
-                user_prompt = _user_prompt(case, sample, expected_visible_to_model=expected_visible)
+                user_prompt = _user_prompt(
+                    case,
+                    sample,
+                    expected_visible_to_model=expected_visible,
+                    language=language,
+                )
                 kind = "direct_html"
             else:
                 repair_rounds += 1
@@ -493,14 +572,17 @@ def run_one_direct_html(
                     previous_html=previous_html,
                     errors=last_errors,
                     expected_visible_to_model=expected_visible,
+                    language=language,
                 )
                 kind = "direct_html_repair"
             with _direct_llm_max_tokens(args):
-                response = chat_text_with_metadata(_system_prompt(), user_prompt, kind=kind)
+                response = chat_text_with_metadata(_system_prompt(language), user_prompt, kind=kind)
             content = str(response.get("content") or "")
             html = extract_html(content)
             previous_html = html
             errors = validate_direct_html(html)
+            if not errors and language == "en":
+                errors.extend(english_only_errors(html, label=output_stem))
             if not errors:
                 output_html.parent.mkdir(parents=True, exist_ok=True)
                 output_html.write_text(html, encoding="utf-8")

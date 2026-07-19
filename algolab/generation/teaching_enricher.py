@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from algolab.schemas.scene_graph import SceneGraph
 from algolab.schemas.semantic_trace import Interaction, SemanticEvent, SemanticTrace, TeachingStep
+from algolab.generation.language import english_output_requirement, normalize_output_language
 
 
 MAX_TEACHING_FRAMES: int | None = 30
@@ -87,6 +88,8 @@ interaction 写法：
 必须严格按这个格式输出：
 {"frames":[{"step":0,"teaching":{"what":"...","why":"..."},"interaction":null}]}
 """
+
+TEACHING_SYSTEM_PROMPT_EN = english_output_requirement() + "\n\n" + TEACHING_SYSTEM_PROMPT
 
 
 class TeachingOverlayFrame(BaseModel):
@@ -176,6 +179,7 @@ def generate_teaching_overlay(
     code: str = "",
     max_frames: int | None = MAX_TEACHING_FRAMES,
     chat_fn: Callable[..., dict[str, Any]] | None = None,
+    language: str = "zh",
 ) -> TeachingOverlay:
     """Call the configured LLM and validate the strict teaching overlay schema."""
 
@@ -184,8 +188,9 @@ def generate_teaching_overlay(
 
         chat_fn = chat_json
     digest = build_trace_digest(trace, problem=problem, code=code, max_frames=max_frames)
+    system_prompt = TEACHING_SYSTEM_PROMPT_EN if normalize_output_language(language) == "en" else TEACHING_SYSTEM_PROMPT
     raw = chat_fn(
-        TEACHING_SYSTEM_PROMPT,
+        system_prompt,
         json.dumps(digest, ensure_ascii=False, separators=(",", ":")),
         kind="teaching",
     )
@@ -230,6 +235,7 @@ def enrich_scene_teaching(
     enabled: bool = True,
     max_frames: int | None = MAX_TEACHING_FRAMES,
     chat_fn: Callable[..., dict[str, Any]] | None = None,
+    language: str = "zh",
 ) -> list[str]:
     """Best-effort SceneGraph teaching enrichment.
 
@@ -249,6 +255,7 @@ def enrich_scene_teaching(
                 code=code,
                 max_frames=attempt_frames,
                 chat_fn=chat_fn,
+                language=language,
             )
             return apply_teaching_overlay(scene, overlay)
         except Exception as exc:  # pragma: no cover - exercised by integration callers.
@@ -550,12 +557,35 @@ def _sanitize_interaction(raw: Any) -> dict[str, Any] | None:
     cleaned = {key: raw[key] for key in allowed if key in raw}
     if "options" in cleaned and not isinstance(cleaned["options"], list):
         cleaned["options"] = []
+    if isinstance(cleaned.get("options"), list):
+        cleaned["options"] = [
+            json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+            if isinstance(item, (dict, list))
+            else str(item)
+            for item in cleaned["options"]
+        ]
+    interaction_type = str(cleaned.get("type") or "").strip().lower()
+    if interaction_type not in {"choice", "input", "judge"}:
+        if isinstance(cleaned.get("answer"), bool):
+            interaction_type = "judge"
+        elif len(cleaned.get("options") or []) >= 2:
+            interaction_type = "choice"
+        else:
+            interaction_type = "input"
+        cleaned["type"] = interaction_type
+    if interaction_type == "choice" and len(cleaned.get("options") or []) < 2:
+        cleaned["type"] = "input"
+        cleaned.pop("options", None)
     if cleaned.get("type") == "choice":
         _normalize_choice_answer(cleaned)
     if cleaned.get("type") == "judge":
         _normalize_judge_answer(cleaned)
     if "option_explanations" in cleaned and not isinstance(cleaned["option_explanations"], dict):
         cleaned["option_explanations"] = {}
+    elif isinstance(cleaned.get("option_explanations"), dict):
+        cleaned["option_explanations"] = {
+            str(key): str(value) for key, value in cleaned["option_explanations"].items()
+        }
     return cleaned
 
 

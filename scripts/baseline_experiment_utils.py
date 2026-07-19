@@ -18,9 +18,11 @@ from scripts.run_llm_benchmark import (
     BenchmarkInput,
     UnseenBenchmarkCase,
     benchmark_condition,
+    apply_case_overrides,
     browser_smoke_html_paths,
     classify_failure,
     load_llm_family_sets,
+    prepare_case_language_args,
     load_unseen_family_cases,
     result_metadata,
     selected_cases,
@@ -64,12 +66,15 @@ def add_common_args(parser: argparse.ArgumentParser, *, condition: str) -> None:
     )
     parser.add_argument("--family-sets", type=Path, default=LLM_FAMILY_SETS_PATH, help="LLM benchmark family split 配置")
     parser.add_argument("--unseen-cases", type=Path, default=UNSEEN_FAMILY_CASES_PATH, help="unseen family case 配置")
+    parser.add_argument("--language", choices=["zh", "en"], default="zh", help="生成产物的人类可读语言")
+    parser.add_argument("--case-overrides", type=Path, default=None, help="按 case id 覆盖题面元数据")
     parser.set_defaults(condition=condition)
 
 
 def prepare_common_args(args: argparse.Namespace) -> None:
     if args.limit_per_family < 0:
         raise SystemExit("--limit-per-family 不能为负数")
+    prepare_case_language_args(args)
     args.family_sets_config = load_llm_family_sets(args.family_sets)
     family_set_errors = validate_llm_family_sets(args.family_sets_config)
     if family_set_errors:
@@ -171,6 +176,11 @@ def run_benchmark(args: argparse.Namespace, runner: BaselineRunner) -> int:
         family_sets=args.family_sets_config,
         case_set=args.case_set,
         unseen_cases_config=args.unseen_cases_config,
+    )
+    cases = apply_case_overrides(
+        cases,
+        args.case_overrides_config,
+        require_all=args.language == "en",
     )
     tasks = selected_tasks(cases, args)
 

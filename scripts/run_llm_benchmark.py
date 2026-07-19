@@ -14,7 +14,7 @@ import queue
 import sys
 import time
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -24,6 +24,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from algolab.generation.solution_generator import generate_solution_spec, repair_solution_spec
+from algolab.generation.language import normalize_output_language
 from algolab.pipeline import BuildError, _try_materialize
 from algolab.renderer.export import save_html
 from algolab.schemas.input import ProblemInput
@@ -38,6 +39,7 @@ from benchmark.cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 LLM_FAMILY_SETS_PATH = ROOT / "benchmark" / "llm_family_sets.json"
 UNSEEN_FAMILY_CASES_PATH = ROOT / "benchmark" / "unseen_family_cases.json"
 FAMILY_CAPABILITIES_PATH = ROOT / "benchmark" / "family_capabilities.json"
+ENGLISH_CASE_OVERRIDES_PATH = ROOT / "benchmark" / "english_method_samples.json"
 FORBIDDEN_UNSEEN_CASE_FIELDS = {"code", "tracker_code", "verifier_code"}
 
 
@@ -293,6 +295,59 @@ def selected_cases(
     return found
 
 
+def load_case_overrides(path: Path | None) -> dict[str, dict[str, Any]]:
+    if path is None:
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        str(row.get("id") or ""): row
+        for row in (data.get("cases") or [])
+        if isinstance(row, dict) and str(row.get("id") or "")
+    }
+
+
+def apply_case_overrides(
+    cases: tuple[BenchmarkCase | UnseenBenchmarkCase, ...],
+    overrides: dict[str, dict[str, Any]],
+    *,
+    require_all: bool = False,
+) -> tuple[BenchmarkCase | UnseenBenchmarkCase, ...]:
+    updated: list[BenchmarkCase | UnseenBenchmarkCase] = []
+    missing: list[str] = []
+    fields = (
+        "title",
+        "problem",
+        "family",
+        "input_contract",
+        "variant_name",
+        "strategy",
+        "time_complexity",
+        "space_complexity",
+    )
+    for case in cases:
+        row = overrides.get(case.id)
+        if row is None:
+            if require_all:
+                missing.append(case.id)
+            updated.append(case)
+            continue
+        allowed = set(case.__dataclass_fields__)
+        values = {key: row[key] for key in fields if key in allowed and key in row}
+        updated.append(replace(case, **values))
+    if missing:
+        raise SystemExit("English case overrides are missing: " + ", ".join(sorted(missing)))
+    return tuple(updated)
+
+
+def prepare_case_language_args(args: argparse.Namespace) -> None:
+    args.language = normalize_output_language(getattr(args, "language", "zh"))
+    override_path = getattr(args, "case_overrides", None)
+    if args.language == "en" and override_path is None:
+        override_path = ENGLISH_CASE_OVERRIDES_PATH
+    args.case_overrides = override_path
+    args.case_overrides_config = load_case_overrides(override_path) if override_path else {}
+
+
 def selected_samples(case: BenchmarkCase | UnseenBenchmarkCase, args: argparse.Namespace) -> tuple[tuple[int, BenchmarkInput], ...]:
     if args.sample is not None:
         if args.sample < 0 or args.sample >= len(case.samples):
@@ -345,6 +400,7 @@ def make_request(
     *,
     solutions: int,
     teaching_enrichment: bool = True,
+    language: str = "zh",
 ) -> ProblemInput:
     return ProblemInput(
         problem=case.problem,
@@ -356,6 +412,7 @@ def make_request(
         case_id=case.id,
         family_id=case.family_id,
         subfamily_id=case.subfamily_id,
+        output_language=normalize_output_language(language),
     )
 
 
@@ -371,6 +428,8 @@ def result_metadata(case: BenchmarkCase | UnseenBenchmarkCase, sample_index: int
     case_set = getattr(args, "case_set", "deterministic")
     case_style = "unseen_style" if case_set == "unseen" else case_style_for_sample(case, sample_index, family_sets)
     return {
+        "problem": case.problem,
+        "strategy": case.strategy,
         "family_id": case.family_id,
         "subfamily_id": case.subfamily_id,
         "gate_layer": case.gate_layer,
@@ -378,6 +437,7 @@ def result_metadata(case: BenchmarkCase | UnseenBenchmarkCase, sample_index: int
         "process_profile": case.process_profile,
         "case_set": case_set,
         "case_style": case_style,
+        "language": getattr(args, "language", "zh"),
     }
 
 
@@ -395,6 +455,7 @@ def run_one(
         sample,
         solutions=args.solutions,
         teaching_enrichment=getattr(args, "teaching_enrichment", True),
+        language=getattr(args, "language", "zh"),
     )
     output_stem = f"llm_{case.id}_{sample_index}"
     output_html = args.output_dir / f"{output_stem}.html"
@@ -1226,6 +1287,8 @@ def write_report(
         "case_set": getattr(args, "case_set", "deterministic"),
         "family_sets": str(getattr(args, "family_sets", LLM_FAMILY_SETS_PATH)),
         "unseen_cases": str(getattr(args, "unseen_cases", UNSEEN_FAMILY_CASES_PATH)),
+        "language": getattr(args, "language", "zh"),
+        "case_overrides": str(getattr(args, "case_overrides", "") or ""),
         "benchmark_condition": benchmark_condition(args),
         "llm": llm_config(),
         "model": _model_name(),
@@ -1377,6 +1440,8 @@ def main() -> int:
     )
     parser.add_argument("--family-sets", type=Path, default=LLM_FAMILY_SETS_PATH, help="LLM benchmark family split 配置")
     parser.add_argument("--unseen-cases", type=Path, default=UNSEEN_FAMILY_CASES_PATH, help="unseen family case 配置")
+    parser.add_argument("--language", choices=["zh", "en"], default="zh", help="生成产物的人类可读语言")
+    parser.add_argument("--case-overrides", type=Path, default=None, help="按 case id 覆盖题面元数据")
     parser.add_argument(
         "--condition",
         default="algolab_full",
@@ -1390,6 +1455,7 @@ def main() -> int:
         raise SystemExit("--max-rounds 不能为负数")
     if args.max_candidates < 1:
         raise SystemExit("--max-candidates 至少为 1")
+    prepare_case_language_args(args)
     args.family_sets_config = load_llm_family_sets(args.family_sets)
     family_set_errors = validate_llm_family_sets(args.family_sets_config)
     if family_set_errors:
@@ -1411,6 +1477,11 @@ def main() -> int:
         family_sets=args.family_sets_config,
         case_set=args.case_set,
         unseen_cases_config=args.unseen_cases_config,
+    )
+    cases = apply_case_overrides(
+        cases,
+        args.case_overrides_config,
+        require_all=args.language == "en",
     )
     tasks = selected_tasks(cases, args)
 

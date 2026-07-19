@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,3 +22,7 @@ class ProblemInput(BaseModel):
     case_id: str = Field(default="", description="内部评测 case id，用于结果等价归一化；不暴露给 LLM prompt")
     family_id: str = Field(default="", description="内部评测 family id，用于结果等价归一化；不暴露给 LLM prompt")
     subfamily_id: str = Field(default="", description="内部评测 subfamily id，用于结果等价归一化；不暴露给 LLM prompt")
+    output_language: Literal["zh", "en"] = Field(
+        default="zh",
+        description="生成产物的人类可读语言；en 要求 UI、讲解、反馈、日志和代码注释全部为英文",
+    )

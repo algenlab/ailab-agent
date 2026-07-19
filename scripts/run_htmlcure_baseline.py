@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from llm_client import api_settings
+from algolab.generation.language import english_only_errors, english_output_requirement, normalize_output_language
 
 
 def _repo_path(value: str | Path) -> Path:
@@ -44,9 +45,8 @@ def _source_rows(report_path: Path) -> dict[str, dict[str, Any]]:
     }
 
 
-def _public_query(row: dict[str, Any]) -> str:
-    return "\n".join(
-        [
+def _public_query(row: dict[str, Any], *, language: str = "zh") -> str:
+    lines = [
             "Create a self-contained interactive algorithm tutoring webpage for the following concrete task.",
             f"Title: {row.get('title') or row.get('case_id')}",
             f"Algorithm family: {row.get('family') or ''}",
@@ -62,7 +62,9 @@ def _public_query(row: dict[str, Any]) -> str:
             "- keep the authoritative final answer unchanged during interaction.",
             "Repair the supplied webpage using general browser evidence. Preserve correct existing behavior.",
         ]
-    )
+    if normalize_output_language(language) == "en":
+        lines.append(english_output_requirement())
+    return "\n".join(lines)
 
 
 def _serialize_iteration(item: Any) -> dict[str, Any]:
@@ -200,7 +202,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
         row = rows_by_id[case_id]
         source_html = _repo_path(str(row["html"]))
         original_html = source_html.read_text(encoding="utf-8", errors="ignore")
-        query = _public_query(row)
+        query = _public_query(row, language=args.language)
         case_started = time.time()
         print(f"HTMLCURE {index}/{len(case_ids)} {case_id} initial_eval", flush=True)
         try:
@@ -223,6 +225,13 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
                 max_iterations=args.max_iterations,
             )
             output_html = html_dir / f"direct_htmlcure_{case_id}_0.html"
+            language_errors = (
+                english_only_errors(result.best_html, label=f"{case_id} HTMLCure HTML")
+                if args.language == "en"
+                else []
+            )
+            if language_errors:
+                raise ValueError("; ".join(language_errors))
             output_html.write_text(result.best_html, encoding="utf-8")
             artifact_path = output_html.with_suffix(".json")
             artifact_path.write_text(
@@ -295,6 +304,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "shard_id": args.shard_id,
             "num_shards": args.num_shards,
             "vision_in_repair": False,
+            "language": args.language,
             "browser_use_agent": False,
             "duration_s": round(time.time() - started, 3),
             "results": completed,
@@ -325,11 +335,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--improvement-threshold", type=float, default=2.0)
     parser.add_argument("--record-timeout", type=int, default=600)
     parser.add_argument("--fast", action="store_true")
+    parser.add_argument("--language", choices=["zh", "en"], default="zh")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    args.language = normalize_output_language(args.language)
     if args.num_shards < 1 or not 0 <= args.shard_id < args.num_shards:
         raise SystemExit("--shard-id must be in [0, --num-shards)")
     logging.basicConfig(

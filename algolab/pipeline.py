@@ -137,6 +137,7 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
                 problem=request.problem,
                 code=materialized.code,
                 enabled=request.teaching_enrichment,
+                language=request.output_language,
             )
             warnings.extend(f"{materialized.name}: {w}" for w in teaching_warnings)
             if request.teaching_enrichment and not teaching_warnings:

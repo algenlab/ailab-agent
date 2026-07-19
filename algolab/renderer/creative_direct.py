@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from algolab.schemas.validation import BuildArtifact
+from algolab.generation.language import normalize_output_language, scrub_cjk_strings
 
 
 class CreativeDirectHtmlError(ValueError):
@@ -87,14 +88,14 @@ def sanitize_direct_visual_html(html: str) -> list[str]:
     return sorted(set(errors))
 
 
-def render_direct_visual_html(artifact: BuildArtifact, generated_html: str) -> str:
+def render_direct_visual_html(artifact: BuildArtifact, generated_html: str, *, language: str = "zh") -> str:
     """Validate a generated creative page and inject verified artifact JSON."""
 
     html = extract_html(generated_html)
     errors = sanitize_direct_visual_html(html)
     if errors:
         raise CreativeDirectHtmlError("; ".join(errors))
-    return inject_artifact_json(html, artifact)
+    return inject_artifact_json(html, artifact, language=language)
 
 
 def render_direct_visual_stage_shell_html(artifact: BuildArtifact, generated_stage: str) -> str:
@@ -131,7 +132,7 @@ def save_direct_visual_stage_shell_html(
     return output
 
 
-def inject_artifact_json(html: str, artifact: BuildArtifact) -> str:
+def inject_artifact_json(html: str, artifact: BuildArtifact, *, language: str = "zh") -> str:
     """Inject the verified artifact before generated runtime scripts execute."""
 
     without_existing = re.sub(
@@ -140,7 +141,10 @@ def inject_artifact_json(html: str, artifact: BuildArtifact) -> str:
         html,
         flags=re.IGNORECASE | re.DOTALL,
     )
-    payload = json.dumps(_runtime_artifact_payload(artifact), ensure_ascii=False, separators=(",", ":")).replace(
+    payload_data = _runtime_artifact_payload(artifact)
+    if normalize_output_language(language) == "en":
+        payload_data = scrub_cjk_strings(payload_data)
+    payload = json.dumps(payload_data, ensure_ascii=False, separators=(",", ":")).replace(
         "</", "<\\/"
     )
     data_script = (

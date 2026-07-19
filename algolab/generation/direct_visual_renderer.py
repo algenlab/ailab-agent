@@ -18,9 +18,11 @@ from algolab.renderer.creative_direct import (
 )
 from algolab.schemas.scene_graph import SceneFrame
 from algolab.schemas.validation import BuildArtifact
+from algolab.generation.language import english_only_errors, output_language_requirement, normalize_output_language
 
 
 PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "direct_visual_renderer_system.txt"
+PROMPT_PATH_EN = Path(__file__).resolve().parent / "prompts" / "direct_visual_renderer_system_en.txt"
 STAGE_PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "direct_visual_stage_system.txt"
 REPAIR_PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "direct_visual_repair_system.txt"
 STAGE_REPAIR_PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "direct_visual_stage_repair_system.txt"
@@ -53,8 +55,9 @@ class DirectVisualRenderResult:
 ChatTextFn = Callable[[str, str], str | dict[str, Any]]
 
 
-def load_system_prompt() -> str:
-    return PROMPT_PATH.read_text(encoding="utf-8")
+def load_system_prompt(language: str = "zh") -> str:
+    path = PROMPT_PATH_EN if normalize_output_language(language) == "en" else PROMPT_PATH
+    return path.read_text(encoding="utf-8")
 
 
 def load_stage_system_prompt() -> str:
@@ -74,6 +77,7 @@ def build_direct_visual_prompt(
     *,
     problem_description: str = "",
     max_selected_frames: int = MAX_SELECTED_FRAMES,
+    language: str = "zh",
 ) -> str:
     """Build a compact prompt from a verified artifact."""
 
@@ -120,6 +124,7 @@ def build_direct_visual_prompt(
             "不要在 prompt 中复制完整 artifact；运行时完整 artifact 会存在。",
             "",
             "Now generate a complete, self-contained, offline HTML creative visualization.",
+            output_language_requirement(language),
         ]
     )
 
@@ -345,11 +350,17 @@ def generate_direct_visual_html(
     problem_description: str = "",
     model: str | None = None,
     chat_fn: ChatTextFn | None = None,
+    language: str = "zh",
 ) -> DirectVisualRenderResult:
     """Generate sanitized Creative View HTML from a verified artifact."""
 
-    system_prompt = load_system_prompt()
-    user_prompt = build_direct_visual_prompt(artifact, problem_description=problem_description)
+    language = normalize_output_language(language)
+    system_prompt = load_system_prompt(language)
+    user_prompt = build_direct_visual_prompt(
+        artifact,
+        problem_description=problem_description,
+        language=language,
+    )
     raw_output = ""
     model_calls: list[dict[str, Any]] = []
     try:
@@ -368,6 +379,8 @@ def generate_direct_visual_html(
                 raw_output = str(response or "")
         extracted = extract_html(raw_output)
         errors = sanitize_direct_visual_html(extracted)
+        if not errors and language == "en":
+            errors.extend(english_only_errors(extracted, label="creative HTML"))
         if errors:
             return DirectVisualRenderResult(
                 creative_ok=False,
@@ -377,7 +390,18 @@ def generate_direct_visual_html(
                 errors=errors,
                 model_calls=model_calls,
             )
-        html = render_direct_visual_html(artifact, extracted)
+        html = render_direct_visual_html(artifact, extracted, language=language)
+        if language == "en":
+            post_errors = english_only_errors(html, label="creative HTML with verified artifact")
+            if post_errors:
+                return DirectVisualRenderResult(
+                    creative_ok=False,
+                    raw_output=raw_output,
+                    extracted_html=extracted,
+                    prompt=user_prompt,
+                    errors=post_errors,
+                    model_calls=model_calls,
+                )
         return DirectVisualRenderResult(
             creative_ok=True,
             html=html,

@@ -6,11 +6,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from algolab.generation.language import english_output_requirement, normalize_output_language
 DEFAULT_BENCHMARK = ROOT / "benchmark" / "algo_learn_env_benchmark.json"
 DEFAULT_MANIFEST = ROOT / "benchmark" / "external_baseline_all200_sample0.json"
 DEFAULT_JSONL = ROOT / "benchmark" / "external_baseline_all200_sample0_webgen.jsonl"
@@ -21,14 +25,18 @@ def canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def make_instruction(case: dict[str, Any], sample: dict[str, Any]) -> str:
+def make_instruction(case: dict[str, Any], sample: dict[str, Any], *, language: str = "zh") -> str:
+    language = normalize_output_language(language)
     tasks = case.get("interaction_tasks", [])
     task_lines = []
     for index, task in enumerate(tasks, start=1):
         task_lines.append(f"{index}. {task.get('prompt', '').strip()}")
     tasks_text = "\n".join(task_lines) or "Create at least one prediction checkpoint."
 
+    language_rule = english_output_requirement() if language == "en" else "Use the task's source language consistently."
     return f"""Build a polished, fully functional interactive educational webpage for the following algorithm problem.
+
+Language requirement: {language_rule}
 
 Title: {case.get('title') or case['id']}
 Algorithm family: {case.get('family', '')}
@@ -71,13 +79,21 @@ def main() -> None:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--jsonl", type=Path, default=DEFAULT_JSONL)
     parser.add_argument("--smoke-jsonl", type=Path, default=DEFAULT_SMOKE_JSONL)
+    parser.add_argument("--language", choices=["zh", "en"], default="zh")
+    parser.add_argument("--concurrency", type=int, default=8)
+    parser.add_argument("--expected-cases", type=int, default=200)
     args = parser.parse_args()
+    for field in ("benchmark", "manifest", "jsonl", "smoke_jsonl"):
+        path = getattr(args, field)
+        setattr(args, field, path if path.is_absolute() else ROOT / path)
+    for path in (args.manifest, args.jsonl, args.smoke_jsonl):
+        path.parent.mkdir(parents=True, exist_ok=True)
 
     raw = args.benchmark.read_bytes()
     benchmark = json.loads(raw)
     selected = benchmark["cases"]
-    if len(selected) != 200:
-        raise ValueError(f"Expected exactly 200 benchmark cases, found {len(selected)}")
+    if len(selected) != args.expected_cases:
+        raise ValueError(f"Expected exactly {args.expected_cases} benchmark cases, found {len(selected)}")
     ids = [case["id"] for case in selected]
     if len(ids) != len(set(ids)):
         raise ValueError("benchmark case IDs must be unique")
@@ -89,7 +105,7 @@ def main() -> None:
         if not samples or samples[0].get("index") != 0:
             raise ValueError(f"{case['id']} has no deterministic sample 0")
         sample = samples[0]
-        instruction = make_instruction(case, sample)
+        instruction = make_instruction(case, sample, language=args.language)
         record = {
             "case_id": case["id"],
             "algorithm_id": case.get("algorithm_id", case["id"]),
@@ -101,7 +117,7 @@ def main() -> None:
             "sample_index": 0,
             "input_data": sample["input_data"],
             "expected": sample["expected"],
-            "shard_id": index % 8,
+            "shard_id": index % args.concurrency,
             "instruction_sha256": hashlib.sha256(instruction.encode()).hexdigest(),
         }
         records.append(record)
@@ -113,9 +129,10 @@ def main() -> None:
         "benchmark_sha256": hashlib.sha256(raw).hexdigest(),
         "selection_rule": "Preserve all 200 benchmark cases in source order; use samples[0] where index == 0 for each case.",
         "evaluation_scope": "Full case-level benchmark coverage with one deterministic sample per case (200 of 646 samples).",
-        "concurrency": 8,
+        "concurrency": args.concurrency,
         "case_count": len(records),
-        "shard_sizes": [sum(r["shard_id"] == shard for r in records) for shard in range(8)],
+        "language": args.language,
+        "shard_sizes": [sum(r["shard_id"] == shard for r in records) for shard in range(args.concurrency)],
         "cases": records,
     }
     args.manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

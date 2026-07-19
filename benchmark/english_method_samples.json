@@ -1,0 +1,3790 @@
+{
+  "schema_version": "english-method-samples-v1",
+  "language": "en",
+  "selection_rule": "The same fixed 23 family-representative cases used by the five-method artifact gallery.",
+  "cases": [
+    {
+      "id": "graph_topological_sort",
+      "algorithm_id": "graph_topological_sort",
+      "title": "Topological Sort",
+      "family": "BFS/DFS Basic Graph",
+      "family_id": "basic_graph",
+      "subfamily_id": "topological_sort",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "bfs",
+      "difficulty": "medium",
+      "problem": "You are developing a course selection recommendation feature for an academic administration system. Given a course dependency graph (adjacency list), where each course is represented as a string, please return a valid course sequence list such that all prerequisite courses appear before each course.",
+      "strategy": "Maintain an indegree table and a queue of zero indegree nodes; each time a node is popped, delete its outgoing edges.",
+      "input_contract": "Input DAG adjacency list graph.",
+      "variant_name": "Kahn Indegree Queue",
+      "time_complexity": "O(V+E)",
+      "space_complexity": "O(V)",
+      "learning_objectives": [
+        "Understand how the indegree table records the remaining dependency count.",
+        "Master the strategy of using a queue to manage zero indegree nodes.",
+        "Be able to predict the state updates after popping a node at each step from a trace."
+      ],
+      "required_views": [
+        "graph",
+        "queue",
+        "map"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! You have mastered the indegree update rule.",
+          "feedback_wrong": "Carefully check the current indegree table; popping a node only affects its immediate neighbors.",
+          "id": "task_1",
+          "oracle": "Determine whether the student's answer accurately includes the nodes among graph['B']'s neighbors whose indegree becomes 0.",
+          "prompt": "The current head of the queue is node 'B'. Please predict which neighbors' indegree will become 0 and will be added to the queue after popping 'B'.",
+          "stage2_affordance": "Click node 'B' and observe the animation of neighbors' indegree changes.",
+          "trace_anchor": [
+            "state.queue",
+            "state.indegree"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "That's right, this is the core invariant of Kahn's algorithm.",
+          "feedback_wrong": "Please check the indegree table; what value do the nodes in the queue have in indegree?",
+          "id": "task_2",
+          "oracle": "Automatically check whether the answer includes 'the indegree of all nodes in the queue is 0'.",
+          "prompt": "During the entire algorithm execution, what invariant property does the queue always satisfy? (Hint: focus on indegree)",
+          "stage2_affordance": "Open the indegree table view and observe the correspondence between the queue and indegree frame by frame.",
+          "trace_anchor": [
+            "state.queue",
+            "state.indegree"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct, a cyclic graph has no topological order; the queue will eventually become empty with remaining nodes.",
+          "feedback_wrong": "Try to think: when there is a cycle, which nodes will never have a chance to get indegree 0?",
+          "id": "task_3",
+          "oracle": "Check whether the answer indicates that the algorithm eventually cannot process all nodes, or the queue becomes empty prematurely.",
+          "prompt": "Add an edge D->A to the original graph to create a cycle. Describe how this will affect the algorithm's behavior.",
+          "stage2_affordance": "Drag the mouse to add edge D->A in the graph, re-run the algorithm and observe the result.",
+          "trace_anchor": [
+            "input_data.graph",
+            "state.queue"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Explanation is very clear; you fully understand the state transition logic.",
+          "feedback_wrong": "Please focus on 'C's immediate neighbors in the adjacency list, and check the changes in their indegree before and after.",
+          "id": "task_4",
+          "oracle": "Automatically verify if the explanation includes: 'C's neighbors' indegree decreases by 1, and if it becomes 0, they are enqueued.",
+          "prompt": "What specific changes occur to indegree and queue after node 'C' is popped from the queue? Why?",
+          "stage2_affordance": "Click on each step on the timeline to replay the synchronized updates of indegree and queue.",
+          "trace_anchor": [
+            "state.indegree",
+            "state.queue"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "index": 0,
+          "input_data": {
+            "graph": {
+              "A": [
+                "B",
+                "C"
+              ],
+              "B": [
+                "D"
+              ],
+              "C": [
+                "D"
+              ],
+              "D": []
+            }
+          }
+        },
+        {
+          "expected": [
+            "1",
+            "2",
+            "3"
+          ],
+          "index": 1,
+          "input_data": {
+            "graph": {
+              "1": [
+                "3"
+              ],
+              "2": [
+                "3"
+              ],
+              "3": []
+            }
+          }
+        },
+        {
+          "expected": [
+            "S",
+            "A",
+            "B"
+          ],
+          "index": 2,
+          "input_data": {
+            "graph": {
+              "A": [
+                "B"
+              ],
+              "B": [],
+              "S": [
+                "A"
+              ]
+            }
+          }
+        },
+        {
+          "expected": [
+            "X"
+          ],
+          "index": 3,
+          "input_data": {
+            "graph": {
+              "X": []
+            }
+          }
+        },
+        {
+          "expected": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "index": 4,
+          "input_data": {
+            "graph": {
+              "0": [
+                "1",
+                "2"
+              ],
+              "1": [
+                "3"
+              ],
+              "2": [
+                "3"
+              ],
+              "3": [
+                "4"
+              ],
+              "4": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "complete_knapsack_coin_change",
+      "algorithm_id": "complete_knapsack_coin_change",
+      "title": "Complete Knapsack Coin Change",
+      "family": "DP Core Extension",
+      "family_id": "dp_core",
+      "subfamily_id": "complete_knapsack",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "difficulty": "medium",
+      "problem": "A store cashier needs to give change for amount. There is an unlimited number of coins in the cash register, with denominations given by the array coins. Write a program to calculate the minimum number of coins needed to make up the amount. If it is impossible to make up the amount in any way, return -1.",
+      "strategy": "Update dp[c] in increasing capacity order, allowing the same coin to be reused.",
+      "input_contract": "Input: coins array and amount.",
+      "variant_name": "Complete Knapsack Minimum Coins",
+      "time_complexity": "O(len(coins) * amount)",
+      "space_complexity": "O(amount)",
+      "learning_objectives": [
+        "Understand that dp[capacity] represents the minimum number of coins to make up capacity.",
+        "Analyze how the coin loop and increasing capacity order allow coin reuse.",
+        "Be able to predict the next dp update based on the current dp state and coin denomination."
+      ],
+      "required_views": [
+        "array"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! You successfully applied the state transition equation.",
+          "feedback_wrong": "Not quite. Please observe dp[capacity-coin]+1 and compare with the current value, taking the smaller one.",
+          "id": "task_1",
+          "oracle": "Check if the predicted value equals min(3, dp[3]+1)=3, correct if so.",
+          "prompt": "Current coin denomination coin=2, capacity=5, before update dp[5]=3, dp[3]=2. Predict the value of dp[5] after update.",
+          "stage2_affordance": "Click the dp cell to highlight the calculation process.",
+          "trace_anchor": [
+            "state.dp",
+            "state.coin"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Exactly! No coins are needed when the capacity is 0.",
+          "feedback_wrong": "Think again: what capacity requires no coins to make up?",
+          "id": "task_2",
+          "oracle": "The answer must point out that dp[0] is always 0 and explain why.",
+          "prompt": "In the complete knapsack coin change problem, regardless of how coins and amount change, which state's value remains constant?",
+          "stage2_affordance": "Slide the capacity axis to observe the constant value of dp[0].",
+          "trace_anchor": [
+            "state.dp",
+            "state.amount"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Great! You discovered the impact of denomination changes on the optimal solution.",
+          "feedback_wrong": "Removing a large denomination might require more small coins. You can try computing the new dp array.",
+          "id": "task_3",
+          "oracle": "The predicted answer should match the verifier's output for coins=[1,2], amount=11 (should be 6).",
+          "prompt": "Original coins=[1,2,5], amount=11, minimum coins=3. If we remove denomination 5, leaving only [1,2], what will be the minimum number of coins?",
+          "stage2_affordance": "Click the coin denomination label to add or remove denominations.",
+          "trace_anchor": [
+            "state.coins",
+            "state.amount"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Your explanation is spot on! dp[capacity-coin] represents the optimal state before using the current coin.",
+          "feedback_wrong": "Note that dp[capacity-coin] holds the minimum coins to make up capacity-coin, adding the current coin creates a new plan.",
+          "id": "task_4",
+          "oracle": "The answer must explain that dp[5] is the minimum coins to make up 5, then adding one coin of 5 makes up 10, and compare with the current optimum.",
+          "prompt": "Explain why when coin=5, capacity=10, the update of dp[10] uses min(dp[10], dp[5]+1).",
+          "stage2_affordance": "Drag the coin to the corresponding capacity slot to see the combination process.",
+          "trace_anchor": [
+            "state.dp",
+            "state.coin",
+            "state.capacity"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 3,
+          "index": 0,
+          "input_data": {
+            "amount": 11,
+            "coins": [
+              1,
+              2,
+              5
+            ]
+          }
+        },
+        {
+          "expected": -1,
+          "index": 1,
+          "input_data": {
+            "amount": 3,
+            "coins": [
+              2
+            ]
+          }
+        },
+        {
+          "expected": 0,
+          "index": 2,
+          "input_data": {
+            "amount": 0,
+            "coins": [
+              1
+            ]
+          }
+        },
+        {
+          "expected": 2,
+          "index": 3,
+          "input_data": {
+            "amount": 7,
+            "coins": [
+              2,
+              3,
+              5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "trie_prefix",
+      "algorithm_id": "trie_prefix",
+      "title": "Trie Prefix Counting",
+      "family": "Trie",
+      "family_id": "trie",
+      "subfamily_id": "prefix_count",
+      "gate_layer": "family_core",
+      "support_level": "medium_plus",
+      "process_profile": "trie",
+      "difficulty": "medium",
+      "problem": "In a search engine's candidate word library, given an array of historical search words 'words' and the current prefix string 'prefix' entered by the user, calculate how many search words start with this prefix and return that integer.",
+      "strategy": "Insert all words into the Trie, then count the number of matches along the prefix path.",
+      "input_contract": "Input: words and prefix.",
+      "variant_name": "Trie Insertion and Prefix Counting",
+      "time_complexity": "O(total number of characters)",
+      "space_complexity": "O(total number of characters)",
+      "learning_objectives": [
+        "Understand the state changes of node count updates during Trie insertion",
+        "Master the branching logic for character matching when traversing the Trie along the prefix",
+        "Derive the final prefix match count based on the relationship between node counts and child nodes in the Trace"
+      ],
+      "required_views": [
+        "trie",
+        "prefix_visual"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! The system will create a new node 'p' and link it to 'a'.",
+          "feedback_wrong": "Observe the current node's children dictionary; if it does not exist, create it.",
+          "id": "task_1",
+          "oracle": "Check if the prediction creates a new node and links it, and the new node's count is initially 0.",
+          "prompt": "Current node 'a' has no child 'p'. If the next character is 'p', how will the state tree change in the next step?",
+          "stage2_affordance": "Click the current node to see child node changes, and manually input a character to trigger the creation animation.",
+          "trace_anchor": [
+            "state.trie.nodes",
+            "state.char"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Yes, the root node's count is always equal to the total number of words.",
+          "feedback_wrong": "Review the change in the root node's count when inserting each word.",
+          "id": "task_2",
+          "oracle": "The answer should state that root node count == words.length or an equivalent statement.",
+          "prompt": "After inserting all words, what invariant relationship exists between the root node's count and the words?",
+          "stage2_affordance": "Show the comparison between the root node count and the length of the word list.",
+          "trace_anchor": [
+            "state.trie.nodes[0].meta.count",
+            "state.words"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct, the match count changes from 3 to 4.",
+          "feedback_wrong": "Check if 'apx' starts with 'ap'.",
+          "id": "task_3",
+          "oracle": "The answer should increase by 1; the affected nodes include nodes along the prefix 'ap' path and the new node 'apx'.",
+          "prompt": "If a new word 'apx' is added to words, and the prefix remains 'ap', how will the final answer change? Which nodes' counts will be affected?",
+          "stage2_affordance": "Click to add a word on the interface, and observe the Trie update and answer change.",
+          "trace_anchor": [
+            "state.words",
+            "state.prefix",
+            "state.answer"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Clear explanation; the answer comes from the count attribute of the node at the end of the prefix.",
+          "feedback_wrong": "Pay attention to the sequence of nodes visited during prefix matching in the trace.",
+          "id": "task_4",
+          "oracle": "Describe traversing from root along characters 'a', 'p' to reach a node, whose count is 3.",
+          "prompt": "Currently prefix='ap', final answer=3, please explain step by step how the Trie derives this count.",
+          "stage2_affordance": "Play the prefix matching animation, progressively highlighting nodes and displaying counts.",
+          "trace_anchor": [
+            "state.prefix",
+            "state.trie.nodes",
+            "state.answer"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 3,
+          "index": 0,
+          "input_data": {
+            "prefix": "ap",
+            "words": [
+              "apple",
+              "app",
+              "ape",
+              "bat"
+            ]
+          }
+        },
+        {
+          "expected": 1,
+          "index": 1,
+          "input_data": {
+            "prefix": "doo",
+            "words": [
+              "dog",
+              "door",
+              "deer"
+            ]
+          }
+        },
+        {
+          "expected": 0,
+          "index": 2,
+          "input_data": {
+            "prefix": "z",
+            "words": [
+              "cat",
+              "car",
+              "dog"
+            ]
+          }
+        },
+        {
+          "expected": 1,
+          "index": 3,
+          "input_data": {
+            "prefix": "a",
+            "words": [
+              "a"
+            ]
+          }
+        },
+        {
+          "expected": 3,
+          "index": 4,
+          "input_data": {
+            "prefix": "sam",
+            "words": [
+              "same",
+              "same",
+              "sample"
+            ]
+          }
+        },
+        {
+          "expected": 3,
+          "index": 5,
+          "input_data": {
+            "prefix": "tea",
+            "words": [
+              "team",
+              "tear",
+              "tea",
+              "to"
+            ]
+          }
+        },
+        {
+          "expected": 2,
+          "index": 6,
+          "input_data": {
+            "prefix": "",
+            "words": [
+              "alpha",
+              "beta"
+            ]
+          }
+        },
+        {
+          "expected": 3,
+          "index": 7,
+          "input_data": {
+            "prefix": "pre",
+            "words": [
+              "prefix",
+              "pre",
+              "prevent",
+              "post"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "house_robber",
+      "algorithm_id": "house_robber",
+      "title": "House Robber",
+      "family": "1D DP",
+      "family_id": "dp_1d",
+      "subfamily_id": "house_robber",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "difficulty": "medium",
+      "problem": "A thief plans to rob a number of houses along a street. The houses are arranged in a straight line, each containing a certain amount of cash, represented by an integer array nums, where nums[i] is the cash amount in the i-th house (0-based index). Since adjacent houses are equipped with connected alarms, robbing two adjacent houses will trigger the alarm. Help the thief calculate the maximum total amount of money that can be robbed without triggering the alarm.",
+      "strategy": "Use dp[i] to record the maximum profit from the first i houses.",
+      "input_contract": "Input the nums array.",
+      "variant_name": "Dynamic Programming",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Understand that the state dp[i] represents the maximum profit from the first i houses and its recurrence relation",
+        "Predict the next step's calculation from the changes in the dp array in the trace",
+        "Identify and verify monotonic invariants in the algorithm (e.g., dp[i] >= dp[i-1])"
+      ],
+      "required_views": [
+        "array",
+        "dp_table"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! According to the transition equation, dp[2] takes the optimal value of either not robbing the current house (using dp[1]) or robbing the current house (dp[0]+9).",
+          "feedback_wrong": "Recall the recurrence formula dp[i] = max(dp[i-1], dp[i-2]+nums[i]), and check the values of dp[0], dp[1], nums[2] again.",
+          "id": "task_1",
+          "oracle": "Check if the student's answer is max(dp[1], dp[0]+nums[2]) = max(7, 2+9)=11; can use verifier or direct calculation.",
+          "prompt": "Given the house amounts nums = [2,7,9,3,1], the dp array has been completed up to dp[0]=2, dp[1]=7. When computing i=2, what should be the value of dp[2]?",
+          "stage2_affordance": "Fill in the predicted value in the table and play the step demonstration.",
+          "trace_anchor": [
+            "dp[0]",
+            "dp[1]",
+            "nums[2]"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Great! The monotonicity of dp ensures that the optimal solution at each step does not degrade.",
+          "feedback_wrong": "Hint: dp[i] represents the optimal solution for the first i houses. Could it be smaller than dp[i-1]? Think again.",
+          "id": "task_2",
+          "oracle": "Check if the student's answer includes dp[i] ≥ dp[i-1] or non-decreasing property, or not exceeding the prefix sum. Accept semantically equivalent expressions.",
+          "prompt": "Observe the changes in the dp array throughout the algorithm execution and point out an invariant that always holds (e.g., what property does dp[i] satisfy?).",
+          "stage2_affordance": "Switch to numerical comparison mode, highlighting changes in adjacent dp values.",
+          "trace_anchor": [
+            "dp",
+            "i"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct! You successfully applied the algorithm to new data.",
+          "feedback_wrong": "Hint: Consider whether to rob the 4th house (amount 1) or not, and compare with previous gains. Try running the algorithm manually.",
+          "id": "task_3",
+          "oracle": "Use verifier to compute expected = 4, judge whether the student's answer is 4.",
+          "prompt": "If the house amounts are changed to nums = [1,2,3,1], manually calculate the maximum stealable amount.",
+          "stage2_affordance": "Modify nums in the array editing area; the view and results will update automatically.",
+          "trace_anchor": [
+            "nums",
+            "expected"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Clear explanation! You accurately described the trade-off between robbing and not robbing.",
+          "feedback_wrong": "Review the transition equation: dp[i] either inherits directly from the previous step (not robbing) or from i-2 steps plus the current house (robbing). Please describe again.",
+          "id": "task_4",
+          "oracle": "Check if the student states: dp[3] = max(dp[2], dp[1]+nums[3]) = max(11, 7+3)=11, with the decision being not to rob the 3rd house.",
+          "prompt": "In the trace, when i=3, nums=[2,7,9,3], dp[2]=11 has been computed, and dp[3] is about to be calculated. Explain the decision process from state dp[2] to dp[3].",
+          "stage2_affordance": "Click on this step to highlight the dp[i-1] and dp[i-2] cells.",
+          "trace_anchor": [
+            "dp[2]",
+            "dp[3]",
+            "nums[3]"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 12,
+          "index": 0,
+          "input_data": {
+            "nums": [
+              2,
+              7,
+              9,
+              3,
+              1
+            ]
+          }
+        },
+        {
+          "expected": 4,
+          "index": 1,
+          "input_data": {
+            "nums": [
+              1,
+              2,
+              3,
+              1
+            ]
+          }
+        },
+        {
+          "expected": 0,
+          "index": 2,
+          "input_data": {
+            "nums": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "binary_search",
+      "algorithm_id": "binary_search",
+      "title": "Binary Search",
+      "family": "Binary",
+      "family_id": "binary_search",
+      "subfamily_id": "closed_interval_search",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "binary_search",
+      "difficulty": "medium",
+      "problem": "You work in a library where books with unique call numbers are arranged in order on shelves. Given a shelf array nums (each position i stores call number nums[i]), and a target call number needed by a reader, return the index of target, or -1 if it does not exist.",
+      "strategy": "Maintain a closed interval and discard half after comparing the midpoint each time.",
+      "input_contract": "Input: a sorted nums array and target.",
+      "variant_name": "Closed Interval Binary Search",
+      "time_complexity": "O(log n)",
+      "space_complexity": "O(1)",
+      "learning_objectives": [
+        "Master the update rules for left and right pointers in closed-interval binary search.",
+        "Be able to predict the next search interval based on the comparison between the current mid value and target.",
+        "Understand that the interval length strictly decreases while the invariant that target remains within the interval is maintained."
+      ],
+      "required_views": [
+        "array"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! left is updated to mid+1, discarding the left half.",
+          "feedback_wrong": "Observe the comparison logic again: when nums[mid] < target, the search interval becomes [mid+1, right].",
+          "id": "task_1",
+          "oracle": "According to the code, when nums[mid] < target, left = mid + 1, right unchanged. So next step left=3, right=5. You can verify the next state in the trace.",
+          "prompt": "Current search interval: left=0, right=5, mid=2, nums=[-1,0,3,5,9,12], target=9. nums[mid]=3 < target. How will left and right update in the next step?",
+          "stage2_affordance": "In the visualization, click the next step button and observe the left pointer move to the mid+1 position.",
+          "trace_anchor": [
+            "state.left",
+            "state.right",
+            "state.mid",
+            "state.nums"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Exactly! This is the core invariant for the correctness of binary search.",
+          "feedback_wrong": "Hint: If target exists, why can we safely narrow the range after each comparison?",
+          "id": "task_2",
+          "oracle": "The correct answer is B. Verification method: Initially the interval contains the whole array; if target exists, each update never discards the part containing target. Check the trace: at each step, left/right, the target index remains within that interval.",
+          "prompt": "At any step of binary search, which statement about the search interval and target always holds? A. target is definitely in the interval B. If target is in the array, it is always in the current interval C. The interval length is always even D. left is always less than right. Choose and explain.",
+          "stage2_affordance": "Highlight the interval and show the possible location range of target.",
+          "trace_anchor": [
+            "state.left",
+            "state.right",
+            "state.target"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct! Changing target to a value that exists reduces the number of search steps.",
+          "feedback_wrong": "Think about when the algorithm terminates early? When mid exactly equals target.",
+          "id": "task_3",
+          "oracle": "Change target to a value that exists in the array, such as 5. Then the algorithm returns immediately when mid hits 5, reducing the number of loop iterations. Check: original target=4 does not exist, loop runs 3 times; after change, loop runs 1-2 times. expected should be the corresponding index.",
+          "prompt": "Suppose nums=[1,3,5,7,9], target=4. Modify the target value so that the search can stop early (i.e., fewer loop iterations than the original search). Provide the new target value.",
+          "stage2_affordance": "Provide an input box for the student to enter a new target and run the visualization.",
+          "trace_anchor": [
+            "state.nums",
+            "state.target"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Good! This shows the limitation of basic binary search with duplicate elements.",
+          "feedback_wrong": "Try constructing an array with duplicate elements where binary search might return a non-first occurrence position.",
+          "id": "task_4",
+          "oracle": "Counterexample: nums=[1,2,2,2,3], target=2, expected index of first 2 is 1. But basic binary search may return the index of a middle 2 (e.g., 2). Use verifier: expected should be 1, but algorithm output may be 2. The input constructed by the user should produce an incorrect result.",
+          "prompt": "A student says: \"As long as nums is sorted, binary search can correctly return the index of any target, regardless of duplicates.\" Construct a counterexample nums and target using an array with duplicate elements to show this statement is wrong (assuming the requirement is to return the first occurrence position of target).",
+          "stage2_affordance": "Drag array elements to create duplicate values and observe the mid position changes.",
+          "trace_anchor": [
+            "state.nums",
+            "state.target"
+          ],
+          "type": "find_counterexample"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 4,
+          "index": 0,
+          "input_data": {
+            "nums": [
+              -1,
+              0,
+              3,
+              5,
+              9,
+              12
+            ],
+            "target": 9
+          }
+        },
+        {
+          "expected": -1,
+          "index": 1,
+          "input_data": {
+            "nums": [
+              -1,
+              0,
+              3,
+              5,
+              9,
+              12
+            ],
+            "target": 2
+          }
+        },
+        {
+          "expected": 0,
+          "index": 2,
+          "input_data": {
+            "nums": [
+              5
+            ],
+            "target": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "unique_paths",
+      "algorithm_id": "unique_paths",
+      "title": "Unique Paths",
+      "family": "2D DP",
+      "family_id": "dp_2d",
+      "subfamily_id": "unique_paths",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "difficulty": "medium",
+      "problem": "In a smart warehouse with m rows and n columns, an inspection robot starts from the top-left charging point (0,0). Each move can only be one step right or down. Given the number of rows m and columns n, compute the total number of distinct paths for the robot to reach the bottom-right packaging station (m-1, n-1). Input variables m and n represent the grid's row count and column count, output an integer representing the total number of paths.",
+      "strategy": "The number of paths for each cell comes from above and from the left.",
+      "input_contract": "Input m and n.",
+      "variant_name": "2D DP Table",
+      "time_complexity": "O(mn)",
+      "space_complexity": "O(mn)",
+      "learning_objectives": [
+        "Understand the state definition in a 2D DP table where dp[i][j] represents the number of paths from the start to (i,j).",
+        "Be able to predict, based on the current cell's i and j in the trace, how the dependent dp[i-1][j] and dp[i][j-1] combine to produce dp[i][j].",
+        "Master how to use the combination formula to verify DP results, and understand the correspondence between state transitions and movement rules."
+      ],
+      "required_views": [
+        "matrix",
+        "code"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! You understood the transition equation: the number of paths at the current position is the sum of above and left.",
+          "feedback_wrong": "Please check the path counts of the cells above and to the left, and add them together.",
+          "id": "task_1",
+          "oracle": "Compare whether the student's input equals the value of the set at that step in the trace.",
+          "prompt": "Currently computing dp[2][3]; above it dp[1][3]=3, to its left dp[2][2]=2. Predict what the value of dp[2][3] should be.",
+          "stage2_affordance": "Click on cell (2,3) in the matrix view; it will highlight its dependencies (1,3) and (2,2).",
+          "trace_anchor": [
+            "state.dp[1][3]",
+            "state.dp[2][2]",
+            "state.i=2",
+            "state.j=3"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "That's right, because the robot can only move in one direction (right or down), so the edge cells have only one path.",
+          "feedback_wrong": "Review the robot's movement rules: it can only move right or down. Therefore, to reach any cell in the first row, the last step can only come from the left, and similarly for the first column.",
+          "id": "task_2",
+          "oracle": "Check whether the student's answer includes the idea that since movement is only right or down, edge cells have only one possible source (from the start).",
+          "prompt": "Observe the DP table; the values of the first row dp[0][j] and first column dp[i][0] are always 1. Explain why they do not change.",
+          "stage2_affordance": "Highlight the first row and first column, and display arrows from the start point, emphasizing uniqueness.",
+          "trace_anchor": [
+            "state.dp[0][j]",
+            "state.dp[i][0]"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Great, you've grasped how parameter changes affect the result.",
+          "feedback_wrong": "Try recalculating using the combination formula C(m+n-2, m-1), where m=4, n=7.",
+          "id": "task_3",
+          "oracle": "Calculate the expected value using the combination formula C(new m + new n - 2, new m - 1), and compare with the student's input.",
+          "prompt": "If the grid is changed from m=3, n=7 to m=4, n=7 (adding one more row), what will be the new total number of paths? Please reason based on combination numbers or the DP table.",
+          "stage2_affordance": "Drag the slider to modify m or n; the DP table will recalculate in real time and display the new result.",
+          "trace_anchor": [
+            "input.m",
+            "input.n",
+            "state.dp[m-1][n-1]"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Yes, because the last step to reach (2,3) has only these two possibilities, so the path counts are added.",
+          "feedback_wrong": "Think: to reach (2,3), where could the previous step be? Could it come diagonally?",
+          "id": "task_4",
+          "oracle": "Detect if the answer mentions both 'coming down from the cell above (1,3)' and 'moving right from the left cell (2,2)'.",
+          "prompt": "Explain why dp[2][3] equals the sum of dp[1][3] and dp[2][2]. Use the robot's movement rules in your explanation.",
+          "stage2_affordance": "Click on the dp[2][3] cell; arrows will appear showing the paths from above and from the left.",
+          "trace_anchor": [
+            "state.dp[2][3]",
+            "state.dp[1][3]",
+            "state.dp[2][2]"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 28,
+          "index": 0,
+          "input_data": {
+            "m": 3,
+            "n": 7
+          }
+        },
+        {
+          "expected": 3,
+          "index": 1,
+          "input_data": {
+            "m": 3,
+            "n": 2
+          }
+        },
+        {
+          "expected": 1,
+          "index": 2,
+          "input_data": {
+            "m": 1,
+            "n": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "convex_hull",
+      "algorithm_id": "convex_hull",
+      "title": "Convex Hull",
+      "family": "Geometry / Scanline",
+      "family_id": "geometry_sweep",
+      "subfamily_id": "convex_hull",
+      "gate_layer": "family_core",
+      "support_level": "medium_plus",
+      "process_profile": "geometry",
+      "difficulty": "medium",
+      "problem": "In express delivery, you are given a list of delivery points 'points', each represented by a 2D coordinate (x, y). You need to compute the vertices of the smallest convex polygon that encloses all delivery points, and return the coordinate list of these vertices in the output order of the Andrew monotone chain algorithm. The returned vertices should be arranged counterclockwise and not include collinear intermediate points.",
+      "strategy": "Sort the point set by coordinates, maintain upper and lower convex hulls separately, and use orientation/cross product to determine turns.",
+      "input_contract": "Input is a 2D array of points.",
+      "variant_name": "Andrew's Monotone Chain",
+      "time_complexity": "O(n log n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Understand how Andrew's monotone chain achieves convex hull detection through alternating construction of upper and lower hulls.",
+        "Be able to predict the next operation based on the position of the current point in the trace and the lower/upper hull states.",
+        "Identify invariants during convex hull construction, such as turn judgment cross <= 0 indicating a need to backtrack."
+      ],
+      "required_views": [
+        "geometry"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! cross > 0 indicates a left turn, so convexity is maintained, add directly.",
+          "feedback_wrong": "Please observe the sign of the cross value. cross > 0 means left turn, the current three points do not form a right turn, so no need to pop. Check the cross of the current lower[-2], lower[-1], current in the trace.",
+          "id": "task_1",
+          "oracle": "If the student answers add the point because cross((0,0),(1,0),(1,2)) > 0, it is correct; if answer pop, it is wrong.",
+          "prompt": "When the scanline reaches point (1,2), the lower convex hull 'lower' is currently [(0,0), (1,0)]. Based on the cross calculation result, predict whether the next lower state will add this point or pop the last point and then add. Why?",
+          "stage2_affordance": "In Stage2, you can drag the scanline to this point and observe the turn hint animation.",
+          "trace_anchor": [
+            "state.lower",
+            "state.current"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Very good! Turn judgment is the core invariant of convex hull algorithm.",
+          "feedback_wrong": "Recall that when three consecutive points form a right turn or are collinear, the middle point needs to be removed. The turn is determined by the cross value.",
+          "id": "task_2",
+          "oracle": "If the student points out that cross(lower[-2], lower[-1], current) > 0 maintains convexity, or that when cross <= 0, backtrack until the condition is met, it is correct.",
+          "prompt": "During the construction of the lower convex hull, what condition ensures that each added point does not break convexity? Please describe using relevant variables from the state.",
+          "stage2_affordance": "In Stage2, point pairs that do not meet the condition will be highlighted, and the cross calculation process will be shown.",
+          "trace_anchor": [
+            "state.phase",
+            "cross function"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct prediction! This point becomes a new convex hull vertex.",
+          "feedback_wrong": "Please re-run the algorithm or observe the geometric view. Point (1,3) is outside the current convex hull and will change the hull shape.",
+          "id": "task_3",
+          "oracle": "Recalculate the correct expected via the verifier and compare with the student's prediction.",
+          "prompt": "If one point in 'points' changes from (1,1) to (1,3), how would the convex hull vertex list 'expected' change? Please try to modify and predict the new 'expected'.",
+          "stage2_affordance": "In Stage2, you can directly drag a point and see the convex hull update in real time.",
+          "trace_anchor": [
+            "points",
+            "expected"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Accurate explanation! This is the convex hull backtracking mechanism.",
+          "feedback_wrong": "Check the cross calculation: the cross product of vector (1,0)->(2,1) and (2,1)->(2,0). If non-positive, a pop is needed. Please examine the turn animation in the geometric view.",
+          "id": "task_4",
+          "oracle": "If the student explains that because cross((1,0),(2,1),(2,0)) <= 0, so (2,1) is popped, and then rechecked until the condition is satisfied, it is correct.",
+          "prompt": "From step 5 to step 6, the trace shows 'lower' changing from [(0,0),(1,0),(2,1)] to [(0,0),(2,1)]. Please explain why this step occurs and relate it to the cross value of the current point (2,0).",
+          "stage2_affordance": "In Stage2, a slow-motion animation of this step is played, showing the popped point and the turn angle.",
+          "trace_anchor": [
+            "state.lower",
+            "state.current",
+            "trace.step"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              1,
+              2
+            ]
+          ],
+          "index": 0,
+          "input_data": {
+            "points": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                0
+              ],
+              [
+                1,
+                2
+              ]
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "index": 1,
+          "input_data": {
+            "points": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "segment_tree_range_sum",
+      "algorithm_id": "segment_tree_range_sum",
+      "title": "Segment Tree Range Sum",
+      "family": "Range Structure",
+      "family_id": "range_structure",
+      "subfamily_id": "segment_tree",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "range_structure",
+      "difficulty": "medium",
+      "problem": "The logistics center records the weight of parcels (in kilograms) every hour, stored in the array nums. Operators need to query the total weight of parcels from time point query[0] to query[1] (closed interval), then according to the received correction information update=[pos,value] change the weight at the pos-th hour to value, and then re-query the total weight of the same interval. Please use a segment tree to calculate and return the total weight before correction 'before' and after correction 'after'. The input includes the nums array, query interval, and update operation; the output is an object containing 'before' and 'after'.",
+      "strategy": "Segment tree node meta records the covered interval and interval sum; query sums along covering nodes; update path backtracks from leaf to maintain parent nodes.",
+      "input_contract": "Input nums array, query closed interval, and update single-point assignment.",
+      "variant_name": "Segment Tree Range Sum + Point Update",
+      "time_complexity": "O(log n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Understand the representation of interval and sum in segment tree nodes (e.g., l, r, sum in meta)",
+        "Understand the backtracking update process from leaf node to root node during point update",
+        "Be able to determine the divide-and-conquer strategy for range sum based on node coverage"
+      ],
+      "required_views": [
+        "tree",
+        "array"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! Partial overlap requires decomposing to left and right child nodes for separate queries.",
+          "feedback_wrong": "Note that the current node interval [0,1] and the query interval [1,3] only overlap in the right half, so both left and right child nodes need to be considered.",
+          "id": "task_1",
+          "oracle": "Check the order of child node calls triggered by this node in the trace. The answer should include seg_0_0 and seg_1_1 (or corresponding interval representations), fuzzy matching allowed.",
+          "prompt": "When querying the range query=[1,3] on the segment tree, the current visited node seg_0_1 (covering [0,1], partial overlap), which two child nodes should be visited next?",
+          "stage2_affordance": "Highlight the current node in the tree view, and click on child nodes to expand and view.",
+          "trace_anchor": [
+            "state.node",
+            "state.query"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Absolutely correct! The parent node's sum is always the sum of its children's sums.",
+          "feedback_wrong": "Observe the node sum label, think about how the parent node's sum is calculated from its children.",
+          "id": "task_2",
+          "oracle": "The answer should be seg_0_3.sum = seg_0_1.sum + seg_2_3.sum, allowing variable names or specific values, as long as the equation is reflected.",
+          "prompt": "After construction, the sum of node seg_0_3 is 12, its left child seg_0_1 sum=3, right child seg_2_3 sum=9, please write the equation that satisfies the relationship among the three.",
+          "stage2_affordance": "Display the values on tree nodes, and allow students to click nodes to view child relationships.",
+          "trace_anchor": [
+            "state.node.sum",
+            "state.left.sum",
+            "state.right.sum"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct! A new value of 9 will change the interval sum to 15.",
+          "feedback_wrong": "The total before correction is 10. To change the total to 15, the difference is 5, so how much should nums[2] increase? Note the original value 4.",
+          "id": "task_3",
+          "oracle": "Calculation: before=10, update value at index2, after = before - 4 + new_val = 15 => new_val=9. Student answering 9 is correct.",
+          "prompt": "In the original problem, update=[2,6] changes nums[2] from 4 to 6, and the corrected sum for interval [1,3] is 12. If you want the corrected interval sum to become 15, what should the value in update be changed to?",
+          "stage2_affordance": "Provide a slider or input box to modify the value of update, and the array view and tree view will update the sum in real-time.",
+          "trace_anchor": [
+            "input.update.value",
+            "expected.after"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Exactly! The sum of a length-1 interval is the element value at that position.",
+          "feedback_wrong": "Recall the definition of a leaf node: when l == r, the node represents a single element, so what should its sum be?",
+          "id": "task_4",
+          "oracle": "The student should mention that the leaf node interval [3,3] contains only one element, so its sum is nums[3] (value 5), allowing keywords like 'leaf', 'single element', 'directly take value'.",
+          "prompt": "When constructing the leaf node seg_3_3 of the segment tree, why does its sum equal nums[3]? Explain using specific values from the array.",
+          "stage2_affordance": "Highlight nums[3] in the array view, and show its mapping to the leaf node seg_3_3 via a connection line.",
+          "trace_anchor": [
+            "state.node.meta.l",
+            "state.node.meta.r",
+            "input.nums[3]"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": {
+            "after": 12,
+            "before": 10
+          },
+          "index": 0,
+          "input_data": {
+            "nums": [
+              2,
+              1,
+              4,
+              5
+            ],
+            "query": [
+              1,
+              3
+            ],
+            "update": [
+              2,
+              6
+            ]
+          }
+        },
+        {
+          "expected": {
+            "after": 10,
+            "before": 4
+          },
+          "index": 1,
+          "input_data": {
+            "nums": [
+              3,
+              -1,
+              2,
+              7,
+              4
+            ],
+            "query": [
+              0,
+              2
+            ],
+            "update": [
+              1,
+              5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "two_sum",
+      "algorithm_id": "two_sum",
+      "title": "Two Sum",
+      "family": "Hash Table / map",
+      "family_id": "hash_map",
+      "subfamily_id": "two_sum",
+      "gate_layer": "family_core",
+      "support_level": "medium_plus",
+      "process_profile": "hash",
+      "difficulty": "medium",
+      "problem": "In an order fulfillment system, nums[i] represents the quantity of goods that can be directly picked from the i-th slot, and the order still lacks target units of the same goods. Find two different slots such that the sum of their quantities equals exactly target, and return their 0-based indices; if no such slots exist, return an empty array.",
+      "strategy": "Traverse the array, use a hash table to record the indices of values that have appeared, and check for the complement.",
+      "input_contract": "Input the nums array and target.",
+      "variant_name": "Hash Table One-pass",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Master the changing patterns of the seen mapping and the need complement value in one-pass hash table scan",
+        "Able to predict the algorithm's next operation based on the current scan position i and the seen hash table",
+        "Able to understand the efficiency improvement from hash table lookups through repeated experiments"
+      ],
+      "required_views": [
+        "array",
+        "map"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! Continue to the next slot.",
+          "feedback_wrong": "Please observe the current need value, and note whether that value exists in seen.",
+          "id": "task_1",
+          "oracle": "Check if the next op is 'compare', and need = -2, hit=false",
+          "prompt": "Currently scanning to nums[2]=11, seen already contains {2:0, 7:1}, target=9. What operation will the algorithm perform next?",
+          "stage2_affordance": "In Stage2, click the next step button and observe the change in seen",
+          "trace_anchor": [
+            "state.seen",
+            "state.i"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Completely correct, seen only records the values of visited elements.",
+          "feedback_wrong": "Think again: when does the content of seen change? What is the relationship between i and the length of seen?",
+          "id": "task_2",
+          "oracle": "The correct answer is C, compare student choice",
+          "prompt": "During algorithm execution, which of the following always holds? (A) seen length equals i; (B) need is always positive; (C) the keys in seen are the values of elements already visited",
+          "stage2_affordance": "Step through and observe changes in seen and i",
+          "trace_anchor": [
+            "state.seen",
+            "state.i"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct, after the change, no two slots sum to 9.",
+          "feedback_wrong": "Please recalculate the sum of each combination, note that target is 9.",
+          "id": "task_3",
+          "oracle": "2+8=10≠9, 2+11=13, 2+15=17, no solution, expected to return []",
+          "prompt": "Change nums[1] from 7 to 8, target unchanged, can the algorithm still find a solution? Output the new indices or empty.",
+          "stage2_affordance": "Drag the slider to modify slot quantities and observe the result change",
+          "trace_anchor": [
+            "nums",
+            "target"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Explanation on point, that's exactly the accumulation process.",
+          "feedback_wrong": "Review the first step: when need is not in seen, what operation is performed?",
+          "id": "task_4",
+          "oracle": "seen changes from {} to {2:0}, because need=7 is not in seen, so 2 is added, then i becomes 1",
+          "prompt": "When the algorithm goes from i=0 to i=1, what change does seen undergo? Why?",
+          "stage2_affordance": "Go back to the first step, re-observe the addition action in seen",
+          "trace_anchor": [
+            "state.seen",
+            "state.i"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            0,
+            1
+          ],
+          "index": 0,
+          "input_data": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          }
+        },
+        {
+          "expected": [
+            1,
+            2
+          ],
+          "index": 1,
+          "input_data": {
+            "nums": [
+              3,
+              2,
+              4
+            ],
+            "target": 6
+          }
+        },
+        {
+          "expected": [],
+          "index": 2,
+          "input_data": {
+            "nums": [
+              1,
+              2,
+              3
+            ],
+            "target": 7
+          }
+        }
+      ]
+    },
+    {
+      "id": "permutations",
+      "algorithm_id": "permutations",
+      "title": "Permutations",
+      "family": "Backtracking / Recursion",
+      "family_id": "backtracking_recursion",
+      "subfamily_id": "permutations",
+      "gate_layer": "family_core",
+      "support_level": "medium_plus",
+      "process_profile": "backtracking",
+      "difficulty": "medium",
+      "problem": "You are a security expert facing a combination lock composed of a set of non-repeating numbers (input array nums). You need to generate all possible unlocking number sequences (i.e., all permutations of nums) in order to try them systematically. Please output a list of all permutations.",
+      "strategy": "Use path to save the current choices, recursively select unused numbers, and undo the selection upon return.",
+      "input_contract": "Input the nums array.",
+      "variant_name": "Backtracking Search Tree",
+      "time_complexity": "O(n! n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Describe the state changes of the path and used arrays during backtracking search.",
+        "Predict the next choice based on the current path and used arrays.",
+        "Identify invariants in the permutation generation process (such as the relationship between path length and recursion depth)."
+      ],
+      "required_views": [
+        "array",
+        "recursion_tree"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! The next unused number is 2.",
+          "feedback_wrong": "Please check the used array and find the number at the first False position.",
+          "id": "task_1",
+          "oracle": "According to the algorithm order, the next step should select the first unused number 2; compare whether the student's answer is 2.",
+          "prompt": "In the backtracking search, the current path is [1], used is [True, False, False], nums = [1,2,3]. Predict the next number to add to path.",
+          "stage2_affordance": "Click the corresponding node in the recursion tree view to highlight the next step.",
+          "trace_anchor": [
+            "state.path",
+            "state.used"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Yes, the length of path equals the number of used numbers and also equals the recursion depth.",
+          "feedback_wrong": "Compare the number of True values in the used array with the length of path.",
+          "id": "task_2",
+          "oracle": "Accept answers containing 'number of selected numbers' or 'number of True in used' or 'recursion depth'.",
+          "prompt": "During the process of generating all permutations, what does the length of path always equal?",
+          "stage2_affordance": "Highlight the correspondence between path and the used array.",
+          "trace_anchor": [
+            "state.path",
+            "state.depth"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "That's right, used is index-based, so the logic remains unchanged.",
+          "feedback_wrong": "Backtracking relies on index positions rather than values, so it can still be handled directly.",
+          "id": "task_3",
+          "oracle": "The answer mentions that it is index-based and the algorithm can handle any comparable type without change.",
+          "prompt": "If the input array nums becomes ['a', 'b', 'c'] (characters), does the backtracking algorithm that uses used based on indices need to be adjusted?",
+          "stage2_affordance": "Drag to change the array element type and observe the algorithm execution.",
+          "trace_anchor": [
+            "state.nums",
+            "state.used"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Correct, this is the backtracking undo step.",
+          "feedback_wrong": "Check the recursion tree, paying attention to the changes in path and markers after returning from the leaf.",
+          "id": "task_4",
+          "oracle": "Description: Backtracking undoes the selection of number 3, path returns to [1,2], and used releases 3.",
+          "prompt": "After completing the permutation [1,2,3] for nums=[1,2,3], execute path.pop() and used[2]=False. Explain this state transition.",
+          "stage2_affordance": "Click on an edge in the recursion tree to highlight the popped number.",
+          "trace_anchor": [
+            "state.path",
+            "state.used",
+            "state.ans"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              2,
+              1,
+              3
+            ],
+            [
+              2,
+              3,
+              1
+            ],
+            [
+              3,
+              1,
+              2
+            ],
+            [
+              3,
+              2,
+              1
+            ]
+          ],
+          "index": 0,
+          "input_data": {
+            "nums": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "index": 1,
+          "input_data": {
+            "nums": [
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              1
+            ]
+          ],
+          "index": 2,
+          "input_data": {
+            "nums": [
+              1
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              6
+            ]
+          ],
+          "index": 3,
+          "input_data": {
+            "nums": [
+              6
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              -1,
+              2
+            ],
+            [
+              2,
+              -1
+            ]
+          ],
+          "index": 4,
+          "input_data": {
+            "nums": [
+              -1,
+              2
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              1
+            ]
+          ],
+          "index": 5,
+          "input_data": {
+            "nums": [
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              2,
+              3,
+              4
+            ],
+            [
+              2,
+              4,
+              3
+            ],
+            [
+              3,
+              2,
+              4
+            ],
+            [
+              3,
+              4,
+              2
+            ],
+            [
+              4,
+              2,
+              3
+            ],
+            [
+              4,
+              3,
+              2
+            ]
+          ],
+          "index": 6,
+          "input_data": {
+            "nums": [
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              4,
+              5
+            ],
+            [
+              5,
+              4
+            ]
+          ],
+          "index": 7,
+          "input_data": {
+            "nums": [
+              4,
+              5
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              7,
+              8
+            ],
+            [
+              8,
+              7
+            ]
+          ],
+          "index": 8,
+          "input_data": {
+            "nums": [
+              7,
+              8
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              9
+            ]
+          ],
+          "index": 9,
+          "input_data": {
+            "nums": [
+              9
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              0
+            ]
+          ],
+          "index": 10,
+          "input_data": {
+            "nums": [
+              0
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              -2
+            ]
+          ],
+          "index": 11,
+          "input_data": {
+            "nums": [
+              -2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "articulation_bridges",
+      "algorithm_id": "articulation_bridges",
+      "title": "Articulation Points and Bridges",
+      "family": "Advanced Graph",
+      "family_id": "advanced_graph",
+      "subfamily_id": "articulation_bridges",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "advanced_graph",
+      "difficulty": "medium",
+      "problem": "In a city's communication network, each exchange station corresponds to a node, and each fiber connection corresponds to an undirected edge. Given a graph represented by an adjacency list, you need to find all articulation points (critical exchange stations) and bridges (unique fibers), and output an object containing articulation (list of articulation points) and bridges (list of edges as bridges).",
+      "strategy": "DFS maintains dfn/low/parent; low[child] > dfn[u] determines a bridge, low[child] >= dfn[u] determines an articulation point.",
+      "input_contract": "Input undirected graph adjacency list graph.",
+      "variant_name": "Tarjan Articulation Points and Bridges",
+      "time_complexity": "O(V+E)",
+      "space_complexity": "O(V)",
+      "learning_objectives": [
+        "Master the update rules of dfn and low arrays during backtracking",
+        "Predict the next node to be explored by DFS based on current dfn/low states",
+        "Understand the difference between low[child] > dfn[u] and low[child] >= dfn[u]"
+      ],
+      "required_views": [
+        "graph",
+        "map",
+        "dfn_table",
+        "low_table"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! DFS prioritizes visiting unexplored neighbors.",
+          "feedback_wrong": "Observe which neighbor's dfn is not yet defined; that will be the next step.",
+          "id": "task_1",
+          "oracle": "Check if the student's answer is an unvisited neighbor and if the next step in the trace is indeed the line of code that visits that neighbor.",
+          "prompt": "Currently DFS visits node B, with dfn[B]=2, low[B]=2, and neighbors C and D. Which node will be visited next? Why?",
+          "stage2_affordance": "Click a node to view its dfn state and highlight unvisited neighbors.",
+          "trace_anchor": [
+            "state.dfn",
+            "state.graph"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Good, low never exceeds dfn, because it records the earliest ancestor reachable via descendant edges.",
+          "feedback_wrong": "Check the low[u] value at any time; it is always less than or equal to dfn[u].",
+          "id": "task_2",
+          "oracle": "The oracle checks if the answer includes low[u] <= dfn[u] and gives a specific example.",
+          "prompt": "During DFS execution, what invariant relationship exists between dfn[u] and low[u]? Please give an example.",
+          "stage2_affordance": "Double-click the table to highlight the numeric relationship between dfn and low.",
+          "trace_anchor": [
+            "state.low",
+            "state.dfn"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct! The new edge gives E another path, so it is no longer a bridge.",
+          "feedback_wrong": "Try adding the edge in the graph and observe how low[E] changes.",
+          "id": "task_3",
+          "oracle": "After adding the edge, re-run the verifier and check whether bridges still contain [D,E].",
+          "prompt": "If you add an edge (C,E) to the original graph, will the original bridge (D,E) still be a bridge? Modify and observe.",
+          "stage2_affordance": "Drag to add a new edge, and the view will update the bridge list in real time.",
+          "trace_anchor": [
+            "graph",
+            "state.bridges"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Exactly! Child node A's low[1] is 1, so low[B] takes the minimum value.",
+          "feedback_wrong": "Check which child node backtracked to B in the previous step and compare their low values.",
+          "id": "task_4",
+          "oracle": "Checks if the student points out that due to a smaller low value from child node A (or some specific node), the backtracking update occurs.",
+          "prompt": "When backtracking to node B, low[B] is updated from 2 to 1. Which child node caused this update? Explain the reason.",
+          "stage2_affordance": "Highlight the low-value propagation path during backtracking steps.",
+          "trace_anchor": [
+            "state.trace",
+            "state.low"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": {
+            "articulation": [
+              "B",
+              "D"
+            ],
+            "bridges": [
+              [
+                "D",
+                "E"
+              ],
+              [
+                "A",
+                "B"
+              ]
+            ]
+          },
+          "index": 0,
+          "input_data": {
+            "graph": {
+              "A": [
+                "B"
+              ],
+              "B": [
+                "A",
+                "C",
+                "D"
+              ],
+              "C": [
+                "B",
+                "D"
+              ],
+              "D": [
+                "B",
+                "C",
+                "E"
+              ],
+              "E": [
+                "D"
+              ]
+            }
+          }
+        },
+        {
+          "expected": {
+            "articulation": [
+              "2"
+            ],
+            "bridges": [
+              [
+                "2",
+                "3"
+              ],
+              [
+                "1",
+                "2"
+              ]
+            ]
+          },
+          "index": 1,
+          "input_data": {
+            "graph": {
+              "1": [
+                "2"
+              ],
+              "2": [
+                "1",
+                "3"
+              ],
+              "3": [
+                "2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "kth_largest",
+      "algorithm_id": "kth_largest",
+      "title": "Kth Largest Element in an Array",
+      "family": "Heap / TopK / Huffman",
+      "family_id": "heap_topk_huffman",
+      "subfamily_id": "topk_min_heap",
+      "gate_layer": "family_core",
+      "support_level": "medium_plus",
+      "process_profile": "heap",
+      "difficulty": "medium",
+      "problem": "A recommendation system needs to find the top K highly rated items from a stream of user ratings. The rating data is stored in an array nums, and the integer k represents the desired K-th highest rating. Please implement a streaming algorithm that, while processing ratings from nums one by one, can query the current K-th highest rating at any time, and returns the final K-th highest rating after all data is processed.",
+      "strategy": "Maintain a min-heap of capacity k, where the top of the heap is the current k-th largest.",
+      "input_contract": "Input nums array and k.",
+      "variant_name": "Min-Heap TopK",
+      "time_complexity": "O(n log k)",
+      "space_complexity": "O(k)",
+      "learning_objectives": [
+        "Understand how a min-heap maintains state in TopK problems, explain why the heap top is the K-th largest element.",
+        "Be able to predict the heap change after adding the next element based on the current heap state.",
+        "Master the impact of push and pop operations on the candidate set size and heap top."
+      ],
+      "required_views": [
+        "array",
+        "heap"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! After push and pop, the heap maintains capacity k, and the heap top becomes the k-th largest.",
+          "feedback_wrong": "Note that when the heap is full, pushing a new element may trigger a pop. Observe the heap size after push.",
+          "id": "task_1",
+          "oracle": "Based on the next state in the trace, check if the heap is [5, 6] and the heap top is 5.",
+          "prompt": "Current heap contents are [4, 5], k=2, next element is 6. After pushing 6, what will the heap become? What will be the heap top?",
+          "stage2_affordance": "Drag numbers into the heap to observe the automatic maintenance process.",
+          "trace_anchor": [
+            "state.heap",
+            "state.i"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Correct! This is a key invariant of the min-heap algorithm.",
+          "feedback_wrong": "Check the length of the heap list in each step's state, compared to k.",
+          "id": "task_2",
+          "oracle": "Expected answer: The heap size never exceeds k, and equals min(k, number of processed elements).",
+          "prompt": "What invariant property does the heap size have across all steps?",
+          "stage2_affordance": "You can adjust the k value to observe changes in heap size.",
+          "trace_anchor": [
+            "state.heap",
+            "state.k"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct, you understand how changing element values affects TopK selection.",
+          "feedback_wrong": "Re-examine the algorithm logic: only the larger k elements are retained.",
+          "id": "task_3",
+          "oracle": "Check if the correct final answer is given based on input modification (verify with verifier).",
+          "prompt": "If we change an element value in nums to a negative number, what effect does it have on the final answer? Give an example and predict the result.",
+          "stage2_affordance": "Directly edit array elements and observe the heap changes.",
+          "trace_anchor": [
+            "nums",
+            "state.expected"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Correct! This ensures the heap always contains the largest k elements.",
+          "feedback_wrong": "Think about the conditions for heap push and pop: if len(heap) > k: heappop, and comparison between the new element and the heap top.",
+          "id": "task_4",
+          "oracle": "Expected answer: Because the heap is full and the new element is not larger than the heap top, after push it immediately pops, the new element is discarded, and the heap remains unchanged.",
+          "prompt": "When the heap size equals k and the new element is smaller than the heap top, what happens? Why?",
+          "stage2_affordance": "Manually execute push and pop, observing the steps of heap changes.",
+          "trace_anchor": [
+            "state.heap",
+            "state.top"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 5,
+          "index": 0,
+          "input_data": {
+            "k": 2,
+            "nums": [
+              3,
+              2,
+              1,
+              5,
+              6,
+              4
+            ]
+          }
+        },
+        {
+          "expected": 4,
+          "index": 1,
+          "input_data": {
+            "k": 4,
+            "nums": [
+              3,
+              2,
+              3,
+              1,
+              2,
+              4,
+              5,
+              5,
+              6
+            ]
+          }
+        },
+        {
+          "expected": 1,
+          "index": 2,
+          "input_data": {
+            "k": 1,
+            "nums": [
+              1
+            ]
+          }
+        },
+        {
+          "expected": 0,
+          "index": 3,
+          "input_data": {
+            "k": 2,
+            "nums": [
+              -1,
+              -3,
+              2,
+              0
+            ]
+          }
+        },
+        {
+          "expected": 7,
+          "index": 4,
+          "input_data": {
+            "k": 2,
+            "nums": [
+              7,
+              7,
+              7
+            ]
+          }
+        },
+        {
+          "expected": 7,
+          "index": 5,
+          "input_data": {
+            "k": 3,
+            "nums": [
+              9,
+              1,
+              8,
+              2,
+              7,
+              3
+            ]
+          }
+        },
+        {
+          "expected": 4,
+          "index": 6,
+          "input_data": {
+            "k": 4,
+            "nums": [
+              10,
+              4,
+              6,
+              8
+            ]
+          }
+        },
+        {
+          "expected": 11,
+          "index": 7,
+          "input_data": {
+            "k": 1,
+            "nums": [
+              5,
+              -2,
+              11,
+              11,
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "kmp",
+      "algorithm_id": "kmp",
+      "title": "KMP String Matching",
+      "family": "Advanced String Algorithm",
+      "family_id": "string_advanced",
+      "subfamily_id": "kmp",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "string",
+      "difficulty": "medium",
+      "problem": "A genetic researcher is aligning a long DNA strand text and needs to quickly find the first occurrence position of the target gene probe pattern. Return -1 if not found, or 0 if pattern is an empty string. You can build a prefix table by analyzing the repetitive structure of the pattern itself, achieving smart jumps during matching and avoiding character-by-character matching from the beginning.",
+      "strategy": "Use the KMP prefix table; the trace only records key steps such as initialization, one prefix table update, one mismatch backtracking, and one successful match, without unrolling the entire loop character by character.",
+      "input_contract": "Input text and pattern.",
+      "variant_name": "Prefix Table Matching",
+      "time_complexity": "O(n+m)",
+      "space_complexity": "O(m)",
+      "learning_objectives": [
+        "Master the construction process of the prefix table pi in the KMP algorithm and its role in backtracking the j pointer upon mismatch",
+        "Understand the pointer state changes of text and pattern during matching, and be able to predict the next operation based on the current state",
+        "Be able to identify invariants in the matching process, such as the length of the matched prefix always equal to j"
+      ],
+      "required_views": [
+        "string"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! j backtracks to 0, then the next comparison is made.",
+          "feedback_wrong": "Observe the value of pi[j-1]; upon mismatch, j should backtrack to the position of pi[j-1].",
+          "id": "task_1",
+          "oracle": "According to the move event of this step in the trace, check whether j becomes pi[1]=0, and in the next frame i remains 3 and j is 0.",
+          "prompt": "When text=\"ababc\", pattern=\"abc\", currently i=3, j=2 and pattern[2]='c' mismatches with text[3]='b', and pi[1]=0, what is the next state? (Hint: how will the j pointer change?)",
+          "stage2_affordance": "Drag the j pointer slider to visualize the backtracking process.",
+          "trace_anchor": [
+            "state.text",
+            "state.pattern",
+            "state.i",
+            "state.j",
+            "state.pi"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Correct! This is the invariant of the partial match.",
+          "feedback_wrong": "Check whether the substring in text from i-j to i-1 equals the first j characters of pattern.",
+          "id": "task_2",
+          "oracle": "The answer should be B, which can be verified by checking whether the slice of text in the current state matches the first j characters of pattern.",
+          "prompt": "At any moment in the KMP matching process, what invariant relationship exists between the matched prefix length j and the index i? Please select: A) i always equals j; B) text[i-j...i-1] is equal to pattern[0...j-1]; C) pattern[0...i] equals text.",
+          "stage2_affordance": "Highlight the comparison between the substring text[i-j:i] and pattern[0:j].",
+          "trace_anchor": [
+            "state.i",
+            "state.j",
+            "state.text"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Good! You modified the pattern so that the prefix and suffix overlap.",
+          "feedback_wrong": "Think about the condition for the pattern's own prefix and suffix to be equal.",
+          "id": "task_3",
+          "oracle": "The student should change pattern to \"aba\" or any string such that pattern[0]==pattern[2], and need to modify input_data and regenerate the trace, checking whether pi[2] is 1.",
+          "prompt": "Modify pattern=\"aba\" so that the value of its prefix table pi[2] becomes 1 instead of 0, and observe the changes in the matching process. How would you modify pattern?",
+          "stage2_affordance": "Provide a text box to directly modify pattern and update the prefix table and matching animation in real time.",
+          "trace_anchor": [
+            "input.pattern",
+            "state.pi"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Explanation correct! This indicates that the longest equal prefix and suffix of pattern[0...4] have length 3.",
+          "feedback_wrong": "Consider what j represents, and the extension of the pattern prefix after matching.",
+          "id": "task_4",
+          "oracle": "Check whether the student's explanation mentions the increase in the length of the longest equal prefix and suffix, and that j records the new matching length. This can be compared with the value of pi[4] in the trace.",
+          "prompt": "When building the prefix table, when i=4, j=2, pattern[4]='a' matches pattern[2]='a', why does j become 3? Please explain the meaning behind this state transition.",
+          "stage2_affordance": "Click the step button to observe the changes of i and j and the update of the pi array frame by frame.",
+          "trace_anchor": [
+            "state.i",
+            "state.j",
+            "state.pattern",
+            "state.pi"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 2,
+          "index": 0,
+          "input_data": {
+            "pattern": "abc",
+            "text": "ababc"
+          }
+        },
+        {
+          "expected": -1,
+          "index": 1,
+          "input_data": {
+            "pattern": "bba",
+            "text": "aaaaa"
+          }
+        },
+        {
+          "expected": 0,
+          "index": 2,
+          "input_data": {
+            "pattern": "",
+            "text": "abc"
+          }
+        }
+      ]
+    },
+    {
+      "id": "provinces",
+      "algorithm_id": "provinces",
+      "title": "Number of Provinces",
+      "family": "Union Find",
+      "family_id": "union_find",
+      "subfamily_id": "connected_components",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "union_find",
+      "difficulty": "medium",
+      "problem": "In a large enterprise network, the physical connections between computers are represented by a symmetric matrix isConnected, where isConnected[i][j] = 1 indicates that computers i and j are directly connected, and 0 indicates they are not; diagonal elements are all 1 (each computer is connected to itself). If two computers can communicate through a series of direct connections, they belong to the same network area (called a \"province\"). Please calculate the total number of distinct provinces in the entire network.",
+      "strategy": "Perform union for connected cities, and finally count the number of root nodes.",
+      "input_contract": "Input the isConnected matrix.",
+      "variant_name": "Union Find Merge",
+      "time_complexity": "O(n^2 α(n))",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Be able to track the state changes of the parent array during the union-find merge process.",
+        "Identify the optimization effect of path compression on the find operation in union-find.",
+        "Predict the decreasing trend of the number of provinces by observing merge operations."
+      ],
+      "required_views": [
+        "matrix",
+        "union_find"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! You accurately predicted the effect of the merge operation. Continue observing other pairs.",
+          "feedback_wrong": "Think again: If the roots of two sets are different, merging usually makes the parent pointer of one root point to the other root. Hint: Check the values of find(0) and find(1) in the current state.",
+          "id": "task_1",
+          "oracle": "Check the student's predicted parent array; parent[0] should become 1 (or parent[1] become 0, depending on implementation) and other elements remain unchanged. Compare with the parent dictionary in the next step of the trace.",
+          "prompt": "Current state: processing i=0, j=1, isConnected[0][1]=1, and find(0)=0, find(1)=1. Please predict how the parent array will change after executing union.",
+          "stage2_affordance": "In Stage2, drag city nodes to manually merge and verify the prediction.",
+          "trace_anchor": [
+            "state.union_find.parent",
+            "state.i",
+            "state.j"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "That's right, this is the fundamental invariant of union-find.",
+          "feedback_wrong": "No, observe again: parent does not form cycles; you can eventually reach a self-referencing node.",
+          "id": "task_2",
+          "oracle": "The correct option should be: \"For each i, after several find(i) operations, one can always reach a root node where parent[root]==root\". Indirectly verify this property using verifier results.",
+          "prompt": "Throughout the algorithm, the parent array maintains a key invariant. Please select the correct description from the following:",
+          "stage2_affordance": "Click on a node to trace to the root, visualizing the invariant.",
+          "trace_anchor": [
+            "state.union_find.parent"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct modification, you understood the effect of connectivity on the number of provinces.",
+          "feedback_wrong": "Note: a new connection may merge two originally separate provinces; you can verify by simulating union-find.",
+          "id": "task_3",
+          "oracle": "Use verifier to calculate the expected number of provinces for the new matrix and compare with the student's answer. If the modification creates a connection, the number of provinces should decrease by 1.",
+          "prompt": "In the given isConnected matrix, change a 0 to 1 (but do not form multiple connected regions), and predict how the number of provinces will change. Provide the modified matrix and expected answer.",
+          "stage2_affordance": "In Stage2, click an empty cell to add a connection and observe the province change.",
+          "trace_anchor": [
+            "state.isConnected"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Your explanation captures the core action of union-find.",
+          "feedback_wrong": "Review the code line's condition: union is performed when isConnected[i][j]==1 and find(i)!=find(j).",
+          "id": "task_4",
+          "oracle": "According to the trace values of i and j and isConnected[i][j]==1, union is performed when they are not currently in the same set. The explanation should mention set merging and root node changes. Evaluation can use keyword matching.",
+          "prompt": "During tracing, step step=3 executed a union operation. Please explain why union is needed at this time and how it affects the province structure.",
+          "stage2_affordance": "In Stage2, drag the timeline to that step to highlight the two merged nodes.",
+          "trace_anchor": [
+            "state.i",
+            "state.j",
+            "state.union_find.parent"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 2,
+          "index": 0,
+          "input_data": {
+            "isConnected": [
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                1,
+                1,
+                0
+              ],
+              [
+                0,
+                0,
+                1
+              ]
+            ]
+          }
+        },
+        {
+          "expected": 3,
+          "index": 1,
+          "input_data": {
+            "isConnected": [
+              [
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                0,
+                0,
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "insertion_sort",
+      "algorithm_id": "insertion_sort",
+      "title": "Insertion Sort",
+      "family": "Sorting",
+      "family_id": "sorting",
+      "subfamily_id": "insertion_sort",
+      "gate_layer": "family_core",
+      "support_level": "medium_plus",
+      "process_profile": "sorting",
+      "difficulty": "medium",
+      "problem": "In a music player application, you are given a list of song favorability scores nums. Use the insertion sort method to sort them in ascending order and return the sorted list, so that songs can be played from lowest to highest score.",
+      "strategy": "Gradually maintain a sorted prefix and insert the current element into its correct position.",
+      "input_contract": "Input the nums array.",
+      "variant_name": "Insertion Sort",
+      "time_complexity": "O(n^2)",
+      "space_complexity": "O(1)",
+      "learning_objectives": [
+        "Understand the maintenance of the sorted prefix nums[0..i-1] in insertion sort.",
+        "Master how the key variable temporarily holds the element to be inserted and is compared with elements on the left.",
+        "Predict the next insertion position based on changes in state.nums in the trace."
+      ],
+      "required_views": [
+        "array"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct, you predicted the state after the element is shifted to the right.",
+          "feedback_wrong": "Observe the comparison between key=3 and nums[1]=5. Since 5>3, shift 5 to the right and update nums.",
+          "id": "task_1",
+          "oracle": "Obtain state.nums from the next step in the trace and check whether the array in the answer matches it (should be [2,5,5,1]).",
+          "prompt": "Currently nums = [2,5,3,1], i=2, key=3, j=1. What is the state of nums after performing one comparison and shift?",
+          "stage2_affordance": "Drag the currently highlighted card to the correct position to simulate insertion.",
+          "trace_anchor": [
+            "state.nums",
+            "state.key",
+            "state.i",
+            "state.j"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Exactly, the sorted prefix is the core invariant of the algorithm.",
+          "feedback_wrong": "Observe the portion before i in each step of the trace. Is it already sorted in ascending order?",
+          "id": "task_2",
+          "oracle": "The answer must clearly state that the prefix nums[0..i-1] is sorted at the beginning of each round.",
+          "prompt": "In insertion sort, which part of the array always remains sorted? Please explain using indices from the state.",
+          "stage2_affordance": "Highlight the sorted prefix region.",
+          "trace_anchor": [
+            "state.i",
+            "state.nums"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "This indeed increases the number of shifts during insertion.",
+          "feedback_wrong": "Consider modifying the value of the sorted prefix or the element to be inserted to widen the gap between them.",
+          "id": "task_3",
+          "oracle": "Change the first element to a larger value (e.g., 9), or change the second element to a smaller value (e.g., -5), so that key requires more shifts when compared to the left. Verify whether the modified array's first insertion has more moves than the original input.",
+          "prompt": "Given the original input nums = [4,2,7,1], if you want to increase the number of shifts during the first insertion, how would you modify a single element?",
+          "stage2_affordance": "Directly modify element values in the array editing box.",
+          "trace_anchor": [
+            "nums"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Exactly, elements larger than key are shifted right to make space for insertion.",
+          "feedback_wrong": "Pay attention to the relationship between the value of key and the element on the left being compared.",
+          "id": "task_4",
+          "oracle": "Check whether the answer mentions that key=4, j=1, nums[j]=7>4, so 7 is shifted right to position 2.",
+          "prompt": "In the trace, one step changes nums from [3,7,4,2] to [3,7,7,2]. What happened in this step?",
+          "stage2_affordance": "Play the animation step by step to show the comparison and shifting process.",
+          "trace_anchor": [
+            "state.nums",
+            "state.key",
+            "state.j"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            1,
+            2,
+            3,
+            5
+          ],
+          "index": 0,
+          "input_data": {
+            "nums": [
+              5,
+              2,
+              3,
+              1
+            ]
+          }
+        },
+        {
+          "expected": [
+            1,
+            2,
+            3
+          ],
+          "index": 1,
+          "input_data": {
+            "nums": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        {
+          "expected": [
+            -1,
+            0,
+            3,
+            3
+          ],
+          "index": 2,
+          "input_data": {
+            "nums": [
+              3,
+              -1,
+              0,
+              3
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "fast_power_mod",
+      "algorithm_id": "fast_power_mod",
+      "title": "Fast Power Modulo",
+      "family": "Mathematics and Bitwise Operations",
+      "family_id": "math_bit",
+      "subfamily_id": "fast_power",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "math_bit",
+      "difficulty": "medium",
+      "problem": "In a security verification scenario, given base base, exponent exponent, and modulus mod, you need to compute the result of base raised to the exponent modulo mod. Implement the fast power algorithm and return the final modulus value.",
+      "strategy": "Break the exponent into binary, maintain a powers squaring table, and multiply into the answer whenever a 1-bit is encountered.",
+      "input_contract": "Input base, exponent, mod.",
+      "variant_name": "Binary Fast Power",
+      "time_complexity": "O(log exponent)",
+      "space_complexity": "O(log exponent)",
+      "learning_objectives": [
+        "Explain how each element of the powers array is obtained by squaring, and relate to binary bit weights",
+        "Predict whether answer should be updated based on the current binary bit of exponent",
+        "Identify and maintain the loop invariant answer * cur^e ≡ base^exponent (mod mod)"
+      ],
+      "required_views": [
+        "array",
+        "bits_scan",
+        "powers_table"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! You accurately applied the multiplication update rule.",
+          "feedback_wrong": "Please check: when the binary bit is 1, answer should be multiplied by cur and then taken modulo.",
+          "id": "task_1",
+          "oracle": "According to the algorithm, when bit is 1, answer should be multiplied by cur and then taken modulo, so answer = (1 * 3) % 13 = 3.",
+          "prompt": "Given base=3, exponent=5, mod=13, currently processing the 1st bit bit=1, answer=1, cur=3. What will answer become in the next step?",
+          "stage2_affordance": "Click the next step button to observe the changes in answer and cur.",
+          "trace_anchor": [
+            "state.answer",
+            "state.cur"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Very good! This invariant guarantees the correctness of the algorithm.",
+          "feedback_wrong": "Think: at each step, answer multiplied by cur raised to the power of e (the current remaining exponent) should equal the initial base^exponent mod mod.",
+          "id": "task_2",
+          "oracle": "The expected answer should include answer * cur^e ≡ 3^5 (mod 13) or more generally answer * cur^e ≡ base^exponent (mod mod).",
+          "prompt": "In the fast power loop with base=3, exponent=5, mod=13, before the loop starts answer=1, cur=3, e=5, please write the invariant maintained by the loop using these variables.",
+          "stage2_affordance": "Insert an assert statement in the code to verify the invariant.",
+          "trace_anchor": [
+            "state.answer",
+            "state.cur",
+            "state.exponent"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Right, when the modulus is small, the result only depends on the parity of base.",
+          "feedback_wrong": "Consider: any integer modulo 2 can only be 0 or 1, determined by base.",
+          "id": "task_3",
+          "oracle": "The expected answer should be 0, because any positive integer power of 2 is even, and modulo 2 yields 0.",
+          "prompt": "If the exponent is very large (e.g., 1000000) but mod is very small (e.g., 2), what will the result be? Please modify base=2, exponent=1000000, mod=2, and predict the final answer.",
+          "stage2_affordance": "Modify the input parameters at the bottom, re-run and observe the trace.",
+          "trace_anchor": [
+            "state.exponent",
+            "state.mod"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Clear explanation, this demonstrates the idea of exponentiation by squaring.",
+          "feedback_wrong": "Hint: when the binary representation of the exponent shifts left by one bit, the weight doubles, so cur needs to be squared to match the new bit weight.",
+          "id": "task_4",
+          "oracle": "Expected explanation: cur_i represents base^(2^i) mod mod; squaring each time gives base^(2^{i+1}) mod mod, so cur is updated to (cur * cur) % mod.",
+          "prompt": "During the execution with base=3, exponent=5, mod=13, cur changes from 3 (i=0) to 9 (i=1) and then to 3 (i=2). Please explain why cur changes in this way.",
+          "stage2_affordance": "Highlight the update process of the powers list.",
+          "trace_anchor": [
+            "state.cur",
+            "state.powers"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 9,
+          "index": 0,
+          "input_data": {
+            "base": 3,
+            "exponent": 5,
+            "mod": 13
+          }
+        },
+        {
+          "expected": 24,
+          "index": 1,
+          "input_data": {
+            "base": 2,
+            "exponent": 10,
+            "mod": 1000
+          }
+        },
+        {
+          "expected": 1,
+          "index": 2,
+          "input_data": {
+            "base": 7,
+            "exponent": 0,
+            "mod": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "two_pointer_pair_sum",
+      "algorithm_id": "two_pointer_pair_sum",
+      "title": "Two Sum in Sorted Array",
+      "family": "Array Pointer / Window / Prefix",
+      "family_id": "array_pointer",
+      "subfamily_id": "two_pointer",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "array_pointer",
+      "difficulty": "medium",
+      "problem": "In an e-commerce promotion, as a product selection assistant, you need to find two items from a product list nums sorted in ascending order of price, such that their total price exactly equals the target voucher amount held by the user. You need to return the indices of these two items (0-indexed) as a list; if no such combination exists, return an empty list.",
+      "strategy": "Move the left or right pointer based on the relationship between the current sum and target.",
+      "input_contract": "Input ascending nums array and target.",
+      "variant_name": "Left-Right Two Pointer",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(1)",
+      "learning_objectives": [
+        "Understand the state transition of the two-pointer method in an ascending price list, where the movement direction is determined by comparing the current sum with the target.",
+        "Identify the invariant that the left pointer increases and the right pointer decreases, and the shrinking nature of the search interval.",
+        "Be able to predict the next pointer movement based on any step's nums[left], nums[right], and sum."
+      ],
+      "required_views": [
+        "array",
+        "sum_compare"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! The relationship between the sum and the target determines the pointer movement direction.",
+          "feedback_wrong": "Observe the current sum and target, think about which pointer to move to make the sum closer to the target.",
+          "id": "task_1",
+          "oracle": "Determine based on the relationship between sum and target: if sum < target, move the left pointer left; otherwise, move the right pointer right; check the change of left or right in the next step of the trace.",
+          "prompt": "Current left pointer index {state.left}, price {nums[state.left]}, right pointer index {state.right}, price {nums[state.right]}, sum {state.sum}, target={target}. Which pointer should be moved next?",
+          "stage2_affordance": "Provide left and right movement buttons; clicking them updates the pointer positions and highlights the items visually, showing the new sum in real time.",
+          "trace_anchor": [
+            "state.left",
+            "state.right",
+            "state.sum",
+            "target"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Correct! The pointers always maintain the constraint that left is not greater than right.",
+          "feedback_wrong": "Review the loop condition while left < right, and consider the situation at exit.",
+          "id": "task_2",
+          "oracle": "The correct answer is A; the loop condition ensures left < right, but when left == right the loop ends, at that moment left == right, so left <= right always holds.",
+          "prompt": "During the execution of the two-pointer algorithm, which of the following conditions always holds? A. left <= right  B. nums[left]+nums[right]==target  C. left+right==len(nums)-1  D. There is at least one pair of solution in the array",
+          "stage2_affordance": "Display a set of four radio buttons; after the student selects, immediately show correct/incorrect and highlight the correct option.",
+          "trace_anchor": [
+            "state.left",
+            "state.right",
+            "state.nums"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Successfully constructed a scenario with no solution!",
+          "feedback_wrong": "Note that after modification, the sum of the smallest and largest prices should not exactly equal target, while maintaining ascending order.",
+          "id": "task_3",
+          "oracle": "Use the verifier to check the new input: if an empty list is returned, success; otherwise, adjust again until no combination sum equals target.",
+          "prompt": "Modify a price in nums (keeping it ascending) so that when target={target}, the algorithm returns an empty list, i.e., no solution. You can add a number greater than target at the end or adjust existing values.",
+          "stage2_affordance": "Provide an editable list of number input boxes, calling the verifier in real time to display whether a solution exists.",
+          "trace_anchor": [
+            "target",
+            "nums"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Explanation is reasonable, highlighting the ordered nature and reachability.",
+          "feedback_wrong": "Consider that under ascending order, the right pointer points to the maximum value in the current interval; how would the sum change if it is moved?",
+          "id": "task_4",
+          "oracle": "Sample answer: To increase the sum, only a larger left element can be swapped in; the right pointer already points to the maximum element, so moving it right would only make the sum smaller. Keywords may include 'ascending', 'right pointer maximum', 'sum becomes smaller'.",
+          "prompt": "At step {t}, sum={state.sum} is less than target, and the algorithm chooses to move the left pointer left. Explain in one short sentence why moving the right pointer right is wrong.",
+          "stage2_affordance": "Provide a text input box and a precomputed slider: dragging the slider simulates moving the pointer, showing the trend of the new sum value.",
+          "trace_anchor": [
+            "state.sum",
+            "state.target",
+            "state.left",
+            "state.right"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            1,
+            3
+          ],
+          "index": 0,
+          "input_data": {
+            "nums": [
+              1,
+              2,
+              4,
+              6,
+              10
+            ],
+            "target": 8
+          }
+        },
+        {
+          "expected": [],
+          "index": 1,
+          "input_data": {
+            "nums": [
+              1,
+              3,
+              5,
+              8
+            ],
+            "target": 20
+          }
+        },
+        {
+          "expected": [
+            0,
+            1
+          ],
+          "index": 2,
+          "input_data": {
+            "nums": [
+              2,
+              7
+            ],
+            "target": 9
+          }
+        }
+      ]
+    },
+    {
+      "id": "dijkstra_shortest_path",
+      "algorithm_id": "dijkstra_shortest_path",
+      "title": "Dijkstra Shortest Path",
+      "family": "Shortest Path / MST",
+      "family_id": "shortest_path_mst",
+      "subfamily_id": "dijkstra",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "shortest_path_mst",
+      "difficulty": "medium",
+      "problem": "The city emergency dispatch center maintains a non-negative time-cost directed road network weighted_graph, where each node represents an intersection and each edge weight represents the travel time from one intersection to another. Given a rescue vehicle's starting intersection start, return the shortest travel time to all reachable intersections.",
+      "strategy": "Use a min-heap to pop nodes based on current candidate distances, and relax neighbors using edges with non-negative weights.",
+      "input_contract": "Input weighted_graph adjacency list and start.",
+      "variant_name": "Heap-optimized Dijkstra",
+      "time_complexity": "O((V+E) log V)",
+      "space_complexity": "O(V)",
+      "learning_objectives": [
+        "Track changes of nodes and distances in the heap, and understand how relaxation gradually approximates the shortest path.",
+        "Predict the next node to be popped based on the current weighted graph state.",
+        "Verify the monotonicity of distances and the heap invariant during algorithm execution."
+      ],
+      "required_views": [
+        "graph",
+        "heap",
+        "map"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! Because B has the smallest current distance, the algorithm will process it first.",
+          "feedback_wrong": "Observe the heap top element and current known distances of each node; note that the popped node is the one with the smallest distance.",
+          "id": "task_1",
+          "oracle": "Select the node with the smallest distance from the heap; it should be B (distance 1).",
+          "prompt": "The current heap is [(1, 'B'), (4, 'C')], distance records: A:0, B:1, C:4. Which node will be popped from the heap next?",
+          "stage2_affordance": "Before stepping, ask the student to click a node in the graph to predict the pop target.",
+          "trace_anchor": [
+            "state.heap",
+            "state.dist"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "That's right! The distance of a popped node is final and will not be changed by later relaxations.",
+          "feedback_wrong": "Focus on the essential meaning of the heap pop operation: when popped, the node's distance is the global optimum.",
+          "id": "task_2",
+          "oracle": "The correct choice is B. Popped nodes have their shortest distance determined and will not be updated; A and C are not always true.",
+          "prompt": "During execution, which of the following statements is an invariant that always holds? A) The heap size equals the number of unprocessed nodes B) The shortest distance of a popped node is never updated again C) The current distance of every node is the final shortest path",
+          "stage2_affordance": "Click an invariant option in the status window; the system highlights the verification result.",
+          "trace_anchor": [
+            "state.dist",
+            "state.heap"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct! After modifying the input, the path must be recomputed.",
+          "feedback_wrong": "Check the edge weights in the new graph and recompute using the reference solver.",
+          "id": "task_3",
+          "oracle": "According to the modified graph, the only path from B to C is B->A->C, with total weight 2+2=4, so the result is 4.",
+          "prompt": "If start is changed to 'B', and the weight of edge (A, C) is changed from 5 to 2, predict the shortest time from B to C.",
+          "stage2_affordance": "Provide an input modification panel where you can directly edit start and edge weights, then re-run.",
+          "trace_anchor": [
+            "start",
+            "weighted_graph"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Reasonable explanation. This is the core step of Dijkstra's algorithm that gradually approximates the optimal solution through relaxation.",
+          "feedback_wrong": "Compare the old and new distance values, and review the triggering condition of the relaxation operation.",
+          "id": "task_4",
+          "oracle": "Because the new path to C via B is shorter than C's current known distance, the relaxation operation replaces it with a smaller value.",
+          "prompt": "Step 3: Pop node B (distance 2), find B->C weight 1, candidate distance 3, while current C distance is 5, so update C distance to 3. Explain why this distance update was triggered.",
+          "stage2_affordance": "Click an edge in the graph to display detailed information about the popped node and its neighbor, and highlight the weight comparison.",
+          "trace_anchor": [
+            "state.current",
+            "state.neighbor",
+            "state.weight"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": {
+            "A": 0,
+            "B": 2,
+            "C": 3
+          },
+          "index": 0,
+          "input_data": {
+            "start": "A",
+            "weighted_graph": {
+              "A": [
+                [
+                  "B",
+                  2
+                ],
+                [
+                  "C",
+                  5
+                ]
+              ],
+              "B": [
+                [
+                  "C",
+                  1
+                ]
+              ],
+              "C": []
+            }
+          }
+        },
+        {
+          "expected": {
+            "A": 1,
+            "B": 3,
+            "S": 0,
+            "T": 4
+          },
+          "index": 1,
+          "input_data": {
+            "start": "S",
+            "weighted_graph": {
+              "A": [
+                [
+                  "B",
+                  2
+                ],
+                [
+                  "T",
+                  6
+                ]
+              ],
+              "B": [
+                [
+                  "T",
+                  1
+                ]
+              ],
+              "S": [
+                [
+                  "A",
+                  1
+                ],
+                [
+                  "B",
+                  4
+                ]
+              ],
+              "T": []
+            }
+          }
+        },
+        {
+          "expected": {
+            "1": 0,
+            "2": 3
+          },
+          "index": 2,
+          "input_data": {
+            "start": "1",
+            "weighted_graph": {
+              "1": [
+                [
+                  "2",
+                  3
+                ]
+              ],
+              "2": [],
+              "3": []
+            }
+          }
+        },
+        {
+          "expected": {
+            "X": 0
+          },
+          "index": 3,
+          "input_data": {
+            "start": "X",
+            "weighted_graph": {
+              "X": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "daily_temperatures",
+      "algorithm_id": "daily_temperatures",
+      "title": "Daily Temperatures",
+      "family": "Stack / Queue / Monotonic Stack",
+      "family_id": "monotonic_stack",
+      "subfamily_id": "daily_temperatures",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "monotonic_stack",
+      "difficulty": "medium",
+      "problem": "An agricultural greenhouse has a series of future daily temperature forecasts `temperatures`. The administrator wants to know after each day how many days they must wait until a higher temperature occurs, in order to schedule automatic ventilation and shading strategies. If there is no future day with a higher temperature, the value for that position is 0.",
+      "strategy": "Maintain a monotonic decreasing stack of indices storing temperatures. When encountering a higher temperature, pop the stack and write the answer.",
+      "input_contract": "Input the `temperatures` array.",
+      "variant_name": "Monotonic Stack",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Understand that the temperature values corresponding to the indices stored in the monotonic stack remain strictly decreasing, and be able to verify this state invariant through a trace.",
+        "Based on the current temperature and the temperature at the stack top, predict whether the next step is to pop the stack and write the answer or to push the current index.",
+        "Given an input `temperatures` array, manually simulate the pop order and write the final values of the `answer` array."
+      ],
+      "required_views": [
+        "array",
+        "stack"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! Because 75 > 74, so pop index 1 and record answer[1]=1.",
+          "feedback_wrong": "Observe again: Is the current temperature 75°C greater than the temperature at the top index? Compare 75 and 74.",
+          "id": "task_1",
+          "oracle": "According to the trace, pop the stack when temperatures[i] > temperatures[stack[-1]], otherwise push. The expected operation can be automatically compared.",
+          "prompt": "We are currently processing temperature 75°C (index 2). The stack currently contains indices 0 and 1 (corresponding to 73°C, 74°C). What will the next operation be? Please select: A. Pop the stack top and write to answer; B. Push the current index.",
+          "stage2_affordance": "Click the \"Next\" button, the animation will highlight the two temperature bars currently being compared and show the pop action.",
+          "trace_anchor": [
+            "state.stack",
+            "temperatures[stack[-1]]",
+            "temperatures[i]"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Exactly! The monotonic decreasing stack is the core invariant of this problem.",
+          "feedback_wrong": "Review the trace: Is the stack top the smallest temperature value? Observe the relative sizes of temperatures during pushes and pops.",
+          "id": "task_2",
+          "oracle": "The correct answer is A. Verify that the temperature values of adjacent elements in the stack maintain a decreasing relationship.",
+          "prompt": "During the entire scan, regarding the state of the stack, which of the following is correct? A. The temperature values in the stack are monotonically decreasing; B. The temperature values in the stack are monotonically increasing; C. The temperatures corresponding to indices in the stack are in random order.",
+          "stage2_affordance": "In the stack view, use color depth to represent temperature level, aiding observation of the decreasing property.",
+          "trace_anchor": [
+            "stack",
+            "temperatures[stack[:]]",
+            "invariant"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "You predicted correctly! Because 71°C is higher than the stack top, it will trigger pops and write new waiting days.",
+          "feedback_wrong": "Note: After the modification, this temperature may trigger pops immediately. Try to think about its relationship with subsequent temperatures.",
+          "id": "task_3",
+          "oracle": "After increasing this temperature, the calculation of waiting days for higher temperatures on the right will change; a verifier can compare the new expected values.",
+          "prompt": "Modify the temperature on day 4 in the `temperatures` array from 69°C to 71°C. Predict how the waiting days on day 4 in `answer` will change. Please drag the slider to adjust.",
+          "stage2_affordance": "Drag the slider to modify the value of temperatures[3], and observe in real time the changes in the answer array values and the immediate response of the stack view.",
+          "trace_anchor": [
+            "temperatures[3]",
+            "index=3",
+            "answer[3]"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "You have a thorough understanding! This is exactly the role of the while loop—continuously pop stack tops that are lower than the current temperature to maintain monotonic decreasing.",
+          "feedback_wrong": "Observe the while loop in the trace; it continuously compares the current temperature with the stack top, popping as long as the stack top temperature is lower, so multiple pops may occur.",
+          "id": "task_4",
+          "oracle": "Check if the student's explanation includes: the current temperature 72°C is higher than both temperatures on the stack top, so the loop pops until the stack is empty or the stack top temperature is higher. This can be judged using keyword matching or an LLM.",
+          "prompt": "In the trace, when processing temperature 72°C (index 5), indices 3 (71°C) and 4 (69°C) were popped successively. Please explain why two indices were popped.",
+          "stage2_affordance": "Click the play button to watch the slow motion: stack elements are popped one by one, and the popped indices fly to the corresponding positions in the answer array in an animation, with temperature values highlighted.",
+          "trace_anchor": [
+            "step",
+            "state.stack",
+            "temperatures[5]",
+            "temperatures[3]",
+            "temperatures[4]"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            1,
+            1,
+            4,
+            2,
+            1,
+            1,
+            0,
+            0
+          ],
+          "index": 0,
+          "input_data": {
+            "temperatures": [
+              73,
+              74,
+              75,
+              71,
+              69,
+              72,
+              76,
+              73
+            ]
+          }
+        },
+        {
+          "expected": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "index": 1,
+          "input_data": {
+            "temperatures": [
+              30,
+              40,
+              50,
+              60
+            ]
+          }
+        },
+        {
+          "expected": [
+            1,
+            1,
+            0
+          ],
+          "index": 2,
+          "input_data": {
+            "temperatures": [
+              30,
+              60,
+              90
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lca",
+      "algorithm_id": "lca",
+      "title": "Binary Tree Lowest Common Ancestor",
+      "family": "Tree / BST / LCA",
+      "family_id": "tree_bst_lca",
+      "subfamily_id": "lca",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "tree",
+      "difficulty": "medium",
+      "problem": "In a family lineage tracking system, users often need to understand the kinship between two members. Your task: given the complete family tree tree (with node ids and parent-child edges), for any specified members p and q, compute the deepest common ancestor node of the two, and return its id as a string.",
+      "strategy": "DFS returns whether the current subtree contains p or q; when both left and right subtrees contain a target, the current node is the LCA.",
+      "input_contract": "Input tree, p, q.",
+      "variant_name": "Post-order DFS",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(h)",
+      "learning_objectives": [
+        "Understand the state changes of whether the current subtree contains p or q during DFS recursion.",
+        "Based on the recursive backtracking order, predict which node will be processed next.",
+        "Use the invariant 'if both left and right subtrees return non-null, then the current node is the LCA' to verify the algorithm's correctness."
+      ],
+      "required_views": [
+        "tree",
+        "call_stack"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! You accurately tracked the recursive order.",
+          "feedback_wrong": "Take a look at the changes in call_stack in the trace to see which node will be pushed next.",
+          "id": "task_1",
+          "oracle": "Judge based on the node id recorded in the trace for the next step.",
+          "prompt": "The current recursive node is 5, the left child call returned None, which node will be processed next?",
+          "stage2_affordance": "Highlight the node that will be processed next and display the expected action.",
+          "trace_anchor": [
+            "state.current",
+            "state.call_stack"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Exactly! Both left and right hit, so the current node is the LCA.",
+          "feedback_wrong": "Review: When both left and right subtrees have targets, what role does the current node play?",
+          "id": "task_2",
+          "oracle": "The return value should be node 2, and it is the LCA of 7 and 4.",
+          "prompt": "When processing node 2 recursively, the left child returned 7 and the right child returned 4. What invariant should the return value of node 2 satisfy at this point?",
+          "stage2_affordance": "Highlight node 2 and its left and right child return values in the tree view.",
+          "trace_anchor": [
+            "state.return_values",
+            "state.current"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Great! You discovered that when p is an ancestor of q, the LCA is p.",
+          "feedback_wrong": "Check the relationship between p and q: Is 6 a child node of 5?",
+          "id": "task_3",
+          "oracle": "Expected LCA should be 5, because 5 itself is the ancestor of 6.",
+          "prompt": "If the tree structure remains unchanged, change q to 6 while keeping p as 5, what node will the LCA become?",
+          "stage2_affordance": "Allow students to drag to modify the values of p or q and observe the change in LCA.",
+          "trace_anchor": [
+            "state.p",
+            "state.q"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Perfect! This is exactly the core judgment logic of LCA.",
+          "feedback_wrong": "Think about it: At this point, node 3's left and right subtrees each contain one target, so who is the common ancestor of these two targets?",
+          "id": "task_4",
+          "oracle": "Because both left and right subtrees contain one target each, according to the algorithm logic, the current node is the lowest common ancestor.",
+          "prompt": "In the recursion at node 3, the left child (5) returned 5 and the right child (1) returned 1. Why does the final answer become 3?",
+          "stage2_affordance": "Animate recursive backtracking and flash a marker on node 3 when both subtrees turn green.",
+          "trace_anchor": [
+            "state.current",
+            "state.return_values"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": "3",
+          "index": 0,
+          "input_data": {
+            "p": "5",
+            "q": "1",
+            "tree": {
+              "edges": [
+                [
+                  "3",
+                  "5"
+                ],
+                [
+                  "3",
+                  "1"
+                ],
+                [
+                  "5",
+                  "6"
+                ],
+                [
+                  "5",
+                  "2"
+                ],
+                [
+                  "1",
+                  "0"
+                ],
+                [
+                  "1",
+                  "8"
+                ],
+                [
+                  "2",
+                  "7"
+                ],
+                [
+                  "2",
+                  "4"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "3"
+                },
+                {
+                  "id": "5"
+                },
+                {
+                  "id": "1"
+                },
+                {
+                  "id": "6"
+                },
+                {
+                  "id": "2"
+                },
+                {
+                  "id": "0"
+                },
+                {
+                  "id": "8"
+                },
+                {
+                  "id": "7"
+                },
+                {
+                  "id": "4"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "expected": "2",
+          "index": 1,
+          "input_data": {
+            "p": "7",
+            "q": "4",
+            "tree": {
+              "edges": [
+                [
+                  "3",
+                  "5"
+                ],
+                [
+                  "3",
+                  "1"
+                ],
+                [
+                  "5",
+                  "6"
+                ],
+                [
+                  "5",
+                  "2"
+                ],
+                [
+                  "2",
+                  "7"
+                ],
+                [
+                  "2",
+                  "4"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "3"
+                },
+                {
+                  "id": "5"
+                },
+                {
+                  "id": "1"
+                },
+                {
+                  "id": "6"
+                },
+                {
+                  "id": "2"
+                },
+                {
+                  "id": "7"
+                },
+                {
+                  "id": "4"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "expected": "5",
+          "index": 2,
+          "input_data": {
+            "p": "6",
+            "q": "4",
+            "tree": {
+              "edges": [
+                [
+                  "3",
+                  "5"
+                ],
+                [
+                  "3",
+                  "1"
+                ],
+                [
+                  "5",
+                  "6"
+                ],
+                [
+                  "5",
+                  "2"
+                ],
+                [
+                  "2",
+                  "7"
+                ],
+                [
+                  "2",
+                  "4"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "3"
+                },
+                {
+                  "id": "5"
+                },
+                {
+                  "id": "1"
+                },
+                {
+                  "id": "6"
+                },
+                {
+                  "id": "2"
+                },
+                {
+                  "id": "7"
+                },
+                {
+                  "id": "4"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "expected": "B",
+          "index": 3,
+          "input_data": {
+            "p": "B",
+            "q": "D",
+            "tree": {
+              "edges": [
+                [
+                  "A",
+                  "B"
+                ],
+                [
+                  "B",
+                  "C"
+                ],
+                [
+                  "C",
+                  "D"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "A"
+                },
+                {
+                  "id": "B"
+                },
+                {
+                  "id": "C"
+                },
+                {
+                  "id": "D"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "expected": "C",
+          "index": 4,
+          "input_data": {
+            "p": "D",
+            "q": "E",
+            "tree": {
+              "edges": [
+                [
+                  "A",
+                  "B"
+                ],
+                [
+                  "A",
+                  "C"
+                ],
+                [
+                  "C",
+                  "D"
+                ],
+                [
+                  "C",
+                  "E"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "A"
+                },
+                {
+                  "id": "B"
+                },
+                {
+                  "id": "C"
+                },
+                {
+                  "id": "D"
+                },
+                {
+                  "id": "E"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tree_max_independent_set",
+      "algorithm_id": "tree_max_independent_set",
+      "title": "Tree DP Maximum Independent Set",
+      "family": "Tree DP",
+      "family_id": "tree_dp",
+      "subfamily_id": "tree_max_independent_set",
+      "gate_layer": "family_core",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "difficulty": "medium",
+      "problem": "In the planning of a new urban district, there is a tree-shaped street network where each plot (node) has a development value. Adjacent plots cannot be developed simultaneously to avoid traffic congestion. Given a tree, where nodes represent plots, value represents development value, and edges represent adjacency. Compute the maximum total development value achievable, returning only the maximum number. The input tree object includes nodes (id, value) and edges (undirected edges).",
+      "strategy": "dp_take[u] represents the optimal value when u is selected, dp_skip[u] represents the optimal value when u is not selected.",
+      "input_contract": "Input a tree with value weights.",
+      "variant_name": "Tree DP take/skip",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Understand the definition and recurrence relationship of dp_take[u] (optimal value when u is selected) and dp_skip[u] (optimal value when u is not selected).",
+        "Be able to predict the parent node's state update based on children's dp values.",
+        "Observe changes in the global optimal solution by modifying node weights, building an intuitive understanding of state dependencies."
+      ],
+      "required_views": [
+        "tree",
+        "dp_table",
+        "node_details"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! dp_take only sums children's skip values, dp_skip takes the sum of each child's optimal value.",
+          "feedback_wrong": "Check the formulas: take depends on children's skip, skip depends on each child's optimal value. Recalculate.",
+          "id": "task_1",
+          "oracle": "Compare predicted (take, skip) with (5+0+0=5, max(3,0)+max(4,0)=7). Allow floating-point error.",
+          "prompt": "Currently traversing node u (id='A'), its value=5, the dp states of its two children B (value=3) and C (value=4) are known: B: take=3, skip=0; C: take=4, skip=0. Predict the dp_take and dp_skip values for node A.",
+          "stage2_affordance": "Highlight node A and its children in the tree view, display relevant values in dp_table, auto-fill predicted results upon click.",
+          "trace_anchor": [
+            "dp_take",
+            "dp_skip",
+            "value",
+            "id"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Perfect! This invariant indeed holds at every step.",
+          "feedback_wrong": "The expression you proposed would fail at some step; observe the relationship between dp_take and value at leaf nodes.",
+          "id": "task_2",
+          "oracle": "Check whether the student-proposed invariant holds across all steps of the verifier or trace. May sample-verify or use symbolic checking.",
+          "prompt": "Given the state at any step in the current trace, write an invariant that always holds during the execution of the algorithm (e.g., a relationship between dp_take and value).",
+          "stage2_affordance": "Display the list of trace steps, highlight positions where the invariant is violated, allow browsing dp values of different nodes.",
+          "trace_anchor": [
+            "dp_take",
+            "value"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct! After modifying node 4, since its parent node 2 is not selected, the gain it brings increases directly.",
+          "feedback_wrong": "Node 4 is a leaf node; how does increasing its value affect the take/skip decision of its parent? Recall the recurrence formulas.",
+          "id": "task_3",
+          "oracle": "Run the verifier to obtain the optimal value of the modified tree (expected to become 18), compare with user's answer.",
+          "prompt": "The current tree is sample 0, with maximum development value 14. Change the value of node id='4' from 10 to 15, and predict the new maximum development value.",
+          "stage2_affordance": "Node value can be modified by dragging, recalculates in real-time and updates dp_table and tree colors.",
+          "trace_anchor": [
+            "tree",
+            "value",
+            "id"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Clear explanation! dp_take must add children's skip, dp_skip independently takes each child's optimal.",
+          "feedback_wrong": "Note: dp_take accumulates children's skip values, not directly adding value or max. Analyze more carefully.",
+          "id": "task_4",
+          "oracle": "Check whether the explanation explicitly mentions dp_take[2] = 2 + dp_skip[4] + dp_skip[5] = 2, dp_skip[2] = max(10,0)+max(1,0)=11. Can use natural language matching or formula extraction.",
+          "prompt": "For node 2 (value=2) in the tree, the dp values of its children 4 (value=10) and 5 (value=1) are known: dp_take(4)=10, dp_skip(4)=0; dp_take(5)=1, dp_skip(5)=0. Explain how node 2's dp_take and dp_skip are aggregated from its children.",
+          "stage2_affordance": "Tree view shows aggregation arrows, dp_table highlights the source cells for calculation.",
+          "trace_anchor": [
+            "dp_take",
+            "dp_skip",
+            "id",
+            "value"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": 14,
+          "index": 0,
+          "input_data": {
+            "tree": {
+              "edges": [
+                [
+                  "1",
+                  "2"
+                ],
+                [
+                  "1",
+                  "3"
+                ],
+                [
+                  "2",
+                  "4"
+                ],
+                [
+                  "2",
+                  "5"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "1",
+                  "value": 3
+                },
+                {
+                  "id": "2",
+                  "value": 2
+                },
+                {
+                  "id": "3",
+                  "value": 1
+                },
+                {
+                  "id": "4",
+                  "value": 10
+                },
+                {
+                  "id": "5",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        {
+          "expected": 10,
+          "index": 1,
+          "input_data": {
+            "tree": {
+              "edges": [
+                [
+                  "A",
+                  "B"
+                ],
+                [
+                  "A",
+                  "C"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "A",
+                  "value": 5
+                },
+                {
+                  "id": "B",
+                  "value": 4
+                },
+                {
+                  "id": "C",
+                  "value": 6
+                }
+              ]
+            }
+          }
+        },
+        {
+          "expected": 20,
+          "index": 2,
+          "input_data": {
+            "tree": {
+              "edges": [
+                [
+                  "R",
+                  "L"
+                ],
+                [
+                  "R",
+                  "M"
+                ],
+                [
+                  "M",
+                  "N"
+                ]
+              ],
+              "nodes": [
+                {
+                  "id": "R",
+                  "value": 1
+                },
+                {
+                  "id": "L",
+                  "value": 10
+                },
+                {
+                  "id": "M",
+                  "value": 1
+                },
+                {
+                  "id": "N",
+                  "value": 10
+                }
+              ]
+            }
+          }
+        },
+        {
+          "expected": 7,
+          "index": 3,
+          "input_data": {
+            "tree": {
+              "edges": [],
+              "nodes": [
+                {
+                  "id": "X",
+                  "value": 7
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "merge_intervals",
+      "algorithm_id": "merge_intervals",
+      "title": "Merge Intervals",
+      "family": "Greedy",
+      "family_id": "greedy",
+      "subfamily_id": "merge_intervals",
+      "gate_layer": "family_core",
+      "support_level": "medium_plus",
+      "process_profile": "greedy",
+      "difficulty": "medium",
+      "problem": "The conference center receives multiple venue occupancy requests. Each closed interval [start time, end time] in intervals represents a reservation slot. Since the same room cannot be used simultaneously, all overlapping or contiguous slots need to be merged, returning the final list of non-overlapping occupied intervals sorted by start time.",
+      "strategy": "Sort by start point, maintain the last interval of merged results and extend as needed.",
+      "input_contract": "Input intervals, each interval is [start, end].",
+      "variant_name": "Linear merge after sorting",
+      "time_complexity": "O(n log n)",
+      "space_complexity": "O(n)",
+      "learning_objectives": [
+        "Understand the state changes of the merged list during linear scan after sorting (append new interval vs extend right endpoint).",
+        "Based on the overlap relationship between the current interval and the last interval in merged, predict the next operation result.",
+        "Apply invariants (e.g., merged always remains non-overlapping and sorted by start time) to verify intermediate states."
+      ],
+      "required_views": [
+        "matrix",
+        "interval_pool",
+        "merged_trace"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! Interval [2,5] overlaps with [1,3], so it extends to [1,5].",
+          "feedback_wrong": "Note that the current interval's start 2 ≤ the last interval's end 3 in merged, so the end should be extended to max(3,5)=5.",
+          "id": "task_1",
+          "oracle": "Check if the answer updates merged to [[1,5]], i.e., extends the right endpoint.",
+          "prompt": "Currently merged is [[1,3]], about to process interval [2,5]. Please predict the next state of merged.",
+          "stage2_affordance": "Drag [2,5] onto [1,3], observe the color blocks merge into [1,5].",
+          "trace_anchor": [
+            "state.merged",
+            "state.current"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Correct! merged must accurately reflect the union of processed intervals; here the endpoint 4 of [1,4] is lost.",
+          "feedback_wrong": "Observe the first two intervals [1,4] and [2,3] in intervals, merging should yield [1,4] not [1,3].",
+          "id": "task_2",
+          "oracle": "Check if the answer points out that in merged, [1,3] and [5,6] do not overlap, but the end 3 of [1,3] is greater than the start 2 of the next interval? More accurately: the algorithm should merge [1,4] and [2,3] to get [1,4], not [1,3]; therefore merged might be wrong, or the invariant 'intervals in merged all come from correct merging of input intervals' is violated. Simple answer: merged should maintain coverage of original intervals; here [1,3] fails to cover the right endpoint of [1,4].",
+          "prompt": "Given sorted intervals = [[1,4],[2,3],[5,6]] and at some step merged = [[1,3],[5,6]]. Which invariant is violated?",
+          "stage2_affordance": "Click the invariant checker, the system highlights the violated constraint.",
+          "trace_anchor": [
+            "state.intervals",
+            "state.merged"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Yes, change [8,10] to [8,9].",
+          "feedback_wrong": "Hint: Just modify the end of one interval to make the final merged result's right endpoint smaller.",
+          "id": "task_3",
+          "oracle": "Check if the student changes the end of an interval to 9, e.g., modify [8,10] to [8,9].",
+          "prompt": "Given intervals = [[1,3],[2,6],[8,10]], if we want the merged result to become [[1,6],[8,9]], how should we modify one input interval?",
+          "stage2_affordance": "Double-click on the number of an input interval and modify the number; recalculate immediately.",
+          "trace_anchor": [
+            "state.intervals",
+            "state.expected"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Correct! There is a gap between the two intervals, they belong to different occupancy blocks.",
+          "feedback_wrong": "Compare the start 4 with end 3; if start > end, there is no overlap.",
+          "id": "task_4",
+          "oracle": "Check if the answer explains: because the current interval's start 4 > the last interval's end 3, no overlap, so append.",
+          "prompt": "When processing interval [4,5] and merged = [[1,3]], why is a new interval appended instead of extended?",
+          "stage2_affordance": "Play the animation step by step, observe the visual separation when appending a new interval.",
+          "trace_anchor": [
+            "state.merged",
+            "state.current"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            [
+              1,
+              6
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              15,
+              18
+            ]
+          ],
+          "index": 0,
+          "input_data": {
+            "intervals": [
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                6
+              ],
+              [
+                8,
+                10
+              ],
+              [
+                15,
+                18
+              ]
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              1,
+              5
+            ]
+          ],
+          "index": 1,
+          "input_data": {
+            "intervals": [
+              [
+                1,
+                4
+              ],
+              [
+                4,
+                5
+              ]
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              0,
+              5
+            ]
+          ],
+          "index": 2,
+          "input_data": {
+            "intervals": [
+              [
+                1,
+                4
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                3,
+                5
+              ]
+            ]
+          }
+        },
+        {
+          "expected": [
+            [
+              2,
+              3
+            ]
+          ],
+          "index": 3,
+          "input_data": {
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "reverse_linked_list",
+      "algorithm_id": "reverse_linked_list",
+      "title": "Reverse Linked List",
+      "family": "Linked List and Cache",
+      "family_id": "linked_list_cache",
+      "subfamily_id": "reverse_linked_list",
+      "gate_layer": "family_core",
+      "support_level": "medium",
+      "process_profile": "linked_list",
+      "difficulty": "medium",
+      "problem": "Suppose you are developing a browser where a user visits a series of web pages, and a list `values` records the visited URL IDs. The browser needs to generate a backward history path, i.e., reverse the visit order so that the user can gradually go back from the current page to the earliest visited page. Given the list `values` representing the visited page IDs in order, please implement an algorithm that returns the reversed list, i.e., the backward order.",
+      "strategy": "Maintain prev/current/next, and point current.next to prev one by one.",
+      "input_contract": "Input `values` array, representing the linked list node values in order.",
+      "variant_name": "Iterative Three-Pointer Reversal",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(1)",
+      "learning_objectives": [
+        "Understand the state changes of the three pointers prev, curr, and next in iterative reversal of a singly linked list.",
+        "Predict the next pointer direction based on the trace and explain the reason.",
+        "Identify invariants of linked list node connections during the reversal process, and use them for debugging."
+      ],
+      "required_views": [
+        "tree"
+      ],
+      "interaction_tasks": [
+        {
+          "feedback_correct": "Correct! curr.next always points to prev to complete the reversal.",
+          "feedback_wrong": "Observe the roles of curr, prev, and next in the reversal step again; typically curr.next points to the previous node.",
+          "id": "task_1",
+          "oracle": "According to the algorithm logic, next step curr.next should point to prev, which has value 1.",
+          "prompt": "In the current trace, curr points to the node with value 2, prev points to the node with value 1, next points to the node with value 3. Predict which value curr.next will point to in the next step.",
+          "stage2_affordance": "The user can click the arrow on the curr node to manually change the pointer.",
+          "trace_anchor": [
+            "state.curr",
+            "state.prev",
+            "state.next"
+          ],
+          "type": "predict_next_state"
+        },
+        {
+          "feedback_correct": "Yes, prev and curr maintain the linked list structure in segments.",
+          "feedback_wrong": "See how prev and curr move between adjacent steps; they always maintain the correct order.",
+          "id": "task_2",
+          "oracle": "prev is always the head node of the reversed part, and curr is always the first node of the unreversed part.",
+          "prompt": "During the iterative reversal of the linked list, which statement remains true at every step? Please identify an invariant from the trace.",
+          "stage2_affordance": "Highlight the reversed part (the chain starting with prev) and the unreversed part (the chain starting with curr).",
+          "trace_anchor": [
+            "state.prev",
+            "state.curr"
+          ],
+          "type": "identify_invariant"
+        },
+        {
+          "feedback_correct": "Correct! After deleting the node, the reversed list changes accordingly.",
+          "feedback_wrong": "Hint: After deleting the middle node, the linked list still maintains the original order; reversal is just the reverse order.",
+          "id": "task_3",
+          "oracle": "Delete node 2, new values become [1,3]; after reversal it should be [3,1].",
+          "prompt": "Original values are [1,2,3], reversed is [3,2,1]. In the Stage2 sandbox, delete the middle node 2 and observe the changes in the new linked list. What is the reversal result after deletion?",
+          "stage2_affordance": "In Stage2 you can directly edit the values array and observe the linked list and reversal result in real time.",
+          "trace_anchor": [
+            "values"
+          ],
+          "type": "modify_input"
+        },
+        {
+          "feedback_correct": "Well explained! curr.next pointing to prev is the key.",
+          "feedback_wrong": "Review the core operation of reversing a linked list: changing the next pointer of each node one by one, so the current node points to the previous node.",
+          "id": "task_4",
+          "oracle": "The purpose is to point the current node's next pointer to the node before it, achieving local reversal.",
+          "prompt": "At step 2, the trace shows the operation 'curr.next = prev'. Please explain the purpose of this step.",
+          "stage2_affordance": "Play animation, step by step showing pointer changes.",
+          "trace_anchor": [
+            "state.curr",
+            "state.prev",
+            "state.next"
+          ],
+          "type": "explain_transition"
+        }
+      ],
+      "samples": [
+        {
+          "expected": [
+            3,
+            2,
+            1
+          ],
+          "index": 0,
+          "input_data": {
+            "values": [
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        {
+          "expected": [
+            5
+          ],
+          "index": 1,
+          "input_data": {
+            "values": [
+              5
+            ]
+          }
+        },
+        {
+          "expected": [],
+          "index": 2,
+          "input_data": {
+            "values": []
+          }
+        }
+      ]
+    }
+  ]
+}

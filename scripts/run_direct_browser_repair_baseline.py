@@ -25,6 +25,12 @@ from benchmark.cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 from llm_client import _model_name, chat_text_with_metadata, llm_config
 from scripts.build_browser_repair_feedback import collect_browser_feedback
 from scripts.run_direct_html_baseline import _system_prompt, _user_prompt, extract_html
+from algolab.generation.language import english_only_errors, english_output_requirement, normalize_output_language
+from scripts.run_llm_benchmark import (
+    ENGLISH_CASE_OVERRIDES_PATH,
+    apply_case_overrides,
+    load_case_overrides,
+)
 
 
 DEFAULT_SOURCE_REPORT = ROOT / "output/experiments/algotutorgen_full_200_20260706/direct_html_expected_visible/llm_benchmark_report.json"
@@ -194,9 +200,33 @@ def build_browser_repair_prompt(
     previous_html: str,
     feedback: dict[str, Any],
     round_index: int,
+    language: str = "zh",
 ) -> str:
     safe_feedback = _safe_feedback(feedback)
     previous_excerpt = previous_html[-18000:]
+    if normalize_output_language(language) == "en":
+        return "\n".join(
+            [
+                f"This is browser-feedback repair round {round_index} for a Direct HTML page. Return only the repaired complete self-contained HTML file.",
+                f"Title: {title}",
+                f"Problem: {problem}",
+                f"Algorithm family: {family}",
+                f"Strategy hint: {strategy}",
+                f"Input JSON: {json.dumps(input_data, ensure_ascii=False)}",
+                f"Expected output JSON: {json.dumps(expected, ensure_ascii=False)}",
+                "Generic browser observations:",
+                json.dumps(safe_feedback, ensure_ascii=False, indent=2),
+                "Repair requirements:",
+                "- Preserve a complete algorithm-tutoring experience with visible steps, state, code, explanations, navigation, a timeline, prediction checkpoints, immediate feedback, hints, show-answer actions, and a visible learning log.",
+                "- Show the authoritative final return value clearly from the initial view and keep all teaching content consistent with the concrete input and expected output.",
+                "- Fix console errors and interactions that produce no visible state change. Everything must work offline.",
+                "- Inline all CSS and JavaScript and do not load external resources.",
+                "- Keep at least two meaningful algorithm steps and close the HTML document completely.",
+                "- " + english_output_requirement(),
+                "Previous HTML excerpt:",
+                previous_excerpt,
+            ]
+        )
     return "\n".join(
         [
             f"这是 Direct HTML 的第 {round_index} 次浏览器反馈修复。请只输出修复后的完整单文件 HTML，不要 markdown。",
@@ -312,24 +342,31 @@ def _initial_attempt(
     case: BenchmarkCase,
     output_dir: Path,
     model: str,
+    language: str,
+    force_regenerate: bool,
 ) -> dict[str, Any]:
     case_dir = output_dir / "cases" / case.id
     html_path = case_dir / "attempt_01.html"
     metadata_path = case_dir / "attempt_01.json"
     prompt_path = case_dir / "attempt_01.prompt.txt"
-    if metadata_path.exists() and html_path.exists():
+    if metadata_path.exists() and html_path.exists() and not force_regenerate:
         return json.loads(metadata_path.read_text(encoding="utf-8"))
 
     sample = BenchmarkInput(input_data=row.get("input_data"), expected=row.get("expected"))
-    prompt = _user_prompt(case, sample, expected_visible_to_model=True)
-    source_path = _source_initial_html(row)
+    prompt = _user_prompt(case, sample, expected_visible_to_model=True, language=language)
+    source_path = output_dir / "__force_regenerate_missing__.html" if force_regenerate else _source_initial_html(row)
     model_call = (row.get("model_calls") or [{}])[0]
     source_kind = "frozen_original_first_call"
     raw_response_path = ""
     if source_path and source_path.exists():
         html = source_path.read_text(encoding="utf-8")
     else:
-        response = chat_text_with_metadata(_system_prompt(), prompt, model=model, kind="direct_browser_repair_initial")
+        response = chat_text_with_metadata(
+            _system_prompt(language),
+            prompt,
+            model=model,
+            kind="direct_browser_repair_initial",
+        )
         raw = str(response.get("content") or "")
         html = extract_html(raw)
         model_call = response.get("model_call") or {}
@@ -340,6 +377,9 @@ def _initial_attempt(
         raw_response_path = _display_path(raw_path)
     if not html:
         html = "<!doctype html><html><body><p>Generation returned no HTML.</p></body></html>"
+    language_errors = english_only_errors(html, label=f"{case.id} browser-repair initial HTML") if language == "en" else []
+    if language_errors:
+        raise ValueError("; ".join(language_errors))
     html_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.write_text(html, encoding="utf-8")
     prompt_path.write_text(prompt, encoding="utf-8")
@@ -372,6 +412,7 @@ def _repair_attempt(
     call_index: int,
     output_dir: Path,
     model: str,
+    language: str,
 ) -> dict[str, Any]:
     case_dir = output_dir / "cases" / case.id
     html_path = case_dir / f"attempt_{call_index:02d}.html"
@@ -392,9 +433,10 @@ def _repair_attempt(
         previous_html=previous_html,
         feedback=feedback,
         round_index=call_index - 1,
+        language=language,
     )
     started = time.time()
-    response = chat_text_with_metadata(_system_prompt(), prompt, model=model, kind="direct_browser_repair")
+    response = chat_text_with_metadata(_system_prompt(language), prompt, model=model, kind="direct_browser_repair")
     raw = str(response.get("content") or "")
     html = extract_html(raw)
     if not html:
@@ -452,13 +494,24 @@ def run_case(
     model: str,
     browser_timeout_ms: int,
     token_target: int,
+    language: str,
+    force_regenerate_initial: bool,
 ) -> dict[str, Any]:
     case_result_path = output_dir / "cases" / case.id / "case_result.json"
-    if case_result_path.exists():
+    if case_result_path.exists() and not force_regenerate_initial:
         existing = json.loads(case_result_path.read_text(encoding="utf-8"))
         if int(existing.get("calls_completed") or 0) >= max_calls:
             return existing
-    attempts = [_initial_attempt(row=row, case=case, output_dir=output_dir, model=model)]
+    attempts = [
+        _initial_attempt(
+            row=row,
+            case=case,
+            output_dir=output_dir,
+            model=model,
+            language=language,
+            force_regenerate=force_regenerate_initial,
+        )
+    ]
     while len(attempts) < max_calls:
         previous = attempts[-1]
         feedback = _ensure_feedback(previous, timeout_ms=browser_timeout_ms)
@@ -471,6 +524,7 @@ def run_case(
                 call_index=len(attempts) + 1,
                 output_dir=output_dir,
                 model=model,
+                language=language,
             )
         )
     _ensure_feedback(attempts[-1], timeout_ms=browser_timeout_ms)
@@ -533,6 +587,9 @@ def main() -> int:
     parser.add_argument("--browser-timeout-ms", type=int, default=15000)
     parser.add_argument("--token-budget-target", type=int, default=80000)
     parser.add_argument("--repair-max-tokens", type=int, default=12000)
+    parser.add_argument("--language", choices=["zh", "en"], default="zh")
+    parser.add_argument("--case-overrides", type=Path, default=None)
+    parser.add_argument("--regenerate-initial", action="store_true")
     args = parser.parse_args()
     if args.max_calls < 1 or args.max_calls > 5:
         raise SystemExit("--max-calls 必须在 1..5")
@@ -544,7 +601,12 @@ def main() -> int:
     source = json.loads(source_report.read_text(encoding="utf-8"))
     wanted = set(args.case)
     rows = [row for row in source.get("results") or [] if not wanted or row.get("case_id") in wanted]
-    case_map = {case.id: case for case in benchmark_cases()}
+    args.language = normalize_output_language(args.language)
+    override_path = args.case_overrides or (ENGLISH_CASE_OVERRIDES_PATH if args.language == "en" else None)
+    overrides = load_case_overrides(override_path) if override_path else {}
+    selected_cases = tuple(case for case in benchmark_cases() if not wanted or case.id in wanted)
+    selected_cases = apply_case_overrides(selected_cases, overrides, require_all=args.language == "en")
+    case_map = {case.id: case for case in selected_cases}
     missing = sorted({str(row.get("case_id")) for row in rows} - set(case_map))
     if missing:
         raise SystemExit("源报告包含未知 case：" + ", ".join(missing))
@@ -566,6 +628,8 @@ def main() -> int:
                     model=model,
                     browser_timeout_ms=args.browser_timeout_ms,
                     token_target=args.token_budget_target,
+                    language=args.language,
+                    force_regenerate_initial=bool(args.regenerate_initial),
                 ): str(row["case_id"])
                 for row in rows
             }

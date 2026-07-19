@@ -14,6 +14,7 @@ from algolab.schemas.semantic_trace import SolutionVariant
 from algolab.schemas.validation import BuildArtifact
 from algolab.schemas.visual_plan import VisualPlan
 from algolab.generation.repair import build_solution_repair_prompt
+from algolab.generation.language import output_language_requirement
 from algolab.verification.repair_context import build_repair_context
 
 
@@ -35,6 +36,31 @@ def _chat_json(system_prompt: str, user_prompt: str, *, kind: str) -> dict[str, 
 
 def _build_user_prompt(request: ProblemInput) -> str:
     input_json = json.dumps(request.input_data, ensure_ascii=False, separators=(",", ":"))
+    if request.output_language == "en":
+        parts = [
+            "Problem:",
+            request.problem,
+            "",
+            "Concrete input JSON:",
+            input_json,
+            "",
+            f"Required number of solution variants: {request.solution_count}",
+            "",
+            "Generation constraints:",
+            f"- The variants array must contain exactly {request.solution_count} item(s).",
+            "- Keep only instructionally meaningful trace events; a trace normally contains 30-60 key events.",
+            "- Keep each reason concise and specific.",
+            "- Return only the required JSON object without Markdown or extra fields.",
+            "- Do not create learner checkpoints inside tracker_code. TraceSession has no checkpoint method; teaching interactions are added by a later stage.",
+            "- " + output_language_requirement("en"),
+        ]
+        if request.strategy_hint:
+            parts.extend(["", "Preferred solution strategy:", request.strategy_hint])
+        if request.user_code:
+            parts.extend(["", "User-provided code that may be instrumented as one variant:", request.user_code])
+        if request.expected_result is not None:
+            parts.extend(["", "Expected output:", json.dumps(request.expected_result, ensure_ascii=False)])
+        return "\n".join(parts)
     parts = [
         "题目：",
         request.problem,
@@ -71,7 +97,11 @@ def _domain_specific_generation_hints(request: ProblemInput) -> list[str]:
 
 
 def generate_solution_spec(request: ProblemInput) -> dict[str, Any]:
-    return normalize_solution_spec(_chat_json(_prompt_text("tracker_system.txt"), _build_user_prompt(request), kind="generation"))
+    system = _prompt_text("tracker_system.txt")
+    requirement = output_language_requirement(request.output_language)
+    if requirement:
+        system = requirement + "\n\n" + system
+    return normalize_solution_spec(_chat_json(system, _build_user_prompt(request), kind="generation"))
 
 
 def _build_contract_user_prompt(request: ProblemInput) -> str:
@@ -184,7 +214,11 @@ def repair_solution_spec(request: ProblemInput, previous: dict[str, Any], errors
         repair_context=repair_context,
     )
     try:
-        repaired = normalize_solution_spec(_chat_json(_prompt_text("repair_system.txt"), prompt, kind="repair"))
+        system = _prompt_text("repair_system.txt")
+        requirement = output_language_requirement(request.output_language)
+        if requirement:
+            system = requirement + "\n\n" + system
+        repaired = normalize_solution_spec(_chat_json(system, prompt, kind="repair"))
         return _preserve_scope_locked_fields(previous, repaired, repair_context)
     except (LLMJsonError, ValueError) as exc:
         if not isinstance(exc, LLMJsonError) and "LLM 顶层输出必须是 JSON object" not in str(exc):
@@ -198,7 +232,7 @@ def repair_solution_spec(request: ProblemInput, previous: dict[str, Any], errors
             errors=compact_errors,
             repair_context=compact_context,
         )
-        repaired = normalize_solution_spec(_chat_json(_prompt_text("repair_system.txt"), compact_prompt, kind="repair"))
+        repaired = normalize_solution_spec(_chat_json(system, compact_prompt, kind="repair"))
         return _preserve_scope_locked_fields(previous, repaired, compact_context)
 
 
