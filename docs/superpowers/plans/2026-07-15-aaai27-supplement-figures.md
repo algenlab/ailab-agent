@@ -6,7 +6,7 @@
 
 **Architecture:** Use the built-in image generation tool once per distinct figure, validate the resulting raster assets, and correct any text defects before integration. Add each asset as a full-width `figure*` in `latex/supplement.tex`, preserving the existing UI screenshot and all evidence boundaries.
 
-**Tech Stack:** Built-in image2/image generation, PNG, PDFLaTeX/TinyTeX, Poppler PDF inspection tools, local image inspection, optional Pillow post-processing with `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`.
+**Tech Stack:** Built-in image2/image generation, PNG, PDFLaTeX/TinyTeX, Poppler PDF inspection tools, local image inspection, optional Pillow post-processing with `python3`.
 
 ---
 
@@ -32,7 +32,7 @@ Expected: `latex/` is untracked and contains the user's current paper sources, s
 Run:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -c 'from pathlib import Path; root=Path("/ssd1/liaokunpeng/paper/ailab-agent/latex"); tex=(root/"supplement.tex").read_text(); assets=[root/"figures/method-paradigm-comparison.png",root/"figures/system-detailed-architecture.png"]; assert all(p.is_file() and p.stat().st_size>0 for p in assets), "missing generated figure assets"; assert "fig:method-paradigms" in tex and "fig:detailed-architecture" in tex, "missing LaTeX figure references"'
+python3 -c 'from pathlib import Path; root=Path("./latex"); tex=(root/"supplement.tex").read_text(); assets=[root/"figures/method-paradigm-comparison.png",root/"figures/system-detailed-architecture.png"]; assert all(p.is_file() and p.stat().st_size>0 for p in assets), "missing generated figure assets"; assert "fig:method-paradigms" in tex and "fig:detailed-architecture" in tex, "missing LaTeX figure references"'
 ```
 
 Expected: FAIL with `AssertionError: missing generated figure assets`.
@@ -79,7 +79,7 @@ Expected: a wide raster infographic with all three paradigms and no experimental
 Copy the exact output path returned by the image-generation tool to:
 
 ```text
-/ssd1/liaokunpeng/paper/ailab-agent/latex/figures/method-paradigm-comparison.png
+./latex/figures/method-paradigm-comparison.png
 ```
 
 Do not overwrite any pre-existing file; the target is new.
@@ -142,7 +142,7 @@ Expected: a detailed architecture diagram that accurately shows components, vali
 Copy the exact output path returned by the image-generation tool to:
 
 ```text
-/ssd1/liaokunpeng/paper/ailab-agent/latex/figures/system-detailed-architecture.png
+./latex/figures/system-detailed-architecture.png
 ```
 
 - [ ] **Step 3: Inspect and correct exact labels**
@@ -217,7 +217,7 @@ rm -f supplement.aux supplement.log supplement.out supplement.toc supplement.fdb
 Run twice:
 
 ```bash
-/ssd1/liaokunpeng/.TinyTeX/bin/x86_64-linux/pdflatex -interaction=nonstopmode -halt-on-error supplement.tex
+pdflatex -interaction=nonstopmode -halt-on-error supplement.tex
 ```
 
 Expected: both runs exit 0; second run has no undefined references.

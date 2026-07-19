@@ -6,7 +6,7 @@
 
 **系统判断：** 当前系统已经基本满足 `plan.md` 对“interactive learning environment”的要求。下一步的重点不是再做一轮大 UI/架构改造，而是重新生成当前版本 artifact，量化交互覆盖，跑实验对比，并把结果组织成论文证据。
 
-**技术栈：** Python 统一使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`；核心对象是 Pydantic `BuildArtifact` / `SceneGraph`；主实验脚本包括 `scripts/run_llm_benchmark.py`、direct HTML baseline、process validator / SceneGraph ablation、`scripts/audit_llm_teaching_pages.py`、报告合并和 reproducibility package 脚本；浏览器审计通过 `scripts/run_browser_smoke_container.sh` 跑。
+**技术栈：** Python 统一使用 `python3`；核心对象是 Pydantic `BuildArtifact` / `SceneGraph`；主实验脚本包括 `scripts/run_llm_benchmark.py`、direct HTML baseline、process validator / SceneGraph ablation、`scripts/audit_llm_teaching_pages.py`、报告合并和 reproducibility package 脚本；浏览器审计通过 `scripts/run_browser_smoke_container.sh` 跑。
 
 ---
 
@@ -96,7 +96,7 @@ AlgoTutorGen 研究如何用 LLM 生成可验证的交互式算法学习环境�
 - [ ] **步骤 2：运行当前轻量质量门禁**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
 期望输出包含：
@@ -108,7 +108,7 @@ quality_checks: PASS
 - [ ] **步骤 3：记录当前 benchmark 规模**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 from collections import Counter
 from benchmark.cases import benchmark_cases
 
@@ -145,7 +145,7 @@ families 23
 - [ ] **步骤 1：用当前 teaching enrichment 重跑 15 题**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+python3 scripts/run_llm_benchmark.py \
   --output-dir output/experiments/algotutorgen_pilot_15/algolab_full \
   --condition algolab_full \
   --case house_robber \
@@ -185,7 +185,7 @@ output/experiments/algotutorgen_pilot_15/algolab_full/llm_<case>_0.html
 - [ ] **步骤 2：统计生成 artifact 的交互覆盖**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 from pathlib import Path
 import json
 from algolab.schemas.validation import BuildArtifact
@@ -254,7 +254,7 @@ current_target_passed >= 12  # 15-case pilot 中至少 12 题达到当前系统�
 - [ ] **步骤 1：构造浏览器审计 manifest**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 from pathlib import Path
 import json
 from algolab.schemas.validation import BuildArtifact
@@ -293,7 +293,7 @@ rows 15
 
 ```bash
 bash scripts/run_browser_smoke_container.sh \
-  python scripts/audit_llm_teaching_pages.py \
+  python3 scripts/audit_llm_teaching_pages.py \
   --manifest output/experiments/algotutorgen_pilot_15/browser_audit_manifest_input.json \
   --output-dir output/experiments/algotutorgen_pilot_15/browser_audit \
   --strict-report output/experiments/algotutorgen_pilot_15/algolab_full/llm_benchmark_report.json
@@ -329,7 +329,7 @@ output/experiments/algotutorgen_pilot_15/browser_audit/browser_audit_manifest.js
 - [ ] **步骤 1：在 family core 上每个 family 跑 1 题**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+python3 scripts/run_llm_benchmark.py \
   --output-dir output/experiments/algotutorgen_main/algolab_full_family_core \
   --condition algolab_full \
   --gate-layer family_core \
@@ -355,7 +355,7 @@ output/experiments/algotutorgen_pilot_15/browser_audit/browser_audit_manifest.js
 - [ ] **步骤 2：运行 unseen-family evaluation**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+python3 scripts/run_llm_benchmark.py \
   --output-dir output/experiments/algotutorgen_main/algolab_full_unseen \
   --condition algolab_full \
   --case-set unseen \
@@ -395,7 +395,7 @@ output/experiments/algotutorgen_main/algolab_full_unseen/llm_benchmark_report.js
 - [ ] **步骤 1：在 15 题 pilot 上跑 direct HTML baseline**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_direct_html_baseline.py \
+python3 scripts/run_direct_html_baseline.py \
   --output-dir output/experiments/algotutorgen_baselines/direct_html_pilot_15 \
   --case house_robber \
   --case binary_search \
@@ -428,7 +428,7 @@ output/experiments/algotutorgen_baselines/direct_html_pilot_15/llm_benchmark_rep
 - [ ] **步骤 2：运行 no-process-validator ablation**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_no_process_validator_ablation.py \
+python3 scripts/run_no_process_validator_ablation.py \
   --output-dir output/experiments/algotutorgen_baselines/no_process_validator_pilot_15 \
   --case house_robber \
   --case binary_search \
@@ -461,7 +461,7 @@ output/experiments/algotutorgen_baselines/no_process_validator_pilot_15/llm_benc
 - [ ] **步骤 3：运行 no-SceneGraph-compiler ablation**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_no_scenegraph_compiler_ablation.py \
+python3 scripts/run_no_scenegraph_compiler_ablation.py \
   --output-dir output/experiments/algotutorgen_baselines/no_scenegraph_compiler_pilot_15 \
   --case house_robber \
   --case binary_search \
@@ -494,7 +494,7 @@ output/experiments/algotutorgen_baselines/no_scenegraph_compiler_pilot_15/llm_be
 - [ ] **步骤 4：从成功 AlgoLab artifact 导出 no-interaction component ablation**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/export_component_ablation_artifacts.py \
+python3 scripts/export_component_ablation_artifacts.py \
   --artifact-dir output/experiments/algotutorgen_pilot_15/algolab_full \
   --glob 'llm_*.json' \
   --output-dir output/experiments/algotutorgen_baselines/component_ablation_pilot_15 \
@@ -527,7 +527,7 @@ output/experiments/algotutorgen_baselines/component_ablation_pilot_15/component_
 - [ ] **步骤 1：合并主要 LLM reports**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/merge_llm_reports.py \
+python3 scripts/merge_llm_reports.py \
   --report algolab_full=output/experiments/algotutorgen_pilot_15/algolab_full/llm_benchmark_report.json \
   --report direct_html_baseline=output/experiments/algotutorgen_baselines/direct_html_pilot_15/llm_benchmark_report.json \
   --report no_process_validator=output/experiments/algotutorgen_baselines/no_process_validator_pilot_15/llm_benchmark_report.json \
@@ -544,7 +544,7 @@ output/experiments/algotutorgen_tables/merged_reports/llm_benchmark_report.json
 - [ ] **步骤 2：构建 evaluation manifest**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_manifest.py \
+python3 scripts/build_evaluation_manifest.py \
   --output-dir output/experiments/algotutorgen_tables/evaluation
 ```
 
@@ -557,7 +557,7 @@ output/experiments/algotutorgen_tables/evaluation/evaluation_manifest.json
 - [ ] **步骤 3：构建 family release gate 报告**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py \
+python3 scripts/check_family_release_gate.py \
   --output-dir output/experiments/algotutorgen_tables/release_gate
 ```
 
@@ -570,7 +570,7 @@ output/experiments/algotutorgen_tables/release_gate/family_release_gate.json
 - [ ] **步骤 4：构建最终 evaluation report**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py \
+python3 scripts/build_evaluation_report.py \
   --output-dir output/experiments/algotutorgen_tables/evaluation \
   --manifest output/experiments/algotutorgen_tables/evaluation/evaluation_manifest.json \
   --llm-report output/experiments/algotutorgen_tables/merged_reports/llm_benchmark_report.json \
@@ -589,7 +589,7 @@ output/experiments/algotutorgen_tables/evaluation/evaluation_failure_types.csv
 - [ ] **步骤 5：构建 reproducibility package**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_reproducibility_package.py \
+python3 scripts/build_reproducibility_package.py \
   --output-dir output/experiments/algotutorgen_tables/reproducibility
 ```
 
@@ -614,7 +614,7 @@ output/experiments/algotutorgen_tables/reproducibility/reproducibility_manifest.
 - [ ] **步骤 1：检查 pilot 和 family-core 的结果缺口**
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 import json
 from pathlib import Path
 

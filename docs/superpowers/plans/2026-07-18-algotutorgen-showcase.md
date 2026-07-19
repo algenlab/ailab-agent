@@ -209,7 +209,7 @@ Create a 1600×1000 SVG overview with five horizontal dark bands that preserve t
 Serve the repository root so links to real HTML artifacts, PDFs, and result documents remain valid:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m http.server 4173
+python3 -m http.server 4173
 ```
 
 Open `http://127.0.0.1:4173/showcase/`.
@@ -367,7 +367,7 @@ git commit -m "feat: add showcase evidence interactions"
 
 - [ ] **Step 1: Start the repository-root server**
 
-Run: `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m http.server 4173`
+Run: `python3 -m http.server 4173`
 
 Expected: server listens at `http://127.0.0.1:4173` and keeps running in a PTY session.
 

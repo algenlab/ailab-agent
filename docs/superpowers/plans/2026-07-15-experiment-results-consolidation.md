@@ -69,6 +69,6 @@
 
 - [ ] **Step 1:** 运行 stale-reference 搜索，预期无旧结果报告引用。
 - [ ] **Step 2:** 运行标题和结果文档搜索，确认 docs 中只有 `EXPERIMENT_RESULTS.md` 承担实验结果汇总职责。
-- [ ] **Step 3:** 运行 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile scripts/summarize_webgen_agent_baseline.py`。
+- [ ] **Step 3:** 运行 `python3 -m py_compile scripts/summarize_webgen_agent_baseline.py`。
 - [ ] **Step 4:** 运行 `git diff --check`。
 - [ ] **Step 5:** 检查 `git diff --stat` 和删除清单，确认未触及原始实验产物及无关用户改动。

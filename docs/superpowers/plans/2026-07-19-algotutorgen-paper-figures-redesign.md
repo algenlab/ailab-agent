@@ -13,16 +13,16 @@
 ### Task 1: Establish Workspace Boundaries and Clone AutoFigure-Edit
 
 **Files:**
-- Read: `/ssd1/liaokunpeng/paper/ailab-agent/latex/main.tex`
-- Read: `/ssd1/liaokunpeng/paper/ailab-agent/benchmark/algo_learn_env_benchmark.json`
-- Create: `/ssd1/liaokunpeng/paper/AutoFigure-Edit/`
+- Read: `./latex/main.tex`
+- Read: `./benchmark/algo_learn_env_benchmark.json`
+- Create: `$AUTOFIGURE_ROOT/`
 
 - [ ] **Step 1: Confirm the required target is absent**
 
 Run:
 
 ```bash
-test ! -e /ssd1/liaokunpeng/paper/AutoFigure-Edit
+test ! -e $AUTOFIGURE_ROOT
 ```
 
 Expected: exit code 0. If the directory exists, inspect it and reuse it only if its remote is `https://github.com/ResearAI/AutoFigure-Edit` and it has no unrelated local changes.
@@ -32,14 +32,14 @@ Expected: exit code 0. If the directory exists, inspect it and reuse it only if 
 Run:
 
 ```bash
-git clone https://github.com/ResearAI/AutoFigure-Edit /ssd1/liaokunpeng/paper/AutoFigure-Edit
+git clone https://github.com/ResearAI/AutoFigure-Edit $AUTOFIGURE_ROOT
 ```
 
-Expected: clone completes and `/ssd1/liaokunpeng/paper/AutoFigure-Edit/autofigure2.py` exists.
+Expected: clone completes and `$AUTOFIGURE_ROOT/autofigure2.py` exists.
 
 - [ ] **Step 3: Record the cloned revision and supported route**
 
-Run from `/ssd1/liaokunpeng/paper/AutoFigure-Edit`:
+Run from `$AUTOFIGURE_ROOT`:
 
 ```bash
 git rev-parse HEAD
@@ -52,15 +52,15 @@ Expected: the README documents v1.1 support for `gpt-image-2`, user-supplied sta
 ### Task 2: Verify Tool Dependencies Without Polluting the Paper Environment
 
 **Files:**
-- Read: `/ssd1/liaokunpeng/paper/AutoFigure-Edit/requirements.txt`
-- Create: `/ssd1/liaokunpeng/paper/ailab-agent/latex/figure-generation/autofigure-usage.md`
+- Read: `$AUTOFIGURE_ROOT/requirements.txt`
+- Create: `./latex/figure-generation/autofigure-usage.md`
 
 - [ ] **Step 1: Check the existing mandated Python environment**
 
 Run:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -c 'import PIL, openai, requests; print("stage1_dependencies=ok")'
+python3 -c 'import PIL, openai, requests; print("stage1_dependencies=ok")'
 ```
 
 Expected: `stage1_dependencies=ok`.
@@ -70,7 +70,7 @@ Expected: `stage1_dependencies=ok`.
 Run:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -c 'import importlib.util, os; print("sam3="+str(bool(importlib.util.find_spec("sam3")))); print("torch="+str(bool(importlib.util.find_spec("torch")))); print("roboflow_key="+str(bool(os.environ.get("ROBOFLOW_API_KEY")))); print("fal_key="+str(bool(os.environ.get("FAL_KEY")))); print("hf_token="+str(bool(os.environ.get("HF_TOKEN"))))'
+python3 -c 'import importlib.util, os; print("sam3="+str(bool(importlib.util.find_spec("sam3")))); print("torch="+str(bool(importlib.util.find_spec("torch")))); print("roboflow_key="+str(bool(os.environ.get("ROBOFLOW_API_KEY")))); print("fal_key="+str(bool(os.environ.get("FAL_KEY")))); print("hf_token="+str(bool(os.environ.get("HF_TOKEN"))))'
 ```
 
 Expected: a capability report only; no secret values are printed. Stage-1 generation remains usable even if SAM3/RMBG credentials are unavailable.
@@ -125,13 +125,13 @@ Expected: main summary reports 200 cases, 646 samples, and 23 family IDs; held-o
 
 - [ ] **Step 1: Query the active project model list without printing the API key**
 
-Use `/ssd1/liaokunpeng/agent-py310-cu/bin/python3` and `OpenAI(...).models.list()` with `api_settings.json`.
+Use `python3` and `OpenAI(...).models.list()` with `api_settings.json`.
 
 Expected: record the base URL, count, and model IDs. The current list may omit image-only models; omission does not prove the Images route is unavailable.
 
 - [ ] **Step 2: Probe `gpt-image-2` through AutoFigure-Edit's official OpenAI Images implementation**
 
-Run a short Python `-c` command from `/ssd1/liaokunpeng/paper/AutoFigure-Edit` that:
+Run a short Python `-c` command from `$AUTOFIGURE_ROOT` that:
 
 - loads `../ailab-agent/api_settings.json` internally;
 - imports `generate_figure_from_method` from `autofigure2.py`;
@@ -221,7 +221,7 @@ Copy the selected candidate to `latex/figures/dataset-overview.png`.
 ### Task 8: Exercise the Optional Editable-SVG Path When Available
 
 **Files:**
-- Read: `/ssd1/liaokunpeng/paper/AutoFigure-Edit/autofigure2.py`
+- Read: `$AUTOFIGURE_ROOT/autofigure2.py`
 - Create conditionally: `latex/figure-generation/autofigure-svg-smoke/`
 
 - [ ] **Step 1: Evaluate the capability report from Task 2**

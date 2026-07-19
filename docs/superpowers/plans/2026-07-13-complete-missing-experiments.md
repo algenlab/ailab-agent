@@ -19,7 +19,7 @@
 
 - [ ] Add a test that verifies the freezer records SHA-256 hashes, 200 unique case IDs, 23 families, and all required source reports.
 - [ ] Implement the freezer using the final Stage1, Direct, machine, external-review, Stage2, visual-baseline, and benchmark files.
-- [ ] Run `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m pytest tests/regression/experiment_completion.py -v` and require PASS.
+- [ ] Run `python3 -m pytest tests/regression/experiment_completion.py -v` and require PASS.
 - [ ] Generate `frozen_inputs.json` and verify every referenced path exists.
 
 ### Task 2: Build Paired Full-200 Ablation Conditions

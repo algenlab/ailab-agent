@@ -133,8 +133,8 @@ Extract inline paths beginning with `output/`, `benchmark/`, or `latex/` and ass
 
 ```bash
 git diff --check
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m pytest tests/regression/*.py -q
+python3 scripts/run_quality_checks.py
+python3 -m pytest tests/regression/*.py -q
 ```
 
 Expected: diff check exits 0, quality checks print `PASS`, and the explicit regression suite reports 107 passed.

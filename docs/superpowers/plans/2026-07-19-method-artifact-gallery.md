@@ -25,7 +25,7 @@ Add tests that import `SELECTED_CASES`, `METHOD_ORDER`, `build_gallery`, and `va
 Run:
 
 ```bash
-TMPDIR=/ssd1/liaokunpeng/.tmp /ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m pytest -q tests/regression/method_artifact_gallery.py
+TMPDIR=.tmp python3 -m pytest -q tests/regression/method_artifact_gallery.py
 ```
 
 Expected: collection failure because `scripts.build_method_artifact_gallery` does not exist.
@@ -66,7 +66,7 @@ Run the same pytest command. Expected: all gallery tests pass.
 Run:
 
 ```bash
-TMPDIR=/ssd1/liaokunpeng/.tmp /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_method_artifact_gallery.py
+TMPDIR=.tmp python3 scripts/build_method_artifact_gallery.py
 ```
 
 Expected: a summary reporting 23 cases, 115 method artifacts, and zero validation errors.
@@ -95,4 +95,3 @@ Confirm only the builder, test, design/plan, and generated artifact directory ar
 - [ ] **Step 3: Commit and push**
 
 Commit with `feat: add five-method artifact sample gallery` and push the existing `codex/publish-current-project-20260719` branch.
-
