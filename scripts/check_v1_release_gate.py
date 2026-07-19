@@ -24,7 +24,7 @@ from scripts.build_evaluation_report import build_evaluation_report
 from benchmark.cases import benchmark_cases
 
 
-PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+PYTHON = "python3"
 BROWSER_SMOKE_CONTAINER = "bash scripts/run_browser_smoke_container.sh"
 QUALITY_CHECKS = f"{PYTHON} scripts/run_quality_checks.py"
 MIN_V1_SAMPLES = 80

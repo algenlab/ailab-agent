@@ -17,7 +17,7 @@ from algolab.verification.process_validator import process_validation_registry
 from benchmark.cases import BenchmarkCase, benchmark_cases
 
 
-PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+PYTHON = "python3"
 REGISTRY_PATH = ROOT / "benchmark" / "family_capabilities.json"
 VALID_LEVELS = {"strong", "medium_plus", "medium", "basic", "planned"}
 VALID_PROCESS_STATUSES = {"strong", "fallback", "uncovered"}

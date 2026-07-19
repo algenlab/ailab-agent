@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON="/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+PYTHON="python3"
 BASE="$ROOT/output/experiments/algotutorgen_completion_20260713"
 FULL="$ROOT/output/experiments/algotutorgen_full_200_20260706/semantic_eval_machine_rendered_text/interaction_semantic_eval_report.json"
 

@@ -32,7 +32,7 @@ from algolab.verification.process_validator import validate_process
 from benchmark.cases import BenchmarkCase, benchmark_cases
 
 
-PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+PYTHON = "python3"
 QUALITY_CHECKS = f"{PYTHON} scripts/run_quality_checks.py"
 
 

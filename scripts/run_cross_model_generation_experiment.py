@@ -15,13 +15,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from llm_client import _model_name, api_settings, chat_text_with_metadata
+from llm_client import _model_name, chat_text_with_metadata, public_endpoint_label
 from scripts.run_direct_to_scenegraph_ablation import _manifest_rows, _repo_path, _write_json
 
 
 DEFAULT_SOURCE_REPORT = ROOT / "output/experiments/algotutorgen_full_200_20260706/algolab_full_final/llm_benchmark_report.json"
 DEFAULT_OUTPUT_DIR = ROOT / "output/experiments/algotutorgen_plan_completion_20260713/cross_model_50"
-FIXED_PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+FIXED_PYTHON = "python3"
 
 
 def candidate_models(*, primary_model: str, configured: str = "") -> list[str]:
@@ -110,7 +110,7 @@ def probe_model(model: str, output_path: Path) -> dict[str, Any]:
             "model_call": response.get("model_call") or {},
             "started_at": started_at,
             "ended_at": datetime.now().isoformat(timespec="seconds"),
-            "endpoint": api_settings().get("base_url"),
+            "endpoint": public_endpoint_label(),
         }
     except Exception as exc:
         payload = {
@@ -119,7 +119,7 @@ def probe_model(model: str, output_path: Path) -> dict[str, Any]:
             "error": f"{type(exc).__name__}: {exc}",
             "started_at": started_at,
             "ended_at": datetime.now().isoformat(timespec="seconds"),
-            "endpoint": api_settings().get("base_url"),
+            "endpoint": public_endpoint_label(),
         }
     _write_json(output_path, payload)
     return payload
@@ -230,7 +230,7 @@ def main() -> int:
         "status": "generated" if all(Path(run["report"]).exists() for run in runs) else "incomplete",
         "primary_model": args.primary_model,
         "second_model": selected_model,
-        "endpoint": api_settings().get("base_url"),
+        "endpoint": public_endpoint_label(),
         "case_ids": case_ids,
         "family_count": len({row.get("family_id") for row in selected}),
         "probes": probes,

@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON="/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
-IMAGE="iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest"
+PYTHON="${PYTHON:-python3}"
+IMAGE="${ALGOLAB_PLAYWRIGHT_IMAGE:-mcr.microsoft.com/playwright/python:v1.59.0-noble}"
 OUT="$ROOT/output/external_baselines/htmlcure_all200_sample0"
 ALGOLAB_REPORT="$ROOT/output/experiments/algotutorgen_full_200_20260706/algolab_full_final/llm_benchmark_report.json"
 AUDIT_OUT="$OUT/behavior_audit_external_blocked"
@@ -11,10 +11,9 @@ AUDIT_OUT="$OUT/behavior_audit_external_blocked"
 mkdir -p "$AUDIT_OUT/logs"
 for shard in $(seq 0 7); do
   sudo -n docker run --rm --shm-size=2g \
-    -v /ssd1:/ssd1 \
+    -v "$ROOT:$ROOT" \
     -e PYTHONPATH="$ROOT" \
     -e PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    -e ALGOLAB_CHROMIUM_EXECUTABLE=/ms-playwright/chromium-1223/chrome-linux64/chrome \
     -e ALGOLAB_BLOCK_EXTERNAL_RESOURCES=1 \
     --entrypoint bash "$IMAGE" -lc "
 set -euo pipefail

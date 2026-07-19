@@ -21,7 +21,7 @@ if str(ROOT) not in sys.path:
 from benchmark.property_cases import DEFAULT_PROPERTY_SEED, PropertyCase, generate_property_samples, property_cases
 
 
-PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+PYTHON = "python3"
 
 
 def build_property_benchmark_report(

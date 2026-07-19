@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_BIN="${ALGOLAB_PYTHON_BIN:-/ssd1/liaokunpeng/agent-py310-cu/bin/python3}"
+PYTHON_BIN="${ALGOLAB_PYTHON_BIN:-python3}"
 NUM_SHARDS=16
 ALGOLAB_REPORT=""
 DIRECT_REPORT=""
@@ -61,7 +61,7 @@ for shard in $(seq 0 $((NUM_SHARDS - 1))); do
   mkdir -p "$shard_dir"
   scripts/run_browser_smoke_container.sh \
     env ALGOLAB_BLOCK_EXTERNAL_RESOURCES=1 \
-    python scripts/run_interaction_semantic_eval.py \
+    python3 scripts/run_interaction_semantic_eval.py \
     --algolab-report "$ALGOLAB_REPORT" \
     --direct-report "$DIRECT_REPORT" \
     --output-dir "$shard_dir" \

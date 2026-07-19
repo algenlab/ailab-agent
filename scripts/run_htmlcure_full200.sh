@@ -2,23 +2,25 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON="/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
-IMAGE="iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest"
+PYTHON="${PYTHON:-python3}"
+IMAGE="${ALGOLAB_PLAYWRIGHT_IMAGE:-mcr.microsoft.com/playwright/python:v1.59.0-noble}"
 OUT="$ROOT/output/external_baselines/htmlcure_all200_sample0"
 
 mkdir -p "$OUT/logs"
 
 for shard in $(seq 0 7); do
   sudo -n docker run --rm --shm-size=2g \
-    -v /ssd1:/ssd1 \
+    -v "$ROOT:$ROOT" \
     -v /tmp/htmlcure-audit:/opt/HTMLCure:ro \
     -v /tmp/htmlcure-pydeps:/tmp/htmlcure-pydeps:ro \
     -e PYTHONPATH=/tmp/htmlcure-pydeps:/opt/HTMLCure:$ROOT \
-    -e ALGOLAB_LLM_SETTINGS_FILE="$ROOT/api_settings.json" \
     -e PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    -e HTTP_PROXY=http://agent.baidu.com:8891 \
-    -e HTTPS_PROXY=http://agent.baidu.com:8891 \
-    -e NO_PROXY=oneapi-comate.baidu-int.com,baidu-int.com,localhost,127.0.0.1,baidu.com,baidubce.com,bj.bcebos.com,bfsu.edu.cn,tsinghua.edu.cn \
+    -e ALGOLAB_LLM_API_KEY \
+    -e ALGOLAB_LLM_BASE_URL \
+    -e ALGOLAB_LLM_MODEL \
+    -e HTTP_PROXY \
+    -e HTTPS_PROXY \
+    -e NO_PROXY \
     --entrypoint bash "$IMAGE" -lc "
 set -euo pipefail
 $PYTHON '$ROOT/scripts/run_htmlcure_baseline.py' \\

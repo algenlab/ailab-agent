@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON="/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
-IMAGE="${ALGOLAB_PLAYWRIGHT_IMAGE:-iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest}"
+PYTHON="${PYTHON:-python3}"
+IMAGE="${ALGOLAB_PLAYWRIGHT_IMAGE:-mcr.microsoft.com/playwright/python:v1.59.0-noble}"
 BASE="$ROOT/output/experiments/algotutorgen_completion_20260713"
 ABLATIONS="$BASE/ablation_conditions"
 AUDITS="$BASE/ablation_audits"
@@ -63,10 +63,9 @@ for condition in "${CONDITIONS[@]}"; do
     fi
     rm -f "$shard_report"
     "${DOCKER[@]}" run --rm --init --shm-size=2g \
-      -v /ssd1:/ssd1 \
+      -v "$ROOT:$ROOT" \
       -e PYTHONPATH="$ROOT" \
       -e PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-      -e ALGOLAB_CHROMIUM_EXECUTABLE=/ms-playwright/chromium-1223/chrome-linux64/chrome \
       -e ALGOLAB_BLOCK_EXTERNAL_RESOURCES=1 \
       --entrypoint bash "$IMAGE" -lc "
 set -euo pipefail

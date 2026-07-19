@@ -21,7 +21,7 @@ if str(ROOT) not in sys.path:
 from benchmark.cases import BenchmarkCase, benchmark_cases
 
 
-PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+PYTHON = "python3"
 REGISTRY_PATH = ROOT / "benchmark" / "boundary_cases.json"
 BOUNDARY_CATEGORIES = (
     "empty",

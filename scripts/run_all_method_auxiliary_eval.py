@@ -332,7 +332,7 @@ def capture_webgen_workspace_screenshot(record: dict[str, Any]) -> dict[str, Any
                 "--no-audit",
                 "--no-fund",
                 "--registry",
-                "https://registry.npmmirror.com",
+                "https://registry.npmjs.org",
                 "--fetch-retries",
                 "4",
                 "--fetch-retry-maxtimeout",
