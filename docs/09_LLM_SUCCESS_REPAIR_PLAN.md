@@ -19,7 +19,7 @@
 - 阶段完成后，把该阶段状态改为 `状态：已完成。`，并补充完成证据。
 - 如果阶段因为环境、模型服务或不可复现问题无法继续，把状态改为 `状态：阻塞。`，写明阻塞命令、错误和恢复条件。
 - 不要做 Git，不提交不推送。
-- Python 固定使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`。
+- Python 固定使用 `python3`。
 - 浏览器命令固定走 `bash scripts/run_browser_smoke_container.sh`。
 - 可以修可复现 bug，但必须最小修复、加 regression 测试、复跑失败命令。
 
@@ -151,21 +151,21 @@ LLM generate / repair
 非浏览器测试：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/repair_release_gate
+python3 -m tests.benchmark_regression
+python3 -m tests.offline_regression
+python3 scripts/check_family_release_gate.py --output-dir output/repair_release_gate
 ```
 
 浏览器完整质量检查：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 单 case live LLM 复跑模板：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_llm_smoke \
   --condition algolab_full \
   --case CASE_ID \
@@ -178,7 +178,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 全量 live LLM 复跑模板：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_llm_algolab_full \
   --condition algolab_full \
   --max-rounds 2 \
@@ -190,7 +190,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 全量报告验收脚本：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 import json
 from pathlib import Path
 
@@ -269,14 +269,14 @@ PY
 阶段测试命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.regression.repair_prompt_contracts
+python3 -m tests.benchmark_regression
 ```
 
 阶段 live smoke：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_r1_schema_smoke \
   --condition algolab_full \
   --case binary_answer_sqrt \
@@ -322,10 +322,10 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - prompt 明确禁止 `tracer.choose()`，回溯选择用 `push` / `mark` / `enter`，撤销用 `pop` / `unmark` / `exit`。
   - 追加 map target 引号规则：使用 `indegree[A]`、`dist[B]`，不要使用 `indegree['A']`、`dist["B"]`。
 - regression 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
+  - `python3 -m tests.regression.repair_prompt_contracts`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
 - deterministic gate：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/repair_r1_release_gate`：`overall_ready=true`，`case_count=69`，`sample_count=250`，`answer_pass_rate=1.0`，`process_pass_rate=1.0`，`demo_readiness_pass_rate=1.0`。
+  - `python3 scripts/check_family_release_gate.py --output-dir output/repair_r1_release_gate`：`overall_ready=true`，`case_count=69`，`sample_count=250`，`answer_pass_rate=1.0`，`process_pass_rate=1.0`，`demo_readiness_pass_rate=1.0`。
 - live smoke：
   - `output/repair_r1_schema_smoke2/llm_benchmark_report.json`：`total=6`，`passed=3`，`failed=3`，`pass_rate=0.5`，`failure_summary={"demo_state_jump": 1, "process_invariant": 2}`，`browser_total=3`，`browser_ok=3`。
   - 失败项为 `binary_answer_sqrt` 的二分 demo 比较证据跳变、`graph_topological_sort` 的拓扑入队原因缺失、`permutations_expansion` 的回溯 `recursion_tree/search_tree` 与 `record` 事件缺失。
@@ -384,15 +384,15 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 阶段测试命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/repair_r2_release_gate
+python3 -m tests.regression.trace_contracts
+python3 -m tests.benchmark_regression
+python3 scripts/check_family_release_gate.py --output-dir output/repair_r2_release_gate
 ```
 
 阶段 live smoke：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_r2_string_smoke \
   --condition algolab_full \
   --case rabin_karp \
@@ -433,11 +433,11 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - prompt 增加 Rabin-Karp、Z Algorithm、Manacher 的 family_contract 样例；repair prompt 遇到 `Family contract string 缺少 text/pattern 指针` 时先判断 submode，不机械添加 pattern。
   - 额外补充 `Tracer.compare([...])` API repair 指令，修复 R2 live retry 中暴露的 `Tracer.compare() missing targets`。
 - regression 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
+  - `python3 -m tests.regression.trace_contracts`：PASS。
+  - `python3 -m tests.regression.repair_prompt_contracts`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
 - deterministic gate：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/repair_r2_release_gate`：`overall_ready=true`，`case_count=69`，`sample_count=250`，`answer_pass_rate=1.0`，`process_pass_rate=1.0`，`demo_readiness_pass_rate=1.0`。
+  - `python3 scripts/check_family_release_gate.py --output-dir output/repair_r2_release_gate`：`overall_ready=true`，`case_count=69`，`sample_count=250`，`answer_pass_rate=1.0`，`process_pass_rate=1.0`，`demo_readiness_pass_rate=1.0`。
 - live smoke：
   - `output/repair_r2_string_smoke2/llm_benchmark_report.json`：`total=3`，`passed=2`，`failed=1`，`pass_rate=0.6666666666666666`，`failure_summary={"generation": 1}`，`browser_total=2`，`browser_ok=2`。
   - `z_algorithm` 和 `manacher` 通过完整 algolab_full + browser smoke。
@@ -492,15 +492,15 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 阶段测试命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.scene_edge_binding
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+python3 -m tests.regression.scene_edge_binding
+python3 -m tests.benchmark_regression
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 阶段 live smoke：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_r3_scene_smoke \
   --condition algolab_full \
   --case bellman_ford_shortest_path \
@@ -536,10 +536,10 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - Scene validator 增加 state-aware node id 提取；已有 state node 不再被误报为 scene object 缺失，同时 `node:Z` 这类不存在对象仍会报 warning。
   - repair context / repair prompt 增加 `Tracer.link() takes 2 positional arguments but 3 were given` 的 API 修复指令，要求使用 `deps=[...]` 关键字。
 - regression 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.scene_edge_binding`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`：`quality_checks: PASS`。
+  - `python3 -m tests.regression.scene_edge_binding`：PASS。
+  - `python3 -m tests.regression.repair_prompt_contracts`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`：`quality_checks: PASS`。
 - live smoke：
   - `output/repair_r3_scene_smoke2/llm_benchmark_report.json`：`total=3`，`passed=2`，`failed=1`，`failure_summary={"execution": 1}`；`bellman_ford_shortest_path` 和 `reverse_linked_list` 通过，`bipartite_matching` 当时失败为 `Tracer.link() takes 2 positional arguments but 3 were given`。
   - `output/repair_r3_bellman_retry/llm_benchmark_report.json`：`total=1`，`passed=1`，`failed=0`。
@@ -602,15 +602,15 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 阶段测试命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.graph_repair_guidance
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.regression.graph_repair_guidance
+python3 -m tests.regression.trace_contracts
+python3 -m tests.benchmark_regression
 ```
 
 阶段 live smoke：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_r4_graph_smoke \
   --condition algolab_full \
   --case dijkstra_shortest_path \
@@ -653,12 +653,12 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - tracker / repair system prompt 增加图 submode 短模板和 graph `process_invariant` 修复规则；不放宽 graph validator。
   - 补充 `weighted_graph` 的 trace / SceneGraph 绑定：`input_data.weighted_graph` 可生成 node / edge object，weighted neighbor `["B", w]` 归一为 `node:B` / `edge:A->B`。
 - regression 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.graph_repair_guidance`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.scene_edge_binding`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`：`quality_checks: PASS`。
+  - `python3 -m tests.regression.graph_repair_guidance`：PASS。
+  - `python3 -m tests.regression.scene_edge_binding`：PASS。
+  - `python3 -m tests.regression.trace_contracts`：PASS。
+  - `python3 -m tests.regression.repair_prompt_contracts`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`：`quality_checks: PASS`。
 - live smoke：
   - `output/repair_r4_graph_smoke2/llm_benchmark_report.json`：`total=6`，`passed=5`，`failed=1`，`pass_rate=0.8333333333333334`，`failure_summary={"process_invariant": 1}`。
   - smoke2 中 `dijkstra_shortest_path`、`dijkstra_shortest_path_expansion`、`kruskal_mst_weight`、`tarjan_scc`、`edmonds_karp_expansion` 通过；唯一失败为 `edmonds_karp` 缺 `flow/capacity` 更新事件。
@@ -725,15 +725,15 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 阶段测试命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.data_structure_repair_guidance
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.regression.data_structure_repair_guidance
+python3 -m tests.regression.trace_contracts
+python3 -m tests.benchmark_regression
 ```
 
 阶段 live smoke：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_r5_data_smoke \
   --condition algolab_full \
   --case complete_knapsack_coin_change \
@@ -772,11 +772,11 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - 回溯 guidance 明确 `choose / record / undo`、`tracer.enter` / `tracer.exit`、每个事件 state 保留 `recursion_tree` / `search_tree`，且 `expected_events` 不使用不可满足的 `answer` token。
   - Sparse table guidance 明确逐个 `set st[k][i]`，值按 `st[0][i]=nums[i]`、`st[k][i] = min(st[k-1][i], st[k-1][i+2^(k-1)])` 生成，query 记录两个重叠区间和 answer target。
 - regression 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.data_structure_repair_guidance`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`：`quality_checks: PASS`。
+  - `python3 -m tests.regression.data_structure_repair_guidance`：PASS。
+  - `python3 -m tests.regression.trace_contracts`：PASS。
+  - `python3 -m tests.regression.repair_prompt_contracts`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`：`quality_checks: PASS`。
 - live smoke：
   - `output/repair_r5_data_smoke/llm_benchmark_report.json`：`total=7`，`passed=1`，`failed=6`，`failure_summary={"process_invariant": 2, "generation": 2, "demo_missing_deps": 1, "demo_key_step_missing": 1}`；暴露 DP answer_position、Trie target、单调栈 deps、回溯 record/tree、sparse table 写入帧等缺口。
   - 补第一轮 guidance 后，`output/repair_r5_data_smoke2/llm_benchmark_report.json`：`total=7`，`passed=2`，`failed=5`，`failure_summary={"process_invariant": 3, "demo_missing_deps": 1, "demo_key_step_missing": 1}`；`digit_dp_no_seven` 与 `trie_prefix` 通过，剩余缺口收敛到 DP 转移 / formula、单调栈 pop deps、回溯 enter/undo、sparse table 数值。
@@ -823,13 +823,13 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 阶段测试命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.failure_attribution
+python3 -m tests.regression.failure_attribution
 ```
 
 全量复跑命令：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_llm_algolab_full \
   --condition algolab_full \
   --max-rounds 2 \
@@ -841,7 +841,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 归因报告命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/analyze_llm_failures.py \
+python3 scripts/analyze_llm_failures.py \
   --report output/repair_llm_algolab_full/llm_benchmark_report.json \
   --output-dir output/repair_llm_algolab_full/failure_attribution
 ```
@@ -866,15 +866,15 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 
 - 新增 `scripts/analyze_llm_failures.py` 与 `tests/regression/failure_attribution.py`，并接入 `tests/benchmark_regression.py`。
 - TDD 红测：
-  - 首次运行 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.failure_attribution` 失败于 `ModuleNotFoundError: No module named 'scripts.analyze_llm_failures'`。
+  - 首次运行 `python3 -m tests.regression.failure_attribution` 失败于 `ModuleNotFoundError: No module named 'scripts.analyze_llm_failures'`。
   - live 报告暴露 `failure_type=generation` 不能一律归为 runtime 后，补充红测并确认断言失败，再收紧分类规则。
   - live 报告暴露 `fast_slow_cycle` 的“窗口指针跳变”落入 `unknown` 后，补充红测并确认断言失败，再归入 `actual_algorithm_state_mismatch`。
 - 阶段测试：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.failure_attribution`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`：`quality_checks: PASS`。
+  - `python3 -m tests.regression.failure_attribution`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`：`quality_checks: PASS`。
 - 全量 live 命令：
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/repair_llm_algolab_full --condition algolab_full --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/repair_llm_algolab_full --condition algolab_full --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
   - 进程退出码为 1，因为仍有失败项；报告已写入 `output/repair_llm_algolab_full/llm_benchmark_report.json`。
 - 全量结果：
   - `total=69`，`passed=36`，`failed=33`，`pass_rate=0.5217391304347826`。
@@ -883,7 +883,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - `model_usage.call_count=191`，`model_usage.total_tokens=2598418`，`model_usage.usage_available_rate=1`。
   - 失败项缺失 `failure_type` 数量为 0。
 - 归因报告命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/analyze_llm_failures.py --report output/repair_llm_algolab_full/llm_benchmark_report.json --output-dir output/repair_llm_algolab_full/failure_attribution`
+  - `python3 scripts/analyze_llm_failures.py --report output/repair_llm_algolab_full/llm_benchmark_report.json --output-dir output/repair_llm_algolab_full/failure_attribution`
 - 归因输出：
   - `output/repair_llm_algolab_full/failure_attribution/failure_attribution.json`
   - `output/repair_llm_algolab_full/failure_attribution/failure_attribution.md`
@@ -953,7 +953,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 建议 targeted live smoke：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_r7_residual_smoke \
   --condition algolab_full \
   --case binary_search \
@@ -977,7 +977,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 最终验收命令：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_llm_algolab_full \
   --condition algolab_full \
   --max-rounds 2 \
@@ -995,20 +995,20 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 完成证据（2026-06-01）：
 
 - 本地回归通过：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.r7_residual_repair_guidance`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.scene_edge_binding`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.reports_and_gates`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
+  - `python3 -m tests.regression.r7_residual_repair_guidance`：PASS。
+  - `python3 -m tests.regression.repair_prompt_contracts`：PASS。
+  - `python3 -m tests.regression.trace_contracts`：PASS。
+  - `python3 -m tests.regression.scene_edge_binding`：PASS。
+  - `python3 -m tests.regression.reports_and_gates`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
 - 完整 live full：
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/repair_llm_algolab_full_r7_smoke109 --condition algolab_full --max-rounds 2 --timeout-s 1200 --browser-smoke --concurrency 8`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/repair_llm_algolab_full_r7_smoke109 --condition algolab_full --max-rounds 2 --timeout-s 1200 --browser-smoke --concurrency 8`
   - 报告：`output/repair_llm_algolab_full_r7_smoke109/llm_benchmark_report.json`。
   - `total=69`，`passed=66`，`failed=3`，`pass_rate=0.9565217391304348`。
   - `browser_total=66`，`browser_ok=66`，`browser_failed=0`。
   - 失败项为 `z_algorithm`、`trie_prefix`、`sparse_table_range_min`，均为 process / target 约束问题。
 - 针对 full 残留 3 项的定向 live：
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/repair_r7_z_trie_sparse_smoke110 --condition algolab_full --case z_algorithm --case trie_prefix --case sparse_table_range_min --max-rounds 2 --timeout-s 1200 --browser-smoke --concurrency 8`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/repair_r7_z_trie_sparse_smoke110 --condition algolab_full --case z_algorithm --case trie_prefix --case sparse_table_range_min --max-rounds 2 --timeout-s 1200 --browser-smoke --concurrency 8`
   - 报告：`output/repair_r7_z_trie_sparse_smoke110/llm_benchmark_report.json`。
   - `total=3`，`passed=3`，`failed=0`，`browser_total=3`，`browser_ok=3`，`browser_failed=0`。
 - 2026-06-01 用户明确将 R7 验收口径降为 `66/69`，因此本阶段按 `smoke109` full 证据标记完成；不声明 R7 已达到 `69/69`。
@@ -1049,7 +1049,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 unseen 复跑命令：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repair_llm_unseen \
   --condition algolab_full \
   --case-set unseen \
@@ -1062,7 +1062,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 evaluation 重建命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/merge_llm_reports.py \
+python3 scripts/merge_llm_reports.py \
   --output-dir output/repair_evaluation \
   --report algolab_full=output/repair_llm_algolab_full/llm_benchmark_report.json \
   --report unseen_algolab_full=output/repair_llm_unseen/llm_benchmark_report.json \
@@ -1071,7 +1071,7 @@ evaluation 重建命令：
   --report no_scenegraph_compiler=output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json \
   --report no_repair=output/aaai_llm_no_repair/llm_benchmark_report.json
 
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py \
+python3 scripts/build_evaluation_report.py \
   --output-dir output/repair_evaluation \
   --llm-report output/repair_evaluation/merged_llm_benchmark_report.json \
   --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json \
@@ -1093,21 +1093,21 @@ evaluation 重建命令：
   - `tests/regression/evaluation_metric_semantics.py`：覆盖 direct HTML baseline 排除、algolab_full strict 指标、VLM successful screenshots 字段和 merged model config。
   - `docs/06_EVALUATION_AND_BENCHMARK.md`、`docs/08_AAAI_EXPERIMENT_PLAN.md`：补充 strict release gate、browser smoke、VLM-on-successful-screenshots 的边界说明。
 - 本地回归通过：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.evaluation_metric_semantics`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_conditions`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.reports_and_gates`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
+  - `python3 -m tests.regression.evaluation_metric_semantics`：PASS。
+  - `python3 -m tests.regression.vlm_conditions`：PASS。
+  - `python3 -m tests.regression.reports_and_gates`：PASS。
+  - `python3 -m tests.benchmark_regression`：PASS。
   - `git diff --check -- scripts/merge_llm_reports.py scripts/build_evaluation_report.py tests/regression/evaluation_metric_semantics.py tests/benchmark_regression.py docs/06_EVALUATION_AND_BENCHMARK.md docs/08_AAAI_EXPERIMENT_PLAN.md docs/09_LLM_SUCCESS_REPAIR_PLAN.md`：PASS。
 - unseen live 复核：
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/repair_llm_unseen --condition algolab_full --case-set unseen --max-rounds 2 --timeout-s 1200 --browser-smoke --concurrency 8`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/repair_llm_unseen --condition algolab_full --case-set unseen --max-rounds 2 --timeout-s 1200 --browser-smoke --concurrency 8`
   - 报告：`output/repair_llm_unseen/llm_benchmark_report.json`。
   - `case_set=unseen`，`total=15`，`passed=14`，`failed=1`，`pass_rate=0.9333333333333333`。
   - `browser_total=14`，`browser_ok=14`，`browser_failed=0`。
   - 失败项：`unseen_longest_palindromic_substring_length`，`failure_type=process_invariant`，`gate_layer=llm_eval`，错误为 string family contract 缺少 `text/pattern` 指针与失配/扩展或窗口移动原因。
   - 失败项 `missing_failure_type=[]`，满足 R8 unseen 失败归因验收。
 - evaluation 重建：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/merge_llm_reports.py --output-dir output/repair_evaluation --report algolab_full=output/repair_llm_algolab_full_r7_smoke109/llm_benchmark_report.json --report unseen_algolab_full=output/repair_llm_unseen/llm_benchmark_report.json --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json --report no_process_validator=output/aaai_llm_no_process_validator/llm_benchmark_report.json --report no_scenegraph_compiler=output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json --report no_repair=output/aaai_llm_no_repair/llm_benchmark_report.json`
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py --output-dir output/repair_evaluation --llm-report output/repair_evaluation/merged_llm_benchmark_report.json --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json --family-gate output/aaai_release_gate/family_release_gate.json --dashboard output/aaai_dashboard_all/dashboard.json`
+  - `python3 scripts/merge_llm_reports.py --output-dir output/repair_evaluation --report algolab_full=output/repair_llm_algolab_full_r7_smoke109/llm_benchmark_report.json --report unseen_algolab_full=output/repair_llm_unseen/llm_benchmark_report.json --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json --report no_process_validator=output/aaai_llm_no_process_validator/llm_benchmark_report.json --report no_scenegraph_compiler=output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json --report no_repair=output/aaai_llm_no_repair/llm_benchmark_report.json`
+  - `python3 scripts/build_evaluation_report.py --output-dir output/repair_evaluation --llm-report output/repair_evaluation/merged_llm_benchmark_report.json --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json --family-gate output/aaai_release_gate/family_release_gate.json --dashboard output/aaai_dashboard_all/dashboard.json`
   - 输出：`output/repair_evaluation/merged_llm_benchmark_report.json`、`output/repair_evaluation/evaluation_report.json`、`output/repair_evaluation/evaluation_report.md`、`output/repair_evaluation/evaluation_vlm_condition_summary.csv`。
   - `correctness_gate_pass_rate=80/84=0.952381`，说明 direct HTML baseline 已排除出 strict correctness gate 聚合。
   - `algolab_full_strict_release_gate_pass_rate=66/69=0.956522`，使用 R7 已确认的 `output/repair_llm_algolab_full_r7_smoke109/llm_benchmark_report.json` 作为 full 证据。
@@ -1127,23 +1127,23 @@ evaluation 重建命令：
 最终测试命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/repair_release_gate
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.scene_edge_binding
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.graph_repair_guidance
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.data_structure_repair_guidance
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.failure_attribution
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.evaluation_metric_semantics
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+python3 -m tests.benchmark_regression
+python3 -m tests.offline_regression
+python3 scripts/check_family_release_gate.py --output-dir output/repair_release_gate
+python3 -m tests.regression.repair_prompt_contracts
+python3 -m tests.regression.trace_contracts
+python3 -m tests.regression.scene_edge_binding
+python3 -m tests.regression.graph_repair_guidance
+python3 -m tests.regression.data_structure_repair_guidance
+python3 -m tests.regression.failure_attribution
+python3 -m tests.regression.evaluation_metric_semantics
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 最终验收脚本：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 import json
 from pathlib import Path
 
@@ -1186,17 +1186,17 @@ PY
   - 本文档 R9 目标、最终验收脚本和执行 AI 启动提示词已同步到 `66/69` 当前口径。
   - 未改 expected，未关闭 validator / gate，未跳 case，未混用 direct HTML baseline。
 - 最终测试命令通过：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/repair_release_gate`：生成 `output/repair_release_gate/family_release_gate.json`。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.repair_prompt_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.trace_contracts`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.scene_edge_binding`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.graph_repair_guidance`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.data_structure_repair_guidance`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.failure_attribution`：PASS。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.evaluation_metric_semantics`：PASS。
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`：`quality_checks: PASS`。
+  - `python3 -m tests.benchmark_regression`：PASS。
+  - `python3 -m tests.offline_regression`：PASS。
+  - `python3 scripts/check_family_release_gate.py --output-dir output/repair_release_gate`：生成 `output/repair_release_gate/family_release_gate.json`。
+  - `python3 -m tests.regression.repair_prompt_contracts`：PASS。
+  - `python3 -m tests.regression.trace_contracts`：PASS。
+  - `python3 -m tests.regression.scene_edge_binding`：PASS。
+  - `python3 -m tests.regression.graph_repair_guidance`：PASS。
+  - `python3 -m tests.regression.data_structure_repair_guidance`：PASS。
+  - `python3 -m tests.regression.failure_attribution`：PASS。
+  - `python3 -m tests.regression.evaluation_metric_semantics`：PASS。
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`：`quality_checks: PASS`。
 - 最终验收脚本通过：
   - `output/repair_llm_algolab_full_r7_smoke109/llm_benchmark_report.json`：`total=69`，`passed=66`，`failed=3`，`pass_rate=0.9565217391304348`。
   - `browser_total=66`，`browser_ok=66`，`browser_failed=0`。
@@ -1237,5 +1237,5 @@ PY
 ## 9. 给执行 AI 的启动提示词
 
 ```text
-你是执行 AI，在 /ssd1/liaokunpeng/paper/ailab-agent。阅读 docs/09_LLM_SUCCESS_REPAIR_PLAN.md，只做最靠前的“状态：待执行。”阶段，完成后把该阶段改成“状态：已完成。”并写完成证据。不要做 Git，不提交不推送。Python 固定用 /ssd1/liaokunpeng/agent-py310-cu/bin/python3，浏览器命令走 bash scripts/run_browser_smoke_container.sh。可以修可复现 bug，但必须最小修复、加测试、复跑失败命令。不要改 expected，不要放宽 gate，不要跳 case。R7 已由用户确认按 deterministic strict release gate `66/69` 口径通过；后续最终收口使用 `output/repair_llm_algolab_full_r7_smoke109/llm_benchmark_report.json` 作为 full live 证据，而不是继续追 `69/69`。按 docs/09 的汇报格式汇报。
+你是执行 AI，在 .。阅读 docs/09_LLM_SUCCESS_REPAIR_PLAN.md，只做最靠前的“状态：待执行。”阶段，完成后把该阶段改成“状态：已完成。”并写完成证据。不要做 Git，不提交不推送。Python 固定用 python3，浏览器命令走 bash scripts/run_browser_smoke_container.sh。可以修可复现 bug，但必须最小修复、加测试、复跑失败命令。不要改 expected，不要放宽 gate，不要跳 case。R7 已由用户确认按 deterministic strict release gate `66/69` 口径通过；后续最终收口使用 `output/repair_llm_algolab_full_r7_smoke109/llm_benchmark_report.json` 作为 full live 证据，而不是继续追 `69/69`。按 docs/09 的汇报格式汇报。
 ```

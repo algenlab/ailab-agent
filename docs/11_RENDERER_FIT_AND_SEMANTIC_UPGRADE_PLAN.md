@@ -522,14 +522,14 @@ Kruskal：
 所有 Python 命令使用项目约定解释器：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m pytest tests/offline_regression.py -q
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m pytest tests/browser_smoke.py -q
+python3 -m pytest tests/offline_regression.py -q
+python3 -m pytest tests/browser_smoke.py -q
 ```
 
 重渲和截图审查使用现有脚本时，同样使用：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/audit_renderer_visual_quality.py \
+python3 scripts/audit_renderer_visual_quality.py \
   --artifact-dir output/aaai/llm_algolab_full_gemini_3_flash_c12_k3_r1_full1 \
   --output-dir output/renderer_visual_audit/llm_algolab_full_gemini_3_flash_c12_k3_r1_full1_current
 ```
@@ -704,15 +704,15 @@ P0 通过标准：
 本轮验证命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile \
+python3 -m py_compile \
   algolab/renderer/export.py \
   scripts/audit_renderer_visual_quality.py \
   tests/offline_regression.py \
   tests/browser_smoke.py
 
-bash scripts/run_browser_smoke_container.sh python -m tests.browser_smoke
+bash scripts/run_browser_smoke_container.sh python3 -m tests.browser_smoke
 
-bash scripts/run_browser_smoke_container.sh python scripts/audit_renderer_visual_quality.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/audit_renderer_visual_quality.py \
   --artifact-dir output/aaai/llm_algolab_full_gemini_3_flash_c12_k3_r1_full1 \
   --output-dir output/renderer_visual_audit/llm_algolab_full_gemini_3_flash_c12_k3_r1_full1_final \
   --wait-ms 120 \
@@ -769,15 +769,15 @@ bash scripts/run_browser_smoke_container.sh python scripts/audit_renderer_visual
 补修后验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile \
+python3 -m py_compile \
   algolab/renderer/export.py \
   algolab/renderer/layout_registry.py \
   scripts/audit_renderer_visual_quality.py \
   tests/offline_regression.py
 
-bash scripts/run_browser_smoke_container.sh python -m tests.browser_smoke
+bash scripts/run_browser_smoke_container.sh python3 -m tests.browser_smoke
 
-bash scripts/run_browser_smoke_container.sh python scripts/audit_renderer_visual_quality.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/audit_renderer_visual_quality.py \
   --artifact-dir output/aaai/llm_algolab_full_gemini_3_flash_c12_k3_r1_full1 \
   --output-dir output/renderer_visual_audit/llm_algolab_full_gemini_3_flash_c12_k3_r1_full1_final \
   --wait-ms 120 \

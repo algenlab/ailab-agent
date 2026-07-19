@@ -161,7 +161,7 @@ V1 之后 benchmark 必须分层，不再把所有样例混成一个 pass/fail �
 P11.2 的随机小样例由 `benchmark/property_cases.py` 定义，运行入口是：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_property_benchmark.py --output-dir output/property_benchmark
+python3 scripts/run_property_benchmark.py --output-dir output/property_benchmark
 ```
 
 报告输出：
@@ -193,7 +193,7 @@ P11.2 的随机小样例由 `benchmark/property_cases.py` 定义，运行入口�
 P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查入口是：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py
+python3 scripts/check_boundary_cases.py
 ```
 
 该层不执行 LLM、不生成 HTML、不改变 deterministic benchmark 样例，只把当前 `family_core` case 的边界覆盖状态显式登记为两类证据：
@@ -403,7 +403,7 @@ P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查�
 注册表一致性检查：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py
+python3 scripts/check_family_capabilities.py
 ```
 
 ## 7.3 分层算法族发布门禁
@@ -411,7 +411,7 @@ P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查�
 V1 发布门禁仍由 `scripts/check_v1_release_gate.py` 维护，不改变既有 V1 deterministic 结论。V1.1 起新增独立 family release gate，用同一批 deterministic benchmark case 生成算法族级报告：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate
+python3 scripts/check_family_release_gate.py --output-dir output/release_gate
 ```
 
 输出：
@@ -479,7 +479,7 @@ V1 发布门禁仍由 `scripts/check_v1_release_gate.py` 维护，不改变既�
 P9.2 的可复现包由固定脚本生成：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_reproducibility_package.py --output-dir output/reproducibility
+python3 scripts/build_reproducibility_package.py --output-dir output/reproducibility
 ```
 
 输出：
@@ -491,7 +491,7 @@ P9.2 的可复现包由固定脚本生成：
 确定性质量检查只走本地轻量回归，不调用 LLM：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
 当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。浏览器截图或真实 DOM 验证应在 Playwright 兼容容器中显式运行：
@@ -500,20 +500,20 @@ P9.2 的可复现包由固定脚本生成：
 bash scripts/run_browser_smoke_container.sh
 ```
 
-宿主机仍用于非浏览器分层验证，例如 lightweight regression、benchmark 数据脚本和 family release gate。容器脚本默认使用当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`，并以宿主机 UID/GID 写入仓库，避免 root-owned 输出产物。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖镜像。
+宿主机仍用于非浏览器分层验证，例如 lightweight regression、benchmark 数据脚本和 family release gate。容器脚本默认使用当前机器已缓存的 `mcr.microsoft.com/playwright/python:v1.59.0-noble`，并以宿主机 UID/GID 写入仓库，避免 root-owned 输出产物。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖镜像。
 
 容器命令要求能访问 Docker daemon。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`；若两者都不可用，应在有 Docker 权限的 CI 或容器宿主机上运行 browser gate。
 
 LLM benchmark 单独运行，模型配置通过环境变量或本地 ignored settings 文件提供，输出模型配置、repair 轮次和失败分类：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark --condition algolab_full
+python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark --condition algolab_full
 ```
 
 P15.1 之后，LLM benchmark 使用 `benchmark/llm_family_sets.json` 做 family / subfamily 分层抽样。该配置覆盖当前 deterministic benchmark 的所有 `family_id`，并把每个 case 的 sample 0 标记为 `seen_style`，sample 1 及之后样例标记为 `unseen_style`，用于在真实 LLM 路径中观察模型对同族不同输入风格的泛化表现。常用过滤参数：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+python3 scripts/run_llm_benchmark.py \
   --output-dir output/llm_benchmark \
   --condition algolab_full \
   --family array_pointer \
@@ -532,7 +532,7 @@ P15.2 之后，repair context 会保留原始 `failure_type`，并额外暴露 `
 P15.3 之后，LLM benchmark 额外支持独立 unseen family case set：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+python3 scripts/run_llm_benchmark.py \
   --output-dir output/llm_benchmark_unseen \
   --condition algolab_full \
   --case-set unseen \
@@ -562,8 +562,8 @@ unseen registry 位于 `benchmark/unseen_family_cases.json`，只包含题目描
 P9.3 的 V1 发布门禁由确定性证据报告和完整质量检查共同证明：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_v1_release_gate.py --output-dir output/release_gate
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/check_v1_release_gate.py --output-dir output/release_gate
+python3 scripts/run_quality_checks.py
 ```
 
 输出：
@@ -577,4 +577,4 @@ P9.3 的 V1 发布门禁由确定性证据报告和完整质量检查共同证�
 - `unique_paths`、`graph_bfs`、`binary_search`、`daily_temperatures` 必须进入 browser smoke。
 - Debug Drawer 必须能展开查看 raw validation、release gate、raw state 和 artifact。
 - evaluation report 必须能输出失败分类 CSV。
-- 文档中的 Python 命令必须使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`。
+- 文档中的 Python 命令必须使用 `python3`。

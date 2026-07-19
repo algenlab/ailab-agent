@@ -592,7 +592,7 @@ trace_mutation_detected
 浏览器必须使用容器命令：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/audit_renderer_visual_quality.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/audit_renderer_visual_quality.py \
   --artifact-dir output/repro_aaai_r1_algolab_full_deepseek \
   --output-dir output/repro_aaai_r6_visual_audit_algolab_full \
   --capture-screenshots
@@ -937,7 +937,7 @@ rubric：
 使用容器 Playwright，不直接使用宿主机 Playwright：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/audit_renderer_visual_quality.py ...
+bash scripts/run_browser_smoke_container.sh python3 scripts/audit_renderer_visual_quality.py ...
 ```
 
 指标：
@@ -1019,7 +1019,7 @@ output/repro_aaai_r0_manifest/experiment_manifest.md
 命令模板：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/repro_aaai_r1_algolab_full_deepseek \
   --condition algolab_full \
   --case-set deterministic \
@@ -1072,14 +1072,14 @@ browser_failed = 0
 命令模板：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_direct_html_baseline.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_direct_html_baseline.py \
   --hide-expected \
   --output-dir output/repro_aaai_r3_direct_html_no_expected \
   --timeout-s 1200 \
   --browser-smoke \
   --concurrency 12
 
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/audit_direct_html_answer.py \
+python3 scripts/audit_direct_html_answer.py \
   --report output/repro_aaai_r3_direct_html_no_expected/llm_benchmark_report.json \
   --output-dir output/repro_aaai_r3_direct_html_no_expected_answer_audit
 ```
@@ -1256,7 +1256,7 @@ mean_artifact_kb
 
 执行 AI 必须遵守：
 
-- Python 固定使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`。
+- Python 固定使用 `python3`。
 - 浏览器命令固定走 `bash scripts/run_browser_smoke_container.sh`。
 - 不修改 expected output。
 - 不删除失败 case。

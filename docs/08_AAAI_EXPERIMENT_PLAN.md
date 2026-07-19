@@ -539,9 +539,9 @@ VLM 返回 JSON 必须满足：
 命令：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_v1_release_gate.py --output-dir output/aaai_release_gate
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/aaai_release_gate
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+python3 scripts/check_v1_release_gate.py --output-dir output/aaai_release_gate
+python3 scripts/check_family_release_gate.py --output-dir output/aaai_release_gate
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 验收：
@@ -556,9 +556,9 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 - 修改文件：仅更新 `docs/08_AAAI_EXPERIMENT_PLAN.md` 中 E1 状态和完成证据。
 - 新增或修改的测试：无，本阶段只执行既有 deterministic gate。
 - 实际运行命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_v1_release_gate.py --output-dir output/aaai_release_gate`
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/aaai_release_gate`
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`
+  - `python3 scripts/check_v1_release_gate.py --output-dir output/aaai_release_gate`
+  - `python3 scripts/check_family_release_gate.py --output-dir output/aaai_release_gate`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`
 - 关键输出路径：
   - `output/aaai_release_gate/v1_release_gate.json`
   - `output/aaai_release_gate/v1_release_gate.md`
@@ -580,13 +580,13 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 命令：
 
 ```bash
-CASE_ARGS=$(/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+CASE_ARGS=$(python3 - <<'PY'
 from tests.benchmark_cases import benchmark_cases
 print(" ".join(f"--case {case.id}" for case in benchmark_cases()))
 PY
 )
 
-bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_screenshots.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/capture_phase17_screenshots.py \
   --output-dir output/aaai_screenshots_all \
   --dashboard-dir output/aaai_dashboard_all \
   $CASE_ARGS
@@ -595,7 +595,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_scree
 验收脚本：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 import json
 from pathlib import Path
 
@@ -618,9 +618,9 @@ PY
 - 修改文件：仅更新 `docs/08_AAAI_EXPERIMENT_PLAN.md` 中 E2 状态和完成证据。
 - 新增或修改的测试：无，本阶段只执行既有截图采集与验收脚本。
 - 实际运行命令：
-  - `CASE_ARGS=$(/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... PY)`
-  - `bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_screenshots.py --output-dir output/aaai_screenshots_all --dashboard-dir output/aaai_dashboard_all $CASE_ARGS`
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... PY`（执行本阶段验收脚本）
+  - `CASE_ARGS=$(python3 - <<'PY' ... PY)`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/capture_phase17_screenshots.py --output-dir output/aaai_screenshots_all --dashboard-dir output/aaai_dashboard_all $CASE_ARGS`
+  - `python3 - <<'PY' ... PY`（执行本阶段验收脚本）
 - 关键输出路径：
   - `output/aaai_screenshots_all/phase17_screenshots.json`
   - `output/aaai_dashboard_all/dashboard.json`
@@ -652,7 +652,7 @@ PY
 脚本参数：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_vlm_screenshot_eval.py \
+python3 scripts/run_vlm_screenshot_eval.py \
   --manifest output/aaai_screenshots_all/phase17_screenshots.json \
   --condition deterministic \
   --output-dir output/aaai_vlm_deterministic
@@ -667,7 +667,7 @@ PY
 测试：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_evaluation
+python3 -m tests.regression.vlm_evaluation
 ```
 
 测试必须覆盖：
@@ -695,15 +695,15 @@ PY
   - 新增 `tests/regression/vlm_evaluation.py`。
   - 覆盖 fake VLM 合法 JSON、非法 JSON、异常不中断 batch、分数范围校验、字段保留、usage 可用/不可用、prompt/rubric 版本哈希、空响应重试、caption 长度规则、VLM timeout/max_tokens 配置。
 - 实际运行命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_evaluation`
-  - `ALGOLAB_VLM_TIMEOUT_S=60 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... PY`（1x1 PNG VLM 探测，返回上游 500）
-  - `ALGOLAB_VLM_TIMEOUT_S=60 ALGOLAB_VLM_MAX_TOKENS=128 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... PY`（64x64 PNG VLM 探测，成功返回 JSON，duration_s=3.9，total_tokens=1213）
-  - `ALGOLAB_VLM_MAX_TOKENS=128 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... PY`（真实 dashboard 截图探测，调用成功但 content 为空，completion_tokens=124）
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... PY`（真实 dashboard 截图默认 1024 token 探测，成功返回 JSON，duration_s=5.613，total_tokens=1462）
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_screenshots_all/phase17_screenshots.json --condition deterministic --output-dir output/aaai_vlm_deterministic`（初跑 1024 token：144 total，14 passed，130 failed，failure_types={"vlm_eval_error":130}）
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_screenshots_all/phase17_screenshots.json --condition deterministic --output-dir output/aaai_vlm_deterministic`（加异常容错、caption 修复和 1 次重试后复跑：144 total，51 passed，93 failed，failure_types={"vlm_eval_error":93}）
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... PY`（4096 token 单张 dashboard 完整 prompt 探测，成功返回 JSON，duration_s=13.638，total_tokens=4640）
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_screenshots_all/phase17_screenshots.json --condition deterministic --output-dir output/aaai_vlm_deterministic`（最终 4096 token 全量复跑）
+  - `python3 -m tests.regression.vlm_evaluation`
+  - `ALGOLAB_VLM_TIMEOUT_S=60 python3 - <<'PY' ... PY`（1x1 PNG VLM 探测，返回上游 500）
+  - `ALGOLAB_VLM_TIMEOUT_S=60 ALGOLAB_VLM_MAX_TOKENS=128 python3 - <<'PY' ... PY`（64x64 PNG VLM 探测，成功返回 JSON，duration_s=3.9，total_tokens=1213）
+  - `ALGOLAB_VLM_MAX_TOKENS=128 python3 - <<'PY' ... PY`（真实 dashboard 截图探测，调用成功但 content 为空，completion_tokens=124）
+  - `python3 - <<'PY' ... PY`（真实 dashboard 截图默认 1024 token 探测，成功返回 JSON，duration_s=5.613，total_tokens=1462）
+  - `python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_screenshots_all/phase17_screenshots.json --condition deterministic --output-dir output/aaai_vlm_deterministic`（初跑 1024 token：144 total，14 passed，130 failed，failure_types={"vlm_eval_error":130}）
+  - `python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_screenshots_all/phase17_screenshots.json --condition deterministic --output-dir output/aaai_vlm_deterministic`（加异常容错、caption 修复和 1 次重试后复跑：144 total，51 passed，93 failed，failure_types={"vlm_eval_error":93}）
+  - `python3 - <<'PY' ... PY`（4096 token 单张 dashboard 完整 prompt 探测，成功返回 JSON，duration_s=13.638，total_tokens=4640）
+  - `python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_screenshots_all/phase17_screenshots.json --condition deterministic --output-dir output/aaai_vlm_deterministic`（最终 4096 token 全量复跑）
 - 关键输出路径：
   - `output/aaai_vlm_deterministic/vlm_screenshot_scores.json`
   - `output/aaai_vlm_deterministic/vlm_screenshot_scores.csv`
@@ -711,7 +711,7 @@ PY
 - 测试结果：
   - `vlm_evaluation: PASS`
   - final report：`schema_version=vlm-screenshot-scores-v1`，`condition=deterministic`。
-  - final VLM model：`gemini-3-flash-preview`，`base_url=http://yy.dbh.baidu-int.com/v1`，`api_key_configured=true`，`api_key_source=api_settings.yaml`，`timeout_s=600`，`max_tokens=4096`。
+  - final VLM model：`gemini-3-flash-preview`，`base_url=configured-openai-compatible-endpoint`，`api_key_configured=true`，`api_key_source=api_settings.yaml`，`timeout_s=600`，`max_tokens=4096`。
   - prompt metadata：`prompt_version=vlm-screenshot-judge-2026-05-30`，`prompt_hash` 长度 64；`rubric_version=2026-05-30`，`rubric_hash` 长度 64。
   - final condition summary：total=144，passed=144，failed=0，pass_rate=1.0，failure_types={}。
   - final model_usage：call_count=148，duration_s=1751.201，avg_duration_s=11.83243918918919，prompt_tokens=426239，completion_tokens=224370，total_tokens=650609，usage_available=true，usage_available_rate=1.0，estimated_cost=null，cost_estimation_available=false，pricing_source=""。
@@ -722,7 +722,7 @@ PY
 - Bugfix：
   - 失败命令：初次全量 E3 命令在 1024 token 下出现 130 个 `vlm_eval_error`；重试和 caption 修复后仍有 93 个空内容失败，且失败调用 `completion_tokens=1020`，接近 1024 上限。
   - 最小修复：VLM 默认 timeout 提高到 600；默认 max_tokens 提高到 4096；单张 VLM API 异常记录为 `vlm_eval_error` 不阻断 batch；保留失败调用 usage；CLI 增加进度输出；caption 按 30 个英文词或 50 个中文字符校验；空/非法响应默认重试 1 次。
-  - 复跑证据：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_evaluation` 通过；最终 E3 全量复跑 144/144 成功，failure_types={}。
+  - 复跑证据：`python3 -m tests.regression.vlm_evaluation` 通过；最终 E3 全量复跑 144/144 成功，failure_types={}。
   - 未修改 expected，未放宽 gate，未跳过 case；VLM 仅作为离线截图教学/视觉评审，不替代机器 gate。
 
 ### E4 live LLM `algolab_full`
@@ -732,7 +732,7 @@ PY
 先跑 smoke：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/aaai_llm_algolab_full_smoke \
   --condition algolab_full \
   --case unique_paths \
@@ -745,7 +745,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 再跑全量：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/aaai_llm_algolab_full \
   --condition algolab_full \
   --max-rounds 2 \
@@ -764,11 +764,11 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 完成证据（2026-05-30，历史 69-case 口径）：
 
 - Smoke 命令：
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/aaai_llm_algolab_full_smoke --condition algolab_full --case unique_paths --max-rounds 2 --timeout-s 180 --browser-smoke --concurrency 1`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/aaai_llm_algolab_full_smoke --condition algolab_full --case unique_paths --max-rounds 2 --timeout-s 180 --browser-smoke --concurrency 1`
   - 结果：`output/aaai_llm_algolab_full_smoke/llm_benchmark_report.json`，total=1，passed=1，failed=0；model=`gemini-3.1-pro-preview`，model_usage.call_count=2，total_tokens=19483，usage_available=true。
 - 全量命令：
   - 初始按计划使用 `--timeout-s 180` 全量运行时出现大量 case timeout，无法形成完整 69-case 证据。
-  - 按真实 LLM 生成和 repair 耗时，将单 case 外层 timeout 提高到 600 秒后复跑：`bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/aaai_llm_algolab_full --condition algolab_full --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
+  - 按真实 LLM 生成和 repair 耗时，将单 case 外层 timeout 提高到 600 秒后复跑：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/aaai_llm_algolab_full --condition algolab_full --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
 - 关键输出路径：
   - `output/aaai_llm_algolab_full/llm_benchmark_report.json`
   - `output/aaai_llm_algolab_full/family_summary.json`
@@ -777,7 +777,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 - 失败项完整性：失败项缺失 `failure_type` 数量为 0；所有 result 均包含 `model_calls`。
 - failure_summary：`process_invariant=26`，`execution=2`，`demo_key_step_missing=4`，`generation=3`，`trace_schema=3`，`visual_warning=3`，`demo_algorithm_mismatch=1`。
 - browser smoke：对 27 个通过 HTML 产物执行，browser_total=27，browser_ok=27，browser_failed=0。
-- LLM 配置与 usage：model=`gemini-3.1-pro-preview`，base_url=`http://yy.dbh.baidu-int.com/v1`，api_key_source=`api_settings.yaml`，LLM API timeout_s=240，max_tokens=16384，json_retries=1；model_usage.call_count=195，usage_available=true，usage_available_rate=1.0，prompt_tokens=853759，completion_tokens=1397106，total_tokens=2250865，duration_s=11670.853，avg_duration_s=59.8505282051282，estimated_cost=null，cost_estimation_available=false，pricing_source=""。
+- LLM 配置与 usage：model=`gemini-3.1-pro-preview`，base_url=`configured-openai-compatible-endpoint`，api_key_source=`api_settings.yaml`，LLM API timeout_s=240，max_tokens=16384，json_retries=1；model_usage.call_count=195，usage_available=true，usage_available_rate=1.0，prompt_tokens=853759，completion_tokens=1397106，total_tokens=2250865，duration_s=11670.853，avg_duration_s=59.8505282051282，estimated_cost=null，cost_estimation_available=false，pricing_source=""。
 - 约束：未修改 expected，未放宽 gate，未跳 case；真实 LLM case 失败作为实验结果保留，不阻塞后续 E5。
 
 ### E5 unseen family evaluation
@@ -787,7 +787,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 命令：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/aaai_llm_unseen \
   --condition algolab_full \
   --case-set unseen \
@@ -808,7 +808,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 - 配置检查：`benchmark/unseen_family_cases.json` 为 `schema_version=unseen-family-cases-v1`，case_count=15；检查 `code`、`tracker_code`、`verifier_code` 字段，forbidden_code_fields=[]。
 - 实际命令：
   - 按 E4 实测耗时和真实 LLM repair 成本，将计划中的 `--timeout-s 180` 提高到 `--timeout-s 600`，避免 unseen case 被过低外层 timeout 人为截断。
-  - `bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/aaai_llm_unseen --condition algolab_full --case-set unseen --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
+  - `bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/aaai_llm_unseen --condition algolab_full --case-set unseen --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
 - 关键输出路径：
   - `output/aaai_llm_unseen/llm_benchmark_report.json`
   - `output/aaai_llm_unseen/family_summary.json`
@@ -817,7 +817,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 - 失败项完整性：失败项缺失 `failure_type` 数量为 0；所有 result 均包含 `model_calls`。
 - failure_summary：`process_invariant=6`，`coverage_error=1`，`demo_missing_deps=1`，`execution=1`。
 - browser smoke：对 6 个通过 HTML 产物执行，browser_total=6，browser_ok=6，browser_failed=0。
-- LLM 配置与 usage：model=`gemini-3.1-pro-preview`，base_url=`http://yy.dbh.baidu-int.com/v1`，api_key_source=`api_settings.yaml`，LLM API timeout_s=240，max_tokens=16384，json_retries=1；model_usage.call_count=42，usage_available=true，usage_available_rate=1.0，prompt_tokens=183661，completion_tokens=319570，total_tokens=503231，duration_s=2578.694，avg_duration_s=61.39747619047619，estimated_cost=null，cost_estimation_available=false，pricing_source=""。
+- LLM 配置与 usage：model=`gemini-3.1-pro-preview`，base_url=`configured-openai-compatible-endpoint`，api_key_source=`api_settings.yaml`，LLM API timeout_s=240，max_tokens=16384，json_retries=1；model_usage.call_count=42，usage_available=true，usage_available_rate=1.0，prompt_tokens=183661，completion_tokens=319570，total_tokens=503231，duration_s=2578.694，avg_duration_s=61.39747619047619，estimated_cost=null，cost_estimation_available=false，pricing_source=""。
 - 约束：未复用 deterministic tracker/code/verifier，未修改 expected，未放宽 gate，未跳 case；真实 LLM unseen 失败作为泛化实验结果保留。
 
 ### E6 baseline / ablation infrastructure
@@ -827,7 +827,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 先审计：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --help
+python3 scripts/run_llm_benchmark.py --help
 rg -n "benchmark_condition|direct_html_baseline|no_process_validator|no_scenegraph_compiler" scripts tests docs -S
 ```
 
@@ -851,7 +851,7 @@ rg -n "benchmark_condition|direct_html_baseline|no_process_validator|no_scenegra
 完成证据（2026-05-30）：
 
 - 审计命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --help`
+  - `python3 scripts/run_llm_benchmark.py --help`
   - `rg -n "benchmark_condition|direct_html_baseline|no_process_validator|no_scenegraph_compiler|no_repair|process_validator_enabled|scenegraph_compiler_enabled" scripts tests docs algolab -S`
 - 审计结论：`scripts/run_llm_benchmark.py --condition` 原说明为“写入 report 的实验条件标签；不改变主 pipeline 行为”，因此不能用标签冒充 baseline / ablation。
 - 新增/修改基础设施：
@@ -862,13 +862,13 @@ rg -n "benchmark_condition|direct_html_baseline|no_process_validator|no_scenegra
   - `scripts/run_llm_benchmark.py`：`write_report()` 支持把 baseline / ablation 配置标志写入 report.config。
   - `tests/regression/baseline_experiments.py`：覆盖 direct HTML 真实 HTML + browser smoke、no process validator config 标志、no SceneGraph compiler config 标志、failure type summary、主 pipeline 函数恢复。
 - CLI 验证：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_direct_html_baseline.py --help`
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_no_process_validator_ablation.py --help`
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_no_scenegraph_compiler_ablation.py --help`
+  - `python3 scripts/run_direct_html_baseline.py --help`
+  - `python3 scripts/run_no_process_validator_ablation.py --help`
+  - `python3 scripts/run_no_scenegraph_compiler_ablation.py --help`
 - 测试结果：
   - 宿主机直接运行 browser smoke 测试时，Playwright driver 因系统 `glibc/libstdc++` 版本不满足而无法启动；按项目约束改用浏览器容器执行。
-  - `bash scripts/run_browser_smoke_container.sh python -m tests.regression.baseline_experiments` 通过，输出 `baseline_experiments: PASS`。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression` 通过，输出 `benchmark_regression: PASS`。
+  - `bash scripts/run_browser_smoke_container.sh python3 -m tests.regression.baseline_experiments` 通过，输出 `baseline_experiments: PASS`。
+  - `python3 -m tests.benchmark_regression` 通过，输出 `benchmark_regression: PASS`。
 - 约束：未修改 expected，未放宽 gate，未跳 case；baseline / ablation 均为独立 runner 或独立外部 report 路径，不修改主 pipeline 默认行为。
 
 ### E7 run baselines and ablations
@@ -892,7 +892,7 @@ rg -n "benchmark_condition|direct_html_baseline|no_process_validator|no_scenegra
 `no_repair` 可以直接运行：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py \
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py \
   --output-dir output/aaai_llm_no_repair \
   --condition algolab_full \
   --max-rounds 0 \
@@ -906,7 +906,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 完成证据（2026-05-30，历史 69-case 口径）：
 
 - `direct_html_baseline`：
-  - 命令：`bash scripts/run_browser_smoke_container.sh python scripts/run_direct_html_baseline.py --output-dir output/aaai_llm_direct_html --timeout-s 600 --browser-smoke --concurrency 2`
+  - 命令：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_direct_html_baseline.py --output-dir output/aaai_llm_direct_html --timeout-s 600 --browser-smoke --concurrency 2`
   - 报告：`output/aaai_llm_direct_html/llm_benchmark_report.json`
   - 结果：total=69, passed=63, failed=6, pass_rate=0.9130。
   - config：`benchmark_condition=direct_html_baseline`, `baseline=direct_html_baseline`, `timeout_s=600`, `browser_smoke=true`, `concurrency=2`。
@@ -914,7 +914,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - browser smoke：total=69, ok=63, failed=6。
   - model_usage：call_count=69, total_tokens=570126, usage_available=true。
 - `no_process_validator`：
-  - 命令：`bash scripts/run_browser_smoke_container.sh python scripts/run_no_process_validator_ablation.py --output-dir output/aaai_llm_no_process_validator --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
+  - 命令：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_no_process_validator_ablation.py --output-dir output/aaai_llm_no_process_validator --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
   - 报告：`output/aaai_llm_no_process_validator/llm_benchmark_report.json`
   - 结果：total=69, passed=40, failed=29, pass_rate=0.5797。
   - config：`benchmark_condition=no_process_validator`, `ablation=no_process_validator`, `timeout_s=600`, `browser_smoke=true`, `concurrency=2`。
@@ -923,7 +923,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - browser smoke：total=40, ok=40, failed=0。
   - model_usage：call_count=157, total_tokens=1882801, usage_available=true。
 - `no_scenegraph_compiler`：
-  - 命令：`bash scripts/run_browser_smoke_container.sh python scripts/run_no_scenegraph_compiler_ablation.py --output-dir output/aaai_llm_no_scenegraph_compiler --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
+  - 命令：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_no_scenegraph_compiler_ablation.py --output-dir output/aaai_llm_no_scenegraph_compiler --max-rounds 2 --timeout-s 600 --browser-smoke --concurrency 2`
   - 报告：`output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json`
   - 结果：total=69, passed=23, failed=46, pass_rate=0.3333。
   - config：`benchmark_condition=no_scenegraph_compiler`, `ablation=no_scenegraph_compiler`, `timeout_s=600`, `browser_smoke=true`, `concurrency=2`。
@@ -932,7 +932,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - browser smoke：total=23, ok=23, failed=0。
   - model_usage：call_count=193, total_tokens=2366805, usage_available=true。
 - `no_repair`：
-  - 命令：`bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py --output-dir output/aaai_llm_no_repair --condition no_repair --max-rounds 0 --timeout-s 600 --browser-smoke --concurrency 2`
+  - 命令：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_llm_benchmark.py --output-dir output/aaai_llm_no_repair --condition no_repair --max-rounds 0 --timeout-s 600 --browser-smoke --concurrency 2`
   - 报告：`output/aaai_llm_no_repair/llm_benchmark_report.json`
   - 结果：total=69, passed=6, failed=63, pass_rate=0.0870。
   - config：`benchmark_condition=no_repair`, `max_rounds=0`, `timeout_s=600`, `browser_smoke=true`, `concurrency=2`。
@@ -978,16 +978,16 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 - 新增测试：
   - `tests/regression/vlm_conditions.py`：覆盖 report 成功 HTML 过滤、condition override、condition manifest 计数、VLM condition report 合并和三类输出文件。
 - 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_conditions` 通过，输出 `vlm_conditions: PASS`。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_evaluation` 通过，输出 `vlm_evaluation: PASS`。
+  - `python3 -m tests.regression.vlm_conditions` 通过，输出 `vlm_conditions: PASS`。
+  - `python3 -m tests.regression.vlm_evaluation` 通过，输出 `vlm_evaluation: PASS`。
 - 截图捕获：
-  - 命令：`bash scripts/run_browser_smoke_container.sh python scripts/capture_report_html_screenshots.py --output-dir output/aaai_vlm_conditions/screenshots --viewport desktop --report algolab_full=output/aaai_llm_algolab_full/llm_benchmark_report.json --report unseen_algolab_full=output/aaai_llm_unseen/llm_benchmark_report.json --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json --report no_process_validator=output/aaai_llm_no_process_validator/llm_benchmark_report.json --report no_scenegraph_compiler=output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json --report no_repair=output/aaai_llm_no_repair/llm_benchmark_report.json`
+  - 命令：`bash scripts/run_browser_smoke_container.sh python3 scripts/capture_report_html_screenshots.py --output-dir output/aaai_vlm_conditions/screenshots --viewport desktop --report algolab_full=output/aaai_llm_algolab_full/llm_benchmark_report.json --report unseen_algolab_full=output/aaai_llm_unseen/llm_benchmark_report.json --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json --report no_process_validator=output/aaai_llm_no_process_validator/llm_benchmark_report.json --report no_scenegraph_compiler=output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json --report no_repair=output/aaai_llm_no_repair/llm_benchmark_report.json`
   - manifest：`output/aaai_vlm_conditions/screenshots/report_html_screenshots.json`
   - 截图统计：total=165, failures=0, zero_bytes=0。
   - condition_counts=`{"algolab_full": 27, "unseen_algolab_full": 6, "direct_html_baseline": 63, "no_process_validator": 40, "no_scenegraph_compiler": 23, "no_repair": 6}`。
   - 说明：LLM/baseline 条件使用每个成功 HTML 的 desktop full-page 截图；`deterministic` 复用 E3 已完成的 `output/aaai_vlm_deterministic/vlm_screenshot_scores.json`。
 - VLM 接口 smoke：
-  - 命令：`ALGOLAB_VLM_TIMEOUT_S=600 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_vlm_conditions/vlm_smoke_manifest.json --condition no_repair --output-dir output/aaai_vlm_conditions/vlm_smoke --retries 1`
+  - 命令：`ALGOLAB_VLM_TIMEOUT_S=600 python3 scripts/run_vlm_screenshot_eval.py --manifest output/aaai_vlm_conditions/vlm_smoke_manifest.json --condition no_repair --output-dir output/aaai_vlm_conditions/vlm_smoke --retries 1`
   - 结果：total=1, passed=1, failed=0；usage_available=true；duration_s=23.236。
   - 结论：VLM 接口可稳定返回合法 JSON；本阶段保持 `ALGOLAB_VLM_TIMEOUT_S=600`，未再提高超时。
 - VLM condition runs：
@@ -998,7 +998,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
   - `no_scenegraph_compiler`：`output/aaai_vlm_conditions/runs/no_scenegraph_compiler/vlm_screenshot_scores.json`，total=23, passed=23, failed=0, call_count=23, total_tokens=105900, avg_overall_teaching_quality=1.4348。
   - `no_repair`：`output/aaai_vlm_conditions/runs/no_repair/vlm_screenshot_scores.json`，total=6, passed=6, failed=0, call_count=6, total_tokens=31035, avg_overall_teaching_quality=4.3333。
 - 合并命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/merge_vlm_condition_reports.py --output-dir output/aaai_vlm_conditions --report output/aaai_vlm_deterministic/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/algolab_full/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/unseen_algolab_full/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/direct_html_baseline/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/no_process_validator/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/no_scenegraph_compiler/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/no_repair/vlm_screenshot_scores.json`
+  - `python3 scripts/merge_vlm_condition_reports.py --output-dir output/aaai_vlm_conditions --report output/aaai_vlm_deterministic/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/algolab_full/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/unseen_algolab_full/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/direct_html_baseline/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/no_process_validator/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/no_scenegraph_compiler/vlm_screenshot_scores.json --report output/aaai_vlm_conditions/runs/no_repair/vlm_screenshot_scores.json`
 - 最终产物：
   - `output/aaai_vlm_conditions/vlm_condition_scores.json`
   - `output/aaai_vlm_conditions/vlm_condition_scores.csv`
@@ -1028,7 +1028,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 最终命令形态：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py \
+python3 scripts/build_evaluation_report.py \
   --output-dir output/aaai_evaluation \
   --llm-report output/aaai_evaluation/merged_llm_benchmark_report.json \
   --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json \
@@ -1055,16 +1055,16 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 - 修改脚本：
   - `scripts/build_evaluation_report.py`：新增 `--vlm-report`；evaluation JSON 记录 `vlm_summary`；新增 `evaluation_vlm_scores.csv` 和 `evaluation_vlm_condition_summary.csv`；Markdown 新增 `VLM Condition Summary`。
 - 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_conditions` 通过，输出 `vlm_conditions: PASS`。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_evaluation` 通过，输出 `vlm_evaluation: PASS`。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression` 通过，输出 `benchmark_regression: PASS`。
+  - `python3 -m tests.regression.vlm_conditions` 通过，输出 `vlm_conditions: PASS`。
+  - `python3 -m tests.regression.vlm_evaluation` 通过，输出 `vlm_evaluation: PASS`。
+  - `python3 -m tests.benchmark_regression` 通过，输出 `benchmark_regression: PASS`。
 - LLM report 合并命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/merge_llm_reports.py --output-dir output/aaai_evaluation --report algolab_full=output/aaai_llm_algolab_full/llm_benchmark_report.json --report unseen_algolab_full=output/aaai_llm_unseen/llm_benchmark_report.json --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json --report no_process_validator=output/aaai_llm_no_process_validator/llm_benchmark_report.json --report no_scenegraph_compiler=output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json --report no_repair=output/aaai_llm_no_repair/llm_benchmark_report.json`
+  - `python3 scripts/merge_llm_reports.py --output-dir output/aaai_evaluation --report algolab_full=output/aaai_llm_algolab_full/llm_benchmark_report.json --report unseen_algolab_full=output/aaai_llm_unseen/llm_benchmark_report.json --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json --report no_process_validator=output/aaai_llm_no_process_validator/llm_benchmark_report.json --report no_scenegraph_compiler=output/aaai_llm_no_scenegraph_compiler/llm_benchmark_report.json --report no_repair=output/aaai_llm_no_repair/llm_benchmark_report.json`
   - 输出：`output/aaai_evaluation/merged_llm_benchmark_report.json`
   - 结果：total=360, passed=165, failed=195。
   - condition summary：`algolab_full` 27/69 pass；`unseen_algolab_full` 6/15 pass；`direct_html_baseline` 63/69 pass；`no_process_validator` 40/69 pass；`no_scenegraph_compiler` 23/69 pass；`no_repair` 6/69 pass。
 - evaluation report 命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py --output-dir output/aaai_evaluation --llm-report output/aaai_evaluation/merged_llm_benchmark_report.json --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json --family-gate output/aaai_release_gate/family_release_gate.json --dashboard output/aaai_dashboard_all/dashboard.json`
+  - `python3 scripts/build_evaluation_report.py --output-dir output/aaai_evaluation --llm-report output/aaai_evaluation/merged_llm_benchmark_report.json --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json --family-gate output/aaai_release_gate/family_release_gate.json --dashboard output/aaai_dashboard_all/dashboard.json`
 - 最终产物：
   - `output/aaai_evaluation/evaluation_report.json`
   - `output/aaai_evaluation/evaluation_report.md`
@@ -1137,14 +1137,14 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 - 新增测试：
   - `tests/regression/paper_artifacts.py`：覆盖 deterministic gate 表、unseen family 表、ablation delta、failure case notes、最低 VLM 分截图选择和 README 输出。
 - 测试结果：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.paper_artifacts` 通过，输出 `paper_artifacts: PASS`。
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_conditions` 通过，输出 `vlm_conditions: PASS`。
+  - `python3 -m tests.regression.paper_artifacts` 通过，输出 `paper_artifacts: PASS`。
+  - `python3 -m tests.regression.vlm_conditions` 通过，输出 `vlm_conditions: PASS`。
 - direct HTML baseline 失败截图捕获：
-  - 命令：`bash scripts/run_browser_smoke_container.sh python scripts/capture_report_html_screenshots.py --output-dir output/aaai_paper_artifacts/direct_html_failure_screenshots --viewport desktop --only-failed --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json`
+  - 命令：`bash scripts/run_browser_smoke_container.sh python3 scripts/capture_report_html_screenshots.py --output-dir output/aaai_paper_artifacts/direct_html_failure_screenshots --viewport desktop --only-failed --report direct_html_baseline=output/aaai_llm_direct_html/llm_benchmark_report.json`
   - manifest：`output/aaai_paper_artifacts/direct_html_failure_screenshots/report_html_screenshots.json`
   - 结果：condition_counts=`{"direct_html_baseline": 6}`，screenshots=6，zero_bytes=0。
 - paper artifacts 生成命令：
-  - `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_paper_artifacts.py --output-dir output/aaai_paper_artifacts --evaluation-dir output/aaai_evaluation --deterministic-screenshot-manifest output/aaai_screenshots_all/phase17_screenshots.json --condition-screenshot-manifest output/aaai_vlm_conditions/screenshots/report_html_screenshots.json --direct-failure-manifest output/aaai_paper_artifacts/direct_html_failure_screenshots/report_html_screenshots.json --dashboard output/aaai_dashboard_all/dashboard.json --family-gate output/aaai_release_gate/family_release_gate.json --merged-llm-report output/aaai_evaluation/merged_llm_benchmark_report.json --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json`
+  - `python3 scripts/build_paper_artifacts.py --output-dir output/aaai_paper_artifacts --evaluation-dir output/aaai_evaluation --deterministic-screenshot-manifest output/aaai_screenshots_all/phase17_screenshots.json --condition-screenshot-manifest output/aaai_vlm_conditions/screenshots/report_html_screenshots.json --direct-failure-manifest output/aaai_paper_artifacts/direct_html_failure_screenshots/report_html_screenshots.json --dashboard output/aaai_dashboard_all/dashboard.json --family-gate output/aaai_release_gate/family_release_gate.json --merged-llm-report output/aaai_evaluation/merged_llm_benchmark_report.json --vlm-report output/aaai_vlm_conditions/vlm_condition_scores.json`
 - 最终目录：
   - `output/aaai_paper_artifacts/README.md`
   - `output/aaai_paper_artifacts/tables/`
@@ -1205,16 +1205,16 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_llm_benchmark.py 
 全部实验和必要修复完成后必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+python3 -m tests.benchmark_regression
+python3 -m tests.offline_regression
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 如果新增 VLM 或 baseline 测试，也必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.vlm_evaluation
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.baseline_experiments
+python3 -m tests.regression.vlm_evaluation
+python3 -m tests.regression.baseline_experiments
 ```
 
 ## 10. 执行 AI 汇报格式
@@ -1244,7 +1244,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 ## 11. 给执行 AI 的启动提示词
 
 ```text
-你是执行 AI，在 /ssd1/liaokunpeng/paper/ailab-agent。阅读 docs/08_AAAI_EXPERIMENT_PLAN.md，只做最靠前的“状态：待执行。”阶段，完成后把该阶段改成“状态：已完成。”并写完成证据。不要做 Git，不提交不推送。Python 固定用 /ssd1/liaokunpeng/agent-py310-cu/bin/python3，浏览器命令走 bash scripts/run_browser_smoke_container.sh。可以修可复现 bug，但必须最小修复、加测试、复跑失败命令。不要改 expected，不要放宽 gate，不要跳 case。按 1-7 格式汇报。
+你是执行 AI，在 .。阅读 docs/08_AAAI_EXPERIMENT_PLAN.md，只做最靠前的“状态：待执行。”阶段，完成后把该阶段改成“状态：已完成。”并写完成证据。不要做 Git，不提交不推送。Python 固定用 python3，浏览器命令走 bash scripts/run_browser_smoke_container.sh。可以修可复现 bug，但必须最小修复、加测试、复跑失败命令。不要改 expected，不要放宽 gate，不要跳 case。按 1-7 格式汇报。
 ```
 
 ## 12. docs/09 修复后口径说明

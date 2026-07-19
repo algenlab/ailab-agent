@@ -23,7 +23,7 @@
 数据锁定后运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/analyze_human_study.py \
+python3 scripts/analyze_human_study.py \
   --output-dir output/experiments/algotutorgen_plan_completion_20260713/human_study_protocols
 ```
 

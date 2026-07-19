@@ -861,7 +861,7 @@ Held-out v1 使用 [heldout_cases_v1.json](../benchmark/heldout_cases_v1.json)�
 
 | 项目 | 记录 |
 | --- | --- |
-| Python | /ssd1/liaokunpeng/agent-py310-cu/bin/python3 |
+| Python | python3 |
 | 浏览器 | Playwright Chromium；跨模型冻结路径为 /ms-playwright/chromium-1223/chrome-linux64/chrome |
 | 跨模型容器用户 | 1020:1021 |
 | 主实验浏览器并发 | 8 |
@@ -1314,13 +1314,13 @@ No teaching 与 Full 的 Machine OK 相同，是因为九项行为合同不评�
 
 确定性质量检查：
 
-    /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+    python3 scripts/run_quality_checks.py
 
 查看各实验脚本参数：
 
-    /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --help
-    /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_interaction_semantic_eval.py --help
-    /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/analyze_paired_experiments.py --help
+    python3 scripts/run_llm_benchmark.py --help
+    python3 scripts/run_interaction_semantic_eval.py --help
+    python3 scripts/analyze_paired_experiments.py --help
 
 更完整的历史复现包说明见 [reproducibility/README.md](../output/experiments/algotutorgen_tables/reproducibility/README.md)。其中部分目录保留早期实验入口；复现论文最终数字时，应按第 10.2 节的来源优先级选择最终报告。
 
@@ -1345,4 +1345,3 @@ No teaching 与 Full 的 Machine OK 相同，是因为九项行为合同不评�
 | 学生实验 | 协议完成，参与者待招募 |
 
 详细版最终支持的主结论与第 9 节一致：AlgoTutorGen 的优势主要来自可执行轨迹、确定性表示链和受隔离教学交互共同提供的完整行为可靠性，而不是只把最终答案写对。代价是更多模型调用和 token；长轨迹仍存在明显体积与加载瓶颈；自动代理评价不能替代真人学习效果实验。
-

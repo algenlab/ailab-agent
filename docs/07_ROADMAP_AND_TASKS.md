@@ -580,7 +580,7 @@ AI 每轮只能完成最靠前的一个未完成任务。
 - 修改 renderer 时至少跑 offline regression；涉及浏览器交互时跑 browser smoke。
 - 修改 validator 时必须包含正例和反例。
 - 修改 target 语法时必须同步 parser、validator、compiler、renderer 和测试。
-- 运行 Python 文件必须使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`。
+- 运行 Python 文件必须使用 `python3`。
 
 ## Phase 0：文档和实施边界冻结
 
@@ -676,8 +676,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.offline_regression
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -712,8 +712,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.offline_regression
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -744,7 +744,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -784,7 +784,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 禁止事项：
@@ -818,8 +818,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.offline_regression
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -853,8 +853,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.offline_regression
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -884,7 +884,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 禁止事项：
@@ -915,8 +915,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.offline_regression
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -955,7 +955,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 禁止事项：
@@ -986,7 +986,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 禁止事项：
@@ -1018,8 +1018,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.offline_regression
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -1049,7 +1049,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 禁止事项：
@@ -1085,8 +1085,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.offline_regression
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -1112,7 +1112,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -1143,7 +1143,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -1168,7 +1168,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -1205,8 +1205,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.offline_regression
+python3 -m tests.benchmark_regression
 ```
 
 禁止事项：
@@ -1240,8 +1240,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.offline_regression
+python3 -m tests.benchmark_regression
 ```
 
 禁止事项：
@@ -1273,7 +1273,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 禁止事项：
@@ -1305,7 +1305,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 禁止事项：
@@ -1332,7 +1332,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 禁止事项：
@@ -1358,7 +1358,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.tracer_regression
+python3 -m tests.tracer_regression
 ```
 
 禁止事项：
@@ -1407,7 +1407,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ### P7.2 树和递归组
@@ -1430,7 +1430,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ### P7.3 区间结构组
@@ -1452,7 +1452,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ### P7.4 数学与位运算组
@@ -1477,7 +1477,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ### P7.5 图高级组
@@ -1500,7 +1500,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ## Phase 8：评估、Dashboard 和论文产物
@@ -1528,8 +1528,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_manifest.py
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py
+python3 scripts/build_evaluation_manifest.py
+python3 scripts/build_evaluation_report.py
 ```
 
 禁止事项：
@@ -1556,7 +1556,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.browser_smoke
+python3 -m tests.browser_smoke
 ```
 
 禁止事项：
@@ -1582,7 +1582,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py
+python3 scripts/build_evaluation_report.py
 ```
 
 禁止事项：
@@ -1612,7 +1612,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both
+python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both
 ```
 
 ### P9.2 Reproducibility Package
@@ -1635,7 +1635,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
 ### P9.3 V1 Release Gate
@@ -1653,7 +1653,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
 ## 10. V1.1 之后的实施路线
@@ -1712,10 +1712,10 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 | process validator | 相关 family 正反例测试；没有细分测试时跑 `-m tests.benchmark_regression` | `scripts/check_family_release_gate.py` | `scripts/run_quality_checks.py` |
 | benchmark / oracle | 相关 benchmark/property/oracle 脚本 | family release gate | `scripts/run_quality_checks.py` |
 | evaluation / dashboard 数据 | 对应 report/dashboard 构建脚本 | family release gate | `scripts/run_quality_checks.py` |
-| renderer / HTML runtime / browser 交互 | `bash scripts/run_browser_smoke_container.sh` 或目标页面 smoke | 容器内 `tests.browser_smoke` | `bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py` |
+| renderer / HTML runtime / browser 交互 | `bash scripts/run_browser_smoke_container.sh` 或目标页面 smoke | 容器内 `tests.browser_smoke` | `bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py` |
 | LLM benchmark / repair | 小规模 `--limit` 或目标 family 运行 | family split report | 不要求每次全量，论文实验冻结时全量跑 |
 
-浏览器 smoke 必须走 `scripts/run_browser_smoke_container.sh`。当前宿主机 glibc 2.17 不能运行 Playwright 自带 node；不要把该环境失败记作代码失败，也不要为了通过门禁降级浏览器检查。容器脚本默认使用当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`，并以宿主机 UID/GID 写入挂载目录，避免生成 root-owned 产物。外部 CI 可以用 `ALGOLAB_PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright/python:v1.59.0-noble ALGOLAB_CONTAINER_INSTALL_DEPS=1` 覆盖为官方 Playwright 镜像。
+浏览器 smoke 必须走 `scripts/run_browser_smoke_container.sh`。当前宿主机 glibc 2.17 不能运行 Playwright 自带 node；不要把该环境失败记作代码失败，也不要为了通过门禁降级浏览器检查。容器脚本默认使用当前机器已缓存的 `mcr.microsoft.com/playwright/python:v1.59.0-noble`，并以宿主机 UID/GID 写入挂载目录，避免生成 root-owned 产物。外部 CI 可以用 `ALGOLAB_PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright/python:v1.59.0-noble ALGOLAB_CONTAINER_INSTALL_DEPS=1` 覆盖为官方 Playwright 镜像。
 
 执行环境还必须允许访问 Docker daemon。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`。若 `docker run` 报 `/var/run/docker.sock: permission denied` 且 sudo docker 也不可用，需要运维层面把当前用户加入 `docker` 组、配置免密 `sudo docker`，或在有 Docker 权限的 CI 上运行；执行 AI 只能记录环境阻塞，不能跳过 browser gate。
 
@@ -1785,8 +1785,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 scripts/check_family_capabilities.py
+python3 -m tests.benchmark_regression
 ```
 
 ### P10.2 Benchmark case 元数据扩展
@@ -1834,9 +1834,9 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_manifest.py --output-dir output/evaluation
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 -m tests.benchmark_regression
+python3 scripts/build_evaluation_manifest.py --output-dir output/evaluation
+python3 scripts/run_quality_checks.py
 ```
 
 ### P10.3 分层门禁报告
@@ -1875,8 +1875,8 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/check_family_release_gate.py --output-dir output/release_gate
+python3 scripts/run_quality_checks.py
 ```
 
 ## Phase 11：答案正确性和 Oracle 强化
@@ -1927,7 +1927,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ### P11.2 小规模随机样例生成器
@@ -1973,7 +1973,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_property_benchmark.py --output-dir output/property_benchmark
+python3 scripts/run_property_benchmark.py --output-dir output/property_benchmark
 ```
 
 ### P11.3 输入边界样例库
@@ -2007,7 +2007,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 必须运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py
+python3 scripts/check_boundary_cases.py
 ```
 
 ## Phase 12：算法族 Trace Contract
@@ -2045,7 +2045,7 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2054,12 +2054,12 @@ find docs/adr docs/examples -maxdepth 1 -type f | sort
 - `tests/benchmark_regression.py` 覆盖 1D、2D、背包、区间、树形、状态压缩 DP 正例。
 - 反例覆盖缺少 deps、缺少初始化、错误答案位置、跳过关键更新。
 - `docs/04_TRACE_AND_SCHEMA_CONTRACT.md` 和 `algolab/generation/prompts/tracker_system.txt` 已写明 DP contract 字段与 tracker 输出要求。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.benchmark_regression`。
 
 Phase 12 收尾验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ### P12.2 图算法 Trace Contract
@@ -2091,7 +2091,7 @@ Phase 12 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2100,7 +2100,7 @@ Phase 12 收尾验证：
 - `tests/benchmark_regression.py` 覆盖 BFS、DFS、Dijkstra、拓扑排序、MST、Tarjan、网络流正例。
 - 反例覆盖每个子模式，并单独覆盖 BFS 重复首次访问、错误 dist、queue 跳变，以及 Dijkstra 负权输入。
 - `docs/04_TRACE_AND_SCHEMA_CONTRACT.md` 和 `algolab/generation/prompts/tracker_system.txt` 已写明 graph contract 字段与 tracker 输出要求。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.benchmark_regression`。
 
 ### P12.3 字符串、树、回溯和数据结构 Trace Contract
 
@@ -2131,7 +2131,7 @@ Phase 12 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2140,7 +2140,7 @@ Phase 12 收尾验证：
 - `tests/benchmark_regression.py` 覆盖字符串、树、回溯、堆、Trie、链表正例，并确认最小 trace 可被 schema、target、process 和 scene 校验消费。
 - 反例覆盖缺 text/pattern 指针和表结构、缺树递归 enter/exit 和返回值、回溯缺 choose/undo、堆缺 pop/heap_top、Trie 缺 terminal/count、链表缺 pointer/next-prev 改变。
 - `docs/04_TRACE_AND_SCHEMA_CONTRACT.md` 和 `algolab/generation/prompts/tracker_system.txt` 已写明 family contract 字段与 tracker 输出要求。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.benchmark_regression`。
 
 ## Phase 13：Family Process Validator 扩展
 
@@ -2183,7 +2183,7 @@ Phase 12 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2196,9 +2196,9 @@ Phase 12 收尾验证：
 - `benchmark/family_capabilities.json` 注册 `array_pointer` strong family；`benchmark/boundary_cases.json` 补齐 6 个新增 family core case 的边界覆盖或不适用原因。
 - `tests/benchmark_regression.py` 覆盖错误 mid、错误窗口收缩、错误 prefix/diff 更新、双指针误判二分、差分 `updates[0]` target 和 18 个 samples 的 family gate 统计。
 - `docs/04_TRACE_AND_SCHEMA_CONTRACT.md`、`algolab/generation/prompts/tracker_system.txt`、`docs/06_EVALUATION_AND_BENCHMARK.md` 和 `benchmark/benchmark_cases_list.md` 已同步数组指针族合同与当时 39 case / 99 samples benchmark 口径；P13.2 后统计由 DP 扩容任务继续更新。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py`。
+- 已通过：`python3 scripts/check_boundary_cases.py`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/run_quality_checks.py`。
 
 ### P13.2 DP validator 扩展
 
@@ -2243,23 +2243,23 @@ Phase 12 收尾验证：
 - `tests/benchmark_regression.py` 新增并接入 `test_phase13_dp_validator_expands_family_core_samples_and_rejects_digit_dp_errors()`，覆盖 DP samples 下限、子模式集合、strong profile，以及打家劫舍、不同路径、0-1 背包、完全背包、多重背包、LCS、编辑距离、区间 DP、树形 DP、状态压缩 DP、数位 DP 反例。
 - `benchmark/family_capabilities.json` 注册 `DP 核心扩展` strong family；`benchmark/boundary_cases.json` 登记 8 个新增 DP core cases 的边界覆盖或不适用原因。
 - `docs/04_TRACE_AND_SCHEMA_CONTRACT.md`、`algolab/generation/prompts/tracker_system.txt` 和 `benchmark/benchmark_cases_list.md` 已同步 DP subfamily、数位 DP 统计约定、多重背包 count 上限和 47 cases / 131 samples benchmark 口径。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... inspect.getsource(regression.run_all) ... PY`，确认 P13.2 测试接入 `run_all()`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py`。
+- 已通过：`python3 - <<'PY' ... inspect.getsource(regression.run_all) ... PY`，确认 P13.2 测试接入 `run_all()`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/check_family_capabilities.py`。
+- 已通过：`python3 scripts/check_boundary_cases.py`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 scripts/run_quality_checks.py`。
 
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 Phase 13 收尾验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate
+python3 scripts/check_family_release_gate.py --output-dir output/release_gate
 ```
 
 ### P13.3 图基础、最短路和 MST validator
@@ -2298,7 +2298,7 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2308,12 +2308,12 @@ Phase 13 收尾验证：
 - `tests/benchmark_regression.py` 新增并接入 `test_phase13_graph_validator_expands_core_shortest_mst_samples_and_rejects_process_errors()`，覆盖基础图和最短路/MST samples 下限、strong profile、核心子模式集合，以及错误 Dijkstra relax、错误拓扑入度、错误 MST 选边等反例。
 - `benchmark/family_capabilities.json` 已同步 `basic_graph` 的 5 case / 22 samples target，并注册 `最短路 / MST` strong family；`benchmark/boundary_cases.json` 登记 9 个新增 family core cases 的七类边界覆盖或不适用原因。
 - `docs/04_TRACE_AND_SCHEMA_CONTRACT.md`、`docs/06_EVALUATION_AND_BENCHMARK.md`、`benchmark/benchmark_cases_list.md` 和 V1 release gate 样例范围已同步 P13.3 图算法族和 56 cases / 169 samples 口径。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile tests/benchmark_cases.py algolab/verification/process_validator.py tests/benchmark_regression.py scripts/check_v1_release_gate.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py`。
+- 已通过：`python3 -m py_compile tests/benchmark_cases.py algolab/verification/process_validator.py tests/benchmark_regression.py scripts/check_v1_release_gate.py`。
+- 已通过：`python3 scripts/check_family_capabilities.py`。
+- 已通过：`python3 scripts/check_boundary_cases.py`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 scripts/run_quality_checks.py`。
 
 ### P13.4 字符串 validator 扩展
 
@@ -2355,12 +2355,12 @@ Phase 13 收尾验证：
 - `tests/oracles/__init__.py` 新增 `string_unique_window_reference` 和 `trie_prefix_count_reference`，`tests/benchmark_regression.py` 校验新增 oracle 引用可独立复核所有样例。
 - `benchmark/family_capabilities.json` 已同步 `string_advanced` strong family 的 6 case / 18 samples target；`benchmark/boundary_cases.json` 登记 2 个新增字符串 core cases 的边界覆盖或不适用原因。
 - `docs/06_EVALUATION_AND_BENCHMARK.md` 和 `benchmark/benchmark_cases_list.md` 已同步 58 cases / 175 samples 口径。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.benchmark_regression`。
 
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 ### P13.4.5 长文件拆分与模块边界整理
@@ -2438,7 +2438,7 @@ Phase 13 收尾验证：
 2. 跑 `py_compile` 和 process validator 相关回归，确认导入路径正确。
 3. 再拆 `tests/benchmark_cases.py`，保持 `benchmark_cases()` 返回顺序、case id、sample 数完全不变。
 4. 用脚本打印拆分前后的 `(case_count, sample_count, case_ids)`，确认没有丢 case 或改顺序。
-5. 最后拆 `tests/benchmark_regression.py`，保留 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression` 兼容入口。
+5. 最后拆 `tests/benchmark_regression.py`，保留 `python3 -m tests.benchmark_regression` 兼容入口。
 6. 全量跑 family、boundary、release gate 和 quality checks。
 
 约束：
@@ -2464,12 +2464,12 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/verification/process_validator.py tests/benchmark_cases.py tests/benchmark_regression.py
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 -m py_compile algolab/verification/process_validator.py tests/benchmark_cases.py tests/benchmark_regression.py
+python3 -m tests.benchmark_regression
+python3 scripts/check_family_capabilities.py
+python3 scripts/check_boundary_cases.py
+python3 scripts/check_family_release_gate.py --output-dir output/release_gate
+python3 scripts/run_quality_checks.py
 ```
 
 完成证据：
@@ -2482,14 +2482,14 @@ Phase 13 收尾验证：
 - `benchmark_cases()` 在 P13.4.5 等价拆分时保持 58 cases / 175 samples，case id 顺序哈希保持 `4ee2bfa63281410716bf5a56839892a24b7c829e5e3be1caaeee11fbf008c42e`；P13.5 扩样例后当前样例数见 P13.5 完成证据。
 - `tests.benchmark_cases` 继续 re-export `UNIQUE_PATHS_CODE` 和 `UNIQUE_PATHS_TRACKER`，兼容 `tests.tracer_regression` 的既有公开导入入口。
 - 新增 `test_phase13_long_files_are_split_without_changing_public_contracts()`，覆盖新模块导入、公开入口、legacy constant re-export、case 数 / sample 数 / 顺序哈希和核心入口行数。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... import tests.tracer_regression ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.tracer_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/verification/process_validator.py algolab/verification/process_families/*.py tests/benchmark_cases.py tests/benchmark_families/*.py tests/benchmark_regression.py tests/regression/*.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py`。
+- 已通过：`python3 - <<'PY' ... import tests.tracer_regression ... PY`。
+- 已通过：`python3 -m tests.tracer_regression`。
+- 已通过：`python3 -m py_compile algolab/verification/process_validator.py algolab/verification/process_families/*.py tests/benchmark_cases.py tests/benchmark_families/*.py tests/benchmark_regression.py tests/regression/*.py`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/check_family_capabilities.py`。
+- 已通过：`python3 scripts/check_boundary_cases.py`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 scripts/run_quality_checks.py`。
 - 本轮只做等价拆分；未新增算法族、未新增 benchmark case/sample、未修改 renderer 或 HTML runtime。
 
 ### P13.5 树、回溯、Trie 和堆 validator
@@ -2528,7 +2528,7 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2539,12 +2539,12 @@ Phase 13 收尾验证：
 - `benchmark/family_capabilities.json` 将 `heap_topk_huffman`、`trie`、`backtracking_recursion` 从 `uncovered/basic` 提升为 strong process profile 支撑的 `medium_plus`，并同步样例阈值；`tree_bst_lca` / `tree_dp` 样例阈值同步到 18 samples 合计。
 - `tests/regression/phase13_families.py` 新增 `test_phase13_tree_backtracking_trie_heap_validator_expands_samples_and_rejects_process_errors()`，覆盖样例阈值、profile 注册、递归跳帧、回溯 used/path 跳变与缺 exit、heap property 错误和 Trie prefix_count 错误反例。
 - `benchmark/boundary_cases.json`、`benchmark/benchmark_cases_list.md`、`docs/06_EVALUATION_AND_BENCHMARK.md` 已同步 207 samples 口径和 P13.5 新增边界样例说明。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... P13.5 samples execute and validate ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/verification/process_validator.py algolab/verification/process_families/*.py tests/benchmark_cases.py tests/benchmark_families/*.py tests/benchmark_regression.py tests/regression/*.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 - <<'PY' ... P13.5 samples execute and validate ... PY`。
+- 已通过：`python3 -m py_compile algolab/verification/process_validator.py algolab/verification/process_families/*.py tests/benchmark_cases.py tests/benchmark_families/*.py tests/benchmark_regression.py tests/regression/*.py`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/check_family_capabilities.py`。
+- 已通过：`python3 scripts/check_boundary_cases.py`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；新增能力仍只通过 SemanticTrace -> validator -> SceneGraph 链路表达。
 
 ### P13.6 哈希、排序、链表、贪心 validator
@@ -2581,7 +2581,7 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2592,12 +2592,12 @@ Phase 13 收尾验证：
 - `tests/benchmark_cases.py` 已同步 metadata：`hash_map` / `sorting` 为 `medium_plus`，`linked_list_cache` 为 `medium`，`greedy` 为 `medium_plus`；`benchmark/family_capabilities.json` 和 `benchmark/boundary_cases.json` 已同步 P13.6 family capability 与边界样例。
 - `tests/regression/phase13_families.py` 新增并通过 `test_phase13_hash_sorting_linked_list_greedy_validator_upgrades_profiles_and_rejects_process_errors()`，覆盖 profile 升级、样例阈值、capability 口径，以及哈希未写入即命中、插入排序有序前缀错误、链表跳过 current 重连、跳跃游戏 reach 错误等反例。
 - `docs/04_TRACE_AND_SCHEMA_CONTRACT.md`、`docs/06_EVALUATION_AND_BENCHMARK.md`、`benchmark/benchmark_cases_list.md` 和 `algolab/generation/prompts/tracker_system.txt` 已同步 P13.6 trace contract、过程校验注册表、benchmark 清单和 tracker prompt 约束。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... P13.6 focused regression ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... P13.6 materialize samples ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/verification/process_validator.py algolab/verification/process_families/*.py tests/benchmark_cases.py tests/benchmark_families/*.py tests/benchmark_regression.py tests/regression/*.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py`。
+- 已通过：`python3 - <<'PY' ... P13.6 focused regression ... PY`。
+- 已通过：`python3 - <<'PY' ... P13.6 materialize samples ... PY`。
+- 已通过：`python3 -m py_compile algolab/verification/process_validator.py algolab/verification/process_families/*.py tests/benchmark_cases.py tests/benchmark_families/*.py tests/benchmark_regression.py tests/regression/*.py`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/check_family_capabilities.py`。
+- 已通过：`python3 scripts/check_boundary_cases.py`。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；链表视觉仍按文档允许的 `nodes` / `edges` / `pointer` 组合表达进入 SceneGraph。
 
 ### P13.7 数学、几何、区间结构、图高级 validator
@@ -2632,7 +2632,7 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2642,12 +2642,12 @@ Phase 13 收尾验证：
 - `tests/benchmark_cases.py` 中 `convex_hull` 已同步为 `support_level=medium_plus`、`process_profile=geometry`；`benchmark/family_capabilities.json` 中 `geometry_sweep` 已同步为 `current_level=medium_plus`、`process_profile=geometry`、`fallback_boundaries=[]`。
 - `tests/regression/phase13_families.py` 新增并接入 `test_phase13_math_geometry_range_advanced_graph_validator_upgrades_geometry_and_preserves_profiles()`，覆盖 geometry profile 升级、range/math/advanced_graph 不降级、capability 口径和错误 hull 顺序反例。
 - 当前 deterministic benchmark 保持 60 cases / 213 samples；`convex_hull` 2 个样例已 materialize 且 `release_ready=True`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... P13.7 focused regression ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... convex_hull materialize samples ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_boundary_cases.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 - <<'PY' ... P13.7 focused regression ... PY`。
+- 已通过：`python3 - <<'PY' ... convex_hull materialize samples ... PY`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/check_family_capabilities.py`。
+- 已通过：`python3 scripts/check_boundary_cases.py`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；几何、区间、数学和网络流仍只通过 SemanticTrace -> validator -> SceneGraph 链路表达，未引入 `range:`、`number:`、`interval:` 或 `flow:` target。
 
 ## Phase 14：Demo Readiness Gate
@@ -2686,7 +2686,7 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2697,10 +2697,10 @@ Phase 13 收尾验证：
 - `algolab/pipeline.py` 在 process validation 之后、SceneGraph 编译之前执行 demo readiness；`fail` 会进入 validation errors 并阻塞 release gate，不让缺演示证据的产物进入发布链路。
 - `tests/regression/reports_and_gates.py` 新增并接入 `test_demo_readiness_schema_passes_family_core_and_blocks_missing_demo_evidence()`，覆盖 `unique_paths` 正例和缺 reason/deps/state 的失败路径。
 - 60 个 `demo_required=true` deterministic cases 的首样本 demo readiness 均为 `pass`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/schemas/demo_readiness.py algolab/schemas/validation.py algolab/verification/demo_readiness.py algolab/pipeline.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... demo_required_first_sample_cases ... PY`，输出 `demo_required_first_sample_cases 60`、`failures []`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 -m py_compile algolab/schemas/demo_readiness.py algolab/schemas/validation.py algolab/verification/demo_readiness.py algolab/pipeline.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
+- 已通过：`python3 - <<'PY' ... demo_required_first_sample_cases ... PY`，输出 `demo_required_first_sample_cases 60`、`failures []`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；Renderer 仍只消费 SceneGraph / BuildArtifact，demo readiness 只读取已执行得到的 SemanticTrace。
 
 ### P14.2 族级演示完整性规则
@@ -2731,7 +2731,7 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py --output-dir output/evaluation --manifest output/evaluation/evaluation_manifest.json --dashboard output/dashboard/dashboard.json
+python3 scripts/build_evaluation_report.py --output-dir output/evaluation --manifest output/evaluation/evaluation_manifest.json --dashboard output/dashboard/dashboard.json
 ```
 
 完成证据：
@@ -2743,12 +2743,12 @@ Phase 13 收尾验证：
 - P14.2 合法边界正例覆盖拓扑排序 `indegree[...]` + `edge:u->v` deps、二分图染色不被误判为二分查找、Kruskal MST 的 `union_find` / `mst_edges` 过程状态、空 pattern 和 pattern 长于 text 的字符串短路径。
 - `scripts/run_llm_benchmark.py` 的 `classify_failure()` 明确识别 `demo_missing_reason`、`demo_missing_deps`、`demo_state_jump`、`demo_algorithm_mismatch`；`scripts/build_evaluation_report.py` 会从 `failure_type=` marker 聚合 failure summary，合成 LLM report 测试已验证这些 demo failure type 进入 `evaluation_report.json` 和 `evaluation_failure_types.csv`。
 - `tests.benchmark_cases` 继续 re-export `UNIQUE_PATHS_CODE` 和 `UNIQUE_PATHS_TRACKER`，兼容 `tests.tracer_regression` 的既有公开导入入口，不修改 `tests/tracer_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... import tests.tracer_regression ... PY`，确认 `UNIQUE_PATHS_CODE` / `UNIQUE_PATHS_TRACKER` 可从 `tests.benchmark_cases` 导入。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.tracer_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... P14.2 focused demo readiness tests ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/verification/demo_readiness.py tests/regression/reports_and_gates.py tests/benchmark_cases.py tests/tracer_regression.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_evaluation_report.py --output-dir output/evaluation --manifest output/evaluation/evaluation_manifest.json --dashboard output/dashboard/dashboard.json`。
+- 已通过：`python3 - <<'PY' ... import tests.tracer_regression ... PY`，确认 `UNIQUE_PATHS_CODE` / `UNIQUE_PATHS_TRACKER` 可从 `tests.benchmark_cases` 导入。
+- 已通过：`python3 -m tests.tracer_regression`。
+- 已通过：`python3 - <<'PY' ... P14.2 focused demo readiness tests ... PY`。
+- 已通过：`python3 -m py_compile algolab/verification/demo_readiness.py tests/regression/reports_and_gates.py tests/benchmark_cases.py tests/tracer_regression.py tests/benchmark_regression.py`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/build_evaluation_report.py --output-dir output/evaluation --manifest output/evaluation/evaluation_manifest.json --dashboard output/dashboard/dashboard.json`。
 - 真实 `output/evaluation/evaluation_report.json` 的 `failure_type_summary` 由当前真实 LLM benchmark report 输入决定；本轮不伪造真实 LLM 失败数据，demo failure type 进入 evaluation report 的链路由合成 LLM report 回归测试覆盖。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；demo readiness 只读取已执行得到的 SemanticTrace，Renderer 仍只消费 SceneGraph / BuildArtifact。
 
@@ -2778,13 +2778,13 @@ Phase 13 收尾验证：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both
+python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both
 ```
 
 如果本轮修改了 renderer、HTML runtime 或 dashboard 浏览器交互，再额外运行目标 browser smoke。Phase 14 收尾或合并前再运行：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 完成证据：
@@ -2796,13 +2796,13 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 - dashboard 过滤器支持 family、support level、gate layer 和状态；卡片包含 `data-support-level`，browser smoke 覆盖 support level 过滤和 artifact / validation / demo readiness 链接。
 - `tests/regression/reports_and_gates.py` 的 `test_demo_dashboard_exposes_phase14_family_layer_statuses_and_reports()` 覆盖 dashboard JSON 字段、报告文件落盘和 HTML 文案；`tests/benchmark_regression.py` 已接入该测试。
 - `tests/browser_smoke.py` 增强 `_check_demo_dashboard_filtering_and_links()`，覆盖 dashboard family summary、support level 过滤和三类证据链接。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... test_demo_dashboard_exposes_phase14_family_layer_statuses_and_reports ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile scripts/build_demo_dashboard.py tests/browser_smoke.py tests/benchmark_regression.py tests/regression/reports_and_gates.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both`，输出 `output/dashboard/index.html`。
+- 已通过：`python3 - <<'PY' ... test_demo_dashboard_exposes_phase14_family_layer_statuses_and_reports ... PY`。
+- 已通过：`python3 -m py_compile scripts/build_demo_dashboard.py tests/browser_smoke.py tests/benchmark_regression.py tests/regression/reports_and_gates.py`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 scripts/build_demo_dashboard.py --output-dir output/dashboard --style both`，输出 `output/dashboard/index.html`。
 - 已通过：`bash scripts/run_browser_smoke_container.sh`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
-- 已通过：`bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`。
+- 已通过：`python3 -m tests.offline_regression`。
+- 已通过：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；dashboard 只展示已生成 artifact / validation / capability registry 证据，Renderer 仍只消费 SceneGraph / BuildArtifact。
 
 ## Phase 15：LLM Benchmark 和 Repair 泛化
@@ -2838,7 +2838,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark --condition algolab_full --limit-per-family 1
+python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark --condition algolab_full --limit-per-family 1
 ```
 
 论文实验冻结或 Phase 15 收尾时再运行不带 limit 的完整 LLM benchmark。
@@ -2851,11 +2851,11 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 - `write_report()` 同步输出 `output/llm_benchmark/family_summary.json`，按 family 汇总生成成功率、repair 成功率、失败类型、subfamily、gate layer 和 seen / unseen style 分布。
 - `tests/regression/reports_and_gates.py` 新增 P15.1 回归，覆盖 family set 配置、family / gate 过滤、每族限量抽样和 family summary 输出。
 - `docs/06_EVALUATION_AND_BENCHMARK.md` 与 `benchmark/README.md` 已同步 LLM family split 运行方式和输出路径。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile scripts/run_llm_benchmark.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... test_llm_benchmark_family_split_selection_and_summary ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... validate_llm_family_sets(load_llm_family_sets()) ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
+- 已通过：`python3 -m py_compile scripts/run_llm_benchmark.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
+- 已通过：`python3 - <<'PY' ... test_llm_benchmark_family_split_selection_and_summary ... PY`。
+- 已通过：`python3 - <<'PY' ... validate_llm_family_sets(load_llm_family_sets()) ... PY`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.offline_regression`。
 - 已通过：`git diff --check -- scripts/run_llm_benchmark.py tests/regression/reports_and_gates.py tests/benchmark_regression.py benchmark/llm_family_sets.json docs/06_EVALUATION_AND_BENCHMARK.md benchmark/README.md docs/07_ROADMAP_AND_TASKS.md`。
 - 未运行真实 LLM benchmark 全量命令；该命令会调用外部模型，论文实验冻结或 Phase 15 收尾时再按模型配置执行。
 
@@ -2884,7 +2884,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -2895,10 +2895,10 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 - 针对 DP、图、字符串、树、回溯、数组指针和数据结构族提供族级修复指导；未知族保持 schema / target / deps / state 的保守修复指导。
 - `algolab/generation/prompts/repair_system.txt` 已同步 P15.2 规则，明确 demo readiness failure type、repair_category、family_guidance 和禁止直接生成 HTML / CSS / JS。
 - `tests/regression/reports_and_gates.py` 新增并接入 `test_phase15_family_repair_context_and_prompt_distinguish_failure_categories()`，覆盖答案错误、trace schema、trace 跳步、deps 错、process invariant 和 demo readiness 反例上下文，以及 prompt 中的族级 DP 指导和 HTML 禁止项。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/verification/repair_context.py algolab/generation/repair.py algolab/generation/solution_generator.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... test_phase15_family_repair_context_and_prompt_distinguish_failure_categories ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
+- 已通过：`python3 -m py_compile algolab/verification/repair_context.py algolab/generation/repair.py algolab/generation/solution_generator.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
+- 已通过：`python3 - <<'PY' ... test_phase15_family_repair_context_and_prompt_distinguish_failure_categories ... PY`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.offline_regression`。
 - 本轮未运行真实 LLM repair；测试使用 fake `chat_json` 验证 prompt 内容和 failure type 保留，不调用外部模型。
 
 ### P15.3 Unseen family evaluation
@@ -2925,7 +2925,7 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark_unseen --condition algolab_full --case-set unseen --limit-per-family 1
+python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark_unseen --condition algolab_full --case-set unseen --limit-per-family 1
 ```
 
 Phase 15 收尾时再运行完整 unseen family evaluation。
@@ -2939,12 +2939,12 @@ Phase 15 收尾时再运行完整 unseen family evaluation。
 - `scripts/build_evaluation_report.py` 新增 `case_style_summary` 和 `evaluation_case_styles.csv`，评估报告 Markdown 增加 Seen / Unseen Style Summary，区分 seen-style 与 unseen-style。
 - `tests/regression/reports_and_gates.py` 新增并接入 `test_phase15_unseen_family_cases_are_independent_and_reported()`，覆盖 strong family registry 覆盖、禁止代码字段、unseen 选择不共享 deterministic tracker、request metadata、LLM report 聚合和 evaluation report 聚合。
 - `docs/06_EVALUATION_AND_BENCHMARK.md` 与 `benchmark/README.md` 已同步 unseen family evaluation 运行命令、registry 边界和报告字段。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile scripts/run_llm_benchmark.py scripts/build_evaluation_report.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m json.tool benchmark/unseen_family_cases.json`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... validate_unseen_family_cases(load_unseen_family_cases()) ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... test_phase15_unseen_family_cases_are_independent_and_reported ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
+- 已通过：`python3 -m py_compile scripts/run_llm_benchmark.py scripts/build_evaluation_report.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
+- 已通过：`python3 -m json.tool benchmark/unseen_family_cases.json`。
+- 已通过：`python3 - <<'PY' ... validate_unseen_family_cases(load_unseen_family_cases()) ... PY`。
+- 已通过：`python3 - <<'PY' ... test_phase15_unseen_family_cases_are_independent_and_reported ... PY`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.offline_regression`。
 - 本轮未运行真实 unseen LLM evaluation；该命令会调用外部模型，Phase 15 收尾或论文实验冻结时按模型配置运行完整命令。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；Renderer 仍只消费 SceneGraph / BuildArtifact，unseen case 不能绕过 SemanticTrace、validator 和 SceneGraph compiler。
 
@@ -2979,13 +2979,13 @@ Phase 15 收尾时再运行完整 unseen family evaluation。
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate
+python3 scripts/check_family_release_gate.py --output-dir output/release_gate
 ```
 
 Phase 16 收尾或准备提交时再运行：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
 完成证据：
@@ -2997,9 +2997,9 @@ Phase 16 收尾或准备提交时再运行：
 - `tests/regression/reports_and_gates.py` 新增并接入 `test_phase16_core_family_sample_window_and_gates_are_ready()`，覆盖 160 到 220 sample 窗口、family_core 样例层、P16.1 范围 family 存在性、strong family process 100%、fallback / uncovered 为 0、demo_required 全部 ready。
 - `docs/06_EVALUATION_AND_BENCHMARK.md` 已同步 family release gate 输出 `gate_layer_samples` 的说明。
 - 本轮没有为制造样例数而追加 benchmark samples；原因是当前 213 deterministic samples 已满足 P16.1 窗口，直接追加会冲破现有 V1 release gate 的 220 sample 上限。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile scripts/check_family_release_gate.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... test_phase16_core_family_sample_window_and_gates_are_ready ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 -m py_compile scripts/check_family_release_gate.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
+- 已通过：`python3 - <<'PY' ... test_phase16_core_family_sample_window_and_gates_are_ready ... PY`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
 - Phase 16 收尾或提交前仍需运行完整 `scripts/run_quality_checks.py`；本轮聚焦 P16.1 的 family gate 闭环。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；Renderer 仍只消费 SceneGraph / BuildArtifact。
 
@@ -3028,7 +3028,7 @@ Phase 16 收尾或准备提交时再运行：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate
+python3 scripts/check_family_release_gate.py --output-dir output/release_gate
 ```
 
 扩容批次完成后再运行全量质量检查。
@@ -3042,14 +3042,14 @@ Phase 16 收尾或准备提交时再运行：
 - `benchmark/llm_family_sets.json` 已同步新增 expansion cases，避免 LLM family split 对新增 deterministic case 出现配置缺口。
 - `benchmark/benchmark_cases_list.md` 与 `docs/06_EVALUATION_AND_BENCHMARK.md` 已同步 69 cases / 250 samples、baseline 213 samples 和 expansion 分层口径。
 - `tests/regression/reports_and_gates.py` 新增并接入 `test_phase16_expansion_family_samples_and_dashboard_pages_are_ready()`，覆盖 250 到 350 总样本窗口、expansion case/family 覆盖、`process_uncovered=0`、各 expansion family 的 answer/process/demo readiness 通过，以及每个 expansion family 至少生成一个 dashboard stable HTML 页面。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile tests/benchmark_cases.py tests/benchmark_families/expansion.py scripts/check_v1_release_gate.py tests/regression/reports_and_gates.py tests/regression/phase13_families.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... expansion materialize/process focused check ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... test_phase16_expansion_family_samples_and_dashboard_pages_are_ready ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_v1_release_gate.py --output-dir output/release_gate`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_capabilities.py --output-dir output/release_gate`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
+- 已通过：`python3 -m py_compile tests/benchmark_cases.py tests/benchmark_families/expansion.py scripts/check_v1_release_gate.py tests/regression/reports_and_gates.py tests/regression/phase13_families.py tests/benchmark_regression.py`。
+- 已通过：`python3 - <<'PY' ... expansion materialize/process focused check ... PY`。
+- 已通过：`python3 - <<'PY' ... test_phase16_expansion_family_samples_and_dashboard_pages_are_ready ... PY`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 scripts/check_v1_release_gate.py --output-dir output/release_gate`。
+- 已通过：`python3 scripts/check_family_capabilities.py --output-dir output/release_gate`。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.offline_regression`。
 - Phase 16 收尾或提交前仍需运行完整 `scripts/run_quality_checks.py`；本轮聚焦 P16.2 的 deterministic expansion 和 family gate 闭环。
 - 本轮未修改 renderer、HTML runtime 或 LLM HTML 生成路径；Renderer 仍只消费 SceneGraph / BuildArtifact。
 
@@ -3084,7 +3084,7 @@ Phase 16 收尾或准备提交时再运行：
 本任务最小验证：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 完成证据：
@@ -3096,12 +3096,12 @@ Phase 16 收尾或准备提交时再运行：
 - `scripts/build_evaluation_report.py` 输出 `degradation_summary` 和 `evaluation_degradations.csv`，可同时统计 LLM benchmark result 与 family release gate 中的五类降级。
 - `docs/06_EVALUATION_AND_BENCHMARK.md` 已同步降级类型、输出位置和门禁规则。
 - `tests/regression/reports_and_gates.py` 新增并接入 `test_phase16_degradation_policy_enters_evaluation_reports_and_artifact_debug()`，覆盖 LLM report 降级聚合、family gate 降级统计、evaluation CSV / Markdown 输出、artifact validation 降级字段和 Debug Drawer 展示。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/schemas/validation.py algolab/verification/degradation.py algolab/verification/demo_readiness.py algolab/pipeline.py algolab/renderer/export.py scripts/check_family_release_gate.py scripts/build_evaluation_report.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY' ... test_phase16_degradation_policy_enters_evaluation_reports_and_artifact_debug ... PY`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/check_family_release_gate.py --output-dir output/release_gate`，`overall_ready=True`，`process_fallback_cases=0`，`process_uncovered_cases=0`，`degradation_summary` 五类计数均为 0。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
-- 已通过：`bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`。
+- 已通过：`python3 -m py_compile algolab/schemas/validation.py algolab/verification/degradation.py algolab/verification/demo_readiness.py algolab/pipeline.py algolab/renderer/export.py scripts/check_family_release_gate.py scripts/build_evaluation_report.py tests/regression/reports_and_gates.py tests/benchmark_regression.py`。
+- 已通过：`python3 - <<'PY' ... test_phase16_degradation_policy_enters_evaluation_reports_and_artifact_debug ... PY`。
+- 已通过：`python3 scripts/check_family_release_gate.py --output-dir output/release_gate`，`overall_ready=True`，`process_fallback_cases=0`，`process_uncovered_cases=0`，`degradation_summary` 五类计数均为 0。
+- 已通过：`python3 -m tests.benchmark_regression`。
+- 已通过：`python3 -m tests.offline_regression`。
+- 已通过：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`。
 - 本轮未修改 LLM 直接生成 HTML 的边界；Renderer 仍只消费 BuildArtifact / SceneGraph / validation report 中的结构化证据。
 
 ## Phase 17：视觉和交互增强
@@ -3135,7 +3135,7 @@ Phase 16 收尾或准备提交时再运行：
 本任务最小验证：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots
+bash scripts/run_browser_smoke_container.sh python3 scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots
 bash scripts/run_browser_smoke_container.sh
 ```
 
@@ -3146,11 +3146,11 @@ bash scripts/run_browser_smoke_container.sh
 - Scene Compiler 为 P17.1 七类模式补充通用 SceneObject / arrow `meta.visual_patterns`：DP 公式代入与依赖箭头、图 frontier / relax / path、字符串双行对齐 / 窗口 / 回退弧线、树递归返回值、回溯选择 / 撤销、区间结构 query / update / cover 路径、网络流 flow / capacity / residual 边标签。
 - Renderer 新增通用 `renderVisualPatternPanel`、对象 meta class、图 / 树边标签和树返回值气泡；相关 runtime 只读取当前 frame 的 SceneGraph objects / marks / arrows / evidence，不读取算法名，不让前端重新计算算法答案。
 - `tests/fixtures.py` 新增 `phase17_visual_pattern_artifact()` 和七类确定性视觉模式 fixture；`tests/offline_regression.py` 覆盖 SceneGraph meta 与 renderer runtime 无算法名分支；`tests/browser_smoke.py` 覆盖每类核心视觉模式的真实浏览器 DOM。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/compiler/scene_compiler.py algolab/renderer/export.py tests/fixtures.py tests/offline_regression.py tests/browser_smoke.py`。
+- 已通过：`python3 -m py_compile algolab/compiler/scene_compiler.py algolab/renderer/export.py tests/fixtures.py tests/offline_regression.py tests/browser_smoke.py`。
 - 已通过：P17.1 focused offline regression：`test_phase17_scene_compiler_emits_family_visual_pattern_meta()`、`test_phase17_renderer_declares_generic_visual_pattern_runtime()`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
-- 已通过：`bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots`，manifest 为 `output/phase17_screenshots/phase17_screenshots.json`，`ok=true`，desktop / mobile 覆盖 `unique_paths`、`dijkstra_shortest_path`、`kmp`、`lca`、`permutations`、`segment_tree_range_sum`、`edmonds_karp`。
-- 已通过：`bash scripts/run_browser_smoke_container.sh python -m tests.browser_smoke`。
+- 已通过：`python3 -m tests.offline_regression`。
+- 已通过：`bash scripts/run_browser_smoke_container.sh python3 scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots`，manifest 为 `output/phase17_screenshots/phase17_screenshots.json`，`ok=true`，desktop / mobile 覆盖 `unique_paths`、`dijkstra_shortest_path`、`kmp`、`lca`、`permutations`、`segment_tree_range_sum`、`edmonds_karp`。
+- 已通过：`bash scripts/run_browser_smoke_container.sh python3 -m tests.browser_smoke`。
 - 人工查看：抽查 `output/phase17_screenshots/phase17_contact_sheet.jpg` 与 `segment_tree_range_sum_desktop.png`，代表页面非空，主视图、讲解区、时间线和 Debug Drawer 可辨；manifest 中全部截图文件非空且无 browser console / page error。
 - 本轮未修改 LLM HTML 生成边界；Renderer 仍只消费 BuildArtifact / SceneGraph / validation report 中的结构化证据。
 
@@ -3177,14 +3177,14 @@ bash scripts/run_browser_smoke_container.sh
 本任务最小验证：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots
+bash scripts/run_browser_smoke_container.sh python3 scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots
 bash scripts/run_browser_smoke_container.sh
 ```
 
 交互功能阶段收尾或准备提交时再运行：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 完成证据：
@@ -3194,12 +3194,12 @@ bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 - 现有预测下一步、依赖点击、解法对比和输入修改后重新生成入口继续保持只读约束：静态 HTML 只准备 `ProblemInput -> BuildArtifact -> HTML` artifact 输入，不在前端伪造新 trace。
 - `tests/fixtures.py` 的黄金视觉矩阵补充 choice 错误选项解释；`tests/offline_regression.py` 覆盖结构化错误解释和公式展开 runtime 不读取算法名、不写 ARTIFACT；`tests/browser_smoke.py` 覆盖真实浏览器下公式展开、错误选项反馈来源、trace 不变性、依赖点击、解法对比和输入重新生成降级入口。
 - `scripts/capture_phase17_screenshots.py` 的 manifest 新增 `interaction_screenshots`，保存 `before`、`after_click`、`after_input`、`error_feedback` 四类真实浏览器截图证据；默认 Phase 17 截图覆盖 desktop / mobile 的 `binary_search`、`unique_paths`、`dijkstra_shortest_path`、`kmp`、`lca`、`permutations`、`segment_tree_range_sum`、`edmonds_karp`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m py_compile algolab/schemas/semantic_trace.py algolab/renderer/export.py tests/fixtures.py tests/offline_regression.py tests/browser_smoke.py scripts/build_demo_dashboard.py scripts/capture_phase17_screenshots.py`。
+- 已通过：`python3 -m py_compile algolab/schemas/semantic_trace.py algolab/renderer/export.py tests/fixtures.py tests/offline_regression.py tests/browser_smoke.py scripts/build_demo_dashboard.py scripts/capture_phase17_screenshots.py`。
 - 已通过：P17.2 focused offline regression：`test_golden_visual_matrix_declares_prediction_interactions_for_core_examples()`、`test_renderer_declares_readonly_prediction_interactions()`、`test_renderer_declares_phase17_formula_expand_and_structured_wrong_feedback()`。
-- 已通过：`/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression`。
-- 已通过：`bash scripts/run_browser_smoke_container.sh python scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots`，manifest 为 `output/phase17_screenshots/phase17_screenshots.json`，`ok=true`，交互截图包含 `interaction_formula_before`、`interaction_formula_expanded`、`interaction_regenerate_payload`、`interaction_wrong_feedback`。
-- 已通过：`bash scripts/run_browser_smoke_container.sh python -m tests.browser_smoke`。
-- 已通过：`bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py`，结果 `quality_checks: PASS`。
+- 已通过：`python3 -m tests.offline_regression`。
+- 已通过：`bash scripts/run_browser_smoke_container.sh python3 scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots`，manifest 为 `output/phase17_screenshots/phase17_screenshots.json`，`ok=true`，交互截图包含 `interaction_formula_before`、`interaction_formula_expanded`、`interaction_regenerate_payload`、`interaction_wrong_feedback`。
+- 已通过：`bash scripts/run_browser_smoke_container.sh python3 -m tests.browser_smoke`。
+- 已通过：`bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py`，结果 `quality_checks: PASS`。
 - 人工查看：抽查 `output/phase17_screenshots/phase17_interaction_formula_expanded_desktop.png` 和 `output/phase17_screenshots/phase17_interaction_wrong_feedback_desktop.png`，页面非空，公式展开来源、输入重新生成降级提示和错误选项解释反馈可辨。
 - 本轮未修改 LLM 直接生成 HTML 的边界；Renderer 仍只消费 BuildArtifact / SceneGraph / validation report 中的结构化证据，不执行 LLM 代码、不重新计算算法答案。
 

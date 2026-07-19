@@ -21,7 +21,7 @@
 5. 对 critical error 分歧保留原始意见，必要时由第四名专家裁决；不得自动改写原始评分。
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/analyze_human_study.py \
+python3 scripts/analyze_human_study.py \
   --output-dir output/experiments/algotutorgen_plan_completion_20260713/human_study_protocols
 ```
 
