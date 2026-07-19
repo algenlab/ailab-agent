@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insertion Sort - AlgoLab Tutorial</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --border: #dde1e6;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --sorted: #4caf84;
+            --key-color: #f0c040;
+            --compare-color: #f07070;
+            --shift-color: #70a0e0;
+            --unsorted: #d5d8dc;
+            --highlight-line: #fff3cd;
+            --timeline-active: #3b82f6;
+            --timeline-done: #10b981;
+            --timeline-pending: #cbd5e1;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --radius: 10px;
+            --transition: 0.25s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            background: #eef1f5;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 16px 40px;
+        }
+
+        .page-wrapper {
+            max-width: 1050px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px 28px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .header-left h1 {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #1a202c;
+            letter-spacing: -0.3px;
+            margin: 0;
+        }
+        #title {
+            color: #1e3a5f;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            max-width: 500px;
+        }
+        .header-right {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        #top-solution {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        /* Code panel */
+        #code {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 16px 18px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+            margin: 0;
+            min-height: 200px;
+            position: relative;
+        }
+        #code .line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 4px;
+            transition: background var(--transition);
+        }
+        #code .line.highlight {
+            background: #3a3a00;
+            border-left: 3px solid #ffd700;
+            font-weight: 600;
+        }
+        #code .line.dim {
+            opacity: 0.55;
+        }
+
+        /* Canvas visualization */
+        #canvas {
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 16px 8px;
+            position: relative;
+        }
+        .array-cell {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #1a202c;
+            transition: all var(--transition);
+            position: relative;
+            border: 3px solid transparent;
+            cursor: default;
+        }
+        .array-cell.sorted {
+            background: #c8f7d5;
+            border-color: var(--sorted);
+            color: #1b5e20;
+        }
+        .array-cell.key {
+            background: #fff3bf;
+            border-color: var(--key-color);
+            color: #7a5900;
+            animation: pulse-key 0.9s ease-in-out infinite;
+        }
+        .array-cell.comparing {
+            background: #ffd4d4;
+            border-color: var(--compare-color);
+            color: #8b0000;
+        }
+        .array-cell.shifting {
+            background: #d4e4ff;
+            border-color: var(--shift-color);
+            color: #003078;
+        }
+        .array-cell.unsorted {
+            background: #e8eaed;
+            border-color: #c0c4cc;
+            color: #5a5f66;
+        }
+        .array-cell.inserted {
+            background: #b8f0d4;
+            border-color: #22c55e;
+            color: #14532d;
+            animation: pop-in 0.4s ease-out;
+        }
+        @keyframes pulse-key {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.55);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(240, 192, 64, 0);
+            }
+        }
+        @keyframes pop-in {
+            0% {
+                transform: scale(0.7);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .array-index-label {
+            position: absolute;
+            bottom: -22px;
+            font-size: 0.7rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+        }
+        .array-cell-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        /* Pointer indicators */
+        .pointer-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 6px;
+            font-size: 0.78rem;
+            color: #555;
+            min-height: 28px;
+            align-items: center;
+        }
+        .pointer-tag {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        .pointer-tag.key-tag {
+            background: #fff3bf;
+            color: #7a5900;
+        }
+        .pointer-tag.compare-tag {
+            background: #ffd4d4;
+            color: #8b0000;
+        }
+        .pointer-tag.shift-tag {
+            background: #d4e4ff;
+            color: #003078;
+        }
+
+        /* Step info */
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        #op {
+            display: inline-block;
+            background: #f0f4ff;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            margin-top: 6px;
+        }
+
+        /* Teaching and evidence */
+        #teaching {
+            font-size: 0.9rem;
+            color: #374151;
+            line-height: 1.55;
+            padding: 10px 14px;
+            background: #fefefe;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            margin-top: 8px;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: #4b5563;
+            background: #f9fafb;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-top: 8px;
+            white-space: pre-wrap;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        #state {
+            font-size: 0.8rem;
+            color: #374151;
+            background: #fffbeb;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #fde68a;
+            margin-top: 8px;
+            white-space: pre-wrap;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        /* Checkpoint area */
+        .checkpoint-area {
+            margin-top: 12px;
+            padding: 14px 16px;
+            background: #fdf6ff;
+            border-radius: 10px;
+            border: 2px solid #d8b4fe;
+        }
+        .checkpoint-area h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #6b21a8;
+            margin-bottom: 8px;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .checkpoint-options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 2px solid #d8b4fe;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            background: #faf5ff;
+            user-select: none;
+        }
+        .checkpoint-options label:hover {
+            background: #ede0f9;
+            border-color: #a855f7;
+        }
+        .checkpoint-options input[type="radio"] {
+            accent-color: #7c3aed;
+        }
+        .checkpoint-options label.selected-option {
+            background: #e9d5ff;
+            border-color: #7c3aed;
+            font-weight: 700;
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: all var(--transition);
+            letter-spacing: 0.2px;
+        }
+        .btn-submit {
+            background: #7c3aed;
+            color: #fff;
+        }
+        .btn-submit:hover {
+            background: #6d28d9;
+            transform: translateY(-1px);
+        }
+        .btn-hint {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .btn-hint:hover {
+            background: #fde68a;
+        }
+        .btn-show-answer {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .btn-show-answer:hover {
+            background: #fecaca;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .checkpoint-feedback {
+            margin-top: 8px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.84rem;
+            min-height: 20px;
+        }
+        .feedback-correct {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .feedback-incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .feedback-info {
+            background: #e0f2fe;
+            color: #075985;
+            border: 1px solid #7dd3fc;
+        }
+
+        /* Learning log */
+        .learning-log {
+            margin-top: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #fdfdfd;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+        .learning-log h4 {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            position: sticky;
+            top: 0;
+            background: #fdfdfd;
+            padding: 4px 0;
+        }
+        .log-entry {
+            padding: 5px 8px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            font-size: 0.78rem;
+        }
+        .log-entry .log-icon {
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .log-entry.correct-entry .log-icon {
+            color: #10b981;
+        }
+        .log-entry.incorrect-entry .log-icon {
+            color: #ef4444;
+        }
+        .log-entry.info-entry .log-icon {
+            color: #3b82f6;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 0;
+        }
+        .tick {
+            padding: 8px 13px;
+            border-radius: 20px;
+            border: 2px solid var(--timeline-pending);
+            background: #f9fafb;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 55px;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: #dbeafe;
+            color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .tick.done {
+            border-color: var(--timeline-done);
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .tick-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .tick-op {
+            font-size: 0.68rem;
+            color: #6b7280;
+            font-weight: 400;
+        }
+        .tick.done .tick-op,
+        .tick.active .tick-op {
+            color: inherit;
+            opacity: 0.8;
+        }
+
+        /* Navigation */
+        .nav-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 8px 0;
+        }
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #374151;
+        }
+        .nav-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        .nav-btn:active {
+            background: #e5e7eb;
+            transform: scale(0.94);
+        }
+        #play {
+            width: 44px;
+            height: 44px;
+            font-size: 1rem;
+            background: #3b82f6;
+            color: #fff;
+            border-color: #3b82f6;
+        }
+        #play:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        #play.playing {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #374151;
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 250px;
+            accent-color: #3b82f6;
+            cursor: pointer;
+            height: 6px;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            background: #e8f5e9;
+            padding: 8px 16px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .answer-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .answer-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="header-left">
+                <h1 id="title">Insertion Sort</h1>
+                <p id="subtitle">Sort song favorability scores from lowest to highest using the insertion sort method.</p>
+            </div>
+            <div class="header-right">
+                <span id="top-result">Progress: sorting...</span>
+                <span id="top-solution">O(n²) time | O(1) space</span>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left column: Code + Canvas -->
+            <div class="card">
+                <h3>Algorithm Code</h3>
+                <pre id="code"><span class="line" data-line="0">function insertionSort(nums) {</span><span class="line" data-line="1">    for (let i = 1; i &lt; nums.length; i++) {</span><span class="line" data-line="2">        let key = nums[i];</span><span class="line" data-line="3">        let j = i - 1;</span><span class="line" data-line="4">        while (j &gt;= 0 &amp;&amp; nums[j] &gt; key) {</span><span class="line" data-line="5">            nums[j + 1] = nums[j];</span><span class="line" data-line="6">            j--;</span><span class="line" data-line="7">        }</span><span class="line" data-line="8">        nums[j + 1] = key;</span><span class="line" data-line="9">    }</span><span class="line" data-line="10">    return nums;</span><span class="line" data-line="11">}</span></pre>
+            </div>
+            <div class="card">
+                <h3>Visualization</h3>
+                <div id="canvas">
+                    <!-- Array cells rendered by JS -->
+                </div>
+                <div class="pointer-row" id="pointer-row"></div>
+            </div>
+
+            <!-- Right column: Step info + teaching -->
+            <div class="card">
+                <h3>Current Step</h3>
+                <div id="step-title">Initialization</div>
+                <div id="step-desc">Set up the initial array and mark the first element as the sorted prefix.</div>
+                <span id="op">setup</span>
+                <div id="teaching">
+                    We begin with the entire array unsorted. The insertion sort algorithm will gradually build a sorted prefix starting from the first element (index 0). The first element by itself is trivially sorted.
+                </div>
+                <div id="checkpoint-container"></div>
+            </div>
+
+            <!-- Full-width: State + Evidence -->
+            <div class="card full-width">
+                <h3>State &amp; Evidence</h3>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                        <strong style="font-size:0.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Current State (JSON)</strong>
+                        <div id="state">{"nums": [5, 2, 3, 1], "i": 0, "sorted_prefix": [5], "key": null, "j": null}</div>
+                    </div>
+                    <div>
+                        <strong style="font-size:0.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Step Evidence</strong>
+                        <div id="step-evidence">Operation: initialize
+                            Targets: full array [5, 2, 3, 1]
+                            Before: N/A (start)
+                            After: sorted_prefix = [5], remaining = [2, 3, 1]</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full-width: Learning Log -->
+            <div class="card full-width">
+                <h3>Learning Log</h3>
+                <div class="learning-log" id="learning-log">
+                    <h4>Activity Log</h4>
+                    <div class="log-entry info-entry"><span class="log-icon">&#8505;</span><span>Page loaded. Ready to learn insertion sort on [5, 2, 3, 1].</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <h3>Step Timeline</h3>
+            <div id="timeline">
+                <!-- Ticks rendered by JS -->
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="card">
+            <div class="nav-row">
+                <button class="nav-btn" id="prev" title="Previous step" aria-label="Previous step">&#9664;</button>
+                <button class="nav-btn" id="play" title="Play / Pause auto-advance" aria-label="Play or pause auto-advance">&#9654;</button>
+                <button class="nav-btn" id="next" title="Next step" aria-label="Next step">&#9654;</button>
+                <span id="counter">1 / 5</span>
+                <input type="range" id="range" min="0" max="4" value="0" step="1" title="Step slider" aria-label="Step slider">
+            </div>
+        </div>
+
+        <!-- Answer -->
+        <div class="card">
+            <div class="answer-section">
+                <span class="answer-label">Final Answer:</span>
+                <span id="answer">[1, 2, 3, 5]</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ───────────────────────────────────────
+            // Step definitions for insertion sort on [5, 2, 3, 1]
+            // ───────────────────────────────────────
+            const steps = [{
+                id: 0,
+                title: 'Initialization',
+                desc: 'Set up the initial array. The first element (5) forms the sorted prefix of length 1.',
+                op: 'setup',
+                array: [5, 2, 3, 1],
+                sortedEnd: 0, // indices 0..sortedEnd are sorted
+                keyIdx: null,
+                compareIdx: null,
+                shiftIdx: null,
+                insertIdx: null,
+                codeLine: 0,
+                stateJSON: '{"nums": [5, 2, 3, 1], "i": 0, "sorted_prefix": [5], "key": null, "j": null}',
+                evidence: 'Operation: initialize\nTargets: full array [5, 2, 3, 1]\nBefore: N/A (start)\nAfter: sorted_prefix = [5] (index 0), remaining unsorted = [2, 3, 1]',
+                teaching: 'We begin with the entire array unsorted. The insertion sort algorithm gradually builds a sorted prefix starting from the first element (index 0). A single element is always trivially sorted. The goal is to take each remaining element and insert it into its correct position within the sorted prefix.',
+                checkpoint: false,
+            }, {
+                id: 1,
+                title: 'Insert Key = 2 (i = 1)',
+                desc: 'Take nums[1] = 2 as the key. Compare it with the sorted prefix [5] and insert it into the correct position.',
+                op: 'compare & insert',
+                array: [2, 5, 3, 1],
+                sortedEnd: 1,
+                keyIdx: 1,
+                compareIdx: 0,
+                shiftIdx: 0,
+                insertIdx: 0,
+                codeLine: 2,
+                stateJSON: '{"nums": [2, 5, 3, 1], "i": 1, "key": 2, "j": 0, "sorted_prefix": [2, 5], "shifted": [5]}',
+                evidence: 'Operation: insert key=2 at i=1\nTargets: key=nums[1]=2, compare with nums[0]=5\nBefore insertion: [5, 2, 3, 1] with sorted_prefix=[5]\nAction: 5 > 2 so shift 5 right; j becomes -1; insert 2 at index 0\nAfter: [2, 5, 3, 1] with sorted_prefix=[2, 5]',
+                teaching: 'The key is 2 (at index 1). We compare it with the element at j=0 (value 5). Since 5 > 2, we shift 5 one position to the right. Now j becomes -1 (out of bounds), so we insert the key=2 at index j+1 = 0. The sorted prefix is now [2, 5].',
+                checkpoint: true,
+                checkpointQuestion: 'After comparing key=2 with the sorted prefix [5], at which index should 2 be inserted?',
+                checkpointOptions: ['index 0', 'index 1', 'index 2'],
+                checkpointCorrect: 0, // index 0
+                checkpointHint: 'Since 5 > 2, the 5 shifts right. The key 2 must go before 5. What index is before 5?',
+                checkpointExplanation: 'The key 2 is less than 5, so 5 shifts right to index 1. The key 2 is then placed at index 0 (j+1 where j became -1). Result: [2, 5, 3, 1].',
+            }, {
+                id: 2,
+                title: 'Insert Key = 3 (i = 2)',
+                desc: 'Take nums[2] = 3 as the key. Compare with sorted prefix [2, 5] and insert into the correct position.',
+                op: 'compare & insert',
+                array: [2, 3, 5, 1],
+                sortedEnd: 2,
+                keyIdx: 2,
+                compareIdx: 1,
+                shiftIdx: 1,
+                insertIdx: 1,
+                codeLine: 2,
+                stateJSON: '{"nums": [2, 3, 5, 1], "i": 2, "key": 3, "j": 1, "sorted_prefix": [2, 3, 5], "shifted": [5]}',
+                evidence: 'Operation: insert key=3 at i=2\nTargets: key=nums[2]=3, compare with sorted_prefix=[2, 5]\nBefore insertion: [2, 5, 3, 1] with sorted_prefix=[2, 5]\nAction: compare 3 with 5 → 5 > 3 so shift 5 right; compare 3 with 2 → 2 < 3 so stop; insert 3 at index 1\nAfter: [2, 3, 5, 1] with sorted_prefix=[2, 3, 5]',
+                teaching: 'The key is 3 (at index 2). We compare with j=1 (value 5). Since 5 > 3, shift 5 right. Now j=0 (value 2). Since 2 < 3, we stop. Insert key=3 at j+1 = index 1. Sorted prefix: [2, 3, 5].',
+                checkpoint: true,
+                checkpointQuestion: 'After comparing key=3 with the sorted prefix [2, 5], at which index should 3 be inserted?',
+                checkpointOptions: ['index 0', 'index 1', 'index 2'],
+                checkpointCorrect: 1, // index 1
+                checkpointHint: 'Compare 3 with 5 (shift 5 right), then compare 3 with 2 (2 < 3, stop). The insertion point is between 2 and 5.',
+                checkpointExplanation: 'Key 3: compare with 5 → shift 5 right (index 1→2). Compare with 2 → 2 < 3, stop at j=0. Insert at j+1=1. Result: [2, 3, 5, 1].',
+            }, {
+                id: 3,
+                title: 'Insert Key = 1 (i = 3)',
+                desc: 'Take nums[3] = 1 as the key. Compare with sorted prefix [2, 3, 5] and insert into the correct position.',
+                op: 'compare & insert',
+                array: [1, 2, 3, 5],
+                sortedEnd: 3,
+                keyIdx: 3,
+                compareIdx: 2,
+                shiftIdx: 2,
+                insertIdx: 0,
+                codeLine: 2,
+                stateJSON: '{"nums": [1, 2, 3, 5], "i": 3, "key": 1, "j": 2, "sorted_prefix": [1, 2, 3, 5], "shifted": [5, 3, 2]}',
+                evidence: 'Operation: insert key=1 at i=3\nTargets: key=nums[3]=1, compare with sorted_prefix=[2, 3, 5]\nBefore insertion: [2, 3, 5, 1] with sorted_prefix=[2, 3, 5]\nAction: 5>1 shift 5 right; 3>1 shift 3 right; 2>1 shift 2 right; j=-1; insert 1 at index 0\nAfter: [1, 2, 3, 5] fully sorted',
+                teaching: 'The key is 1 (at index 3). Compare with 5 (shift), 3 (shift), 2 (shift). All are greater than 1, so they all shift right. j becomes -1. Insert key=1 at index 0. The array is now fully sorted: [1, 2, 3, 5].',
+                checkpoint: true,
+                checkpointQuestion: 'After comparing key=1 with the sorted prefix [2, 3, 5], at which index should 1 be inserted?',
+                checkpointOptions: ['index 0', 'index 1', 'index 2', 'index 3'],
+                checkpointCorrect: 0, // index 0
+                checkpointHint: 'All elements in [2, 3, 5] are greater than 1. They all shift right. Where does the smallest element go?',
+                checkpointExplanation: 'Key 1 is smaller than all sorted elements (2, 3, 5). All shift right: 5→index 3, 3→index 2, 2→index 1. j becomes -1. Insert at j+1=0. Result: [1, 2, 3, 5].',
+            }, {
+                id: 4,
+                title: 'Complete — Array Sorted',
+                desc: 'All elements have been processed. The array is now sorted in ascending order.',
+                op: 'return',
+                array: [1, 2, 3, 5],
+                sortedEnd: 3,
+                keyIdx: null,
+                compareIdx: null,
+                shiftIdx: null,
+                insertIdx: null,
+                codeLine: 10,
+                stateJSON: '{"nums": [1, 2, 3, 5], "sorted": true, "result": [1, 2, 3, 5]}',
+                evidence: 'Operation: return sorted array\nFinal state: [1, 2, 3, 5]\nAll elements processed. Insertion sort complete.\nThe sorted list can now be used for the music player queue.',
+                teaching: 'All elements have been inserted into their correct positions. The array is fully sorted: [1, 2, 3, 5]. The insertion sort algorithm has completed, and the music player can now play songs from lowest to highest favorability score.',
+                checkpoint: false,
+            }];
+
+            const totalSteps = steps.length; // 5 steps (0-4)
+            let currentStepIdx = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            const checkpointAnswers = {}; // track which checkpoint steps have been correctly answered
+            const learningLogEntries = [];
+
+            // ───────────────────────────────────────
+            // DOM references
+            // ───────────────────────────────────────
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $pointerRow = document.getElementById('pointer-row');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $topResult = document.getElementById('top-result');
+            const $answer = document.getElementById('answer');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $learningLog = document.getElementById('learning-log');
+            const $codeLines = $code.querySelectorAll('.line');
+
+            // ───────────────────────────────────────
+            // Build timeline ticks
+            // ───────────────────────────────────────
+            const tickLabels = ['Init', 'i=1', 'i=2', 'i=3', 'Done'];
+            const tickOps = ['setup', 'insert 2', 'insert 3', 'insert 1', 'return'];
+
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                for (let i = 0; i < totalSteps; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + tickLabels[i]);
+                    tick.innerHTML =
+                        '<span class="tick-label">' + tickLabels[i] + '</span><span class="tick-op">' + tickOps[i] +
+                        '</span>';
+                    tick.addEventListener('click', (function(stepIdx) {
+                        return function() {
+                            stopPlay();
+                            goToStep(stepIdx);
+                        };
+                    })(i));
+                    $timeline.appendChild(tick);
+                }
+            }
+
+            function updateTimelineHighlight() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((tick, i) => {
+                    tick.classList.remove('active', 'done');
+                    if (i < currentStepIdx) {
+                        tick.classList.add('done');
+                    } else if (i === currentStepIdx) {
+                        tick.classList.add('active');
+                    }
+                });
+            }
+
+            // ───────────────────────────────────────
+            // Render the current step
+            // ───────────────────────────────────────
+            function goToStep(idx) {
+                if (idx < 0) idx = 0;
+                if (idx >= totalSteps) idx = totalSteps - 1;
+                currentStepIdx = idx;
+                const step = steps[idx];
+                renderStep(step);
+                updateTimelineHighlight();
+                updateCounter();
+                updateRange();
+                updateCodeHighlight(step.codeLine);
+                updateTopResult(step);
+                renderCheckpoint(step);
+                updatePlayButtonState();
+                if (idx === totalSteps - 1 && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function renderStep(step) {
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+                $teaching.textContent = step.teaching;
+                $state.textContent = step.stateJSON;
+                $stepEvidence.textContent = step.evidence;
+                renderCanvas(step);
+            }
+
+            function renderCanvas(step) {
+                $canvas.innerHTML = '';
+                $pointerRow.innerHTML = '';
+                const arr = step.array;
+
+                arr.forEach((val, idx) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'array-cell-wrapper';
+
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell';
+                    cell.textContent = val;
+
+                    // Determine cell class based on step context
+                    if (step.sortedEnd !== null && idx <= step.sortedEnd && step.id < totalSteps - 1) {
+                        // In non-final steps, sorted prefix is green
+                        if (idx === step.insertIdx && step.id > 0 && step.id < totalSteps - 1) {
+                            cell.classList.add('inserted');
+                        } else if (idx === step.keyIdx && step.keyIdx !== null && step.id < totalSteps - 1) {
+                            // Key element (being inserted) - but at this step it's already placed
+                            cell.classList.add('sorted');
+                        } else {
+                            cell.classList.add('sorted');
+                        }
+                    } else if (step.id === totalSteps - 1) {
+                        // Final step: all sorted
+                        cell.classList.add('sorted');
+                    } else if (idx === step.keyIdx && step.keyIdx !== null && step.id < totalSteps - 1) {
+                        cell.classList.add('key');
+                    } else if (idx === step.compareIdx && step.compareIdx !== null && step.id < totalSteps - 1) {
+                        cell.classList.add('comparing');
+                    } else if (idx === step.shiftIdx && step.shiftIdx !== null && step.id < totalSteps - 1 && idx !==
+                        step.insertIdx) {
+                        cell.classList.add('shifting');
+                    } else {
+                        cell.classList.add('unsorted');
+                    }
+
+                    // Special handling for step 0: first element sorted, rest unsorted
+                    if (step.id === 0) {
+                        if (idx === 0) {
+                            cell.className = 'array-cell sorted';
+                        } else {
+                            cell.className = 'array-cell unsorted';
+                        }
+                    }
+
+                    // For step where insertion just happened, mark the inserted cell
+                    if (step.insertIdx !== null && idx === step.insertIdx && step.id > 0 && step.id < totalSteps -
+                        1) {
+                        cell.classList.add('inserted');
+                        // Remove other conflicting classes
+                        cell.classList.remove('key', 'comparing', 'shifting', 'unsorted');
+                        if (idx <= step.sortedEnd) {
+                            cell.classList.add('sorted');
+                        }
+                    }
+
+                    const indexLabel = document.createElement('span');
+                    indexLabel.className = 'array-index-label';
+                    indexLabel.textContent = '[' + idx + ']';
+
+                    wrapper.appendChild(cell);
+                    wrapper.appendChild(indexLabel);
+                    $canvas.appendChild(wrapper);
+                });
+
+                // Pointer tags
+                if (step.keyIdx !== null && step.id < totalSteps - 1) {
+                    const keyTag = document.createElement('span');
+                    keyTag.className = 'pointer-tag key-tag';
+                    keyTag.textContent = 'key=' + step.array[step.keyIdx] + ' @[' + step.keyIdx + ']';
+                    $pointerRow.appendChild(keyTag);
+                }
+                if (step.compareIdx !== null && step.id < totalSteps - 1 && step.compareIdx >= 0) {
+                    const cmpTag = document.createElement('span');
+                    cmpTag.className = 'pointer-tag compare-tag';
+                    cmpTag.textContent = 'compare @[' + step.compareIdx + ']';
+                    $pointerRow.appendChild(cmpTag);
+                }
+                if (step.shiftIdx !== null && step.id < totalSteps - 1 && step.shiftIdx >= 0 && step.shiftIdx !== step
+                    .insertIdx) {
+                    const shTag = document.createElement('span');
+                    shTag.className = 'pointer-tag shift-tag';
+                    shTag.textContent = 'shift @[' + step.shiftIdx + '→' + (step.shiftIdx + 1) + ']';
+                    $pointerRow.appendChild(shTag);
+                }
+                if (step.id === totalSteps - 1) {
+                    const doneTag = document.createElement('span');
+                    doneTag.className = 'pointer-tag';
+                    doneTag.style.cssText = 'background:#d1fae5;color:#065f46;';
+                    doneTag.textContent = 'fully sorted ✓';
+                    $pointerRow.appendChild(doneTag);
+                }
+            }
+
+            function updateCodeHighlight(activeLine) {
+                $codeLines.forEach(line => {
+                    const lineNum = parseInt(line.getAttribute('data-line'), 10);
+                    line.classList.remove('highlight', 'dim');
+                    if (lineNum === activeLine) {
+                        line.classList.add('highlight');
+                    }
+                    // Dim lines that are not relevant (optional subtle dimming for far-away lines)
+                    if (Math.abs(lineNum - activeLine) > 4 && activeLine >= 0) {
+                        line.classList.add('dim');
+                    }
+                });
+            }
+
+            function updateCounter() {
+                $counter.textContent = (currentStepIdx + 1) + ' / ' + totalSteps;
+            }
+
+            function updateRange() {
+                $range.value = currentStepIdx;
+                $range.max = totalSteps - 1;
+            }
+
+            function updateTopResult(step) {
+                if (step.id === totalSteps - 1) {
+                    $topResult.textContent = 'Sorted! [1, 2, 3, 5]';
+                    $topResult.style.background = '#d1fae5';
+                    $topResult.style.color = '#065f46';
+                } else {
+                    $topResult.textContent = 'Progress: step ' + (step.id + 1) + ' of ' + totalSteps;
+                    $topResult.style.background = '#e8f5e9';
+                    $topResult.style.color = '#2e7d32';
+                }
+            }
+
+            function updatePlayButtonState() {
+                if (isPlaying) {
+                    $play.classList.add('playing');
+                    $play.innerHTML = '&#9646;&#9646;';
+                    $play.setAttribute('aria-label', 'Pause auto-advance');
+                } else {
+                    $play.classList.remove('playing');
+                    $play.innerHTML = '&#9654;';
+                    $play.setAttribute('aria-label', 'Play auto-advance');
+                }
+                // Disable play on last step
+                if (currentStepIdx >= totalSteps - 1) {
+                    $play.disabled = true;
+                    if (isPlaying) stopPlay();
+                } else {
+                    $play.disabled = false;
+                }
+            }
+
+            // ───────────────────────────────────────
+            // Checkpoint rendering
+            // ───────────────────────────────────────
+            function renderCheckpoint(step) {
+                $checkpointContainer.innerHTML = '';
+                if (!step.checkpoint) return;
+
+                const answeredCorrectly = checkpointAnswers[step.id] === true;
+                const container = $checkpointContainer;
+                container.className = 'checkpoint-area';
+
+                const questionEl = document.createElement('h4');
+                questionEl.textContent = '🧠 Checkpoint: ' + step.checkpointQuestion;
+                container.appendChild(questionEl);
+
+                if (answeredCorrectly) {
+                    const doneMsg = document.createElement('div');
+                    doneMsg.className = 'feedback-correct';
+                    doneMsg.textContent = '✓ You answered correctly! ' + step.checkpointExplanation;
+                    container.appendChild(doneMsg);
+                    return;
+                }
+
+                // Options
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'checkpoint-options';
+                const radioName = 'checkpoint-' + step.id;
+                step.checkpointOptions.forEach((optText, optIdx) => {
+                    const label = document.createElement('label');
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = radioName;
+                    radio.value = optIdx;
+                    radio.addEventListener('change', function() {
+                        // Highlight selected label
+                        optionsDiv.querySelectorAll('label').forEach(l => l.classList.remove(
+                            'selected-option'));
+                        label.classList.add('selected-option');
+                    });
+                    label.appendChild(radio);
+                    label.appendChild(document.createTextNode(optText));
+                    optionsDiv.appendChild(label);
+                });
+                container.appendChild(optionsDiv);
+
+                // Buttons
+                const btnRow = document.createElement('div');
+                btnRow.className = 'checkpoint-btns';
+
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'btn btn-submit';
+                submitBtn.textContent = 'Submit Answer';
+                submitBtn.addEventListener('click', function() {
+                    const selected = optionsDiv.querySelector('input[type="radio"]:checked');
+                    if (!selected) {
+                        showCheckpointFeedback(container, 'Please select an option first.',
+                        'feedback-info');
+                        return;
+                    }
+                    const chosenIdx = parseInt(selected.value, 10);
+                    if (chosenIdx === step.checkpointCorrect) {
+                        checkpointAnswers[step.id] = true;
+                        showCheckpointFeedback(container, '✓ Correct! ' + step.checkpointExplanation,
+                            'feedback-correct');
+                        addLogEntry('correct',
+                            'Step ' + (step.id + 1) + ': Correctly answered — ' + step.checkpointExplanation
+                            );
+                        // Re-render checkpoint to show completed state
+                        setTimeout(() => renderCheckpoint(step), 600);
+                    } else {
+                        const chosenLabel = step.checkpointOptions[chosenIdx];
+                        showCheckpointFeedback(container,
+                            '✗ Incorrect. You chose ' + chosenLabel +
+                            '. Try again or use Hint / Show Answer.',
+                            'feedback-incorrect');
+                        addLogEntry('incorrect',
+                            'Step ' + (step.id + 1) + ': Incorrect — chose ' + chosenLabel +
+                            '. Correct is ' + step.checkpointOptions[step.checkpointCorrect] + '.');
+                    }
+                });
+
+                const hintBtn = document.createElement('button');
+                hintBtn.className = 'btn btn-hint';
+                hintBtn.textContent = 'Hint';
+                hintBtn.addEventListener('click', function() {
+                    showCheckpointFeedback(container, '💡 Hint: ' + step.checkpointHint, 'feedback-info');
+                    addLogEntry('info', 'Step ' + (step.id + 1) + ': Viewed hint — ' + step.checkpointHint);
+                });
+
+                const showAnswerBtn = document.createElement('button');
+                showAnswerBtn.className = 'btn btn-show-answer';
+                showAnswerBtn.textContent = 'Show Answer';
+                showAnswerBtn.addEventListener('click', function() {
+                    checkpointAnswers[step.id] = true;
+                    showCheckpointFeedback(container,
+                        '📖 Answer: ' + step.checkpointOptions[step.checkpointCorrect] + ' — ' + step
+                        .checkpointExplanation,
+                        'feedback-info');
+                    addLogEntry('info',
+                        'Step ' + (step.id + 1) + ': Viewed answer — ' + step.checkpointOptions[step
+                            .checkpointCorrect] + '. ' + step.checkpointExplanation);
+                    setTimeout(() => renderCheckpoint(step), 600);
+                });
+
+                btnRow.appendChild(submitBtn);
+                btnRow.appendChild(hintBtn);
+                btnRow.appendChild(showAnswerBtn);
+                container.appendChild(btnRow);
+
+                // Feedback area
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'checkpoint-feedback';
+                feedbackDiv.id = 'checkpoint-feedback-' + step.id;
+                container.appendChild(feedbackDiv);
+            }
+
+            function showCheckpointFeedback(container, message, className) {
+                let fb = container.querySelector('.checkpoint-feedback');
+                if (!fb) {
+                    fb = document.createElement('div');
+                    fb.className = 'checkpoint-feedback';
+                    container.appendChild(fb);
+                }
+                fb.className = 'checkpoint-feedback ' + className;
+                fb.textContent = message;
+            }
+
+            // ───────────────────────────────────────
+            // Learning log
+            // ───────────────────────────────────────
+            function addLogEntry(type, message) {
+                learningLogEntries.push({ type, message, time: new Date() });
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                // Keep the heading and rebuild entries
+                const heading = $learningLog.querySelector('h4');
+                $learningLog.innerHTML = '';
+                if (heading) $learningLog.appendChild(heading);
+                if (learningLogEntries.length === 0) {
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry info-entry';
+                    entry.innerHTML = '<span class="log-icon">&#8505;</span><span>No activity yet.</span>';
+                    $learningLog.appendChild(entry);
+                } else {
+                    learningLogEntries.forEach(e => {
+                        const entry = document.createElement('div');
+                        entry.className = 'log-entry ' + e.type + '-entry';
+                        const iconMap = { correct: '✓', incorrect: '✗', info: 'ℹ' };
+                        entry.innerHTML = '<span class="log-icon">' + (iconMap[e.type] || '•') +
+                            '</span><span>' + e.message + '</span>';
+                        $learningLog.appendChild(entry);
+                    });
+                }
+                // Scroll to bottom
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            // ───────────────────────────────────────
+            // Navigation handlers
+            // ───────────────────────────────────────
+            function stopPlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                isPlaying = false;
+                updatePlayButtonState();
+            }
+
+            function startPlay() {
+                if (currentStepIdx >= totalSteps - 1) {
+                    stopPlay();
+                    return;
+                }
+                isPlaying = true;
+                updatePlayButtonState();
+                playInterval = setInterval(function() {
+                    if (currentStepIdx >= totalSteps - 1) {
+                        stopPlay();
+                        return;
+                    }
+                    // Check if current step has an unanswered checkpoint
+                    const step = steps[currentStepIdx];
+                    if (step.checkpoint && !checkpointAnswers[step.id]) {
+                        // Pause at checkpoint
+                        stopPlay();
+                        return;
+                    }
+                    goToStep(currentStepIdx + 1);
+                    if (currentStepIdx >= totalSteps - 1) {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            $prev.addEventListener('click', function() {
+                stopPlay();
+                goToStep(currentStepIdx - 1);
+            });
+
+            $next.addEventListener('click', function() {
+                stopPlay();
+                // Check if current step has unanswered checkpoint
+                const step = steps[currentStepIdx];
+                if (step.checkpoint && !checkpointAnswers[step.id]) {
+                    addLogEntry('info',
+                        'Step ' + (step.id + 1) +
+                        ': Attempted to advance without answering checkpoint. Please answer or use Show Answer.'
+                        );
+                    // Flash the checkpoint area
+                    const cpArea = $checkpointContainer.querySelector('.checkpoint-area');
+                    if (cpArea) {
+                        cpArea.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.4)';
+                        setTimeout(() => { cpArea.style.boxShadow = ''; }, 500);
+                    }
+                    return;
+                }
+                goToStep(currentStepIdx + 1);
+            });
+
+            $play.addEventListener('click', function() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // Check if current step has unanswered checkpoint
+                    const step = steps[currentStepIdx];
+                    if (step.checkpoint && !checkpointAnswers[step.id]) {
+                        addLogEntry('info',
+                            'Step ' + (step.id + 1) +
+                            ': Auto-play paused — please answer the checkpoint or use Show Answer.');
+                        const cpArea = $checkpointContainer.querySelector('.checkpoint-area');
+                        if (cpArea) {
+                            cpArea.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.4)';
+                            setTimeout(() => { cpArea.style.boxShadow = ''; }, 500);
+                        }
+                        return;
+                    }
+                    startPlay();
+                }
+            });
+
+            $range.addEventListener('input', function() {
+                stopPlay();
+                const targetIdx = parseInt($range.value, 10);
+                goToStep(targetIdx);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'radio') return;
+                if (e.target.tagName === 'INPUT' && e.target.type === 'range') return;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    stopPlay();
+                    const step = steps[currentStepIdx];
+                    if (step.checkpoint && !checkpointAnswers[step.id]) {
+                        addLogEntry('info', 'Step ' + (step.id + 1) +
+                            ': Cannot advance — please answer checkpoint first.');
+                        return;
+                    }
+                    goToStep(currentStepIdx + 1);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStepIdx - 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isPlaying) {
+                        stopPlay();
+                    } else {
+                        const step = steps[currentStepIdx];
+                        if (step.checkpoint && !checkpointAnswers[step.id]) return;
+                        startPlay();
+                    }
+                }
+            });
+
+            // ───────────────────────────────────────
+            // Initialize
+            // ───────────────────────────────────────
+            function init() {
+                buildTimeline();
+                $range.max = totalSteps - 1;
+                $range.value = 0;
+                $answer.textContent = '[1, 2, 3, 5]';
+                goToStep(0);
+                renderLearningLog();
+                updatePlayButtonState();
+                // Ensure answer is correct from page load
+                $answer.textContent = '[1, 2, 3, 5]';
+            }
+
+            init();
+
+            console.log('Insertion Sort AlgoLab tutorial ready. Explore the steps to learn how insertion sort works!');
+        })();
+    </script>
+</body>
+</html>

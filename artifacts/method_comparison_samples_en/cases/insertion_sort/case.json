@@ -1,0 +1,133 @@
+{
+  "id": "insertion_sort",
+  "algorithm_id": "insertion_sort",
+  "title": "Insertion Sort",
+  "family": "Sorting",
+  "family_id": "sorting",
+  "subfamily_id": "insertion_sort",
+  "gate_layer": "family_core",
+  "support_level": "medium_plus",
+  "process_profile": "sorting",
+  "difficulty": "medium",
+  "problem": "In a music player application, you are given a list of song favorability scores nums. Use the insertion sort method to sort them in ascending order and return the sorted list, so that songs can be played from lowest to highest score.",
+  "strategy": "Gradually maintain a sorted prefix and insert the current element into its correct position.",
+  "input_contract": "Input the nums array.",
+  "variant_name": "Insertion Sort",
+  "time_complexity": "O(n^2)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "Understand the maintenance of the sorted prefix nums[0..i-1] in insertion sort.",
+    "Master how the key variable temporarily holds the element to be inserted and is compared with elements on the left.",
+    "Predict the next insertion position based on changes in state.nums in the trace."
+  ],
+  "required_views": [
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct, you predicted the state after the element is shifted to the right.",
+      "feedback_wrong": "Observe the comparison between key=3 and nums[1]=5. Since 5>3, shift 5 to the right and update nums.",
+      "id": "task_1",
+      "oracle": "Obtain state.nums from the next step in the trace and check whether the array in the answer matches it (should be [2,5,5,1]).",
+      "prompt": "Currently nums = [2,5,3,1], i=2, key=3, j=1. What is the state of nums after performing one comparison and shift?",
+      "stage2_affordance": "Drag the currently highlighted card to the correct position to simulate insertion.",
+      "trace_anchor": [
+        "state.nums",
+        "state.key",
+        "state.i",
+        "state.j"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Exactly, the sorted prefix is the core invariant of the algorithm.",
+      "feedback_wrong": "Observe the portion before i in each step of the trace. Is it already sorted in ascending order?",
+      "id": "task_2",
+      "oracle": "The answer must clearly state that the prefix nums[0..i-1] is sorted at the beginning of each round.",
+      "prompt": "In insertion sort, which part of the array always remains sorted? Please explain using indices from the state.",
+      "stage2_affordance": "Highlight the sorted prefix region.",
+      "trace_anchor": [
+        "state.i",
+        "state.nums"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "This indeed increases the number of shifts during insertion.",
+      "feedback_wrong": "Consider modifying the value of the sorted prefix or the element to be inserted to widen the gap between them.",
+      "id": "task_3",
+      "oracle": "Change the first element to a larger value (e.g., 9), or change the second element to a smaller value (e.g., -5), so that key requires more shifts when compared to the left. Verify whether the modified array's first insertion has more moves than the original input.",
+      "prompt": "Given the original input nums = [4,2,7,1], if you want to increase the number of shifts during the first insertion, how would you modify a single element?",
+      "stage2_affordance": "Directly modify element values in the array editing box.",
+      "trace_anchor": [
+        "nums"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Exactly, elements larger than key are shifted right to make space for insertion.",
+      "feedback_wrong": "Pay attention to the relationship between the value of key and the element on the left being compared.",
+      "id": "task_4",
+      "oracle": "Check whether the answer mentions that key=4, j=1, nums[j]=7>4, so 7 is shifted right to position 2.",
+      "prompt": "In the trace, one step changes nums from [3,7,4,2] to [3,7,7,2]. What happened in this step?",
+      "stage2_affordance": "Play the animation step by step to show the comparison and shifting process.",
+      "trace_anchor": [
+        "state.nums",
+        "state.key",
+        "state.j"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "index": 0,
+      "input_data": {
+        "nums": [
+          5,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "expected": [
+        1,
+        2,
+        3
+      ],
+      "index": 1,
+      "input_data": {
+        "nums": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "expected": [
+        -1,
+        0,
+        3,
+        3
+      ],
+      "index": 2,
+      "input_data": {
+        "nums": [
+          3,
+          -1,
+          0,
+          3
+        ]
+      }
+    }
+  ]
+}

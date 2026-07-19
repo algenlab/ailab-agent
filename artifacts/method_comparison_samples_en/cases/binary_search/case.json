@@ -1,0 +1,125 @@
+{
+  "id": "binary_search",
+  "algorithm_id": "binary_search",
+  "title": "Binary Search",
+  "family": "Binary",
+  "family_id": "binary_search",
+  "subfamily_id": "closed_interval_search",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "binary_search",
+  "difficulty": "medium",
+  "problem": "You work in a library where books with unique call numbers are arranged in order on shelves. Given a shelf array nums (each position i stores call number nums[i]), and a target call number needed by a reader, return the index of target, or -1 if it does not exist.",
+  "strategy": "Maintain a closed interval and discard half after comparing the midpoint each time.",
+  "input_contract": "Input: a sorted nums array and target.",
+  "variant_name": "Closed Interval Binary Search",
+  "time_complexity": "O(log n)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "Master the update rules for left and right pointers in closed-interval binary search.",
+    "Be able to predict the next search interval based on the comparison between the current mid value and target.",
+    "Understand that the interval length strictly decreases while the invariant that target remains within the interval is maintained."
+  ],
+  "required_views": [
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! left is updated to mid+1, discarding the left half.",
+      "feedback_wrong": "Observe the comparison logic again: when nums[mid] < target, the search interval becomes [mid+1, right].",
+      "id": "task_1",
+      "oracle": "According to the code, when nums[mid] < target, left = mid + 1, right unchanged. So next step left=3, right=5. You can verify the next state in the trace.",
+      "prompt": "Current search interval: left=0, right=5, mid=2, nums=[-1,0,3,5,9,12], target=9. nums[mid]=3 < target. How will left and right update in the next step?",
+      "stage2_affordance": "In the visualization, click the next step button and observe the left pointer move to the mid+1 position.",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.mid",
+        "state.nums"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Exactly! This is the core invariant for the correctness of binary search.",
+      "feedback_wrong": "Hint: If target exists, why can we safely narrow the range after each comparison?",
+      "id": "task_2",
+      "oracle": "The correct answer is B. Verification method: Initially the interval contains the whole array; if target exists, each update never discards the part containing target. Check the trace: at each step, left/right, the target index remains within that interval.",
+      "prompt": "At any step of binary search, which statement about the search interval and target always holds? A. target is definitely in the interval B. If target is in the array, it is always in the current interval C. The interval length is always even D. left is always less than right. Choose and explain.",
+      "stage2_affordance": "Highlight the interval and show the possible location range of target.",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.target"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct! Changing target to a value that exists reduces the number of search steps.",
+      "feedback_wrong": "Think about when the algorithm terminates early? When mid exactly equals target.",
+      "id": "task_3",
+      "oracle": "Change target to a value that exists in the array, such as 5. Then the algorithm returns immediately when mid hits 5, reducing the number of loop iterations. Check: original target=4 does not exist, loop runs 3 times; after change, loop runs 1-2 times. expected should be the corresponding index.",
+      "prompt": "Suppose nums=[1,3,5,7,9], target=4. Modify the target value so that the search can stop early (i.e., fewer loop iterations than the original search). Provide the new target value.",
+      "stage2_affordance": "Provide an input box for the student to enter a new target and run the visualization.",
+      "trace_anchor": [
+        "state.nums",
+        "state.target"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Good! This shows the limitation of basic binary search with duplicate elements.",
+      "feedback_wrong": "Try constructing an array with duplicate elements where binary search might return a non-first occurrence position.",
+      "id": "task_4",
+      "oracle": "Counterexample: nums=[1,2,2,2,3], target=2, expected index of first 2 is 1. But basic binary search may return the index of a middle 2 (e.g., 2). Use verifier: expected should be 1, but algorithm output may be 2. The input constructed by the user should produce an incorrect result.",
+      "prompt": "A student says: \"As long as nums is sorted, binary search can correctly return the index of any target, regardless of duplicates.\" Construct a counterexample nums and target using an array with duplicate elements to show this statement is wrong (assuming the requirement is to return the first occurrence position of target).",
+      "stage2_affordance": "Drag array elements to create duplicate values and observe the mid position changes.",
+      "trace_anchor": [
+        "state.nums",
+        "state.target"
+      ],
+      "type": "find_counterexample"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 4,
+      "index": 0,
+      "input_data": {
+        "nums": [
+          -1,
+          0,
+          3,
+          5,
+          9,
+          12
+        ],
+        "target": 9
+      }
+    },
+    {
+      "expected": -1,
+      "index": 1,
+      "input_data": {
+        "nums": [
+          -1,
+          0,
+          3,
+          5,
+          9,
+          12
+        ],
+        "target": 2
+      }
+    },
+    {
+      "expected": 0,
+      "index": 2,
+      "input_data": {
+        "nums": [
+          5
+        ],
+        "target": 5
+      }
+    }
+  ]
+}

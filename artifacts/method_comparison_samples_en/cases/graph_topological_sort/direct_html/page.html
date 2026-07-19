@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topological Sort - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface2: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text2: #475569;
+            --text3: #64748b;
+            --accent: #2563eb;
+            --accent2: #3b82f6;
+            --green: #16a34a;
+            --green2: #22c55e;
+            --green-bg: #f0fdf4;
+            --orange: #ea580c;
+            --orange-bg: #fff7ed;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --purple: #7c3aed;
+            --purple-bg: #faf5ff;
+            --blue-bg: #eff6ff;
+            --yellow-bg: #fefce8;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow2: 0 2px 8px rgba(0, 0, 0, 0.12);
+            --radius: 8px;
+            --radius2: 12px;
+            --transition: 0.2s ease;
+            --font-mono: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius2);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+        }
+
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 4px 0;
+        }
+
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text3);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .top-output-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        #top-result,
+        #top-solution {
+            flex: 1;
+            min-width: 200px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+        }
+
+        #top-result h4,
+        #top-solution h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text3);
+            margin: 0 0 6px 0;
+        }
+
+        #top-result .result-value,
+        #top-solution .solution-value {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+            word-break: break-all;
+        }
+
+        .code-panel {
+            background: #1e293b;
+            border-radius: var(--radius2);
+            padding: 16px 20px;
+            box-shadow: var(--shadow2);
+            overflow-x: auto;
+        }
+
+        .code-panel h4 {
+            color: #94a3b8;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 10px 0;
+            font-weight: 500;
+        }
+
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: #cbd5e1;
+            white-space: pre;
+            margin: 0;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 2px 10px;
+            margin: 0 -10px;
+            border-radius: 4px;
+            transition: all var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        #code .code-line.active {
+            background: #334155;
+            color: #f8fafc;
+            border-left-color: #facc15;
+            font-weight: 600;
+            box-shadow: inset 2px 0 8px rgba(250, 204, 21, 0.15);
+        }
+
+        #code .code-line.processed {
+            color: #94a3b8;
+        }
+
+        .stepper-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius2);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--accent);
+            min-width: 48px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+
+        .stepper-bar button {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+
+        .stepper-bar button:hover {
+            background: var(--surface2);
+            border-color: #cbd5e1;
+        }
+
+        .stepper-bar button:active {
+            background: #e2e8f0;
+            transform: scale(0.97);
+        }
+
+        .stepper-bar button.primary-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        .stepper-bar button.primary-btn:hover {
+            background: #1d4ed8;
+        }
+
+        #play {
+            min-width: 60px;
+            font-weight: 600;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius2);
+            padding: 10px 12px;
+            box-shadow: var(--shadow);
+            align-items: center;
+            overflow-x: auto;
+        }
+
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: var(--surface2);
+            cursor: pointer;
+            transition: all var(--transition);
+            min-width: 56px;
+            text-align: center;
+            font-size: 0.78rem;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #e2e8f0;
+        }
+
+        .tick.active {
+            border-color: var(--accent);
+            background: var(--blue-bg);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .tick.completed {
+            border-color: var(--green);
+            background: var(--green-bg);
+        }
+
+        .tick .tick-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: var(--text3);
+            line-height: 1.2;
+            margin-top: 2px;
+        }
+
+        .tick.active .tick-label {
+            color: var(--accent);
+        }
+
+        .tick.completed .tick-label {
+            color: var(--green);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .canvas-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius2);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            min-height: 320px;
+        }
+
+        .canvas-panel h4 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text3);
+            margin: 0 0 10px 0;
+        }
+
+        #canvas {
+            position: relative;
+            min-height: 280px;
+            background: var(--surface2);
+            border-radius: var(--radius);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        .graph-viz {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+        }
+
+        .graph-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            z-index: 2;
+        }
+
+        .graph-node .node-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            font-family: var(--font-mono);
+            border: 3px solid #cbd5e1;
+            background: #f8fafc;
+            color: #475569;
+            transition: all var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .graph-node .node-box.state-unprocessed {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #64748b;
+        }
+
+        .graph-node .node-box.state-queued {
+            background: #fff7ed;
+            border-color: #f97316;
+            color: #c2410c;
+            box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.15);
+        }
+
+        .graph-node .node-box.state-current {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.25);
+            animation: pulse 0.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(245, 158, 11, 0.08);
+            }
+        }
+
+        .graph-node .node-box.state-done {
+            background: #f0fdf4;
+            border-color: #22c55e;
+            color: #15803d;
+        }
+
+        .graph-node .node-box.state-updated {
+            background: #faf5ff;
+            border-color: #a855f7;
+            color: #6b21a8;
+            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.18);
+        }
+
+        .graph-node .node-indegree {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text3);
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-family: var(--font-mono);
+        }
+
+        .edge-arrow {
+            display: flex;
+            align-items: center;
+            font-size: 1.4rem;
+            color: #94a3b8;
+            font-weight: 700;
+            z-index: 1;
+            padding: 0 4px;
+            align-self: center;
+            user-select: none;
+        }
+
+        .data-tables {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .data-table-wrap {
+            flex: 1;
+            min-width: 130px;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .data-table-wrap h5 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text3);
+            margin: 0 0 6px 0;
+        }
+
+        .data-table-wrap .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 6px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            border-radius: 3px;
+            margin: 1px 0;
+        }
+
+        .data-table-wrap .data-row.highlight {
+            background: #fef3c7;
+            font-weight: 600;
+        }
+
+        .data-table-wrap .data-row.updated {
+            background: #faf5ff;
+            font-weight: 600;
+            color: #6b21a8;
+        }
+
+        .queue-display {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 6px;
+            background: #fff7ed;
+            border-radius: 6px;
+            border: 1px solid #fed7aa;
+            min-height: 36px;
+        }
+
+        .queue-display .queue-item {
+            background: #f97316;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+        }
+
+        .queue-display .queue-empty {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: 0.82rem;
+        }
+
+        .result-display {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 6px;
+            background: #f0fdf4;
+            border-radius: 6px;
+            border: 1px solid #bbf7d0;
+            min-height: 36px;
+        }
+
+        .result-display .result-item {
+            background: #16a34a;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+        }
+
+        .result-display .result-empty {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: 0.82rem;
+        }
+
+        .info-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius2);
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 4px 0;
+        }
+
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text2);
+            margin: 0 0 8px 0;
+        }
+
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            background: var(--blue-bg);
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 4px 0;
+            font-weight: 500;
+        }
+
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text2);
+            background: var(--yellow-bg);
+            padding: 12px 14px;
+            border-radius: 8px;
+            border-left: 4px solid #f59e0b;
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            max-height: 140px;
+            overflow-y: auto;
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        #step-evidence {
+            font-size: 0.85rem;
+            color: var(--text2);
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        .checkpoint-area {
+            background: #fefce8;
+            border: 2px solid #facc15;
+            border-radius: var(--radius2);
+            padding: 16px;
+            margin: 12px 0;
+            box-shadow: var(--shadow);
+        }
+
+        .checkpoint-area h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+            color: #92400e;
+            font-weight: 700;
+        }
+
+        .checkpoint-area .cp-prompt {
+            font-weight: 600;
+            color: #78350f;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .checkpoint-area input[type="text"] {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 350px;
+            transition: border-color var(--transition);
+        }
+
+        .checkpoint-area input[type="text"]:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .checkpoint-area .cp-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .checkpoint-area button {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            background: #fff;
+        }
+
+        .checkpoint-area button.cp-submit {
+            background: #f59e0b;
+            color: #fff;
+            border-color: #d97706;
+            font-weight: 700;
+        }
+
+        .checkpoint-area button.cp-submit:hover {
+            background: #d97706;
+        }
+
+        .checkpoint-area button.cp-hint {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fcd34d;
+        }
+
+        .checkpoint-area button.cp-show {
+            background: #f8fafc;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+
+        .checkpoint-area .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .cp-feedback.correct {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .cp-feedback.incorrect {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .cp-feedback.revealed {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .learning-log {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius2);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .learning-log h4 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text3);
+            margin: 0 0 8px 0;
+        }
+
+        .learning-log .log-entry {
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin: 3px 0;
+            font-size: 0.82rem;
+            border-left: 3px solid #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .learning-log .log-entry.log-correct {
+            border-left-color: #22c55e;
+            background: #f0fdf4;
+        }
+
+        .learning-log .log-entry.log-incorrect {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .learning-log .log-entry.log-revealed {
+            border-left-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--accent);
+            background: #eff6ff;
+            padding: 8px 14px;
+            border-radius: 6px;
+            display: inline-block;
+            font-size: 0.9rem;
+            border: 1px solid #bfdbfe;
+        }
+
+        .answer-wrap {
+            margin-top: 8px;
+        }
+
+        .answer-wrap h4 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text3);
+            margin: 0 0 4px 0;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1 id="title">Topological Sort</h1>
+            <p id="subtitle">Course dependency resolution using Kahn's BFS-based algorithm</p>
+        </div>
+
+        <!-- Top output row -->
+        <div class="top-output-row">
+            <div id="top-result">
+                <h4>Expected Output</h4>
+                <div class="result-value">["A", "B", "C", "D"]</div>
+            </div>
+            <div id="top-solution">
+                <h4>Algorithm Strategy</h4>
+                <div class="solution-value">Maintain indegree table and queue of zero-indegree nodes; each time a node is popped, delete its outgoing edges.</div>
+            </div>
+        </div>
+
+        <!-- Code panel -->
+        <div class="code-panel">
+            <h4>Pseudocode &mdash; Kahn's Algorithm</h4>
+            <pre id="code"><span class="code-line" data-line="1">function topologicalSort(graph):</span><span class="code-line" data-line="2">    indegree = map each node to 0</span><span class="code-line" data-line="3">    for each node u in graph:</span><span class="code-line" data-line="4">        for each v in graph[u]:</span><span class="code-line" data-line="5">            indegree[v] += 1</span><span class="code-line" data-line="6">    </span><span class="code-line" data-line="7">    queue = empty queue</span><span class="code-line" data-line="8">    for each node u in graph:</span><span class="code-line" data-line="9">        if indegree[u] == 0:</span><span class="code-line" data-line="10">            queue.enqueue(u)</span><span class="code-line" data-line="11">    </span><span class="code-line" data-line="12">    result = []</span><span class="code-line" data-line="13">    while queue is not empty:</span><span class="code-line" data-line="14">        u = queue.dequeue()</span><span class="code-line" data-line="15">        result.append(u)</span><span class="code-line" data-line="16">        for each v in graph[u]:</span><span class="code-line" data-line="17">            indegree[v] -= 1</span><span class="code-line" data-line="18">            if indegree[v] == 0:</span><span class="code-line" data-line="19">                queue.enqueue(v)</span><span class="code-line" data-line="20">    </span><span class="code-line" data-line="21">    return result</span></pre>
+        </div>
+
+        <!-- Stepper controls -->
+        <div class="stepper-bar">
+            <button id="prev" aria-label="Previous step">&larr; Prev</button>
+            <button id="play" class="primary-btn" aria-label="Play or pause auto-advance">&#9654; Play</button>
+            <button id="next" aria-label="Next step">Next &rarr;</button>
+            <span id="counter">1 / 8</span>
+            <input type="range" id="range" min="1" max="8" value="1" step="1" aria-label="Step scrubber">
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline" aria-label="Step timeline">
+            <button class="tick active" data-step="1"><span class="tick-label">Init</span><span class="tick-op">Setup indegrees</span></button>
+            <button class="tick" data-step="2"><span class="tick-label">Queue</span><span class="tick-op">Find zero-in</span></button>
+            <button class="tick" data-step="3"><span class="tick-label">Pop A</span><span class="tick-op">Dequeue &amp; add</span></button>
+            <button class="tick" data-step="4"><span class="tick-label">Update</span><span class="tick-op">B, C enqueued</span></button>
+            <button class="tick" data-step="5"><span class="tick-label">Pop B</span><span class="tick-op">Dequeue &amp; add</span></button>
+            <button class="tick" data-step="6"><span class="tick-label">Pop C</span><span class="tick-op">Dequeue &amp; add</span></button>
+            <button class="tick" data-step="7"><span class="tick-label">Pop D</span><span class="tick-op">Dequeue &amp; add</span></button>
+            <button class="tick" data-step="8"><span class="tick-label">Return</span><span class="tick-op">Final answer</span></button>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Canvas panel -->
+            <div class="canvas-panel">
+                <h4>Algorithm Visualization</h4>
+                <div id="canvas">
+                    <div class="graph-viz" id="graph-viz-container">
+                        <!-- Dynamically populated -->
+                    </div>
+                    <div class="data-tables" id="data-tables-container">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info panel -->
+            <div class="info-panel">
+                <div id="step-title">Step 1: Initialize</div>
+                <div id="step-desc">Compute indegree for every node in the graph.</div>
+                <div id="op">indegree = {A:0, B:1, C:1, D:2}</div>
+                <div id="teaching">We start by counting how many incoming edges each course has. A course with indegree 0 has no prerequisites and can be taken immediately. This is the foundation of Kahn's algorithm: nodes with zero indegree are ready to be processed.</div>
+                <div id="state">{"indegree":{"A":0,"B":1,"C":1,"D":2},"queue":[],"result":[]}</div>
+                <div id="step-evidence"><strong>Operation:</strong> Initialize indegree map by iterating over all adjacency lists.<br><strong>Targets:</strong> All 4 nodes (A, B, C, D).<br><strong>Before:</strong> No indegree data.<br><strong>After:</strong> indegree = {A:0, B:1, C:1, D:2}.</div>
+
+                <!-- Checkpoint area (hidden by default, shown on specific steps) -->
+                <div class="checkpoint-area" id="checkpoint-area" style="display:none;">
+                    <h4>&#128221; Learner Checkpoint</h4>
+                    <div class="cp-prompt" id="cp-prompt"></div>
+                    <input type="text" id="cp-input" placeholder="Type your answer here..." aria-label="Checkpoint answer input">
+                    <div class="cp-buttons">
+                        <button class="cp-submit" id="cp-submit">Submit Answer</button>
+                        <button class="cp-hint" id="cp-hint">Hint</button>
+                        <button class="cp-show" id="cp-show">Show Answer</button>
+                    </div>
+                    <div id="cp-feedback"></div>
+                </div>
+
+                <div class="answer-wrap">
+                    <h4>Final Answer</h4>
+                    <span id="answer">["A", "B", "C", "D"]</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning log -->
+        <div class="learning-log" id="learning-log-container">
+            <h4>Learning Log</h4>
+            <div id="learning-log-entries">
+                <div class="log-entry" style="color:#64748b;font-style:italic;">No checkpoint submissions yet. Interact with the checkpoints above to build your learning log.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ── Step definitions ──────────────────────────────────
+            const totalSteps = 8;
+            const stepData = [{
+                id: 1,
+                title: 'Step 1: Initialize Indegrees',
+                desc: 'Compute the indegree for every node by scanning the adjacency list.',
+                op: 'indegree = {A:0, B:1, C:1, D:2}',
+                teaching: 'We start by counting incoming edges. Node A has no prerequisites (indegree 0). Nodes B and C each depend on A (indegree 1). Node D depends on both B and C (indegree 2). This initial indegree map is the foundation of Kahn\'s algorithm.',
+                evidence: '<strong>Operation:</strong> Initialize indegree map.<br><strong>Targets:</strong> All 4 nodes (A, B, C, D).<br><strong>Before:</strong> No indegree data.<br><strong>After:</strong> indegree = {A:0, B:1, C:1, D:2}.',
+                stateJSON: '{"indegree":{"A":0,"B":1,"C":1,"D":2},"queue":[],"result":[]}',
+                codeLine: 5,
+                nodeStates: { A: 'unprocessed', B: 'unprocessed', C: 'unprocessed', D: 'unprocessed' },
+                queueContents: [],
+                resultContents: [],
+                highlightIndegree: null,
+                checkpoint: null,
+            }, {
+                id: 2,
+                title: 'Step 2: Find Zero-Indegree Nodes',
+                desc: 'Scan all nodes and enqueue those with indegree 0. Only node A qualifies.',
+                op: 'queue.enqueue(A)  →  queue = [A]',
+                teaching: 'Nodes with indegree 0 have no remaining prerequisites. We add them to the queue so they can be processed first. Here only A starts with indegree 0. A common mistake is forgetting to scan all nodes — every node must be checked.',
+                evidence: '<strong>Operation:</strong> Enqueue zero-indegree nodes.<br><strong>Targets:</strong> All nodes checked; only A (indegree=0) is enqueued.<br><strong>Before:</strong> queue = [].<br><strong>After:</strong> queue = [A].',
+                stateJSON: '{"indegree":{"A":0,"B":1,"C":1,"D":2},"queue":["A"],"result":[]}',
+                codeLine: 10,
+                nodeStates: { A: 'queued', B: 'unprocessed', C: 'unprocessed', D: 'unprocessed' },
+                queueContents: ['A'],
+                resultContents: [],
+                highlightIndegree: 'A',
+                checkpoint: null,
+            }, {
+                id: 3,
+                title: 'Step 3: Dequeue A and Add to Result',
+                desc: 'Remove A from the front of the queue and append it to the result list.',
+                op: 'u = queue.dequeue() → u = A;  result.append(A) → result = [A]',
+                teaching: 'We pop the front node from the queue and add it to our topological order. Node A is now officially scheduled. The invariant: every node in the result has all its prerequisites already placed before it.',
+                evidence: '<strong>Operation:</strong> Dequeue A, append to result.<br><strong>Target:</strong> Node A (front of queue).<br><strong>Before:</strong> result = [], queue = [A].<br><strong>After:</strong> result = [A], queue = [].',
+                stateJSON: '{"indegree":{"A":0,"B":1,"C":1,"D":2},"queue":[],"result":["A"],"current":"A"}',
+                codeLine: 15,
+                nodeStates: { A: 'current', B: 'unprocessed', C: 'unprocessed', D: 'unprocessed' },
+                queueContents: [],
+                resultContents: ['A'],
+                highlightIndegree: null,
+                checkpoint: {
+                    prompt: 'What node was just dequeued from the queue? (Type the letter, e.g., "A")',
+                    answer: 'A',
+                    hint: 'Look at which node had indegree 0 and was sitting at the front of the queue.',
+                },
+            }, {
+                id: 4,
+                title: 'Step 4: Process A\'s Outgoing Edges (B and C)',
+                desc: 'For each neighbor v of A (B and C), decrement indegree[v]. Both B and C reach indegree 0 and are enqueued.',
+                op: 'indegree[B]→0, enqueue(B);  indegree[C]→0, enqueue(C);  queue = [B, C]',
+                teaching: 'Deleting A\'s outgoing edges means decrementing the indegree of B and C. Both drop to 0, so they become ready and enter the queue. A critical detail: always check if indegree becomes exactly 0 before enqueuing — if it was already 0, don\'t double-enqueue.',
+                evidence: '<strong>Operation:</strong> Process neighbors B and C.<br><strong>Targets:</strong> B (indegree 1→0), C (indegree 1→0).<br><strong>Before:</strong> indegree B=1, C=1; queue = [].<br><strong>After:</strong> indegree B=0, C=0; queue = [B, C].',
+                stateJSON: '{"indegree":{"A":0,"B":0,"C":0,"D":2},"queue":["B","C"],"result":["A"]}',
+                codeLine: 19,
+                nodeStates: { A: 'done', B: 'updated', C: 'updated', D: 'unprocessed' },
+                queueContents: ['B', 'C'],
+                resultContents: ['A'],
+                highlightIndegree: 'B,C',
+                checkpoint: null,
+            }, {
+                id: 5,
+                title: 'Step 5: Dequeue B and Add to Result',
+                desc: 'Remove B from the queue and append it to the result. B\'s only neighbor is D.',
+                op: 'u = queue.dequeue() → u = B;  result.append(B) → result = [A, B]',
+                teaching: 'B is now processed. Since B points to D, we will next decrement D\'s indegree. Note: the queue currently has [B, C]; we dequeue B first (FIFO order), producing the sequence A→B→C→D. If we used a stack instead, the order might differ.',
+                evidence: '<strong>Operation:</strong> Dequeue B, append to result.<br><strong>Target:</strong> Node B (front of queue).<br><strong>Before:</strong> result = [A], queue = [B, C].<br><strong>After:</strong> result = [A, B], queue = [C].',
+                stateJSON: '{"indegree":{"A":0,"B":0,"C":0,"D":2},"queue":["C"],"result":["A","B"],"current":"B"}',
+                codeLine: 15,
+                nodeStates: { A: 'done', B: 'current', C: 'queued', D: 'unprocessed' },
+                queueContents: ['C'],
+                resultContents: ['A', 'B'],
+                highlightIndegree: null,
+                checkpoint: {
+                    prompt: 'After B is processed and its edge to D is removed, what will the indegree of D become? (Type a number, e.g., "1")',
+                    answer: '1',
+                    hint: 'D currently has indegree 2. B is one of its two prerequisites. Decrement by 1.',
+                },
+            }, {
+                id: 6,
+                title: 'Step 6: Dequeue C and Add to Result',
+                desc: 'Remove C from the queue, append to result, and process C\'s edge to D. D\'s indegree drops from 1 to 0, so D is enqueued.',
+                op: 'u = C;  result = [A, B, C];  indegree[D]→0;  enqueue(D);  queue = [D]',
+                teaching: 'C is dequeued and added. Its only neighbor D has its indegree decremented from 1 to 0. Now D is ready and enters the queue. The algorithm systematically clears all dependencies.',
+                evidence: '<strong>Operation:</strong> Dequeue C, process edge to D.<br><strong>Target:</strong> Node C; neighbor D (indegree 1→0).<br><strong>Before:</strong> result = [A, B], queue = [C], indegree D=1.<br><strong>After:</strong> result = [A, B, C], queue = [D], indegree D=0.',
+                stateJSON: '{"indegree":{"A":0,"B":0,"C":0,"D":0},"queue":["D"],"result":["A","B","C"]}',
+                codeLine: 19,
+                nodeStates: { A: 'done', B: 'done', C: 'current', D: 'updated' },
+                queueContents: ['D'],
+                resultContents: ['A', 'B', 'C'],
+                highlightIndegree: 'D',
+                checkpoint: null,
+            }, {
+                id: 7,
+                title: 'Step 7: Dequeue D and Add to Result',
+                desc: 'Remove D from the queue and append it. D has no outgoing edges, so nothing more is enqueued.',
+                op: 'u = D;  result = [A, B, C, D];  queue = []',
+                teaching: 'The last node D is dequeued. It has no neighbors, so the inner loop does nothing. The queue is now empty, which will cause the while-loop to terminate.',
+                evidence: '<strong>Operation:</strong> Dequeue D, append to result.<br><strong>Target:</strong> Node D.<br><strong>Before:</strong> result = [A, B, C], queue = [D].<br><strong>After:</strong> result = [A, B, C, D], queue = [].',
+                stateJSON: '{"indegree":{"A":0,"B":0,"C":0,"D":0},"queue":[],"result":["A","B","C","D"]}',
+                codeLine: 15,
+                nodeStates: { A: 'done', B: 'done', C: 'done', D: 'current' },
+                queueContents: [],
+                resultContents: ['A', 'B', 'C', 'D'],
+                highlightIndegree: null,
+                checkpoint: null,
+            }, {
+                id: 8,
+                title: 'Step 8: Return the Final Topological Order',
+                desc: 'The queue is empty. The while-loop exits and we return the result array.',
+                op: 'return ["A", "B", "C", "D"]',
+                teaching: 'The algorithm returns the topological order. All prerequisites are satisfied: A before B and C, B and C before D. This is a valid course sequence. Note: other valid orders exist (e.g., A→C→B→D) depending on queue order, but any valid topological sort is acceptable.',
+                evidence: '<strong>Operation:</strong> Return result.<br><strong>Final result:</strong> ["A", "B", "C", "D"].<br><strong>Verification:</strong> A→B→C→D respects all edges: A before B, A before C, B before D, C before D.',
+                stateJSON: '{"indegree":{"A":0,"B":0,"C":0,"D":0},"queue":[],"result":["A","B","C","D"],"status":"complete"}',
+                codeLine: 21,
+                nodeStates: { A: 'done', B: 'done', C: 'done', D: 'done' },
+                queueContents: [],
+                resultContents: ['A', 'B', 'C', 'D'],
+                highlightIndegree: null,
+                checkpoint: {
+                    prompt: 'What is the final topological order returned by the algorithm? (Type the array, e.g., ["A","B","C","D"])',
+                    answer: '["A","B","C","D"]',
+                    hint: 'Look at the result array after all nodes have been processed.',
+                },
+            }];
+
+            // ── DOM references ────────────────────────────────────
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const counterEl = $('#counter');
+            const rangeEl = $('#range');
+            const prevBtn = $('#prev');
+            const nextBtn = $('#next');
+            const playBtn = $('#play');
+            const timelineEl = $('#timeline');
+            const stepTitleEl = $('#step-title');
+            const stepDescEl = $('#step-desc');
+            const opEl = $('#op');
+            const teachingEl = $('#teaching');
+            const stateEl = $('#state');
+            const stepEvidenceEl = $('#step-evidence');
+            const answerEl = $('#answer');
+            const canvasEl = $('#canvas');
+            const codeEl = $('#code');
+            const graphVizContainer = $('#graph-viz-container');
+            const dataTablesContainer = $('#data-tables-container');
+            const checkpointArea = $('#checkpoint-area');
+            const cpPrompt = $('#cp-prompt');
+            const cpInput = $('#cp-input');
+            const cpSubmit = $('#cp-submit');
+            const cpHint = $('#cp-hint');
+            const cpShow = $('#cp-show');
+            const cpFeedback = $('#cp-feedback');
+            const learningLogEntries = $('#learning-log-entries');
+            const ticks = $$('.tick');
+
+            // ── State ─────────────────────────────────────────────
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            const completedCheckpoints = new Set();
+            const learningLog = [];
+
+            // ── Initialize answer ─────────────────────────────────
+            answerEl.textContent = '["A", "B", "C", "D"]';
+
+            // ── Build graph visualization ────────────────────────
+            function buildGraphViz(nodeStates, highlightIndegree) {
+                const nodes = ['A', 'B', 'C', 'D'];
+                const stateClassMap = {
+                    'unprocessed': 'state-unprocessed',
+                    'queued': 'state-queued',
+                    'current': 'state-current',
+                    'done': 'state-done',
+                    'updated': 'state-updated',
+                };
+
+                // Build node elements
+                const nodeEls = nodes.map(n => {
+                    const st = nodeStates[n] || 'unprocessed';
+                    const cls = stateClassMap[st] || 'state-unprocessed';
+                    const hl = highlightIndegree && highlightIndegree.includes(n);
+                    return `
+                <div class="graph-node" data-node="${n}">
+                  <div class="node-box ${cls}">${n}</div>
+                  <div class="node-indegree${hl ? ' style="background:#fef3c7;color:#92400e;font-weight:700;"' : ''}">in: <span class="indeg-val" data-node="${n}">-</span></div>
+                </div>`;
+                });
+
+                // Layout: A top-center, B mid-left, C mid-right, D bottom-center
+                // Use a flex layout with wrapping
+                const html = `
+              <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;width:100%;">
+                <div style="flex:0 0 auto;display:flex;align-items:center;gap:4px;">
+                  ${nodeEls[0]}
+                </div>
+                <div style="flex:0 0 auto;display:flex;align-items:center;gap:4px;font-size:1.3rem;color:#94a3b8;font-weight:700;padding:0 2px;">
+                  <span style="transform:rotate(-30deg);display:inline-block;">&#8599;</span>
+                  <span style="transform:rotate(30deg);display:inline-block;">&#8600;</span>
+                </div>
+                <div style="flex:0 0 auto;display:flex;gap:20px;align-items:center;">
+                  ${nodeEls[1]}
+                  ${nodeEls[2]}
+                </div>
+                <div style="flex:0 0 auto;display:flex;align-items:center;gap:4px;font-size:1.3rem;color:#94a3b8;font-weight:700;padding:0 2px;">
+                  <span style="transform:rotate(-30deg);display:inline-block;">&#8600;</span>
+                  <span style="transform:rotate(30deg);display:inline-block;">&#8599;</span>
+                </div>
+                <div style="flex:0 0 auto;display:flex;align-items:center;gap:4px;">
+                  ${nodeEls[3]}
+                </div>
+              </div>`;
+                return html;
+            }
+
+            function buildDataTables(indegreeMap, queueContents, resultContents) {
+                const indegreeRows = Object.entries(indegreeMap)
+                    .map(([k, v]) => `<div class="data-row"><span>${k}</span><span>${v}</span></div>`)
+                    .join('');
+
+                const queueHTML = queueContents.length === 0 ?
+                    '<span class="queue-empty">(empty)</span>' :
+                    queueContents.map(n => `<span class="queue-item">${n}</span>`).join('');
+
+                const resultHTML = resultContents.length === 0 ?
+                    '<span class="result-empty">(empty)</span>' :
+                    resultContents.map(n => `<span class="result-item">${n}</span>`).join('');
+
+                return `
+              <div class="data-table-wrap">
+                <h5>Indegree Map</h5>
+                ${indegreeRows}
+              </div>
+              <div class="data-table-wrap">
+                <h5>Queue (FIFO)</h5>
+                <div class="queue-display">${queueHTML}</div>
+              </div>
+              <div class="data-table-wrap">
+                <h5>Result Array</h5>
+                <div class="result-display">${resultHTML}</div>
+              </div>`;
+            }
+
+            function updateCanvas(data) {
+                const indegreeMap = {};
+                try {
+                    const parsed = JSON.parse(data.stateJSON);
+                    Object.assign(indegreeMap, parsed.indegree || {});
+                } catch (e) {
+                    // fallback
+                    indegreeMap.A = 0;
+                    indegreeMap.B = 1;
+                    indegreeMap.C = 1;
+                    indegreeMap.D = 2;
+                }
+                const graphHTML = buildGraphViz(data.nodeStates, data.highlightIndegree);
+                const tablesHTML = buildDataTables(indegreeMap, data.queueContents, data.resultContents);
+                graphVizContainer.innerHTML = graphHTML;
+                dataTablesContainer.innerHTML = tablesHTML;
+
+                // Update indegree values in the node badges
+                const indegSpans = graphVizContainer.querySelectorAll('.indeg-val');
+                indegSpans.forEach(span => {
+                    const node = span.getAttribute('data-node');
+                    if (node && indegreeMap[node] !== undefined) {
+                        span.textContent = indegreeMap[node];
+                    }
+                });
+            }
+
+            // ── Update code highlighting ─────────────────────────
+            function updateCodeHighlight(lineNum) {
+                const lines = codeEl.querySelectorAll('.code-line');
+                lines.forEach(line => {
+                    const ln = parseInt(line.getAttribute('data-line'), 10);
+                    line.classList.remove('active', 'processed');
+                    if (ln === lineNum) {
+                        line.classList.add('active');
+                    } else if (ln < lineNum && lineNum > 1) {
+                        line.classList.add('processed');
+                    }
+                });
+                // Scroll active line into view
+                const activeLine = codeEl.querySelector('.code-line.active');
+                if (activeLine) {
+                    activeLine.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }
+
+            // ── Update timeline ──────────────────────────────────
+            function updateTimeline(step) {
+                ticks.forEach(tick => {
+                    const tickStep = parseInt(tick.getAttribute('data-step'), 10);
+                    tick.classList.remove('active', 'completed');
+                    if (tickStep === step) {
+                        tick.classList.add('active');
+                    } else if (tickStep < step) {
+                        tick.classList.add('completed');
+                    }
+                });
+            }
+
+            // ── Update checkpoint visibility ─────────────────────
+            function updateCheckpoint(data) {
+                if (data.checkpoint && !completedCheckpoints.has(data.id)) {
+                    checkpointArea.style.display = 'block';
+                    cpPrompt.textContent = data.checkpoint.prompt;
+                    cpInput.value = '';
+                    cpFeedback.innerHTML = '';
+                    cpFeedback.className = 'cp-feedback';
+                    cpInput.disabled = false;
+                    cpSubmit.disabled = false;
+                    cpHint.disabled = false;
+                    cpShow.disabled = false;
+                    // Store checkpoint data for handlers
+                    checkpointArea.setAttribute('data-cp-answer', data.checkpoint.answer);
+                    checkpointArea.setAttribute('data-cp-hint', data.checkpoint.hint);
+                    checkpointArea.setAttribute('data-cp-step-id', data.id);
+                } else if (data.checkpoint && completedCheckpoints.has(data.id)) {
+                    checkpointArea.style.display = 'block';
+                    cpPrompt.textContent = data.checkpoint.prompt;
+                    cpInput.value = data.checkpoint.answer;
+                    cpInput.disabled = true;
+                    cpSubmit.disabled = true;
+                    cpHint.disabled = true;
+                    cpShow.disabled = true;
+                    cpFeedback.innerHTML =
+                        '<span style="color:#16a34a;">&#10003; Checkpoint completed earlier. Answer was: <strong>' +
+                        data.checkpoint.answer + '</strong></span>';
+                    cpFeedback.className = 'cp-feedback correct';
+                } else {
+                    checkpointArea.style.display = 'none';
+                    cpFeedback.innerHTML = '';
+                    cpFeedback.className = 'cp-feedback';
+                }
+            }
+
+            // ── Render a step ────────────────────────────────────
+            function renderStep(stepIndex) {
+                const data = stepData[stepIndex - 1];
+                if (!data) return;
+
+                currentStep = stepIndex;
+                counterEl.textContent = stepIndex + ' / ' + totalSteps;
+                rangeEl.value = stepIndex;
+                stepTitleEl.textContent = data.title;
+                stepDescEl.textContent = data.desc;
+                opEl.textContent = data.op;
+                teachingEl.innerHTML = data.teaching;
+                stateEl.textContent = data.stateJSON;
+                stepEvidenceEl.innerHTML = data.evidence;
+                updateCodeHighlight(data.codeLine);
+                updateTimeline(stepIndex);
+                updateCanvas(data);
+                updateCheckpoint(data);
+            }
+
+            // ── Navigation ───────────────────────────────────────
+            function goToStep(step) {
+                const clamped = Math.max(1, Math.min(totalSteps, step));
+                if (clamped === currentStep && clamped !== step) return; // Already there
+                renderStep(clamped);
+            }
+
+            function stepPrev() {
+                if (currentStep > 1) goToStep(currentStep - 1);
+            }
+
+            function stepNext() {
+                if (currentStep < totalSteps) goToStep(currentStep + 1);
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            function startPlay() {
+                isPlaying = true;
+                playBtn.innerHTML = '&#10074;&#10074; Pause';
+                playBtn.classList.add('primary-btn');
+                playInterval = setInterval(() => {
+                    if (currentStep < totalSteps) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.innerHTML = '&#9654; Play';
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+            }
+
+            // ── Event listeners ──────────────────────────────────
+            prevBtn.addEventListener('click', () => { stopPlay();
+                stepPrev(); });
+            nextBtn.addEventListener('click', () => { stopPlay();
+                stepNext(); });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                goToStep(parseInt(rangeEl.value, 10));
+            });
+
+            timelineEl.addEventListener('click', (e) => {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                stopPlay();
+                const step = parseInt(tick.getAttribute('data-step'), 10);
+                if (step) goToStep(step);
+            });
+
+            // ── Checkpoint handlers ──────────────────────────────
+            function addLearningLogEntry(message, type) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry log-' + type;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                entry.textContent = '[' + timeStr + '] ' + message;
+                learningLogEntries.appendChild(entry);
+                // Remove placeholder if present
+                const placeholder = learningLogEntries.querySelector(
+                    'div[style*="italic"]');
+                if (placeholder && learningLogEntries.children.length > 1) {
+                    placeholder.remove();
+                }
+                entry.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+
+            cpSubmit.addEventListener('click', () => {
+                const answer = (checkpointArea.getAttribute('data-cp-answer') || '').trim();
+                const stepId = parseInt(checkpointArea.getAttribute('data-cp-step-id'), 10);
+                const userAnswer = cpInput.value.trim();
+                if (!userAnswer) return;
+
+                // Normalize comparison
+                const normUser = userAnswer.replace(/\s+/g, '');
+                const normAnswer = answer.replace(/\s+/g, '');
+
+                if (normUser === normAnswer) {
+                    cpFeedback.innerHTML =
+                        '<strong>&#10003; Correct!</strong> Great job! Your answer matches the expected value: <strong>' +
+                        answer + '</strong>.';
+                    cpFeedback.className = 'cp-feedback correct';
+                    completedCheckpoints.add(stepId);
+                    cpInput.disabled = true;
+                    cpSubmit.disabled = true;
+                    cpHint.disabled = true;
+                    cpShow.disabled = true;
+                    addLearningLogEntry('Step ' + stepId + ' checkpoint: CORRECT — Answered "' + userAnswer +
+                        '" (expected: ' + answer + ').', 'correct');
+                } else {
+                    cpFeedback.innerHTML =
+                        '<strong>&#10007; Not quite.</strong> Your answer "<em>' + userAnswer +
+                        '</em>" does not match the expected value. Review the current state and try again, or use Hint / Show Answer.';
+                    cpFeedback.className = 'cp-feedback incorrect';
+                    addLearningLogEntry('Step ' + stepId + ' checkpoint: INCORRECT — Answered "' + userAnswer +
+                        '" (expected: ' + answer + ').', 'incorrect');
+                }
+            });
+
+            cpHint.addEventListener('click', () => {
+                const hint = checkpointArea.getAttribute('data-cp-hint') || 'No hint available.';
+                cpFeedback.innerHTML = '<strong>&#128161; Hint:</strong> ' + hint;
+                cpFeedback.className = 'cp-feedback revealed';
+            });
+
+            cpShow.addEventListener('click', () => {
+                const answer = checkpointArea.getAttribute('data-cp-answer') || '';
+                const stepId = parseInt(checkpointArea.getAttribute('data-cp-step-id'), 10);
+                cpInput.value = answer;
+                cpFeedback.innerHTML =
+                    '<strong>&#128214; Answer revealed:</strong> The correct answer is <strong>' + answer +
+                    '</strong>. Study this carefully before moving on.';
+                cpFeedback.className = 'cp-feedback revealed';
+                completedCheckpoints.add(stepId);
+                cpInput.disabled = true;
+                cpSubmit.disabled = true;
+                cpHint.disabled = true;
+                cpShow.disabled = true;
+                addLearningLogEntry('Step ' + stepId + ' checkpoint: ANSWER REVEALED — Answer is ' + answer + '.',
+                    'revealed');
+            });
+
+            // Allow Enter key to submit checkpoint
+            cpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !cpSubmit.disabled) {
+                    cpSubmit.click();
+                }
+            });
+
+            // ── Keyboard navigation ──────────────────────────────
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowLeft') { stopPlay();
+                    stepPrev(); }
+                if (e.key === 'ArrowRight') { stopPlay();
+                    stepNext(); }
+                if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ── Initial render ───────────────────────────────────
+            renderStep(1);
+
+            // ── Log initial state ────────────────────────────────
+            console.log('Topological Sort tutoring page initialized. Total steps: ' + totalSteps +
+                '. Graph: A→B, A→C, B→D, C→D. Expected output: ["A","B","C","D"].');
+        })();
+    </script>
+</body>
+</html>

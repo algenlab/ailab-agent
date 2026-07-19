@@ -1,0 +1,188 @@
+{
+  "id": "dijkstra_shortest_path",
+  "algorithm_id": "dijkstra_shortest_path",
+  "title": "Dijkstra Shortest Path",
+  "family": "Shortest Path / MST",
+  "family_id": "shortest_path_mst",
+  "subfamily_id": "dijkstra",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "shortest_path_mst",
+  "difficulty": "medium",
+  "problem": "The city emergency dispatch center maintains a non-negative time-cost directed road network weighted_graph, where each node represents an intersection and each edge weight represents the travel time from one intersection to another. Given a rescue vehicle's starting intersection start, return the shortest travel time to all reachable intersections.",
+  "strategy": "Use a min-heap to pop nodes based on current candidate distances, and relax neighbors using edges with non-negative weights.",
+  "input_contract": "Input weighted_graph adjacency list and start.",
+  "variant_name": "Heap-optimized Dijkstra",
+  "time_complexity": "O((V+E) log V)",
+  "space_complexity": "O(V)",
+  "learning_objectives": [
+    "Track changes of nodes and distances in the heap, and understand how relaxation gradually approximates the shortest path.",
+    "Predict the next node to be popped based on the current weighted graph state.",
+    "Verify the monotonicity of distances and the heap invariant during algorithm execution."
+  ],
+  "required_views": [
+    "graph",
+    "heap",
+    "map"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! Because B has the smallest current distance, the algorithm will process it first.",
+      "feedback_wrong": "Observe the heap top element and current known distances of each node; note that the popped node is the one with the smallest distance.",
+      "id": "task_1",
+      "oracle": "Select the node with the smallest distance from the heap; it should be B (distance 1).",
+      "prompt": "The current heap is [(1, 'B'), (4, 'C')], distance records: A:0, B:1, C:4. Which node will be popped from the heap next?",
+      "stage2_affordance": "Before stepping, ask the student to click a node in the graph to predict the pop target.",
+      "trace_anchor": [
+        "state.heap",
+        "state.dist"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "That's right! The distance of a popped node is final and will not be changed by later relaxations.",
+      "feedback_wrong": "Focus on the essential meaning of the heap pop operation: when popped, the node's distance is the global optimum.",
+      "id": "task_2",
+      "oracle": "The correct choice is B. Popped nodes have their shortest distance determined and will not be updated; A and C are not always true.",
+      "prompt": "During execution, which of the following statements is an invariant that always holds? A) The heap size equals the number of unprocessed nodes B) The shortest distance of a popped node is never updated again C) The current distance of every node is the final shortest path",
+      "stage2_affordance": "Click an invariant option in the status window; the system highlights the verification result.",
+      "trace_anchor": [
+        "state.dist",
+        "state.heap"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct! After modifying the input, the path must be recomputed.",
+      "feedback_wrong": "Check the edge weights in the new graph and recompute using the reference solver.",
+      "id": "task_3",
+      "oracle": "According to the modified graph, the only path from B to C is B->A->C, with total weight 2+2=4, so the result is 4.",
+      "prompt": "If start is changed to 'B', and the weight of edge (A, C) is changed from 5 to 2, predict the shortest time from B to C.",
+      "stage2_affordance": "Provide an input modification panel where you can directly edit start and edge weights, then re-run.",
+      "trace_anchor": [
+        "start",
+        "weighted_graph"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Reasonable explanation. This is the core step of Dijkstra's algorithm that gradually approximates the optimal solution through relaxation.",
+      "feedback_wrong": "Compare the old and new distance values, and review the triggering condition of the relaxation operation.",
+      "id": "task_4",
+      "oracle": "Because the new path to C via B is shorter than C's current known distance, the relaxation operation replaces it with a smaller value.",
+      "prompt": "Step 3: Pop node B (distance 2), find B->C weight 1, candidate distance 3, while current C distance is 5, so update C distance to 3. Explain why this distance update was triggered.",
+      "stage2_affordance": "Click an edge in the graph to display detailed information about the popped node and its neighbor, and highlight the weight comparison.",
+      "trace_anchor": [
+        "state.current",
+        "state.neighbor",
+        "state.weight"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": {
+        "A": 0,
+        "B": 2,
+        "C": 3
+      },
+      "index": 0,
+      "input_data": {
+        "start": "A",
+        "weighted_graph": {
+          "A": [
+            [
+              "B",
+              2
+            ],
+            [
+              "C",
+              5
+            ]
+          ],
+          "B": [
+            [
+              "C",
+              1
+            ]
+          ],
+          "C": []
+        }
+      }
+    },
+    {
+      "expected": {
+        "A": 1,
+        "B": 3,
+        "S": 0,
+        "T": 4
+      },
+      "index": 1,
+      "input_data": {
+        "start": "S",
+        "weighted_graph": {
+          "A": [
+            [
+              "B",
+              2
+            ],
+            [
+              "T",
+              6
+            ]
+          ],
+          "B": [
+            [
+              "T",
+              1
+            ]
+          ],
+          "S": [
+            [
+              "A",
+              1
+            ],
+            [
+              "B",
+              4
+            ]
+          ],
+          "T": []
+        }
+      }
+    },
+    {
+      "expected": {
+        "1": 0,
+        "2": 3
+      },
+      "index": 2,
+      "input_data": {
+        "start": "1",
+        "weighted_graph": {
+          "1": [
+            [
+              "2",
+              3
+            ]
+          ],
+          "2": [],
+          "3": []
+        }
+      }
+    },
+    {
+      "expected": {
+        "X": 0
+      },
+      "index": 3,
+      "input_data": {
+        "start": "X",
+        "weighted_graph": {
+          "X": []
+        }
+      }
+    }
+  ]
+}

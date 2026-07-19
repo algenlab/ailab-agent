@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number of Provinces - Union Find Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dee2e6;
+            --text: #212529;
+            --text-secondary: #495057;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --gray-light: #e9ecef;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            background: #eef1f5;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .page-wrapper {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e3a5f;
+            margin: 0;
+        }
+
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            background: #f0f4f8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .result-badges {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #top-result {
+            font-size: 0.85rem;
+            background: #f0f4f8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: #374151;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        #top-solution {
+            font-size: 0.85rem;
+            background: var(--success-light);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: var(--success);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #answer {
+            font-size: 0.85rem;
+            background: #1e3a5f;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .card-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        #code {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 16px 18px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            counter-reset: code-line;
+            position: relative;
+            min-height: 200px;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background var(--transition);
+            counter-increment: code-line;
+        }
+
+        #code .code-line::before {
+            content: counter(code-line);
+            display: inline-block;
+            width: 28px;
+            color: #6c7086;
+            text-align: right;
+            margin-right: 12px;
+            font-size: 0.75rem;
+            user-select: none;
+        }
+
+        #code .code-line.active {
+            background: #314158;
+            border-left: 3px solid #facc15;
+            color: #f8fafc;
+            font-weight: 500;
+        }
+
+        #code .code-line.active::before {
+            color: #facc15;
+        }
+
+        #canvas {
+            min-height: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+            justify-content: center;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            border: 2px dashed #e5e7eb;
+            position: relative;
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 40px repeat(3, 56px);
+            grid-template-rows: 40px repeat(3, 56px);
+            gap: 3px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.9rem;
+        }
+
+        .matrix-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .matrix-cell.label {
+            background: transparent;
+            font-weight: 700;
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+
+        .matrix-cell.data {
+            background: #e8ecf1;
+            color: #374151;
+            cursor: default;
+        }
+
+        .matrix-cell.data.highlight-current {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+            z-index: 1;
+            animation: pulse-cell 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-cell {
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 7px rgba(245, 158, 11, 0.08);
+            }
+        }
+
+        .matrix-cell.data.highlight-connected {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+        }
+
+        .matrix-cell.data.highlight-skip {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        .matrix-cell.data.highlight-diag {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1e40af;
+        }
+
+        .parent-array-display {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .parent-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #e8ecf1;
+            border: 2px solid transparent;
+            transition: all var(--transition);
+            min-width: 56px;
+        }
+
+        .parent-box.current {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
+        .parent-box.updated {
+            background: #dcfce7;
+            border-color: #16a34a;
+            animation: flash-green 0.6s ease;
+        }
+
+        @keyframes flash-green {
+            0%,
+            100% {
+                background: #dcfce7;
+            }
+            50% {
+                background: #86efac;
+            }
+        }
+
+        .parent-box .node-index {
+            font-size: 0.7rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .parent-box .node-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e3a5f;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        .component-group {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .component-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+        }
+
+        .component-badge.group-a {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 2px solid #93c5fd;
+        }
+
+        .component-badge.group-b {
+            background: #fef3c7;
+            color: #92400e;
+            border: 2px solid #fcd34d;
+        }
+
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            white-space: nowrap;
+            color: #374151;
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.primary:hover {
+            background: #1d4ed8;
+        }
+        .btn.success {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+        .btn.warning {
+            background: var(--warning);
+            color: #1e3a5f;
+            border-color: var(--warning);
+        }
+        .btn.danger {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+        }
+
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #374151;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 800px) {
+            .info-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #step-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1e3a5f;
+        }
+
+        #step-desc {
+            color: #4b5563;
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        #op {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.85rem;
+            background: #f0f4f8;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            color: #374151;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        #state {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.78rem;
+            background: #1e1e2e;
+            color: #a5d6ff;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        #teaching {
+            font-size: 0.9rem;
+            color: #374151;
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            line-height: 1.5;
+        }
+
+        #step-evidence {
+            font-size: 0.82rem;
+            color: #4b5563;
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e5e7eb;
+            line-height: 1.5;
+        }
+
+        #step-evidence .ev-label {
+            font-weight: 700;
+            color: #1e3a5f;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+            align-items: center;
+        }
+
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+            transition: all var(--transition);
+            min-width: 70px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+        .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: #dbeafe;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .tick.completed {
+            border-color: #86efac;
+            background: #f0fdf4;
+        }
+        .tick .tick-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #374151;
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .tick.active .tick-label {
+            color: #1e40af;
+        }
+        .tick.active .tick-op {
+            color: #2563eb;
+        }
+
+        #checkpoint-area {
+            background: #fff;
+            border: 2px solid #f59e0b;
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-top: 8px;
+            display: none;
+        }
+        #checkpoint-area.visible {
+            display: block;
+            animation: slide-in 0.3s ease;
+        }
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #checkpoint-area .cp-prompt {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        #checkpoint-area input[type="text"] {
+            padding: 10px 14px;
+            border-radius: 20px;
+            border: 2px solid #e5e7eb;
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 320px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            transition: border var(--transition);
+        }
+        #checkpoint-area input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        #cp-feedback {
+            margin-top: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-height: 24px;
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            display: none;
+        }
+        #cp-feedback.correct {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        #cp-feedback.incorrect {
+            display: block;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        #learning-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            font-size: 0.8rem;
+        }
+        #learning-log .log-entry {
+            padding: 6px 10px;
+            margin: 4px 0;
+            border-radius: 4px;
+            border-left: 3px solid #94a3b8;
+            background: #fff;
+            color: #4b5563;
+            font-size: 0.78rem;
+        }
+        #learning-log .log-entry.correct-entry {
+            border-left-color: #16a34a;
+            background: #f0fdf4;
+        }
+        #learning-log .log-entry.incorrect-entry {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        #learning-log .log-entry.info-entry {
+            border-left-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <div class="header-card">
+            <div>
+                <h1 id="title">Number of Provinces</h1>
+                <span id="subtitle">Union Find Algorithm &bull; Interactive Tutoring</span>
+            </div>
+            <div class="result-badges">
+                <span id="top-result">Status: In progress</span>
+                <span id="top-solution">Final Answer: 2</span>
+                <span id="answer">2</span>
+            </div>
+        </div>
+
+        <!-- Main Grid: Code + Canvas -->
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-label">Algorithm Code (Python)</div>
+                <div id="code">
+                    <span class="code-line" data-line="1">def find_provinces(isConnected):</span>
+                    <span class="code-line" data-line="2">    n = len(isConnected)</span>
+                    <span class="code-line" data-line="3">    parent = list(range(n))</span>
+                    <span class="code-line" data-line="4"></span>
+                    <span class="code-line" data-line="5">    def find(x):</span>
+                    <span class="code-line" data-line="6">        if parent[x] != x:</span>
+                    <span class="code-line" data-line="7">            parent[x] = find(parent[x])</span>
+                    <span class="code-line" data-line="8">        return parent[x]</span>
+                    <span class="code-line" data-line="9"></span>
+                    <span class="code-line" data-line="10">    def union(x, y):</span>
+                    <span class="code-line" data-line="11">        root_x = find(x)</span>
+                    <span class="code-line" data-line="12">        root_y = find(y)</span>
+                    <span class="code-line" data-line="13">        if root_x != root_y:</span>
+                    <span class="code-line" data-line="14">            parent[root_y] = root_x</span>
+                    <span class="code-line" data-line="15"></span>
+                    <span class="code-line" data-line="16">    for i in range(n):</span>
+                    <span class="code-line" data-line="17">        for j in range(i + 1, n):</span>
+                    <span class="code-line" data-line="18">            if isConnected[i][j] == 1:</span>
+                    <span class="code-line" data-line="19">                union(i, j)</span>
+                    <span class="code-line" data-line="20"></span>
+                    <span class="code-line" data-line="21">    provinces = set()</span>
+                    <span class="code-line" data-line="22">    for i in range(n):</span>
+                    <span class="code-line" data-line="23">        provinces.add(find(i))</span>
+                    <span class="code-line" data-line="24">    return len(provinces)</span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-label">Visualization</div>
+                <div id="canvas">
+                    <!-- Dynamically filled by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button id="prev" class="btn" aria-label="Previous step">&larr; Prev</button>
+            <button id="play" class="btn primary" aria-label="Auto-play steps">&#9654; Play</button>
+            <button id="next" class="btn" aria-label="Next step">Next &rarr;</button>
+            <span id="counter">1 / 6</span>
+            <input type="range" id="range" min="1" max="6" value="1" aria-label="Step slider">
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-label">Step Timeline (click to jump)</div>
+            <div id="timeline">
+                <!-- Dynamically filled by JS -->
+            </div>
+        </div>
+
+        <!-- Info Row -->
+        <div class="info-row">
+            <div class="card">
+                <div id="step-title">Initialize Parent Array</div>
+                <div id="step-desc">Set up the Union Find data structure with each computer as its own root.</div>
+                <div style="margin-top:8px;"><strong>Operation: </strong><span id="op">parent = [0, 1, 2]</span></div>
+            </div>
+            <div class="card">
+                <div class="card-label">Current State (JSON)</div>
+                <div id="state">{"parent": [0, 1, 2], "n": 3, "step": "initialization"}</div>
+            </div>
+        </div>
+
+        <!-- Teaching & Evidence -->
+        <div class="info-row">
+            <div class="card">
+                <div class="card-label">Teaching Note</div>
+                <div id="teaching">In Union Find, we start by assigning each node to be its own parent. This means each computer initially belongs to its own province. The parent array tracks which root each node belongs to.</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Step Evidence</div>
+                <div id="step-evidence">
+                    <span class="ev-label">Operation:</span> Initialize parent array<br>
+                    <span class="ev-label">Targets:</span> parent[0..2]<br>
+                    <span class="ev-label">Before:</span> N/A (first step)<br>
+                    <span class="ev-label">After:</span> parent = [0, 1, 2]
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkpoint Area -->
+        <div id="checkpoint-area">
+            <div class="cp-prompt" id="cp-prompt">Checkpoint question appears here.</div>
+            <div class="flex-row">
+                <input type="text" id="cp-input" placeholder="Type your answer..." aria-label="Checkpoint answer input">
+                <button id="cp-submit" class="btn primary">Submit</button>
+                <button id="cp-hint" class="btn warning">Hint</button>
+                <button id="cp-show-answer" class="btn danger">Show Answer</button>
+            </div>
+            <div id="cp-feedback"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="card">
+            <div class="card-label">Learning Log</div>
+            <div id="learning-log">
+                <div class="log-entry info-entry">Session started. Navigate through the steps to learn about Union Find.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // STEP DATA
+            // ──────────────────────────────────────
+            const stepsData = [{
+                id: 0,
+                title: 'Initialize Parent Array',
+                desc: 'Set up the Union Find data structure. Each computer is its own root initially.',
+                op: 'parent = [0, 1, 2]',
+                stateJSON: '{"parent": [0, 1, 2], "n": 3, "provinces": "unknown"}',
+                teaching: 'In Union Find, every node starts as its own parent. This means we begin with 3 separate provinces—one for each computer. The parent array tracks which root each node belongs to.',
+                evidence: '<span class="ev-label">Operation:</span> Initialize parent array<br><span class="ev-label">Targets:</span> parent[0], parent[1], parent[2]<br><span class="ev-label">Before:</span> N/A (first step)<br><span class="ev-label">After:</span> parent = [0, 1, 2]',
+                codeLine: 3,
+                checkpoint: false,
+                matrixHighlight: null,
+                parentHighlight: null,
+                updatedBox: null,
+                components: null,
+            }, {
+                id: 1,
+                title: 'Check Connection (0, 1)',
+                desc: 'Examine isConnected[0][1]. Computers 0 and 1 are directly connected, so we must union them.',
+                op: 'isConnected[0][1] == 1 → union(0, 1)',
+                stateJSON: '{"parent": [0, 1, 2], "checking": [0, 1], "isConnected": 1, "action": "union"}',
+                teaching: 'We scan the upper triangle of the matrix. The cell isConnected[0][1] equals 1, meaning computers 0 and 1 have a direct physical link. They belong in the same province, so we call union(0, 1).',
+                evidence: '<span class="ev-label">Operation:</span> Check isConnected[0][1]<br><span class="ev-label">Targets:</span> matrix cell [0][1]<br><span class="ev-label">Value found:</span> 1 (connected)<br><span class="ev-label">Action:</span> Trigger union(0, 1)',
+                codeLine: 18,
+                checkpoint: false,
+                matrixHighlight: { row: 0, col: 1, type: 'current' },
+                parentHighlight: [0, 1],
+                updatedBox: null,
+                components: null,
+            }, {
+                id: 2,
+                title: 'Perform Union(0, 1) — CHECKPOINT',
+                desc: 'Execute the union: find roots of 0 and 1, then set parent[1] = 0. The parent array updates.',
+                op: 'find(0)=0, find(1)=1, parent[1]=0 → parent=[0,0,2]',
+                stateJSON: '{"parent": [0, 0, 2], "union_performed": [0, 1], "root_0": 0, "root_1": 1}',
+                teaching: 'The union operation finds the root of each node. Since root(0)=0 and root(1)=1 are different, we set parent[1]=0. Now nodes 0 and 1 share the same root, merging them into one province. This is a key invariant: union only changes one parent pointer.',
+                evidence: '<span class="ev-label">Operation:</span> union(0, 1)<br><span class="ev-label">Targets:</span> parent[1]<br><span class="ev-label">Before:</span> parent = [0, 1, 2]<br><span class="ev-label">After:</span> parent = [0, 0, 2]<br><span class="ev-label">Roots:</span> find(0)=0, find(1)=0 (now same)',
+                codeLine: 14,
+                checkpoint: true,
+                checkpointPrompt: 'After union(0,1), what is the parent array? (Enter as JSON array, e.g. [0,0,2])',
+                checkpointAnswer: '[0,0,2]',
+                checkpointHint: 'The union sets the parent of node 1 to the root of node 0. Node 2 remains unchanged.',
+                matrixHighlight: { row: 0, col: 1, type: 'connected' },
+                parentHighlight: [1],
+                updatedBox: 1,
+                components: null,
+            }, {
+                id: 3,
+                title: 'Check Connection (0, 2)',
+                desc: 'Examine isConnected[0][2]. It equals 0, so computers 0 and 2 are not directly connected. Skip.',
+                op: 'isConnected[0][2] == 0 → skip',
+                stateJSON: '{"parent": [0, 0, 2], "checking": [0, 2], "isConnected": 0, "action": "skip"}',
+                teaching: 'The matrix cell isConnected[0][2] is 0. No direct cable exists between computers 0 and 2. We skip this pair—no union is needed. A common error is to assume disconnected nodes must be in different provinces; they might still connect indirectly through other nodes.',
+                evidence: '<span class="ev-label">Operation:</span> Check isConnected[0][2]<br><span class="ev-label">Targets:</span> matrix cell [0][2]<br><span class="ev-label">Value found:</span> 0 (not connected)<br><span class="ev-label">Action:</span> Skip, no union',
+                codeLine: 18,
+                checkpoint: false,
+                matrixHighlight: { row: 0, col: 2, type: 'skip' },
+                parentHighlight: null,
+                updatedBox: null,
+                components: null,
+            }, {
+                id: 4,
+                title: 'Check Connection (1, 2)',
+                desc: 'Examine isConnected[1][2]. It equals 0, so computers 1 and 2 are not directly connected. Skip.',
+                op: 'isConnected[1][2] == 0 → skip',
+                stateJSON: '{"parent": [0, 0, 2], "checking": [1, 2], "isConnected": 0, "action": "skip"}',
+                teaching: 'The last off-diagonal cell isConnected[1][2] is also 0. No direct link exists between 1 and 2. Since we already processed all pairs, the union phase is complete. Now we count distinct roots.',
+                evidence: '<span class="ev-label">Operation:</span> Check isConnected[1][2]<br><span class="ev-label">Targets:</span> matrix cell [1][2]<br><span class="ev-label">Value found:</span> 0 (not connected)<br><span class="ev-label">Action:</span> Skip, all edges processed',
+                codeLine: 18,
+                checkpoint: false,
+                matrixHighlight: { row: 1, col: 2, type: 'skip' },
+                parentHighlight: null,
+                updatedBox: null,
+                components: null,
+            }, {
+                id: 5,
+                title: 'Count Provinces — CHECKPOINT',
+                desc: 'Find the root of each computer. Unique roots are {0, 2}, so there are 2 provinces.',
+                op: 'find(0)=0, find(1)=0, find(2)=2 → unique roots {0,2} → 2 provinces',
+                stateJSON: '{"parent": [0, 0, 2], "roots": {"0": 0, "1": 0, "2": 2}, "unique_roots": [0, 2], "provinces": 2}',
+                teaching: 'We call find(i) for each node. Nodes 0 and 1 both return root 0 (they are in the same province). Node 2 returns root 2 (its own province). The set of unique roots has size 2, so the answer is 2 provinces. The final answer matches our expected output.',
+                evidence: '<span class="ev-label">Operation:</span> Count unique roots<br><span class="ev-label">Targets:</span> All nodes via find()<br><span class="ev-label">Roots found:</span> find(0)=0, find(1)=0, find(2)=2<br><span class="ev-label">Unique set:</span> {0, 2}<br><span class="ev-label">Result:</span> 2 provinces',
+                codeLine: 24,
+                checkpoint: true,
+                checkpointPrompt: 'How many distinct provinces are in the network? (Enter a number)',
+                checkpointAnswer: '2',
+                checkpointHint: 'Count how many unique root values exist after all unions. Look at find(0), find(1), and find(2).',
+                matrixHighlight: null,
+                parentHighlight: [0, 1, 2],
+                updatedBox: null,
+                components: [
+                    { nodes: [0, 1], root: 0, label: 'Province A', class: 'group-a' },
+                    { nodes: [2], root: 2, label: 'Province B', class: 'group-b' },
+                ],
+            }, ];
+
+            const totalSteps = stepsData.length; // N = 6
+            let currentStepIndex = 0;
+            let checkpointSubmitted = {}; // track which checkpoint steps have been correctly answered
+            let autoPlayTimer = null;
+            let autoPlaying = false;
+
+            // ──────────────────────────────────────
+            // DOM REFERENCES
+            // ──────────────────────────────────────
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $answer = document.getElementById('answer');
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $checkpointArea = document.getElementById('checkpoint-area');
+            const $cpPrompt = document.getElementById('cp-prompt');
+            const $cpInput = document.getElementById('cp-input');
+            const $cpSubmit = document.getElementById('cp-submit');
+            const $cpHint = document.getElementById('cp-hint');
+            const $cpShowAnswer = document.getElementById('cp-show-answer');
+            const $cpFeedback = document.getElementById('cp-feedback');
+            const $learningLog = document.getElementById('learning-log');
+
+            // Set initial answer
+            $answer.textContent = '2';
+            $topSolution.textContent = 'Final Answer: 2';
+
+            // Set range max
+            $range.max = totalSteps;
+            $range.value = 1;
+            $counter.textContent = '1 / ' + totalSteps;
+
+            // ──────────────────────────────────────
+            // BUILD TIMELINE TICKS
+            // ──────────────────────────────────────
+            const tickLabels = ['Init', 'Edge (0,1)', 'Union Done', 'Edge (0,2)', 'Edge (1,2)', 'Count'];
+            const tickOps = ['Initialize', 'Check & Union', 'Parent Update', 'Check & Skip', 'Check & Skip',
+            'Find Roots'];
+
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                for (let i = 0; i < totalSteps; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + tickLabels[i]);
+                    tick.innerHTML = '<span class="tick-label">' + tickLabels[i] + '</span>' +
+                        '<span class="tick-op">' + tickOps[i] + '</span>';
+                    tick.addEventListener('click', (function(idx) {
+                        return function() { goToStep(idx); };
+                    })(i));
+                    $timeline.appendChild(tick);
+                }
+            }
+            buildTimeline();
+
+            function updateTimelineActive() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.remove('active', 'completed');
+                    if (i === currentStepIndex) t.classList.add('active');
+                    if (i < currentStepIndex) t.classList.add('completed');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // RENDER CANVAS
+            // ──────────────────────────────────────
+            function renderCanvas(stepData) {
+                const isConnected = [
+                    [1, 1, 0],
+                    [1, 1, 0],
+                    [0, 0, 1]
+                ];
+                const parent = stepData.stateJSON ? JSON.parse(stepData.stateJSON.replace(/'/g, '"')).parent || [0, 1,
+                    2
+                ] : [0, 1, 2];
+                // Parse parent safely
+                let parentArr = [0, 1, 2];
+                try {
+                    const parsed = JSON.parse(stepData.stateJSON);
+                    if (parsed.parent) parentArr = parsed.parent;
+                } catch (e) {
+                    // fallback
+                    if (stepData.id === 0) parentArr = [0, 1, 2];
+                    else if (stepData.id >= 2) parentArr = [0, 0, 2];
+                    else parentArr = [0, 1, 2];
+                }
+
+                let html = '';
+
+                // Matrix display
+                html += '<div style="font-weight:700;font-size:0.8rem;color:#6b7280;margin-bottom:4px;">Adjacency Matrix (isConnected)</div>';
+                html += '<div class="matrix-grid">';
+                // Header row
+                html += '<div class="matrix-cell label"></div>';
+                for (let c = 0; c < 3; c++) {
+                    html += '<div class="matrix-cell label">C' + c + '</div>';
+                }
+                for (let r = 0; r < 3; r++) {
+                    html += '<div class="matrix-cell label">R' + r + '</div>';
+                    for (let c = 0; c < 3; c++) {
+                        let cellClass = 'data';
+                        if (r === c) cellClass += ' highlight-diag';
+                        if (stepData.matrixHighlight && stepData.matrixHighlight.row === r && stepData.matrixHighlight
+                            .col === c) {
+                            if (stepData.matrixHighlight.type === 'current') cellClass += ' highlight-current';
+                            else if (stepData.matrixHighlight.type === 'connected') cellClass +=
+                                ' highlight-connected';
+                            else if (stepData.matrixHighlight.type === 'skip') cellClass += ' highlight-skip';
+                        }
+                        html += '<div class="matrix-cell ' + cellClass + '">' + isConnected[r][c] + '</div>';
+                    }
+                }
+                html += '</div>';
+
+                // Parent array display
+                html +=
+                    '<div style="font-weight:700;font-size:0.8rem;color:#6b7280;margin-top:12px;margin-bottom:4px;">Parent Array</div>';
+                html += '<div class="parent-array-display">';
+                for (let i = 0; i < 3; i++) {
+                    let boxClass = 'parent-box';
+                    if (stepData.parentHighlight && stepData.parentHighlight.includes(i)) boxClass += ' current';
+                    if (stepData.updatedBox === i) boxClass += ' updated';
+                    html += '<div class="' + boxClass + '">';
+                    html += '<span class="node-index">Node ' + i + '</span>';
+                    html += '<span class="node-value">' + parentArr[i] + '</span>';
+                    html += '</div>';
+                }
+                html += '</div>';
+
+                // Components (for final step)
+                if (stepData.components && stepData.components.length > 0) {
+                    html +=
+                        '<div style="font-weight:700;font-size:0.8rem;color:#6b7280;margin-top:12px;margin-bottom:4px;">Provinces (Connected Components)</div>';
+                    html += '<div class="component-group">';
+                    stepData.components.forEach(comp => {
+                        html += '<div class="component-badge ' + comp.class + '">';
+                        html += comp.label + ': Nodes {' + comp.nodes.join(', ') + '} | Root = ' + comp
+                            .root;
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                    html +=
+                        '<div style="margin-top:8px;font-weight:700;font-size:1rem;color:#16a34a;">Total Provinces: 2</div>';
+                }
+
+                $canvas.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // UPDATE ALL UI FOR CURRENT STEP
+            // ──────────────────────────────────────
+            function updateUI() {
+                const stepData = stepsData[currentStepIndex];
+                $stepTitle.textContent = stepData.title;
+                $stepDesc.textContent = stepData.desc;
+                $op.textContent = stepData.op;
+                $state.textContent = stepData.stateJSON;
+                $teaching.textContent = stepData.teaching;
+                $stepEvidence.innerHTML = stepData.evidence;
+                $counter.textContent = (currentStepIndex + 1) + ' / ' + totalSteps;
+                $range.value = currentStepIndex + 1;
+
+                // Update top result
+                if (currentStepIndex === totalSteps - 1) {
+                    $topResult.textContent = 'Status: Complete — 2 provinces found';
+                } else if (currentStepIndex >= 2) {
+                    $topResult.textContent = 'Status: Union phase done, counting...';
+                } else {
+                    $topResult.textContent = 'Status: Processing connections...';
+                }
+
+                // Highlight code line
+                const codeLines = $code.querySelectorAll('.code-line');
+                codeLines.forEach(cl => cl.classList.remove('active'));
+                const targetLine = stepData.codeLine;
+                codeLines.forEach(cl => {
+                    if (parseInt(cl.getAttribute('data-line')) === targetLine) {
+                        cl.classList.add('active');
+                    }
+                });
+
+                // Render canvas
+                renderCanvas(stepData);
+
+                // Update timeline
+                updateTimelineActive();
+
+                // Checkpoint visibility
+                if (stepData.checkpoint) {
+                    $checkpointArea.classList.add('visible');
+                    $cpPrompt.textContent = stepData.checkpointPrompt;
+                    $cpInput.value = '';
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.className = '';
+                    $cpFeedback.style.display = 'none';
+                    // If already correctly answered, show a persistent note
+                    if (checkpointSubmitted[currentStepIndex]) {
+                        $cpFeedback.textContent =
+                            '✓ You have already answered this checkpoint correctly. Feel free to review.';
+                        $cpFeedback.className = 'correct';
+                        $cpFeedback.style.display = 'block';
+                    }
+                } else {
+                    $checkpointArea.classList.remove('visible');
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.className = '';
+                    $cpFeedback.style.display = 'none';
+                }
+
+                // Enable/disable prev/next
+                $prev.disabled = (currentStepIndex === 0);
+                $next.disabled = (currentStepIndex === totalSteps - 1);
+
+                // Update range
+                $range.value = currentStepIndex + 1;
+            }
+
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                updateUI();
+            }
+
+            // ──────────────────────────────────────
+            // NAVIGATION HANDLERS
+            // ──────────────────────────────────────
+            $prev.addEventListener('click', function() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            });
+
+            $next.addEventListener('click', function() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                }
+            });
+
+            $range.addEventListener('input', function() {
+                const val = parseInt($range.value);
+                goToStep(val - 1);
+            });
+
+            $play.addEventListener('click', function() {
+                if (autoPlaying) {
+                    // Stop auto-play
+                    autoPlaying = false;
+                    if (autoPlayTimer) clearInterval(autoPlayTimer);
+                    autoPlayTimer = null;
+                    $play.textContent = '▶ Play';
+                    $play.classList.remove('danger');
+                    $play.classList.add('primary');
+                    return;
+                }
+                // Start auto-play
+                autoPlaying = true;
+                $play.textContent = '⏸ Stop';
+                $play.classList.remove('primary');
+                $play.classList.add('danger');
+                // If at end, restart
+                if (currentStepIndex >= totalSteps - 1) {
+                    goToStep(0);
+                }
+                autoPlayTimer = setInterval(function() {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        // Stop at end
+                        autoPlaying = false;
+                        clearInterval(autoPlayTimer);
+                        autoPlayTimer = null;
+                        $play.textContent = '▶ Play';
+                        $play.classList.remove('danger');
+                        $play.classList.add('primary');
+                    }
+                }, 1800);
+            });
+
+            // ──────────────────────────────────────
+            // CHECKPOINT HANDLERS
+            // ──────────────────────────────────────
+            function normalizeAnswer(raw) {
+                // Remove whitespace, normalize brackets
+                let s = raw.trim();
+                s = s.replace(/\s+/g, '');
+                // Convert various bracket types
+                s = s.replace(/\[/g, '[').replace(/\]/g, ']');
+                return s;
+            }
+
+            function isAnswerCorrect(userAnswer, correctAnswer) {
+                const normUser = normalizeAnswer(userAnswer);
+                const normCorrect = normalizeAnswer(correctAnswer);
+                // Direct comparison
+                if (normUser === normCorrect) return true;
+                // For array answers, try parsing both as JSON arrays
+                try {
+                    const userParsed = JSON.parse(normUser);
+                    const correctParsed = JSON.parse(normCorrect);
+                    if (Array.isArray(userParsed) && Array.isArray(correctParsed)) {
+                        if (userParsed.length === correctParsed.length &&
+                            userParsed.every((v, i) => v === correctParsed[i])) {
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    // Not valid JSON, fall through
+                }
+                // Numeric comparison for number answers
+                const userNum = parseFloat(normUser);
+                const correctNum = parseFloat(normCorrect);
+                if (!isNaN(userNum) && !isNaN(correctNum) && userNum === correctNum) {
+                    return true;
+                }
+                return false;
+            }
+
+            function appendLogEntry(message, entryClass) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + (entryClass || 'info-entry');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                entry.textContent = '[' + timeStr + '] Step ' + (currentStepIndex + 1) + ': ' + message;
+                $learningLog.appendChild(entry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            $cpSubmit.addEventListener('click', function() {
+                const stepData = stepsData[currentStepIndex];
+                if (!stepData.checkpoint) return;
+                const userAnswer = $cpInput.value.trim();
+                if (!userAnswer) {
+                    $cpFeedback.textContent = 'Please enter an answer before submitting.';
+                    $cpFeedback.className = 'incorrect';
+                    $cpFeedback.style.display = 'block';
+                    return;
+                }
+                const correct = isAnswerCorrect(userAnswer, stepData.checkpointAnswer);
+                if (correct) {
+                    $cpFeedback.textContent =
+                        '✓ Correct! ' + stepData.checkpointAnswer + ' is the right answer. Great job!';
+                    $cpFeedback.className = 'correct';
+                    $cpFeedback.style.display = 'block';
+                    checkpointSubmitted[currentStepIndex] = true;
+                    appendLogEntry('Submitted: "' + userAnswer + '" — Correct! Answer is ' + stepData.checkpointAnswer +
+                        '.', 'correct-entry');
+                } else {
+                    $cpFeedback.textContent =
+                        '✗ Incorrect. Your answer "' + userAnswer + '" is not right. Try again or use Hint / Show Answer.';
+                    $cpFeedback.className = 'incorrect';
+                    $cpFeedback.style.display = 'block';
+                    appendLogEntry('Submitted: "' + userAnswer + '" — Incorrect. Expected ' + stepData.checkpointAnswer +
+                        '.', 'incorrect-entry');
+                }
+            });
+
+            $cpHint.addEventListener('click', function() {
+                const stepData = stepsData[currentStepIndex];
+                if (!stepData.checkpoint) return;
+                $cpFeedback.textContent = '💡 Hint: ' + stepData.checkpointHint;
+                $cpFeedback.className = '';
+                $cpFeedback.style.display = 'block';
+                $cpFeedback.style.background = '#fef3c7';
+                $cpFeedback.style.color = '#92400e';
+                $cpFeedback.style.border = '1px solid #fcd34d';
+                appendLogEntry('Requested hint: ' + stepData.checkpointHint, 'info-entry');
+            });
+
+            $cpShowAnswer.addEventListener('click', function() {
+                const stepData = stepsData[currentStepIndex];
+                if (!stepData.checkpoint) return;
+                $cpInput.value = stepData.checkpointAnswer;
+                $cpFeedback.textContent = '📖 The answer is: ' + stepData.checkpointAnswer +
+                    '. Study this carefully before moving on.';
+                $cpFeedback.className = '';
+                $cpFeedback.style.display = 'block';
+                $cpFeedback.style.background = '#dbeafe';
+                $cpFeedback.style.color = '#1e40af';
+                $cpFeedback.style.border = '1px solid #93c5fd';
+                checkpointSubmitted[currentStepIndex] = true;
+                appendLogEntry('Used "Show Answer": Answer is ' + stepData.checkpointAnswer + '.', 'info-entry');
+            });
+
+            // Allow Enter key to submit checkpoint
+            $cpInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    $cpSubmit.click();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // INITIALIZE
+            // ──────────────────────────────────────
+            goToStep(0);
+            $answer.textContent = '2';
+            $topSolution.textContent = 'Final Answer: 2';
+            updateTimelineActive();
+
+            console.log('Number of Provinces — Union Find Tutoring Page initialized.');
+            console.log('Total steps:', totalSteps);
+            console.log('Expected answer: 2');
+        })();
+    </script>
+</body>
+</html>

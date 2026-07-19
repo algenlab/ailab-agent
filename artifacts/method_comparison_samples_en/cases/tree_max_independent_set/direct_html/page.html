@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree DP Maximum Independent Set - AlgoLab Style Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card: #ffffff;
+            --primary: #0d6efd;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --success: #198754;
+            --border: #dee2e6;
+            --text: #212529;
+            --muted: #6c757d;
+            --active-line-bg: #fff3cd;
+            --highlight-current: #ffc107;
+            --highlight-dependent: #fd7e14;
+            --highlight-answer: #20c997;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .main-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* header */
+        .header {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        #title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            color: #0d6efd;
+        }
+        #subtitle {
+            font-size: 1rem;
+            color: #6c757d;
+            margin: 4px 0 0 0;
+            font-weight: 400;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        #top-result, #top-solution {
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: #e9ecef;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        #top-result {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+        #top-solution {
+            background: #cff4fc;
+            color: #055160;
+        }
+        /* main layout: two columns */
+        .content {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+        /* code panel */
+        .code-panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            flex: 0 0 380px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+        .code-panel pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .code-line {
+            display: block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .code-line.active-line {
+            background: var(--active-line-bg);
+            font-weight: 600;
+            border-left: 4px solid #ffc107;
+            padding-left: 4px;
+        }
+        /* center panel */
+        .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        /* step info */
+        .step-header {
+            background: #e7f1ff;
+            border: 1px solid #b6d4fe;
+            border-radius: 8px;
+            padding: 12px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+        #step-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0a58ca;
+            margin: 0;
+        }
+        #step-desc {
+            font-size: 0.95rem;
+            color: #212529;
+            flex: 1;
+        }
+        #op {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #000;
+        }
+        /* canvas area */
+        #canvas {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 280px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 30px;
+        }
+        .tree-container {
+            flex: 1;
+            min-width: 260px;
+        }
+        .tree, .tree ul {
+            list-style: none;
+            padding-left: 1.8em;
+            margin: 0;
+            position: relative;
+        }
+        .tree li {
+            margin: 0;
+            padding: 0 0 0 1.8em;
+            line-height: 2em;
+            position: relative;
+        }
+        .tree li::before,
+        .tree li::after {
+            content: '';
+            position: absolute;
+            left: 0;
+        }
+        .tree li::before {
+            border-top: 1.5px solid #adb5bd;
+            top: 1em;
+            width: 1.2em;
+            height: 0;
+        }
+        .tree li::after {
+            border-left: 1.5px solid #adb5bd;
+            top: -0.6em;
+            bottom: 0;
+            left: 0;
+        }
+        .tree li:last-child::after {
+            height: 1.6em;
+        }
+        .node-circle {
+            display: inline-block;
+            background: #e9ecef;
+            border: 2px solid #adb5bd;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            text-align: center;
+            line-height: 40px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: background 0.2s, border-color 0.2s;
+            margin: 2px;
+        }
+        .node-circle.current {
+            background: #ffc107;
+            border-color: #e0a800;
+            box-shadow: 0 0 0 3px rgba(255,193,7,0.3);
+        }
+        .node-circle.dependent {
+            background: #fd7e14;
+            border-color: #e06a00;
+            color: white;
+            box-shadow: 0 0 0 3px rgba(253,126,20,0.3);
+        }
+        .node-circle.answer {
+            background: #20c997;
+            border-color: #1aa57d;
+            color: white;
+            box-shadow: 0 0 0 3px rgba(32,201,151,0.3);
+        }
+        .dp-table-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 8px;
+            min-width: 200px;
+        }
+        .dp-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .dp-table th, .dp-table td {
+            border: 1px solid #dee2e6;
+            padding: 6px 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .dp-table th {
+            background: #e9ecef;
+        }
+        .dp-table tr.current-row {
+            background: #fff3cd;
+        }
+        /* teaching and evidence */
+        .info-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #teaching, #step-evidence, #state {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            flex: 1;
+            min-width: 220px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+        #state {
+            background: #fdfdff;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .checkpoint-box {
+            margin-top: 12px;
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .checkpoint-box input {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100px;
+            margin-right: 6px;
+        }
+        .btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-primary { background: #0d6efd; color: white; }
+        .btn-outline { background: white; border: 1px solid #0d6efd; color: #0d6efd; }
+        .btn-warning { background: #ffc107; color: #000; }
+        .btn-success { background: #198754; color: white; }
+        .feedback {
+            margin-top: 6px;
+            font-weight: 600;
+        }
+        .feedback.correct { color: #198754; }
+        .feedback.incorrect { color: #dc3545; }
+        /* right panel: timeline & controls */
+        .right-panel {
+            flex: 0 0 240px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .controls {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .range-wrap {
+            width: 100%;
+            margin: 4px 0;
+        }
+        #range {
+            width: 100%;
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+        #prev, #play, #next {
+            min-width: 60px;
+        }
+        #timeline {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .tick {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .tick.active {
+            background: #cfe2ff;
+            border-color: #0d6efd;
+            font-weight: 700;
+        }
+        .tick-label {
+            font-weight: 600;
+        }
+        .tick-op {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        /* learning log */
+        #learning-log {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+        }
+        #answer {
+            display: none;
+        }
+        @media (max-width: 1000px) {
+            .content { flex-direction: column; }
+            .code-panel { flex: none; width: 100%; max-height: 300px; }
+            .right-panel { flex-direction: row; flex-wrap: wrap; }
+            #timeline { max-height: 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1 id="title">Tree DP Maximum Independent Set</h1>
+            <p id="subtitle">Urban District Development Planning</p>
+        </div>
+        <div class="header-right">
+            <span id="top-result">Final answer: <strong>14</strong></span>
+            <span id="top-solution">Strategy: dp_take / dp_skip</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- code panel -->
+        <div class="code-panel">
+            <h3 style="margin-top:0;">Algorithm Code</h3>
+            <pre id="code"><span class="code-line" data-line="0">function solveMaxIndependentSet(tree):</span>
+<span class="code-line" data-line="1">    root = choose_root(tree)        # node 1</span>
+<span class="code-line" data-line="2">    dp_take = {}, dp_skip = {}</span>
+<span class="code-line" data-line="3">    function dfs(u):</span>
+<span class="code-line" data-line="4">        dp_take[u] = value[u]</span>
+<span class="code-line" data-line="5">        dp_skip[u] = 0</span>
+<span class="code-line" data-line="6">        for each child v of u:</span>
+<span class="code-line" data-line="7">            dfs(v)</span>
+<span class="code-line" data-line="8">            dp_take[u] += dp_skip[v]</span>
+<span class="code-line" data-line="9">            dp_skip[u] += max(dp_take[v], dp_skip[v])</span>
+<span class="code-line" data-line="10">    dfs(root)</span>
+<span class="code-line" data-line="11">    return max(dp_take[root], dp_skip[root])</span>
+</pre>
+        </div>
+
+        <!-- center panel -->
+        <div class="center-panel">
+            <div class="step-header">
+                <h2 id="step-title">Initialization</h2>
+                <span id="step-desc">Root the tree and prepare DP arrays.</span>
+                <span id="op">setup</span>
+            </div>
+
+            <!-- canvas for tree & DP table -->
+            <div id="canvas">
+                <div class="tree-container" id="tree-container"></div>
+                <div class="dp-table-container">
+                    <table class="dp-table" id="dp-table">
+                        <thead><tr><th>Node</th><th>dp_take</th><th>dp_skip</th></tr></thead>
+                        <tbody id="dp-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- info row -->
+            <div class="info-row">
+                <div id="teaching">
+                    <strong>Teaching</strong>
+                    <p id="teaching-text">We set up the tree and initialize dp_take and dp_skip as uncomputed (shown as '?').</p>
+                    <div id="checkpoint-area"></div>
+                </div>
+                <div id="step-evidence">
+                    <strong>Step Evidence</strong>
+                    <p id="evidence-text">Root selected: node 1. No DP values yet.</p>
+                </div>
+                <div id="state">
+                    <strong>Current State (JSON)</strong>
+                    <pre id="state-json"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- right panel -->
+        <div class="right-panel">
+            <div class="controls">
+                <div id="counter">1 / 6</div>
+                <div class="range-wrap">
+                    <input type="range" id="range" min="0" max="5" value="0" step="1">
+                </div>
+                <div class="btn-group">
+                    <button id="prev" class="btn btn-outline">◀ Prev</button>
+                    <button id="play" class="btn btn-primary">▶ Play</button>
+                    <button id="next" class="btn btn-outline">Next ▶</button>
+                </div>
+            </div>
+            <div id="timeline"></div>
+        </div>
+    </div>
+
+    <!-- learning log -->
+    <div id="learning-log">
+        <strong>Learning Log</strong>
+        <div id="log-entries"></div>
+    </div>
+
+    <!-- hidden answer as required -->
+    <div id="answer">14</div>
+
+    <script>
+        (function() {
+            // ---------- Input Data & Constants ----------
+            const nodesData = [
+                { id: "1", value: 3 },
+                { id: "2", value: 2 },
+                { id: "3", value: 1 },
+                { id: "4", value: 10 },
+                { id: "5", value: 1 }
+            ];
+            const edges = [["1","2"],["1","3"],["2","4"],["2","5"]];
+            const rootId = "1";
+            const expectedAnswer = 14;
+
+            // Build adjacency and children map (undirected -> tree rooted at 1)
+            const adj = {};
+            nodesData.forEach(n => adj[n.id] = []);
+            edges.forEach(([u,v]) => {
+                adj[u].push(v);
+                adj[v].push(u);
+            });
+            // Perform DFS from root to build children list
+            const children = {};
+            const parent = {};
+            function buildTree(u, p) {
+                parent[u] = p;
+                children[u] = adj[u].filter(v => v !== p);
+                children[u].forEach(v => buildTree(v, u));
+            }
+            buildTree(rootId, null);
+
+            // Postorder sequence for DP (leaves first)
+            const postorder = [];
+            function postOrder(u) {
+                children[u].forEach(v => postOrder(v));
+                postorder.push(u);
+            }
+            postOrder(rootId); // now postorder = ["4","5","2","3","1"] or similar, actual: 4,5,2,3,1
+
+            // DP state: we'll maintain dp_take and dp_skip objects, initially all "?"
+            const initialDP = {};
+            nodesData.forEach(n => {
+                initialDP[n.id] = { take: "?", skip: "?" };
+            });
+
+            // Steps definition
+            const steps = [
+                {
+                    title: "Initialization",
+                    desc: "Root the tree and prepare DP arrays.",
+                    op: "setup",
+                    teaching: "We choose node 1 as root. All dp_take and dp_skip are undefined (shown as ?). The algorithm will traverse bottom‑up.",
+                    evidence: "Root = 1. dp_take, dp_skip initialized with '?' for every node.",
+                    activeLines: [0,1,2], // code lines indices (0-based)
+                    currentNodes: [],
+                    dependentNodes: [],
+                    answerNodes: [],
+                    checkpoint: null
+                },
+                {
+                    title: "Process leaf node 4",
+                    desc: "Node 4 has no children; compute its DP values.",
+                    op: "dp_take[4]=10, dp_skip[4]=0",
+                    teaching: "Leaf node 4: value = 10. If taken, gain 10 and nil from children (none). If skipped, 0. So dp_take=10, dp_skip=0.",
+                    evidence: "Node 4 (leaf): take = value(10) = 10; skip = 0. Updated DP arrays.",
+                    activeLines: [3,4,5], // dfs lines for leaf
+                    currentNodes: ["4"],
+                    dependentNodes: [],
+                    answerNodes: [],
+                    checkpoint: null
+                },
+                {
+                    title: "Process leaf node 5",
+                    desc: "Node 5 has no children; compute its DP values.",
+                    op: "dp_take[5]=1, dp_skip[5]=0",
+                    teaching: "Leaf node 5: value = 1. dp_take=1, dp_skip=0.",
+                    evidence: "Node 5 (leaf): take = 1, skip = 0.",
+                    activeLines: [3,4,5],
+                    currentNodes: ["5"],
+                    dependentNodes: [],
+                    answerNodes: [],
+                    checkpoint: null
+                },
+                {
+                    title: "Process leaf node 3",
+                    desc: "Node 3 is a leaf (child of root).",
+                    op: "dp_take[3]=1, dp_skip[3]=0",
+                    teaching: "Node 3: value = 1. Leaf, so dp_take=1, dp_skip=0.",
+                    evidence: "Node 3 (leaf): take = 1, skip = 0.",
+                    activeLines: [3,4,5],
+                    currentNodes: ["3"],
+                    dependentNodes: [],
+                    answerNodes: [],
+                    checkpoint: null
+                },
+                {
+                    title: "Process internal node 2",
+                    desc: "Node 2 has children 4 and 5. Compute its DP using child values.",
+                    op: "compute dp[2] from children",
+                    teaching: "Now node 2 (value=2) uses children: dp_take[2] = value[2] + dp_skip[4] + dp_skip[5]; dp_skip[2] = max(dp_take[4],dp_skip[4]) + max(dp_take[5],dp_skip[5]). <strong>Your turn: enter the two numbers.</strong>",
+                    evidence: "Before: dp_take[2]=?, dp_skip[2]=?. Dependencies: dp_skip[4]=0, dp_skip[5]=0; dp_take[4]=10, dp_take[5]=1.",
+                    activeLines: [6,7,8,9], // lines for child loop
+                    currentNodes: ["2"],
+                    dependentNodes: ["4","5"],
+                    answerNodes: [],
+                    checkpoint: {
+                        type: 'node2',
+                        prompt: 'Enter dp_take[2] and dp_skip[2] separated by comma (e.g., 2,11):',
+                        correctTake: 2,
+                        correctSkip: 11,
+                        hint: 'dp_take[2] = 2 + dp_skip[4] + dp_skip[5] = 2 + 0 + 0 = 2; dp_skip[2] = max(10,0) + max(1,0) = 10 + 1 = 11.',
+                        showAnswer: '2,11'
+                    }
+                },
+                {
+                    title: "Process root node 1 and final answer",
+                    desc: "Node 1 has children 2 and 3. Compute its DP, then answer = max(dp_take[1], dp_skip[1]).",
+                    op: "compute dp[1] and answer",
+                    teaching: "Root node (value=3): dp_take[1] = 3 + dp_skip[2] + dp_skip[3]; dp_skip[1] = max(dp_take[2],dp_skip[2]) + max(dp_take[3],dp_skip[3]). Finally, answer = max(take, skip). <strong>Find the maximum independent set value.</strong>",
+                    evidence: "dp_take[1] = 3 + 11 + 0 = 14; dp_skip[1] = max(2,11) + max(1,0) = 11+1=12. Maximum = 14.",
+                    activeLines: [6,7,8,9,10,11],
+                    currentNodes: ["1"],
+                    dependentNodes: ["2","3"],
+                    answerNodes: ["1"],
+                    checkpoint: {
+                        type: 'rootMax',
+                        prompt: 'Enter the maximum total development value (an integer):',
+                        correctAnswer: 14,
+                        hint: 'dp_take[1]=14, dp_skip[1]=12 → max=14.',
+                        showAnswer: '14'
+                    }
+                }
+            ];
+
+            // Checkpoint resolved state
+            const resolvedCheckpoints = {}; // key stepIndex -> true
+
+            // current step index
+            let currentStep = 0;
+            const totalSteps = steps.length;
+
+            // DP arrays that reflect actual computed values (with "?" for unresolved)
+            const dp = {};
+            nodesData.forEach(n => { dp[n.id] = { take: "?", skip: "?" }; });
+
+            // DOM refs
+            const codeEl = document.getElementById('code');
+            const stepTitle = document.getElementById('step-title');
+            const stepDesc = document.getElementById('step-desc');
+            const opEl = document.getElementById('op');
+            const treeContainer = document.getElementById('tree-container');
+            const dpBody = document.getElementById('dp-body');
+            const teachingText = document.getElementById('teaching-text');
+            const checkpointArea = document.getElementById('checkpoint-area');
+            const evidenceText = document.getElementById('evidence-text');
+            const stateJson = document.getElementById('state-json');
+            const counterEl = document.getElementById('counter');
+            const rangeEl = document.getElementById('range');
+            const timelineEl = document.getElementById('timeline');
+            const prevBtn = document.getElementById('prev');
+            const playBtn = document.getElementById('play');
+            const nextBtn = document.getElementById('next');
+            const logEntries = document.getElementById('log-entries');
+            const answerEl = document.getElementById('answer');
+            // Set final answer (required)
+            answerEl.textContent = expectedAnswer.toString();
+
+            // ---------- Build timeline ticks ----------
+            const tickLabels = ["Init", "Leaf 4", "Leaf 5", "Node 3", "Node 2", "Root 1"];
+            const tickOps = ["setup", "dp[4]", "dp[5]", "dp[3]", "dp[2]", "dp[1] & ans"];
+            timelineEl.innerHTML = '';
+            for (let i = 0; i < totalSteps; i++) {
+                const tick = document.createElement('div');
+                tick.className = 'tick';
+                tick.dataset.step = i;
+                tick.innerHTML = `<span class="tick-label">${tickLabels[i]}</span><span class="tick-op">${tickOps[i]}</span>`;
+                tick.addEventListener('click', () => goToStep(i));
+                timelineEl.appendChild(tick);
+            }
+
+            // ---------- Helper: update DP values from resolved checkpoints ----------
+            function applyResolvedCheckpoints() {
+                // Reset all dp to initial ?
+                nodesData.forEach(n => { dp[n.id] = { take: "?", skip: "?" }; });
+                // Apply steps 1-3 unconditionally (leaves)
+                dp["4"] = { take: 10, skip: 0 };
+                dp["5"] = { take: 1, skip: 0 };
+                dp["3"] = { take: 1, skip: 0 };
+                // Step 4 (node 2) only if resolved
+                if (resolvedCheckpoints[4]) {
+                    dp["2"] = { take: 2, skip: 11 };
+                }
+                // Step 5 (root) only if resolved (both take and skip, and answer)
+                if (resolvedCheckpoints[5]) {
+                    dp["1"] = { take: 14, skip: 12 };
+                }
+            }
+
+            // ---------- Render tree ----------
+            function renderTree(currentNodes, dependentNodes, answerNodes) {
+                // Build HTML for tree using ul/li recursively
+                function buildNodeHtml(u) {
+                    const hasChildren = children[u].length > 0;
+                    let html = '<li>';
+                    const nodeClass = [];
+                    if (currentNodes.includes(u)) nodeClass.push('current');
+                    if (dependentNodes.includes(u)) nodeClass.push('dependent');
+                    if (answerNodes.includes(u)) nodeClass.push('answer');
+                    html += `<span class="node-circle ${nodeClass.join(' ')}" data-node="${u}">${u}<br><small>${nodesData.find(n=>n.id===u).value}</small></span>`;
+                    if (hasChildren) {
+                        html += '<ul>';
+                        children[u].forEach(child => { html += buildNodeHtml(child); });
+                        html += '</ul>';
+                    }
+                    html += '</li>';
+                    return html;
+                }
+                const treeHtml = '<ul class="tree">' + buildNodeHtml(rootId) + '</ul>';
+                treeContainer.innerHTML = treeHtml;
+            }
+
+            // ---------- Render DP table ----------
+            function renderDPTable() {
+                const rows = nodesData.map(n => {
+                    const take = dp[n.id].take;
+                    const skip = dp[n.id].skip;
+                    return `<tr class="${currentStepNodes().includes(n.id) ? 'current-row' : ''}"><td>${n.id} (${n.value})</td><td>${take}</td><td>${skip}</td></tr>`;
+                }).join('');
+                dpBody.innerHTML = rows;
+            }
+
+            function currentStepNodes() {
+                const step = steps[currentStep];
+                return [...step.currentNodes, ...step.dependentNodes, ...step.answerNodes];
+            }
+
+            // ---------- Render code highlighting ----------
+            function highlightCode(activeLines) {
+                const lines = codeEl.querySelectorAll('.code-line');
+                lines.forEach((line, idx) => {
+                    if (activeLines.includes(idx)) {
+                        line.classList.add('active-line');
+                    } else {
+                        line.classList.remove('active-line');
+                    }
+                });
+            }
+
+            // ---------- Update state JSON ----------
+            function updateStateJSON() {
+                const stateObj = {
+                    dp_take: {},
+                    dp_skip: {}
+                };
+                nodesData.forEach(n => {
+                    stateObj.dp_take[n.id] = dp[n.id].take;
+                    stateObj.dp_skip[n.id] = dp[n.id].skip;
+                });
+                if (currentStep === totalSteps - 1 && resolvedCheckpoints[5]) {
+                    stateObj.answer = expectedAnswer;
+                }
+                stateJson.textContent = JSON.stringify(stateObj, null, 2);
+            }
+
+            // ---------- Teaching content and checkpoint ----------
+            function renderTeachingAndCheckpoint() {
+                const step = steps[currentStep];
+                teachingText.innerHTML = step.teaching;
+                checkpointArea.innerHTML = '';
+                if (step.checkpoint && !resolvedCheckpoints[currentStep]) {
+                    const cp = step.checkpoint;
+                    const div = document.createElement('div');
+                    div.className = 'checkpoint-box';
+                    if (cp.type === 'node2') {
+                        div.innerHTML = `
+                            <p><strong>Checkpoint:</strong> ${cp.prompt}</p>
+                            <input type="text" id="cp-input" placeholder="e.g., 2,11">
+                            <button class="btn btn-primary" id="cp-submit">Submit</button>
+                            <button class="btn btn-warning" id="cp-hint">Hint</button>
+                            <button class="btn btn-outline" id="cp-show">Show Answer</button>
+                            <div id="cp-feedback" class="feedback"></div>
+                        `;
+                    } else if (cp.type === 'rootMax') {
+                        div.innerHTML = `
+                            <p><strong>Checkpoint:</strong> ${cp.prompt}</p>
+                            <input type="number" id="cp-input" placeholder="e.g., 14" style="width:120px;">
+                            <button class="btn btn-primary" id="cp-submit">Submit</button>
+                            <button class="btn btn-warning" id="cp-hint">Hint</button>
+                            <button class="btn btn-outline" id="cp-show">Show Answer</button>
+                            <div id="cp-feedback" class="feedback"></div>
+                        `;
+                    }
+                    checkpointArea.appendChild(div);
+
+                    // Event listeners
+                    document.getElementById('cp-submit').addEventListener('click', () => {
+                        const inputVal = document.getElementById('cp-input').value.trim();
+                        const feedback = document.getElementById('cp-feedback');
+                        if (cp.type === 'node2') {
+                            const parts = inputVal.split(',').map(s => s.trim()).filter(s => s !== '');
+                            if (parts.length === 2) {
+                                const takeVal = parseInt(parts[0], 10);
+                                const skipVal = parseInt(parts[1], 10);
+                                if (!isNaN(takeVal) && !isNaN(skipVal) && takeVal === cp.correctTake && skipVal === cp.correctSkip) {
+                                    feedback.textContent = 'Correct! dp_take[2]=2, dp_skip[2]=11.';
+                                    feedback.className = 'feedback correct';
+                                    resolvedCheckpoints[currentStep] = true;
+                                    applyResolvedCheckpoints();
+                                    renderAll();
+                                    addLogEntry(`Step ${currentStep+1}: Submitted ${takeVal},${skipVal} - Correct.`);
+                                } else {
+                                    feedback.textContent = 'Incorrect. Remember the formulas and try again.';
+                                    feedback.className = 'feedback incorrect';
+                                    addLogEntry(`Step ${currentStep+1}: Submitted ${inputVal} - Incorrect.`);
+                                }
+                            } else {
+                                feedback.textContent = 'Please enter two numbers separated by comma.';
+                                feedback.className = 'feedback incorrect';
+                            }
+                        } else if (cp.type === 'rootMax') {
+                            const val = parseInt(inputVal, 10);
+                            if (!isNaN(val) && val === cp.correctAnswer) {
+                                feedback.textContent = 'Correct! The maximum value is 14.';
+                                feedback.className = 'feedback correct';
+                                resolvedCheckpoints[currentStep] = true;
+                                applyResolvedCheckpoints();
+                                renderAll();
+                                addLogEntry(`Step ${currentStep+1}: Submitted ${val} - Correct.`);
+                            } else {
+                                feedback.textContent = 'That is not the correct maximum. Try again.';
+                                feedback.className = 'feedback incorrect';
+                                addLogEntry(`Step ${currentStep+1}: Submitted ${inputVal} - Incorrect.`);
+                            }
+                        }
+                    });
+
+                    document.getElementById('cp-hint').addEventListener('click', () => {
+                        alert('Hint: ' + cp.hint);
+                    });
+
+                    document.getElementById('cp-show').addEventListener('click', () => {
+                        resolvedCheckpoints[currentStep] = true;
+                        applyResolvedCheckpoints();
+                        renderAll();
+                        addLogEntry(`Step ${currentStep+1}: Answer revealed.`);
+                        const feedback = document.getElementById('cp-feedback');
+                        if (feedback) {
+                            feedback.textContent = 'Answer shown.';
+                            feedback.className = 'feedback';
+                        }
+                    });
+                }
+            }
+
+            // ---------- Log entry ----------
+            function addLogEntry(message) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = message;
+                logEntries.appendChild(entry);
+                logEntries.scrollTop = logEntries.scrollHeight;
+            }
+
+            // ---------- Main render all ----------
+            function renderAll() {
+                applyResolvedCheckpoints();
+                const step = steps[currentStep];
+                stepTitle.textContent = step.title;
+                stepDesc.textContent = step.desc;
+                opEl.textContent = step.op;
+                renderTree(step.currentNodes, step.dependentNodes, step.answerNodes);
+                renderDPTable();
+                highlightCode(step.activeLines);
+                evidenceText.textContent = step.evidence;
+                updateStateJSON();
+                renderTeachingAndCheckpoint();
+
+                // counter and timeline active
+                counterEl.textContent = `${currentStep+1} / ${totalSteps}`;
+                rangeEl.value = currentStep;
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach((tick, idx) => {
+                    if (idx === currentStep) tick.classList.add('active');
+                    else tick.classList.remove('active');
+                });
+
+                // top result update only after final step resolved
+                const topResult = document.getElementById('top-result');
+                if (currentStep === totalSteps-1 && resolvedCheckpoints[5]) {
+                    topResult.innerHTML = 'Final answer: <strong>14</strong>';
+                } else {
+                    topResult.innerHTML = 'Final answer: <strong>?</strong>';
+                }
+            }
+
+            // ---------- Step navigation ----------
+            function goToStep(index) {
+                if (index < 0) index = 0;
+                if (index >= totalSteps) index = totalSteps - 1;
+                currentStep = index;
+                renderAll();
+            }
+
+            prevBtn.addEventListener('click', () => goToStep(currentStep - 1));
+            nextBtn.addEventListener('click', () => goToStep(currentStep + 1));
+            rangeEl.addEventListener('input', (e) => {
+                goToStep(parseInt(e.target.value, 10));
+            });
+
+            // Play button (auto advance)
+            let playInterval = null;
+            playBtn.addEventListener('click', () => {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                    playBtn.textContent = '▶ Play';
+                } else {
+                    playBtn.textContent = '⏸ Pause';
+                    playInterval = setInterval(() => {
+                        if (currentStep < totalSteps - 1) {
+                            goToStep(currentStep + 1);
+                        } else {
+                            clearInterval(playInterval);
+                            playInterval = null;
+                            playBtn.textContent = '▶ Play';
+                        }
+                    }, 2000);
+                }
+            });
+
+            // ---------- Initial render ----------
+            // ensure answer element is set (already done)
+            goToStep(0);
+        })();
+    </script>
+</body>
+</html>

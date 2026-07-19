@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Search - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f5f6fa;
+            --card-bg: #ffffff;
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --accent-light: #eaf4fb;
+            --highlight: #f39c12;
+            --highlight-light: #fef9ee;
+            --success: #27ae60;
+            --success-light: #eafaf1;
+            --danger: #e74c3c;
+            --danger-light: #fdedec;
+            --gray: #95a5a6;
+            --gray-light: #ecf0f1;
+            --discard: #bdc3c7;
+            --discard-light: #f0f0f0;
+            --border: #dcdfe6;
+            --text: #2c3e50;
+            --text-light: #5a6c7d;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.2s ease;
+            --font-mono: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px 28px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--accent);
+        }
+        #title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+        .top-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        #top-result {
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-width: 120px;
+            text-align: center;
+            transition: var(--transition);
+        }
+        #top-solution {
+            background: var(--success-light);
+            color: var(--success);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        #answer {
+            display: inline-block;
+            background: #1e1e2e;
+            color: #f1c40f;
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            margin-left: auto;
+            border: 2px solid #f1c40f;
+        }
+
+        /* Main content: canvas + code side by side */
+        .main-content {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .viz-section {
+            flex: 1 1 520px;
+            min-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .code-section {
+            flex: 1 1 400px;
+            min-width: 340px;
+        }
+
+        /* Canvas */
+        #canvas {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 16px;
+            box-shadow: var(--shadow);
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: var(--transition);
+        }
+        .array-row {
+            display: flex;
+            gap: 6px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .array-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 52px;
+            transition: all 0.3s ease;
+        }
+        .cell-index {
+            font-size: 0.7rem;
+            color: var(--gray);
+            font-family: var(--font-mono);
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+        .cell-value {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .cell-value.range-active {
+            background: #dceefb;
+            border-color: var(--accent);
+            color: var(--primary);
+        }
+        .cell-value.midpoint {
+            background: #fdebd0;
+            border-color: var(--highlight);
+            color: #7d5e00;
+            transform: scale(1.08);
+            box-shadow: 0 0 0 6px rgba(243, 156, 18, 0.18);
+            z-index: 2;
+            animation: pulse-mid 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-mid {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(243, 156, 18, 0.18);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(243, 156, 18, 0.06);
+            }
+        }
+        .cell-value.found {
+            background: #d5f5e3;
+            border-color: var(--success);
+            color: #1a5c32;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 8px rgba(39, 174, 96, 0.2);
+            z-index: 3;
+            animation: pulse-found 0.8s ease-in-out infinite;
+        }
+        @keyframes pulse-found {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(39, 174, 96, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(39, 174, 96, 0.05);
+            }
+        }
+        .cell-value.discarded {
+            background: #eaeaea;
+            border-color: var(--discard);
+            color: #999;
+            opacity: 0.6;
+        }
+        .pointer-row {
+            display: flex;
+            gap: 6px;
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: var(--text-light);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .pointer-item {
+            min-width: 52px;
+            text-align: center;
+            font-weight: 700;
+            padding: 2px 0;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+        .pointer-item.active-l {
+            color: var(--accent);
+            background: #dceefb;
+        }
+        .pointer-item.active-m {
+            color: #7d5e00;
+            background: #fdebd0;
+            font-weight: 800;
+        }
+        .pointer-item.active-r {
+            color: var(--accent);
+            background: #dceefb;
+        }
+        .pointer-item.active-f {
+            color: var(--success);
+            background: #d5f5e3;
+            font-weight: 800;
+        }
+
+        /* Code */
+        #code {
+            background: #1e1e2e;
+            color: #d4d4d4;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            box-shadow: var(--shadow);
+            white-space: pre;
+            margin: 0;
+            min-height: 200px;
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 1px 0;
+            border-radius: 3px;
+            transition: background 0.3s ease, color 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        #code .code-line.highlight {
+            background: rgba(243, 156, 18, 0.2);
+            border-left-color: var(--highlight);
+            color: #fff;
+            font-weight: 600;
+        }
+        #code .code-line.highlight-strong {
+            background: rgba(39, 174, 96, 0.25);
+            border-left-color: var(--success);
+            color: #fff;
+            font-weight: 700;
+        }
+        .code-keyword {
+            color: #c792ea;
+        }
+        .code-func {
+            color: #82aaff;
+        }
+        .code-num {
+            color: #f78c6c;
+        }
+        .code-str {
+            color: #c3e88d;
+        }
+        .code-comment {
+            color: #676e95;
+            font-style: italic;
+        }
+
+        /* State */
+        #state {
+            background: #fafbfc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text);
+            white-space: pre-wrap;
+            max-height: 100px;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+        }
+        #state::before {
+            content: 'Current State JSON:';
+            display: block;
+            font-weight: 700;
+            font-family: var(--font-sans);
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .controls button {
+            padding: 9px 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: var(--font-sans);
+            transition: var(--transition);
+            letter-spacing: 0.3px;
+        }
+        #prev {
+            background: var(--gray-light);
+            color: var(--primary);
+        }
+        #prev:hover {
+            background: #d5d8dc;
+            transform: translateY(-1px);
+        }
+        #prev:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #play {
+            background: var(--accent);
+            color: #fff;
+            min-width: 70px;
+        }
+        #play:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+        #play.paused {
+            background: var(--highlight);
+        }
+        #next {
+            background: var(--accent);
+            color: #fff;
+        }
+        #next:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+        #next:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--primary);
+            font-family: var(--font-mono);
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 250px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            align-items: stretch;
+        }
+        .tick {
+            flex: 1 1 100px;
+            min-width: 90px;
+            padding: 10px 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            text-align: center;
+            border: 2px solid var(--border);
+            background: #fafbfc;
+            transition: var(--transition);
+            font-family: var(--font-sans);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: var(--accent);
+            background: #eaf4fb;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .tick.active {
+            border-color: var(--highlight);
+            background: #fef9ee;
+            box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.12);
+            font-weight: 700;
+        }
+        .tick.completed {
+            border-color: var(--success);
+            background: #eafaf1;
+            opacity: 0.85;
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--primary);
+            letter-spacing: 0.2px;
+        }
+        .tick-op {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            font-family: var(--font-mono);
+            word-break: break-all;
+        }
+
+        /* Info sections */
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .info-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+        #op {
+            display: inline-block;
+            background: var(--highlight-light);
+            color: #7d5e00;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.7;
+        }
+        #step-evidence {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            border-left: 3px solid var(--accent);
+            font-family: var(--font-mono);
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        #step-evidence::before {
+            content: 'Evidence & State Changes:';
+            display: block;
+            font-weight: 700;
+            font-family: var(--font-sans);
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            background: #fffdf5;
+            border: 2px solid var(--highlight);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            margin-top: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .checkpoint-prompt {
+            font-weight: 700;
+            color: #7d5e00;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .checkpoint-input {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .checkpoint-input input {
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            width: 100px;
+            transition: var(--transition);
+        }
+        .checkpoint-input input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        .checkpoint-input button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            font-family: var(--font-sans);
+            transition: var(--transition);
+        }
+        .btn-submit {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-submit:hover {
+            background: #2980b9;
+        }
+        .btn-hint {
+            background: #f0f0f0;
+            color: var(--primary);
+        }
+        .btn-hint:hover {
+            background: #dcdcdc;
+        }
+        .btn-show {
+            background: #fdebd0;
+            color: #7d5e00;
+        }
+        .btn-show:hover {
+            background: #f5d79e;
+        }
+        .checkpoint-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            animation: fadeIn 0.25s ease;
+        }
+        .feedback-correct {
+            background: #d5f5e3;
+            color: #1a5c32;
+            border: 1px solid var(--success);
+        }
+        .feedback-incorrect {
+            background: #fdedec;
+            color: #922b21;
+            border: 1px solid var(--danger);
+        }
+        .feedback-reveal {
+            background: #fef9ee;
+            color: #7d5e00;
+            border: 1px solid var(--highlight);
+        }
+
+        /* Learning Log */
+        #learning-log {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #learning-log h4 {
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .log-entry {
+            padding: 7px 10px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            border-left: 3px solid var(--accent);
+            background: #fafbfc;
+            font-family: var(--font-mono);
+            animation: fadeIn 0.3s ease;
+        }
+        .log-entry.correct-entry {
+            border-left-color: var(--success);
+            background: #eafaf1;
+        }
+        .log-entry.incorrect-entry {
+            border-left-color: var(--danger);
+            background: #fdedec;
+        }
+        .log-entry.reveal-entry {
+            border-left-color: var(--highlight);
+            background: #fef9ee;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .viz-section,
+            .code-section {
+                min-width: auto;
+                flex: 1 1 auto;
+            }
+            #timeline {
+                gap: 4px;
+            }
+            .tick {
+                flex: 1 1 60px;
+                min-width: 60px;
+                padding: 6px 4px;
+            }
+            .tick-label {
+                font-size: 0.7rem;
+            }
+            .tick-op {
+                font-size: 0.6rem;
+            }
+            #code {
+                font-size: 0.75rem;
+                padding: 10px 12px;
+            }
+            .array-cell {
+                min-width: 38px;
+            }
+            .cell-value {
+                width: 36px;
+                height: 36px;
+                font-size: 0.8rem;
+            }
+            .pointer-item {
+                min-width: 38px;
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 id="title">Binary Search</h1>
+            <p id="subtitle">You work in a library where books with unique call numbers are arranged in order on shelves. Given a shelf array nums (each position i stores call number nums[i]), and a target call number needed by a reader, return the index of target, or -1 if it does not exist.</p>
+            <div class="top-info">
+                <span id="top-result">Ready to begin</span>
+                <span id="top-solution">Expected Output: 4</span>
+                <span id="answer">4</span>
+            </div>
+        </header>
+
+        <!-- Main: Canvas + Code -->
+        <div class="main-content">
+            <div class="viz-section">
+                <div id="canvas">
+                    <!-- Array visualization rendered by JS -->
+                </div>
+                <div id="state"></div>
+            </div>
+            <div class="code-section">
+                <pre id="code"></pre>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button id="prev" title="Previous step">◀ Prev</button>
+            <button id="play" title="Auto-play steps">▶ Play</button>
+            <button id="next" title="Next step">Next ▶</button>
+            <span id="counter">1 / 6</span>
+            <input type="range" id="range" min="1" max="6" value="1" title="Scrub through steps">
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline">
+            <!-- Ticks rendered by JS -->
+        </div>
+
+        <!-- Info Sections -->
+        <div class="info-section">
+            <div class="info-card">
+                <div id="step-title">Initialize Search Boundaries</div>
+                <div id="step-desc">Set left pointer to the start and right pointer to the end of the array.</div>
+                <span id="op">Initialize</span>
+            </div>
+            <div class="info-card" id="teaching-card">
+                <div id="teaching"></div>
+            </div>
+            <div class="info-card">
+                <div id="step-evidence"></div>
+            </div>
+            <div id="learning-log">
+                <h4>📝 Learning Log</h4>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step data for Binary Search
+            // nums = [-1, 0, 3, 5, 9, 12], target = 9
+            // ──────────────────────────────────────
+            const numsArray = [-1, 0, 3, 5, 9, 12];
+            const targetValue = 9;
+            const totalSteps = 6;
+
+            const stepsData = [{
+                id: 0,
+                title: 'Initialize Search Boundaries',
+                desc: 'Set left pointer to index 0 and right pointer to index 5 (len(nums)-1). The entire array is our initial search space.',
+                op: 'Initialize',
+                codeHighlightLines: [1, 2],
+                codeHighlightClass: 'highlight',
+                left: 0,
+                right: 5,
+                mid: null,
+                found: null,
+                stateJSON: '{"left": 0, "right": 5, "mid": null, "searchRange": [0, 5], "target": 9}',
+                teaching: 'Binary search works on <strong>sorted arrays</strong> by repeatedly dividing the search interval in half. We begin with the full array. The <strong>invariant</strong> is: if the target exists, it must lie within <code>nums[left..right]</code> (inclusive).',
+                evidence: 'Before: No search initialized.\nAfter: left=0, right=5. Search range covers indices [0, 5] containing values [-1, 0, 3, 5, 9, 12].',
+                isCheckpoint: false,
+                checkpointData: null
+            }, {
+                id: 1,
+                title: 'Calculate First Midpoint',
+                desc: 'Compute mid = left + (right - left) // 2 = 0 + (5-0)//2 = 2. The midpoint is index 2 with value nums[2]=3.',
+                op: 'Calculate Midpoint',
+                codeHighlightLines: [4],
+                codeHighlightClass: 'highlight',
+                left: 0,
+                right: 5,
+                mid: 2,
+                found: null,
+                stateJSON: '{"left": 0, "right": 5, "mid": 2, "nums[mid]": 3, "target": 9, "comparison": "3 < 9"}',
+                teaching: 'We compute the midpoint <strong>without overflow risk</strong> using <code>left + (right - left) // 2</code>. The value at index 2 is <strong>3</strong>, which is less than our target <strong>9</strong>. This tells us the target must be in the right half.',
+                evidence: 'Operation: mid = 0 + (5 - 0) // 2 = 2.\nDependency: left=0, right=5.\nBefore: mid was null.\nAfter: mid=2, nums[2]=3. Compare 3 < 9 → target is in the right half.',
+                isCheckpoint: false,
+                checkpointData: null
+            }, {
+                id: 2,
+                title: 'Discard Left Half — Update Left Boundary',
+                desc: 'Since nums[mid]=3 < target=9, discard the left half by setting left = mid + 1 = 3. New search range is [3, 5].',
+                op: 'Update Range',
+                codeHighlightLines: [7, 8],
+                codeHighlightClass: 'highlight',
+                left: 3,
+                right: 5,
+                mid: 2,
+                found: null,
+                stateJSON: '{"left": 3, "right": 5, "previousMid": 2, "nums[previousMid]": 3, "target": 9, "discardedRange": [0, 2]}',
+                teaching: 'Because <strong>3 &lt; 9</strong>, we know the target cannot be at indices 0 through 2. We discard those and set <code>left = mid + 1 = 3</code>. The search range shrinks from 6 elements to 3 elements. <strong>Common error:</strong> forgetting the +1 and setting left=mid, which could cause infinite loops.',
+                evidence: 'Operation: Compare nums[2]=3 with target=9. Since 3 < 9, update left = mid + 1 = 3.\nBefore: left=0, right=5, range [0,5] (6 elements).\nAfter: left=3, right=5, range [3,5] (3 elements: [5, 9, 12]). Discarded indices [0,1,2].',
+                isCheckpoint: true,
+                checkpointData: {
+                    question: 'Since nums[2]=3 is less than target=9, what should the new left boundary be? (Enter the index number.)',
+                    correctAnswer: '3',
+                    hintText: 'We need to search the right half. The new left boundary is mid + 1. Since mid=2, the new left becomes 2+1=3.',
+                    answerLabel: '3'
+                }
+            }, {
+                id: 3,
+                title: 'Calculate Second Midpoint',
+                desc: 'With left=3 and right=5, compute mid = 3 + (5-3)//2 = 4. The midpoint is index 4 with value nums[4]=9.',
+                op: 'Calculate Midpoint',
+                codeHighlightLines: [4],
+                codeHighlightClass: 'highlight',
+                left: 3,
+                right: 5,
+                mid: 4,
+                found: null,
+                stateJSON: '{"left": 3, "right": 5, "mid": 4, "nums[mid]": 9, "target": 9, "comparison": "9 == 9"}',
+                teaching: 'We recalculate the midpoint in the narrowed range. <code>mid = 3 + (5-3)//2 = 4</code>. The value at index 4 is <strong>9</strong>, which <strong>equals</strong> our target! This is the best-case scenario — we found the target on the second probe.',
+                evidence: 'Operation: mid = 3 + (5 - 3) // 2 = 3 + 1 = 4.\nDependency: left=3, right=5.\nBefore: mid was 2 (from previous step).\nAfter: mid=4, nums[4]=9. Compare 9 == 9 → target found!',
+                isCheckpoint: false,
+                checkpointData: null
+            }, {
+                id: 4,
+                title: 'Target Found — Prepare Return',
+                desc: 'nums[mid]=9 equals target=9. The condition nums[mid] == target is true, so we execute the return statement.',
+                op: 'Found Target',
+                codeHighlightLines: [5, 6],
+                codeHighlightClass: 'highlight-strong',
+                left: 3,
+                right: 5,
+                mid: 4,
+                found: 4,
+                stateJSON: '{"left": 3, "right": 5, "mid": 4, "nums[mid]": 9, "target": 9, "found": true, "resultIndex": 4}',
+                teaching: 'The comparison <code>nums[mid] == target</code> evaluates to true (9 == 9). The algorithm immediately returns <code>mid</code>, which is <strong>4</strong>. This is the correct index of the target call number in the sorted shelf array.',
+                evidence: 'Operation: Compare nums[4]=9 with target=9. They are equal.\nBefore: found was null, no return value.\nAfter: found=4, target located at index 4. The algorithm returns 4.',
+                isCheckpoint: true,
+                checkpointData: {
+                    question: 'The target has been found at nums[4]=9. What index should the algorithm return? (Enter the number.)',
+                    correctAnswer: '4',
+                    hintText: 'The index where nums[index] equals the target is the return value. Here, nums[4]=9 matches target=9.',
+                    answerLabel: '4'
+                }
+            }, {
+                id: 5,
+                title: 'Final Answer',
+                desc: 'The binary search returns index 4. The reader\'s requested call number 9 is located at shelf position 4.',
+                op: 'Return Result',
+                codeHighlightLines: [6],
+                codeHighlightClass: 'highlight-strong',
+                left: 3,
+                right: 5,
+                mid: 4,
+                found: 4,
+                stateJSON: '{"result": 4, "target": 9, "found": true, "algorithm": "binary_search", "status": "complete"}',
+                teaching: '<strong>Binary search succeeded in 2 probes</strong> (examined indices 2 and 4). In the worst case, binary search on an array of size n requires O(log n) probes. Here, n=6, and log₂(6)≈2.6, so 2–3 probes is optimal. The final answer is <strong>4</strong>.',
+                evidence: 'Final result: The algorithm returns 4.\nSummary: Initialized with [0,5], probed mid=2 (value 3, too small), updated to [3,5], probed mid=4 (value 9, match!), returned 4.\nTotal probes: 2. Time complexity: O(log n).',
+                isCheckpoint: false,
+                checkpointData: null
+            }];
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $learningLog = document.getElementById('learning-log');
+
+            // ──────────────────────────────────────
+            // Code text with line numbers
+            // ──────────────────────────────────────
+            const codeLines = [
+                { num: 1,
+                    text: '<span class="code-keyword">def</span> <span class="code-func">binary_search</span>(nums, target):' },
+                { num: 2,
+                    text: '    left, right = <span class="code-num">0</span>, <span class="code-func">len</span>(nums) - <span class="code-num">1</span>' },
+                { num: 3,
+                    text: '    <span class="code-keyword">while</span> left &lt;= right:' },
+                { num: 4,
+                    text: '        mid = left + (right - left) // <span class="code-num">2</span>' },
+                { num: 5,
+                    text: '        <span class="code-keyword">if</span> nums[mid] == target:' },
+                { num: 6,
+                    text: '            <span class="code-keyword">return</span> mid' },
+                { num: 7,
+                    text: '        <span class="code-keyword">elif</span> nums[mid] &lt; target:' },
+                { num: 8,
+                    text: '            left = mid + <span class="code-num">1</span>' },
+                { num: 9,
+                    text: '        <span class="code-keyword">else</span>:' },
+                { num: 10,
+                    text: '            right = mid - <span class="code-num">1</span>' },
+                { num: 11,
+                    text: '    <span class="code-keyword">return</span> -<span class="code-num">1</span>' },
+            ];
+
+            function renderCode(highlightLines, highlightClass) {
+                let html = '';
+                for (const line of codeLines) {
+                    let cls = 'code-line';
+                    if (highlightLines.includes(line.num)) {
+                        cls += ' ' + (highlightClass || 'highlight');
+                    }
+                    html +=
+                        `<span class="${cls}" data-line="${line.num}"><span class="code-comment" style="display:inline-block;width:24px;text-align:right;margin-right:8px;user-select:none;">${line.num}</span>${line.text}</span>\n`;
+                }
+                $code.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // Render array visualization in #canvas
+            // ──────────────────────────────────────
+            function renderCanvas(stepData) {
+                const { left, right, mid, found } = stepData;
+                let cellsHTML = '';
+                let pointersHTML = '';
+
+                for (let i = 0; i < numsArray.length; i++) {
+                    let cellClass = 'cell-value';
+                    let pointerClass = 'pointer-item';
+                    let pointerLabel = '';
+
+                    if (found !== null && i === found) {
+                        cellClass += ' found';
+                        pointerClass += ' active-f';
+                        pointerLabel = 'ANS';
+                    } else if (mid !== null && i === mid && found === null) {
+                        cellClass += ' midpoint';
+                        pointerClass += ' active-m';
+                        pointerLabel = 'MID';
+                    } else if (left !== null && right !== null && i >= left && i <= right && found === null) {
+                        cellClass += ' range-active';
+                        if (i === left) {
+                            pointerClass += ' active-l';
+                            pointerLabel = 'L';
+                        } else if (i === right) {
+                            pointerClass += ' active-r';
+                            pointerLabel = 'R';
+                        }
+                    } else if (found !== null && i !== found) {
+                        cellClass += ' discarded';
+                    } else if (left !== null && right !== null && (i < left || i > right) && found === null) {
+                        cellClass += ' discarded';
+                    }
+
+                    if (i === left && found === null && !(mid !== null && i === mid && found === null && pointerLabel ===
+                            'MID')) {
+                        if (pointerLabel === '') pointerLabel = 'L';
+                        if (!pointerClass.includes('active-l') && !pointerClass.includes('active-m')) pointerClass +=
+                            ' active-l';
+                    }
+                    if (i === right && found === null && !(mid !== null && i === mid && found === null && pointerLabel ===
+                            'MID')) {
+                        if (pointerLabel === '') pointerLabel = 'R';
+                        if (!pointerClass.includes('active-r') && !pointerClass.includes('active-m')) pointerClass +=
+                            ' active-r';
+                    }
+
+                    cellsHTML += `
+                <div class="array-cell">
+                  <span class="cell-index">${i}</span>
+                  <div class="${cellClass}">${numsArray[i]}</div>
+                </div>`;
+                    pointersHTML += `
+                <div class="${pointerClass}">${pointerLabel}</div>`;
+                }
+
+                $canvas.innerHTML = `
+              <div class="array-row">${cellsHTML}</div>
+              <div class="pointer-row">${pointersHTML}</div>
+              <div style="font-size:0.75rem;color:#95a5a6;margin-top:6px;font-family:var(--font-mono);">
+                target = <strong style="color:#e74c3c;">${targetValue}</strong> &nbsp;|&nbsp;
+                ${found !== null ? '<span style="color:#27ae60;">Found at index ' + found + '</span>' : (mid !== null ? 'Probing index ' + mid + ' (value ' + numsArray[mid] + ')' : 'Initializing search...')}
+              </div>`;
+            }
+
+            // ──────────────────────────────────────
+            // Render timeline ticks
+            // ──────────────────────────────────────
+            const tickLabels = ['Initialize', 'Midpoint 1', 'Update Range', 'Midpoint 2', 'Found', 'Result'];
+            const tickOps = ['left=0, right=5', 'mid=2, nums[2]=3', 'left=3, right=5', 'mid=4, nums[4]=9', '9==9, return 4',
+                'Answer: 4'
+            ];
+
+            function renderTimeline(activeStep) {
+                let html = '';
+                for (let i = 0; i < totalSteps; i++) {
+                    let cls = 'tick';
+                    if (i === activeStep) cls += ' active';
+                    if (i < activeStep) cls += ' completed';
+                    html += `
+                <div class="${cls}" data-step="${i}" role="button" tabindex="0" title="Step ${i+1}: ${tickLabels[i]}">
+                  <span class="tick-label">${tickLabels[i]}</span>
+                  <span class="tick-op">${tickOps[i]}</span>
+                </div>`;
+                }
+                $timeline.innerHTML = html;
+
+                // Add click handlers
+                $timeline.querySelectorAll('.tick').forEach(tick => {
+                    tick.addEventListener('click', function() {
+                        const stepIdx = parseInt(this.getAttribute('data-step'));
+                        goToStep(stepIdx);
+                    });
+                    tick.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            const stepIdx = parseInt(this.getAttribute('data-step'));
+                            goToStep(stepIdx);
+                        }
+                    });
+                });
+            }
+
+            // ──────────────────────────────────────
+            // State management
+            // ──────────────────────────────────────
+            let currentStep = 0;
+            let checkpointCompleted = {}; // { stepIndex: true/false }
+            let autoPlayInterval = null;
+            let isPlaying = false;
+
+            // Initialize checkpoint tracking
+            stepsData.forEach((step, idx) => {
+                if (step.isCheckpoint) {
+                    checkpointCompleted[idx] = false;
+                }
+            });
+
+            function goToStep(stepIdx) {
+                if (stepIdx < 0 || stepIdx >= totalSteps) return;
+                currentStep = stepIdx;
+                const stepData = stepsData[currentStep];
+
+                // Update all UI elements
+                $stepTitle.textContent = stepData.title;
+                $stepDesc.textContent = stepData.desc;
+                $op.textContent = stepData.op;
+                $counter.textContent = (currentStep + 1) + ' / ' + totalSteps;
+                $range.value = currentStep + 1;
+                $state.textContent = stepData.stateJSON;
+                $stepEvidence.textContent = stepData.evidence;
+                $topResult.textContent = 'Step ' + (currentStep + 1) + ': ' + stepData.op;
+
+                renderCode(stepData.codeHighlightLines, stepData.codeHighlightClass);
+                renderCanvas(stepData);
+                renderTimeline(currentStep);
+                renderTeaching(stepData);
+
+                // Update button states
+                $prev.disabled = (currentStep === 0);
+                $next.disabled = (currentStep === totalSteps - 1);
+
+                // Scroll teaching card into view if checkpoint
+                if (stepData.isCheckpoint && !checkpointCompleted[currentStep]) {
+                    const teachingCard = document.getElementById('teaching-card');
+                    if (teachingCard) {
+                        teachingCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+
+            function renderTeaching(stepData) {
+                let html = '<p>' + stepData.teaching + '</p>';
+
+                if (stepData.isCheckpoint) {
+                    const cp = stepData.checkpointData;
+                    const isCompleted = checkpointCompleted[currentStep];
+
+                    html += `
+                <div class="checkpoint-area">
+                  <p class="checkpoint-prompt">🔍 <strong>Checkpoint:</strong> ${cp.question}</p>
+                  <div class="checkpoint-input">
+                    <input type="text" id="checkpoint-answer-input" placeholder="Your answer..." ${isCompleted ? 'disabled' : ''} value="${isCompleted ? cp.answerLabel : ''}">
+                    <button class="btn-submit" id="btn-checkpoint-submit" ${isCompleted ? 'disabled' : ''}>Submit</button>
+                    <button class="btn-hint" id="btn-checkpoint-hint">Hint</button>
+                    <button class="btn-show" id="btn-checkpoint-show">Show Answer</button>
+                  </div>
+                  <div id="checkpoint-feedback-area"></div>
+                </div>`;
+
+                    // Defer event binding
+                    setTimeout(() => {
+                        bindCheckpointEvents(stepData, currentStep);
+                    }, 50);
+                }
+
+                $teaching.innerHTML = html;
+            }
+
+            function bindCheckpointEvents(stepData, stepIdx) {
+                const submitBtn = document.getElementById('btn-checkpoint-submit');
+                const hintBtn = document.getElementById('btn-checkpoint-hint');
+                const showBtn = document.getElementById('btn-checkpoint-show');
+                const inputEl = document.getElementById('checkpoint-answer-input');
+                const feedbackArea = document.getElementById('checkpoint-feedback-area');
+
+                if (!submitBtn || !hintBtn || !showBtn || !inputEl) return;
+
+                const cp = stepData.checkpointData;
+
+                submitBtn.addEventListener('click', function() {
+                    const userAnswer = inputEl.value.trim();
+                    if (userAnswer === '') {
+                        feedbackArea.innerHTML =
+                            '<div class="checkpoint-feedback feedback-incorrect">Please enter an answer before submitting.</div>';
+                        return;
+                    }
+                    const isCorrect = (userAnswer === cp.correctAnswer);
+                    if (isCorrect) {
+                        feedbackArea.innerHTML =
+                            '<div class="checkpoint-feedback feedback-correct">✅ Correct! The answer is <strong>' +
+                            cp.answerLabel + '</strong>. Great reasoning!</div>';
+                        checkpointCompleted[stepIdx] = true;
+                        submitBtn.disabled = true;
+                        inputEl.disabled = true;
+                        appendLearningLog(stepIdx, userAnswer, 'correct');
+                        // Update the tick appearance
+                        renderTimeline(currentStep);
+                    } else {
+                        feedbackArea.innerHTML =
+                            '<div class="checkpoint-feedback feedback-incorrect">❌ Not quite. Your answer was <strong>' +
+                            userAnswer + '</strong>. Try again or use Hint / Show Answer.</div>';
+                        appendLearningLog(stepIdx, userAnswer, 'incorrect');
+                    }
+                });
+
+                hintBtn.addEventListener('click', function() {
+                    feedbackArea.innerHTML =
+                        '<div class="checkpoint-feedback feedback-reveal">💡 <strong>Hint:</strong> ' + cp.hintText +
+                        '</div>';
+                    appendLearningLog(stepIdx, '[requested hint]', 'hint');
+                });
+
+                showBtn.addEventListener('click', function() {
+                    feedbackArea.innerHTML =
+                        '<div class="checkpoint-feedback feedback-reveal">📖 <strong>Answer revealed:</strong> The correct answer is <strong>' +
+                        cp.answerLabel + '</strong>.</div>';
+                    inputEl.value = cp.answerLabel;
+                    inputEl.disabled = true;
+                    submitBtn.disabled = true;
+                    checkpointCompleted[stepIdx] = true;
+                    appendLearningLog(stepIdx, '[show answer] ' + cp.answerLabel, 'reveal');
+                    renderTimeline(currentStep);
+                });
+
+                // Allow Enter key to submit
+                inputEl.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitBtn.click();
+                    }
+                });
+            }
+
+            function appendLearningLog(stepIdx, userResponse, resultType) {
+                const stepData = stepsData[stepIdx];
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                let entryClass = 'log-entry';
+                let icon = '📝';
+                let resultLabel = '';
+
+                if (resultType === 'correct') {
+                    entryClass += ' correct-entry';
+                    icon = '✅';
+                    resultLabel = 'Correct';
+                } else if (resultType === 'incorrect') {
+                    entryClass += ' incorrect-entry';
+                    icon = '❌';
+                    resultLabel = 'Incorrect';
+                } else if (resultType === 'reveal') {
+                    entryClass += ' reveal-entry';
+                    icon = '📖';
+                    resultLabel = 'Answer revealed';
+                } else if (resultType === 'hint') {
+                    entryClass += ' reveal-entry';
+                    icon = '💡';
+                    resultLabel = 'Hint requested';
+                }
+
+                const entryHTML = `
+              <div class="${entryClass}">
+                <strong>${icon} Step ${stepIdx+1} (${stepData.op})</strong> — ${resultLabel}<br>
+                <span style="font-size:0.75rem;color:#5a6c7d;">Response: "${userResponse}" | ${timeStr}</span>
+              </div>`;
+
+                // Append to learning log (after the h4)
+                const h4 = $learningLog.querySelector('h4');
+                if (h4) {
+                    h4.insertAdjacentHTML('afterend', entryHTML);
+                } else {
+                    $learningLog.innerHTML += entryHTML;
+                }
+
+                // Auto-scroll learning log
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // Auto-play logic
+            // ──────────────────────────────────────
+            function startAutoPlay() {
+                if (autoPlayInterval) return;
+                isPlaying = true;
+                $play.textContent = '⏸ Pause';
+                $play.classList.add('paused');
+                autoPlayInterval = setInterval(() => {
+                    const stepData = stepsData[currentStep];
+                    // Pause at checkpoints if not completed
+                    if (stepData.isCheckpoint && !checkpointCompleted[currentStep]) {
+                        pauseAutoPlay();
+                        return;
+                    }
+                    if (currentStep < totalSteps - 1) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        pauseAutoPlay();
+                    }
+                    // Check again after advancing
+                    const newStepData = stepsData[currentStep];
+                    if (newStepData.isCheckpoint && !checkpointCompleted[currentStep]) {
+                        pauseAutoPlay();
+                    }
+                }, 2200);
+            }
+
+            function pauseAutoPlay() {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+                isPlaying = false;
+                $play.textContent = '▶ Play';
+                $play.classList.remove('paused');
+            }
+
+            function toggleAutoPlay() {
+                if (isPlaying) {
+                    pauseAutoPlay();
+                } else {
+                    // If at the end, restart from beginning
+                    if (currentStep >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startAutoPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            $prev.addEventListener('click', () => {
+                pauseAutoPlay();
+                if (currentStep > 0) {
+                    goToStep(currentStep - 1);
+                }
+            });
+
+            $next.addEventListener('click', () => {
+                pauseAutoPlay();
+                const stepData = stepsData[currentStep];
+                // If at a checkpoint that hasn't been completed, gently remind
+                if (stepData.isCheckpoint && !checkpointCompleted[currentStep]) {
+                    const feedbackArea = document.getElementById('checkpoint-feedback-area');
+                    if (feedbackArea) {
+                        feedbackArea.innerHTML =
+                            '<div class="checkpoint-feedback feedback-incorrect">⚠️ Please complete the checkpoint before proceeding (or use Show Answer).</div>';
+                    }
+                    // Still allow navigation after a short delay if they insist
+                    if (currentStep < totalSteps - 1) {
+                        // Actually, let's be lenient — allow navigation but show the reminder
+                    }
+                }
+                if (currentStep < totalSteps - 1) {
+                    goToStep(currentStep + 1);
+                }
+            });
+
+            $play.addEventListener('click', toggleAutoPlay);
+
+            $range.addEventListener('input', function() {
+                pauseAutoPlay();
+                const stepVal = parseInt(this.value) - 1;
+                goToStep(stepVal);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    pauseAutoPlay();
+                    if (currentStep > 0) goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    pauseAutoPlay();
+                    if (currentStep < totalSteps - 1) goToStep(currentStep + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    toggleAutoPlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize the page
+            // ──────────────────────────────────────
+            function initialize() {
+                $title.textContent = 'Binary Search';
+                $subtitle.textContent =
+                    'You work in a library where books with unique call numbers are arranged in order on shelves. Given a shelf array nums (each position i stores call number nums[i]), and a target call number needed by a reader, return the index of target, or -1 if it does not exist.';
+                $topSolution.textContent = 'Expected Output: 4';
+                $answer.textContent = '4';
+                $range.min = 1;
+                $range.max = totalSteps;
+                $range.value = 1;
+
+                renderCode([1, 2], 'highlight');
+                renderTimeline(0);
+                goToStep(0);
+
+                // Set initial teaching content
+                $teaching.innerHTML = '<p>' + stepsData[0].teaching + '</p>';
+            }
+
+            initialize();
+
+            console.log('Binary Search tutoring page initialized. Total steps: ' + totalSteps +
+                '. Use arrow keys, buttons, timeline ticks, or the range slider to navigate.');
+        })();
+    </script>
+</body>
+</html>

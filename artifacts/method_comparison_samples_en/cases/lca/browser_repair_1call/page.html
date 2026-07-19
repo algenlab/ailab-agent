@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Tree Lowest Common Ancestor - AlgoLab Tutoring</title>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --card: #ffffff;
+            --border: #e0e0e0;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --purple: #7c3aed;
+            --purple-light: #ede9fe;
+            --red: #dc2626;
+            --red-light: #fef2f2;
+            --node-default-bg: #f0f0f0;
+            --node-default-border: #b0b0b0;
+            --node-current-bg: #fff7ed;
+            --node-current-border: #f97316;
+            --node-found-p-bg: #dcfce7;
+            --node-found-p-border: #22c55e;
+            --node-found-q-bg: #dbeafe;
+            --node-found-q-border: #3b82f6;
+            --node-lca-bg: #f3e8ff;
+            --node-lca-border: #a855f7;
+            --edge-default: #c5c5c5;
+            --edge-active: #f97316;
+            --edge-traversed: #22c55e;
+            --edge-lca: #a855f7;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.25s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow-sm);
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 2px;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 8px;
+        }
+        .result-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        #top-result {
+            background: var(--accent-light);
+            color: #1e40af;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        #top-solution {
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Code card */
+        .code-card {
+            background: #1e1e2e;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-md);
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            color: #cdd6f4;
+            min-height: 260px;
+            position: relative;
+        }
+        .code-card .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background 0.2s ease;
+            white-space: pre;
+        }
+        .code-card .code-line.highlight {
+            background: #3b3b5c;
+            border-left: 3px solid #facc15;
+            color: #fef08a;
+            font-weight: 500;
+            padding-left: 6px;
+        }
+        .code-card .line-num {
+            display: inline-block;
+            width: 24px;
+            color: #6c7086;
+            text-align: right;
+            margin-right: 10px;
+            user-select: none;
+            font-size: 0.75rem;
+        }
+
+        /* Canvas card */
+        .canvas-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            min-height: 350px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #canvas {
+            position: relative;
+            width: 500px;
+            height: 350px;
+            overflow: visible;
+        }
+        .tree-node {
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 3px solid var(--node-default-border);
+            background: var(--node-default-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #333;
+            z-index: 2;
+            transition: all var(--transition);
+            cursor: default;
+            box-shadow: var(--shadow-sm);
+            transform: translate(-50%, -50%);
+        }
+        .tree-node.state-current {
+            background: var(--node-current-bg);
+            border-color: var(--node-current-border);
+            box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2);
+            z-index: 3;
+            animation: pulse 1.2s infinite;
+        }
+        .tree-node.state-found-p {
+            background: var(--node-found-p-bg);
+            border-color: var(--node-found-p-border);
+            box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.18);
+            z-index: 3;
+        }
+        .tree-node.state-found-q {
+            background: var(--node-found-q-bg);
+            border-color: var(--node-found-q-border);
+            box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.18);
+            z-index: 3;
+        }
+        .tree-node.state-lca {
+            background: var(--node-lca-bg);
+            border-color: var(--node-lca-border);
+            box-shadow: 0 0 0 7px rgba(168, 85, 247, 0.25);
+            z-index: 4;
+            animation: glow 1s infinite alternate;
+        }
+        .tree-node.state-visited {
+            background: #fafafa;
+            border-color: #999;
+            color: #555;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(249, 115, 22, 0.08);
+            }
+        }
+        @keyframes glow {
+            0% {
+                box-shadow: 0 0 0 7px rgba(168, 85, 247, 0.25);
+            }
+            100% {
+                box-shadow: 0 0 0 12px rgba(168, 85, 247, 0.08);
+            }
+        }
+        .node-label {
+            position: absolute;
+            font-size: 0.7rem;
+            font-weight: 700;
+            pointer-events: none;
+            z-index: 5;
+            white-space: nowrap;
+            transform: translate(-50%, -50%);
+        }
+        .label-p {
+            color: #16a34a;
+            top: -28px;
+            left: 50%;
+            transform: translate(-50%, 0);
+        }
+        .label-q {
+            color: #2563eb;
+            top: -28px;
+            left: 50%;
+            transform: translate(-50%, 0);
+        }
+        .tree-edge {
+            position: absolute;
+            height: 2.5px;
+            background: var(--edge-default);
+            transform-origin: 0 50%;
+            z-index: 1;
+            border-radius: 2px;
+            transition: all var(--transition);
+            pointer-events: none;
+        }
+        .tree-edge.state-active {
+            background: var(--edge-active);
+            height: 3px;
+            z-index: 2;
+        }
+        .tree-edge.state-traversed {
+            background: var(--edge-traversed);
+            height: 2.5px;
+        }
+        .tree-edge.state-lca {
+            background: var(--edge-lca);
+            height: 3px;
+        }
+
+        /* Step info */
+        .step-info-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #op {
+            background: #1e293b;
+            color: #facc15;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e293b;
+        }
+        #step-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        /* Controls */
+        .controls-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .ctrl-btn {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: all 0.15s ease;
+            color: #333;
+            white-space: nowrap;
+        }
+        .ctrl-btn:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+        .ctrl-btn:active {
+            background: #e8e8e8;
+            transform: scale(0.97);
+        }
+        .ctrl-btn.active-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Timeline */
+        .timeline-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            overflow-x: auto;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #fafafa;
+            transition: all 0.2s ease;
+            min-width: 52px;
+            text-align: center;
+            font-size: 0.72rem;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .tick:hover {
+            background: #f0f0f0;
+            border-color: #ccc;
+        }
+        .tick.active-tick {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            font-weight: 700;
+        }
+        .tick.completed-tick {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #555;
+        }
+        .tick.active-tick .tick-label {
+            color: #1e40af;
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: #888;
+            margin-top: 1px;
+        }
+        .tick.active-tick .tick-op {
+            color: #1e40af;
+        }
+
+        /* Teaching, State, Evidence */
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 800px) {
+            .info-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.82rem;
+        }
+        .info-card h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #888;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        #teaching {
+            color: #1e293b;
+            line-height: 1.5;
+        }
+        #state {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            background: #f8fafc;
+            padding: 8px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            color: #334155;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        #step-evidence {
+            font-size: 0.78rem;
+            color: #444;
+            line-height: 1.5;
+        }
+        #step-evidence .ev-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #fffbeb;
+            border: 2px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+        .checkpoint-card.inactive {
+            opacity: 0.5;
+            border-color: #e5e7eb;
+            background: #fafafa;
+            pointer-events: none;
+        }
+        .checkpoint-card .cp-prompt {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+        .cp-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .cp-input {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 2px solid #e5e7eb;
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 140px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .cp-input:focus {
+            border-color: #f59e0b;
+        }
+        .cp-btn {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .cp-btn-submit {
+            background: #f59e0b;
+            color: #fff;
+        }
+        .cp-btn-submit:hover {
+            background: #d97706;
+        }
+        .cp-btn-hint {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .cp-btn-hint:hover {
+            background: #d1d5db;
+        }
+        .cp-btn-show {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+        .cp-btn-show:hover {
+            background: #fee2e2;
+        }
+        .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-height: 20px;
+        }
+        .cp-feedback.correct {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .cp-feedback.incorrect {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        .cp-feedback.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Learning Log */
+        .log-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-card h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #888;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .log-entry {
+            font-size: 0.78rem;
+            padding: 5px 0;
+            border-bottom: 1px solid #f5f5f5;
+            color: #444;
+        }
+        .log-entry .log-time {
+            color: #999;
+            font-size: 0.7rem;
+            margin-right: 6px;
+        }
+        .log-entry.correct-log {
+            border-left: 3px solid #22c55e;
+            padding-left: 8px;
+        }
+        .log-entry.incorrect-log {
+            border-left: 3px solid #ef4444;
+            padding-left: 8px;
+        }
+        .log-entry.info-log {
+            border-left: 3px solid #3b82f6;
+            padding-left: 8px;
+        }
+
+        /* Answer */
+        #answer {
+            display: none;
+        }
+        .answer-reveal {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            font-weight: 700;
+            color: #166534;
+            text-align: center;
+            font-size: 1.1rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .badge-p {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-q {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-lca {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-card">
+            <h1 id="title">Binary Tree Lowest Common Ancestor</h1>
+            <p id="subtitle">Family lineage tracking: find the deepest common ancestor of two members in a complete family tree.</p>
+            <div class="result-row">
+                <span id="top-result">Searching...</span>
+                <span id="top-solution">Strategy: DFS identifies when both subtrees contain a target — current node is the LCA.</span>
+            </div>
+        </div>
+
+        <!-- Main grid: code + canvas -->
+        <div class="main-grid">
+            <div class="code-card" id="code">
+                <span class="code-line" data-line="1"><span class="line-num">1</span>function dfs(node, p, q) {</span>
+                <span class="code-line" data-line="2"><span class="line-num">2</span>  if (node === null) return null;</span>
+                <span class="code-line" data-line="3"><span class="line-num">3</span>  if (node === p || node === q) return node;</span>
+                <span class="code-line" data-line="4"><span class="line-num">4</span>  let left = dfs(node.left, p, q);</span>
+                <span class="code-line" data-line="5"><span class="line-num">5</span>  let right = dfs(node.right, p, q);</span>
+                <span class="code-line" data-line="6"><span class="line-num">6</span>  if (left && right) return node;</span>
+                <span class="code-line" data-line="7"><span class="line-num">7</span>  return left ? left : right;</span>
+                <span class="code-line" data-line="8"><span class="line-num">8</span>}</span>
+            </div>
+            <div class="canvas-card">
+                <div id="canvas"></div>
+            </div>
+        </div>
+
+        <!-- Step info -->
+        <div class="step-info-card">
+            <span id="op">dfs(3)</span>
+            <span id="step-title">Initialize</span>
+            <span id="step-desc">Building the family tree from input data. Identifying target members p=5 and q=1.</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-card">
+            <button class="ctrl-btn" id="prev" aria-label="Previous step">◀ Prev</button>
+            <button class="ctrl-btn" id="play" aria-label="Play or pause auto-advance">▶ Play</button>
+            <button class="ctrl-btn" id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="10" value="1" aria-label="Step slider">
+            <span id="counter">1 / 10</span>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-card" id="timeline"></div>
+
+        <!-- Teaching, State, Evidence -->
+        <div class="info-row">
+            <div class="info-card">
+                <h4>Teaching</h4>
+                <div id="teaching">We are about to trace a DFS (depth-first search) through the family tree. The algorithm checks: if the current node is null, return null; if it matches p or q, return it. Otherwise, recurse into both children. If both return non-null, this node is the LCA.</div>
+            </div>
+            <div class="info-card">
+                <h4>Current State</h4>
+                <div id="state">{"phase":"init","p":"5","q":"1","root":"3","current_node":null,"left_result":null,"right_result":null,"lca":null}</div>
+            </div>
+            <div class="info-card">
+                <h4>Step Evidence</h4>
+                <div id="step-evidence"><span class="ev-label">Operation:</span> Initialize<br><span class="ev-label">Targets:</span> tree nodes, p=5, q=1<br><span class="ev-label">Before:</span> empty state<br><span class="ev-label">After:</span> tree built, ready for DFS at root 3</div>
+            </div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="checkpoint-card inactive" id="checkpoint-card">
+            <p class="cp-prompt" id="cp-prompt">No checkpoint at this step. Continue to the next step.</p>
+            <div class="cp-input-row" id="cp-input-row" style="display:none;">
+                <input type="text" class="cp-input" id="cp-input" placeholder="Type your answer..." aria-label="Checkpoint answer input">
+                <button class="cp-btn cp-btn-submit" id="cp-submit">Submit</button>
+                <button class="cp-btn cp-btn-hint" id="cp-hint">Hint</button>
+                <button class="cp-btn cp-btn-show" id="cp-show">Show Answer</button>
+            </div>
+            <div class="cp-feedback" id="cp-feedback"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="log-card" id="log-card">
+            <h4>Learning Log</h4>
+            <div id="log-entries">No entries yet. Interact with checkpoints to build your learning log.</div>
+        </div>
+
+        <!-- Answer (hidden, contains final answer) -->
+        <div id="answer">3</div>
+        <div class="answer-reveal" id="answer-reveal" style="display:none;">
+            ✅ Final Answer: <strong>3</strong> — Node 3 is the lowest common ancestor of nodes 5 and 1.
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // DATA
+            // ──────────────────────────────────────
+            const N = 10;
+            const nodePositions = {
+                '3': { x: 250, y: 40 },
+                '5': { x: 140, y: 130 },
+                '1': { x: 360, y: 130 },
+                '6': { x: 80, y: 220 },
+                '2': { x: 200, y: 220 },
+                '0': { x: 300, y: 220 },
+                '8': { x: 420, y: 220 },
+                '7': { x: 150, y: 310 },
+                '4': { x: 250, y: 310 },
+            };
+            const edgesDef = [
+                { parent: '3', child: '5' },
+                { parent: '3', child: '1' },
+                { parent: '5', child: '6' },
+                { parent: '5', child: '2' },
+                { parent: '1', child: '0' },
+                { parent: '1', child: '8' },
+                { parent: '2', child: '7' },
+                { parent: '2', child: '4' },
+            ];
+
+            const steps = [
+                { id: 1, title: 'Initialize', desc: 'Building the family tree from input data. Identifying target members p=5 and q=1.',
+                    op: 'init', codeLines: [1], state: { phase: 'init', p: '5', q: '1', root: '3', current_node: null,
+                        left_result: null, right_result: null, lca: null },
+                    teaching: 'We are about to trace a DFS through the family tree. The algorithm checks base cases and recurses into both children. When both subtrees return a target, the current node is the LCA.',
+                    evidence: 'Operation: Initialize\nTargets: tree nodes, p=5, q=1\nBefore: empty state\nAfter: tree built, ready for DFS at root 3',
+                    nodeStates: {}, edgeStates: {}, topResult: 'Preparing DFS traversal...', isCheckpoint: false },
+
+                { id: 2, title: 'DFS at Root Node 3',
+                    desc: 'Call dfs(3, 5, 1). Check base cases: is node 3 null? No. Is node 3 equal to p=5 or q=1? No. Must recurse into children.',
+                    op: 'dfs(3)', codeLines: [2, 3], state: { phase: 'dfs_root', current_node: '3', p: '5', q: '1',
+                        base_check: '3 !== null, 3 !== 5, 3 !== 1', left_result: null, right_result: null, lca: null },
+                    teaching: 'At the root node 3, we check the base cases. Since node 3 is neither null nor a target (p=5, q=1), we must explore both subtrees. The algorithm first recurses left.',
+                    evidence: 'Operation: dfs(3)\nTargets: node 3 base case check\nDependencies: p=5, q=1\nBefore: untouched tree\nAfter: node 3 visited, preparing left recursion',
+                    nodeStates: { '3': 'current' }, edgeStates: {}, topResult: 'Checking node 3... Not p or q.',
+                    isCheckpoint: false },
+
+                { id: 3, title: 'Recurse Left to Node 5',
+                    desc: 'Following the left edge from node 3 to node 5. Calling dfs(5, 5, 1) on the left child.',
+                    op: 'dfs(5) ← left', codeLines: [4], state: { phase: 'recurse_left', current_node: '5', parent: '3',
+                        call: 'dfs(5, 5, 1)', left_result: null, right_result: null, lca: null },
+                    teaching: 'The DFS now moves to the left child, node 5. This is a crucial step because node 5 happens to be one of our targets (p=5). The algorithm will check this at the next step.',
+                    evidence: 'Operation: dfs(5) recursion\nTargets: node 5 (left child of 3)\nDependencies: dfs(3) initiated left call\nBefore: node 3 visited\nAfter: arriving at node 5',
+                    nodeStates: { '3': 'visited', '5': 'current' }, edgeStates: { '3_5': 'active' },
+                    topResult: 'Recursing left → node 5...', isCheckpoint: false },
+
+                { id: 4, title: 'Check Node 5 — Target Found!',
+                    desc: 'At node 5: check base cases. Is node 5 null? No. Is node 5 equal to p=5? YES! Return node 5 immediately.',
+                    op: 'dfs(5) → returns 5', codeLines: [3], state: { phase: 'base_case_hit', current_node: '5',
+                        matched: 'p=5', result: 'returns node 5', left_result: null, right_result: null, lca: null },
+                    teaching: 'Node 5 matches p=5 exactly. The algorithm returns node 5 without exploring its children. This is an important optimization: once a target is found, we do not need to go deeper in that subtree.',
+                    evidence: 'Operation: base case check at node 5\nTargets: node 5 compared to p=5, q=1\nBefore: node 5 unexplored\nAfter: node 5 identified as p, returning node 5 upward',
+                    nodeStates: { '3': 'visited', '5': 'found-p' }, edgeStates: { '3_5': 'traversed' },
+                    topResult: 'Found p=5! Returning node 5.', isCheckpoint: true,
+                    checkpointPrompt: 'What does the recursive call dfs(5, 5, 1) return?',
+                    checkpointAnswer: '5', checkpointHint: 'Check the base case: if node equals p or q, it returns itself. Node 5 equals p=5.',
+                    checkpointAccept: ['5', 'node 5', 'node5', 'five'] },
+
+                { id: 5, title: 'Back at Root — Left Result Received',
+                    desc: 'Return to dfs(3). The left subtree call returned node 5 (non-null). Store left = 5. Now recurse right to explore the other subtree.',
+                    op: 'dfs(3) left=5', codeLines: [5], state: { phase: 'back_at_root', current_node: '3',
+                        left_result: '5 (node found)', right_result: null, lca: null,
+                        note: 'left is non-null, must still check right' },
+                    teaching: 'The root node 3 now knows that its left subtree contains p=5 (returned node 5). But we cannot conclude yet — we need to check the right subtree. If the right subtree also returns a target, then node 3 is the LCA.',
+                    evidence: 'Operation: receive left result at node 3\nTargets: left_result = 5\nDependencies: dfs(5) completed\nBefore: left_result was null\nAfter: left_result = 5, preparing right recursion',
+                    nodeStates: { '3': 'current', '5': 'found-p' }, edgeStates: { '3_5': 'traversed' },
+                    topResult: 'Left subtree returned 5. Checking right subtree...', isCheckpoint: false },
+
+                { id: 6, title: 'Recurse Right to Node 1',
+                    desc: 'Following the right edge from node 3 to node 1. Calling dfs(1, 5, 1) on the right child.',
+                    op: 'dfs(1) → right', codeLines: [5], state: { phase: 'recurse_right', current_node: '1', parent: '3',
+                        call: 'dfs(1, 5, 1)', left_result: '5', right_result: null, lca: null },
+                    teaching: 'The DFS now explores the right subtree, starting at node 1. Node 1 is our other target (q=1). The algorithm will detect this at the next step.',
+                    evidence: 'Operation: dfs(1) recursion\nTargets: node 1 (right child of 3)\nDependencies: left_result=5 received, now exploring right\nBefore: right subtree untouched\nAfter: arriving at node 1',
+                    nodeStates: { '3': 'visited', '5': 'found-p', '1': 'current' }, edgeStates: { '3_5': 'traversed',
+                        '3_1': 'active' }, topResult: 'Recursing right → node 1...', isCheckpoint: false },
+
+                { id: 7, title: 'Check Node 1 — Target Found!',
+                    desc: 'At node 1: check base cases. Is node 1 null? No. Is node 1 equal to q=1? YES! Return node 1 immediately.',
+                    op: 'dfs(1) → returns 1', codeLines: [3], state: { phase: 'base_case_hit_right',
+                        current_node: '1', matched: 'q=1', result: 'returns node 1', left_result: '5', right_result: null,
+                        lca: null },
+                    teaching: 'Node 1 matches q=1. The algorithm returns node 1. Now both the left and right recursive calls at the root have returned non-null values — this is the key condition for identifying the LCA.',
+                    evidence: 'Operation: base case check at node 1\nTargets: node 1 compared to p=5, q=1\nBefore: node 1 unexplored\nAfter: node 1 identified as q, returning node 1 upward',
+                    nodeStates: { '3': 'visited', '5': 'found-p', '1': 'found-q' }, edgeStates: { '3_5': 'traversed',
+                        '3_1': 'traversed' }, topResult: 'Found q=1! Returning node 1.', isCheckpoint: true,
+                    checkpointPrompt: 'What does the recursive call dfs(1, 5, 1) return?',
+                    checkpointAnswer: '1', checkpointHint: 'Check the base case: if node equals p or q, it returns itself. Node 1 equals q=1.',
+                    checkpointAccept: ['1', 'node 1', 'node1', 'one'] },
+
+                { id: 8, title: 'Back at Root — Both Results In',
+                    desc: 'Return to dfs(3). The right subtree returned node 1. Now left=5 and right=1 — both are non-null. The condition for LCA is met!',
+                    op: 'dfs(3) left=5 right=1', codeLines: [6], state: { phase: 'both_results_received',
+                        current_node: '3', left_result: '5 (node)', right_result: '1 (node)',
+                        condition: 'left && right → true', lca: 'candidate: node 3' },
+                    teaching: 'At node 3, both left (5) and right (1) are non-null. This means p=5 was found in the left subtree and q=1 was found in the right subtree. Node 3 is their deepest common ancestor because it is the first node that has both targets in different subtrees.',
+                    evidence: 'Operation: evaluate LCA condition at node 3\nTargets: left_result=5, right_result=1\nDependencies: both recursive calls completed\nBefore: right_result was null\nAfter: both non-null, LCA identified as node 3',
+                    nodeStates: { '3': 'current', '5': 'found-p', '1': 'found-q' }, edgeStates: { '3_5': 'traversed',
+                        '3_1': 'traversed' }, topResult: 'Both subtrees returned targets — node 3 is the LCA!',
+                    isCheckpoint: false },
+
+                { id: 9, title: 'LCA Confirmed — Node 3',
+                    desc: 'Since left && right are both truthy, the algorithm returns node 3 as the lowest common ancestor. This is the final answer.',
+                    op: 'return node 3 (LCA)', codeLines: [6, 7], state: { phase: 'lca_found', lca: '3',
+                        left_result: '5', right_result: '1', final: 'node 3 is LCA of 5 and 1' },
+                    teaching: 'The algorithm correctly identifies node 3 as the LCA. Node 3 is the deepest node that has both p=5 and q=1 as descendants. No node deeper in the tree (like node 5 or node 1) has both targets in its subtrees.',
+                    evidence: 'Operation: return LCA\nTargets: node 3\nDependencies: left=5 (non-null), right=1 (non-null)\nBefore: LCA undetermined\nAfter: LCA = 3 confirmed',
+                    nodeStates: { '3': 'lca', '5': 'found-p', '1': 'found-q' }, edgeStates: { '3_5': 'lca',
+                        '3_1': 'lca' }, topResult: 'LCA = 3 ✓', isCheckpoint: true,
+                    checkpointPrompt: 'Which node is identified as the Lowest Common Ancestor of nodes 5 and 1?',
+                    checkpointAnswer: '3', checkpointHint: 'The LCA is the deepest node that has both targets in its subtrees. Node 3 is the only node where p and q were found in different subtrees.',
+                    checkpointAccept: ['3', 'node 3', 'node3', 'three'] },
+
+                { id: 10, title: 'Final Answer',
+                    desc: 'The algorithm returns "3". The deepest common ancestor of nodes 5 and 1 in this family tree is node 3.',
+                    op: 'done → "3"', codeLines: [7, 8], state: { phase: 'complete', lca: '3', answer: '3',
+                        verification: 'Node 3 is the deepest node that is an ancestor of both 5 and 1.' },
+                    teaching: 'We have successfully found the LCA. In a family lineage context, node 3 represents the closest common ancestor that both members 5 and 1 share. This is the deepest such ancestor in the tree.',
+                    evidence: 'Operation: finalize\nTargets: answer = 3\nDependencies: LCA identified at node 3\nBefore: algorithm running\nAfter: complete, answer = "3"',
+                    nodeStates: { '3': 'lca', '5': 'found-p', '1': 'found-q' }, edgeStates: { '3_5': 'lca',
+                        '3_1': 'lca' }, topResult: '✅ Final Answer: 3', isCheckpoint: false },
+            ];
+
+            // ──────────────────────────────────────
+            // DOM REFS
+            // ──────────────────────────────────────
+            const $canvas = document.getElementById('canvas');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $topResult = document.getElementById('top-result');
+            const $answerReveal = document.getElementById('answer-reveal');
+            const $prevBtn = document.getElementById('prev');
+            const $playBtn = document.getElementById('play');
+            const $nextBtn = document.getElementById('next');
+            const $cpCard = document.getElementById('checkpoint-card');
+            const $cpPrompt = document.getElementById('cp-prompt');
+            const $cpInputRow = document.getElementById('cp-input-row');
+            const $cpInput = document.getElementById('cp-input');
+            const $cpSubmit = document.getElementById('cp-submit');
+            const $cpHint = document.getElementById('cp-hint');
+            const $cpShow = document.getElementById('cp-show');
+            const $cpFeedback = document.getElementById('cp-feedback');
+            const $logEntries = document.getElementById('log-entries');
+            const $answer = document.getElementById('answer');
+
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let nodeElements = {};
+            let edgeElements = {};
+            let tickElements = [];
+            let logEntriesList = [];
+            let checkpointAnswered = {}; // track which checkpoint steps have been answered
+
+            // ──────────────────────────────────────
+            // BUILD TREE VISUALIZATION
+            // ──────────────────────────────────────
+            function buildTree() {
+                // Create nodes
+                for (const [nodeId, pos] of Object.entries(nodePositions)) {
+                    const nodeDiv = document.createElement('div');
+                    nodeDiv.className = 'tree-node';
+                    nodeDiv.style.left = pos.x + 'px';
+                    nodeDiv.style.top = pos.y + 'px';
+                    nodeDiv.textContent = nodeId;
+                    nodeDiv.dataset.nodeId = nodeId;
+                    nodeDiv.setAttribute('aria-label', 'Tree node ' + nodeId);
+                    $canvas.appendChild(nodeDiv);
+                    nodeElements[nodeId] = nodeDiv;
+
+                    // Add p/q labels
+                    if (nodeId === '5') {
+                        const label = document.createElement('span');
+                        label.className = 'node-label label-p';
+                        label.textContent = 'p';
+                        label.style.position = 'absolute';
+                        label.style.left = pos.x + 'px';
+                        label.style.top = (pos.y - 28) + 'px';
+                        label.style.transform = 'translate(-50%, 0)';
+                        label.style.zIndex = '5';
+                        label.style.pointerEvents = 'none';
+                        label.setAttribute('aria-label', 'Target node p');
+                        $canvas.appendChild(label);
+                    }
+                    if (nodeId === '1') {
+                        const label = document.createElement('span');
+                        label.className = 'node-label label-q';
+                        label.textContent = 'q';
+                        label.style.position = 'absolute';
+                        label.style.left = pos.x + 'px';
+                        label.style.top = (pos.y - 28) + 'px';
+                        label.style.transform = 'translate(-50%, 0)';
+                        label.style.zIndex = '5';
+                        label.style.pointerEvents = 'none';
+                        label.setAttribute('aria-label', 'Target node q');
+                        $canvas.appendChild(label);
+                    }
+                }
+
+                // Create edges
+                for (const edge of edgesDef) {
+                    const pPos = nodePositions[edge.parent];
+                    const cPos = nodePositions[edge.child];
+                    const dx = cPos.x - pPos.x;
+                    const dy = cPos.y - pPos.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx);
+                    const edgeDiv = document.createElement('div');
+                    edgeDiv.className = 'tree-edge';
+                    edgeDiv.style.left = pPos.x + 'px';
+                    edgeDiv.style.top = pPos.y + 'px';
+                    edgeDiv.style.width = length + 'px';
+                    edgeDiv.style.transform = 'rotate(' + angle + 'rad)';
+                    edgeDiv.dataset.edgeKey = edge.parent + '_' + edge.child;
+                    edgeDiv.setAttribute('aria-label', 'Edge from node ' + edge.parent + ' to node ' + edge.child);
+                    $canvas.appendChild(edgeDiv);
+                    edgeElements[edge.parent + '_' + edge.child] = edgeDiv;
+                }
+            }
+
+            // ──────────────────────────────────────
+            // BUILD TIMELINE
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                tickElements = [];
+                const tickOps = ['Init', 'dfs(3)', 'Left→5', 'Found p', 'Back@3', 'Right→1', 'Found q', 'Both!',
+                'LCA=3', 'Done'];
+                for (let i = 0; i < N; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.innerHTML = '<span class="tick-label">Step ' + (i + 1) + '</span><span class="tick-op">' + tickOps[
+                        i] + '</span>';
+                    tick.dataset.step = i + 1;
+                    tick.setAttribute('aria-label', 'Go to step ' + (i + 1) + ': ' + tickOps[i]);
+                    tick.addEventListener('click', () => goToStep(i + 1));
+                    $timeline.appendChild(tick);
+                    tickElements.push(tick);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // UPDATE UI FOR CURRENT STEP
+            // ──────────────────────────────────────
+            function updateUI() {
+                const step = steps[currentStep - 1];
+                // Step info
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+                $counter.textContent = currentStep + ' / ' + N;
+                $range.value = currentStep;
+                $topResult.textContent = step.topResult;
+
+                // Teaching, state, evidence
+                $teaching.textContent = step.teaching;
+                $state.textContent = JSON.stringify(step.state, null, 2);
+                $stepEvidence.textContent = step.evidence;
+
+                // Code highlighting
+                const codeLines = $code.querySelectorAll('.code-line');
+                codeLines.forEach(cl => cl.classList.remove('highlight'));
+                for (const lineNum of step.codeLines) {
+                    const targetLine = $code.querySelector('.code-line[data-line="' + lineNum + '"]');
+                    if (targetLine) targetLine.classList.add('highlight');
+                }
+
+                // Node states
+                for (const [nodeId, el] of Object.entries(nodeElements)) {
+                    el.className = 'tree-node';
+                    if (step.nodeStates[nodeId] === 'current') el.classList.add('state-current');
+                    else if (step.nodeStates[nodeId] === 'found-p') el.classList.add('state-found-p');
+                    else if (step.nodeStates[nodeId] === 'found-q') el.classList.add('state-found-q');
+                    else if (step.nodeStates[nodeId] === 'lca') el.classList.add('state-lca');
+                    else if (step.nodeStates[nodeId] === 'visited') el.classList.add('state-visited');
+                }
+
+                // Edge states
+                for (const [edgeKey, el] of Object.entries(edgeElements)) {
+                    el.className = 'tree-edge';
+                    if (step.edgeStates[edgeKey] === 'active') el.classList.add('state-active');
+                    else if (step.edgeStates[edgeKey] === 'traversed') el.classList.add('state-traversed');
+                    else if (step.edgeStates[edgeKey] === 'lca') el.classList.add('state-lca');
+                }
+
+                // Timeline ticks
+                tickElements.forEach((tick, i) => {
+                    tick.classList.remove('active-tick', 'completed-tick');
+                    if (i + 1 === currentStep) tick.classList.add('active-tick');
+                    else if (i + 1 < currentStep) tick.classList.add('completed-tick');
+                });
+
+                // Checkpoint
+                if (step.isCheckpoint) {
+                    $cpCard.classList.remove('inactive');
+                    $cpPrompt.textContent = step.checkpointPrompt;
+                    $cpInputRow.style.display = 'flex';
+                    $cpInput.value = '';
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.className = 'cp-feedback';
+                    // Reset if not yet answered
+                    if (!checkpointAnswered[currentStep]) {
+                        $cpInput.disabled = false;
+                        $cpSubmit.disabled = false;
+                        $cpHint.disabled = false;
+                        $cpShow.disabled = false;
+                    }
+                } else {
+                    $cpCard.classList.add('inactive');
+                    $cpPrompt.textContent = 'No checkpoint at this step. Continue to the next step.';
+                    $cpInputRow.style.display = 'none';
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.className = 'cp-feedback';
+                }
+
+                // Answer reveal on final step
+                if (currentStep === N) {
+                    $answerReveal.style.display = 'block';
+                    $answerReveal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    $answerReveal.style.display = 'none';
+                }
+
+                // Range slider
+                $range.max = N;
+                $range.value = currentStep;
+            }
+
+            // ──────────────────────────────────────
+            // NAVIGATION
+            // ──────────────────────────────────────
+            function goToStep(stepNum) {
+                if (stepNum < 1 || stepNum > N) return;
+                currentStep = stepNum;
+                updateUI();
+                // Pause auto-play at checkpoints
+                if (isPlaying && steps[currentStep - 1].isCheckpoint && !checkpointAnswered[currentStep]) {
+                    pausePlay();
+                }
+            }
+
+            function nextStep() {
+                if (currentStep < N) goToStep(currentStep + 1);
+                else if (isPlaying) pausePlay();
+            }
+
+            function prevStep() {
+                if (currentStep > 1) goToStep(currentStep - 1);
+            }
+
+            // ──────────────────────────────────────
+            // PLAY / PAUSE
+            // ──────────────────────────────────────
+            function togglePlay() {
+                if (isPlaying) {
+                    pausePlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            function startPlay() {
+                isPlaying = true;
+                $playBtn.textContent = '⏸ Pause';
+                $playBtn.classList.add('active-btn');
+                playInterval = setInterval(() => {
+                    const step = steps[currentStep - 1];
+                    if (step.isCheckpoint && !checkpointAnswered[currentStep]) {
+                        pausePlay();
+                        return;
+                    }
+                    if (currentStep >= N) {
+                        pausePlay();
+                        return;
+                    }
+                    nextStep();
+                }, 1800);
+            }
+
+            function pausePlay() {
+                isPlaying = false;
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('active-btn');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            // ──────────────────────────────────────
+            // CHECKPOINT HANDLING
+            // ──────────────────────────────────────
+            function addLogEntry(message, type) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                logEntriesList.push({ time: timeStr, message, type });
+                renderLog();
+            }
+
+            function renderLog() {
+                if (logEntriesList.length === 0) {
+                    $logEntries.innerHTML = 'No entries yet. Interact with checkpoints to build your learning log.';
+                    return;
+                }
+                $logEntries.innerHTML = logEntriesList.map(entry => {
+                    let cls = '';
+                    if (entry.type === 'correct') cls = 'correct-log';
+                    else if (entry.type === 'incorrect') cls = 'incorrect-log';
+                    else if (entry.type === 'info') cls = 'info-log';
+                    return '<div class="log-entry ' + cls + '"><span class="log-time">' + entry.time +
+                        '</span>' + entry.message + '</div>';
+                }).join('');
+                $logEntries.parentElement.scrollTop = $logEntries.parentElement.scrollHeight;
+            }
+
+            function submitCheckpoint() {
+                const step = steps[currentStep - 1];
+                if (!step.isCheckpoint) return;
+                if (checkpointAnswered[currentStep]) return;
+
+                const userAnswer = $cpInput.value.trim();
+                if (!userAnswer) {
+                    $cpFeedback.textContent = 'Please type an answer before submitting.';
+                    $cpFeedback.className = 'cp-feedback info';
+                    return;
+                }
+                const normalized = userAnswer.toLowerCase();
+                const accepted = step.checkpointAccept.map(a => a.toLowerCase());
+                if (accepted.includes(normalized)) {
+                    $cpFeedback.textContent = '✅ Correct! ' + step.checkpointAnswer +
+                        ' is the right answer. Great job understanding the algorithm!';
+                    $cpFeedback.className = 'cp-feedback correct';
+                    checkpointAnswered[currentStep] = true;
+                    $cpInput.disabled = true;
+                    $cpSubmit.disabled = true;
+                    $cpHint.disabled = true;
+                    $cpShow.disabled = true;
+                    addLogEntry('Step ' + currentStep + ': Answered correctly — "' + userAnswer +
+                        '" (expected: ' + step.checkpointAnswer + ')', 'correct');
+                } else {
+                    $cpFeedback.textContent =
+                        '❌ Not quite. "' + userAnswer +
+                        '" is incorrect. Review the step evidence and try again, or use Hint / Show Answer.';
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                    addLogEntry('Step ' + currentStep + ': Submitted incorrect answer — "' + userAnswer + '"',
+                        'incorrect');
+                }
+            }
+
+            function showHint() {
+                const step = steps[currentStep - 1];
+                if (!step.isCheckpoint) return;
+                $cpFeedback.textContent = '💡 Hint: ' + step.checkpointHint;
+                $cpFeedback.className = 'cp-feedback info';
+                addLogEntry('Step ' + currentStep + ': Requested hint — "' + step.checkpointHint + '"', 'info');
+            }
+
+            function showAnswer() {
+                const step = steps[currentStep - 1];
+                if (!step.isCheckpoint) return;
+                $cpFeedback.textContent = '📖 The answer is: ' + step.checkpointAnswer +
+                    '. Make sure you understand why before continuing.';
+                $cpFeedback.className = 'cp-feedback info';
+                $cpInput.value = step.checkpointAnswer;
+                checkpointAnswered[currentStep] = true;
+                $cpInput.disabled = true;
+                $cpSubmit.disabled = true;
+                $cpHint.disabled = true;
+                $cpShow.disabled = true;
+                addLogEntry('Step ' + currentStep + ': Viewed answer — "' + step.checkpointAnswer + '"', 'info');
+            }
+
+            // ──────────────────────────────────────
+            // EVENT LISTENERS
+            // ──────────────────────────────────────
+            $prevBtn.addEventListener('click', () => { pausePlay();
+                prevStep(); });
+            $nextBtn.addEventListener('click', () => { pausePlay();
+                nextStep(); });
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                pausePlay();
+                goToStep(parseInt($range.value));
+            });
+            $cpSubmit.addEventListener('click', submitCheckpoint);
+            $cpHint.addEventListener('click', showHint);
+            $cpShow.addEventListener('click', showAnswer);
+            $cpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitCheckpoint();
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowRight') { pausePlay();
+                    nextStep(); }
+                if (e.key === 'ArrowLeft') { pausePlay();
+                    prevStep(); }
+                if (e.key === ' ') { e.preventDefault();
+                    togglePlay(); }
+            });
+
+            // ──────────────────────────────────────
+            // INIT
+            // ──────────────────────────────────────
+            function init() {
+                buildTree();
+                buildTimeline();
+                updateUI();
+                // Ensure answer is set from page load
+                $answer.textContent = '3';
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

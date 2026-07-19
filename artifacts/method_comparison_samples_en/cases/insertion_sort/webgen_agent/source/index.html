@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insertion Sort - Interactive Learning</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      line-height: 1.6;
+      padding: 16px;
+      padding-bottom: 48px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      overflow: visible;
+    }
+
+    header {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      color: white;
+      padding: 24px 32px;
+      border-radius: 16px 16px 0 0;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header .badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #ffffff;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 0;
+      padding-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+      header h1 {
+        font-size: 1.5rem;
+      }
+      body {
+        padding: 8px;
+        padding-bottom: 32px;
+      }
+    }
+
+    .content {
+      padding: 24px 32px 40px;
+    }
+
+    .sidebar {
+      background: #f8fafc;
+      border-left: 1px solid #e2e8f0;
+      padding: 24px;
+      padding-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+        padding-bottom: 32px;
+      }
+      .content {
+        padding: 20px 20px 36px;
+      }
+    }
+
+    .section {
+      margin-bottom: 28px;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1e40af;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 20px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    .problem-desc {
+      background: #f1f5f9;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+    }
+
+    .io-box {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-family: 'Courier New', 'Consolas', monospace;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.7;
+    }
+
+    .io-box:last-of-type {
+      margin-bottom: 0;
+    }
+
+    .io-box .label {
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .json-key {
+      color: #7dd3fc;
+    }
+
+    .json-punct {
+      color: #94a3b8;
+    }
+
+    .json-number {
+      color: #fbbf24;
+    }
+
+    .json-string {
+      color: #a5d6ff;
+    }
+
+    .visualizer {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+      min-height: 70px;
+    }
+
+    .cell {
+      width: 60px;
+      height: 60px;
+      background: #e2e8f0;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+      transition: all 0.3s ease;
+      position: relative;
+      border: 2px solid transparent;
+    }
+
+    .cell .index {
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: #64748b;
+      margin-top: -2px;
+    }
+
+    .cell.sorted {
+      background: #dcfce7;
+      border-color: #22c55e;
+    }
+
+    .cell.key {
+      background: #fef9c3;
+      border-color: #eab308;
+      animation: pulse 1.2s infinite;
+    }
+
+    .cell.compare {
+      background: #fed7aa;
+      border-color: #f97316;
+    }
+
+    .cell.shifted {
+      background: #fecaca;
+      border-color: #ef4444;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .step-info {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 12px 0;
+    }
+
+    .step-info p {
+      margin: 4px 0;
+      font-size: 0.9rem;
+    }
+
+    .step-info .desc {
+      font-weight: 500;
+      color: #1e40af;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 16px 0;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #cbd5e1;
+    }
+
+    .btn-success {
+      background: #16a34a;
+      color: white;
+    }
+    .btn-success:hover:not(:disabled) {
+      background: #15803d;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+    .btn-warning:hover:not(:disabled) {
+      background: #d97706;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+
+    .quiz-container {
+      background: #fff7ed;
+      border: 2px solid #f97316;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      display: none;
+    }
+
+    .quiz-container.active {
+      display: block;
+    }
+
+    .quiz-question {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #9a3412;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .quiz-options label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+
+    .quiz-options label:hover {
+      background: #fef3c7;
+    }
+
+    .feedback {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+
+    .feedback.correct {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .feedback.incorrect {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .log-list {
+      list-style: none;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .log-list li {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-list li .timestamp {
+      color: #94a3b8;
+      font-family: monospace;
+      min-width: 75px;
+    }
+
+    .objectives-list {
+      list-style: disc;
+      padding-left: 20px;
+      font-size: 0.9rem;
+    }
+
+    .objectives-list li {
+      margin-bottom: 6px;
+    }
+
+    .reflection-questions details {
+      margin-bottom: 10px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .reflection-questions details:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    }
+
+    .reflection-questions summary {
+      font-weight: 500;
+      cursor: pointer;
+      color: #334155;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reflection-questions summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .reflection-questions summary::before {
+      content: '\25B6';
+      display: inline-block;
+      font-size: 0.7rem;
+      color: #3b82f6;
+      transition: transform 0.2s;
+      min-width: 14px;
+    }
+
+    .reflection-questions details[open] summary::before {
+      content: '\25BC';
+      transform: rotate(0deg);
+    }
+
+    .reflection-questions summary::marker {
+      content: '';
+    }
+
+    .reflection-questions p {
+      color: #475569;
+      padding: 8px 0 0 0;
+      font-size: 0.9rem;
+    }
+
+    .step-counter {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Insertion Sort</h1>
+      <span class="badge">Algorithm Family: Sorting</span>
+    </header>
+    <div class="main-layout">
+      <div class="content">
+        <!-- Problem Description -->
+        <div class="section">
+          <div class="section-title">Problem Statement</div>
+          <div class="problem-desc">
+            In a music player application, you are given a list of song favorability scores <code>nums</code>. Use the insertion sort method to sort them in ascending order and return the sorted list, so that songs can be played from lowest to highest score.
+          </div>
+          <div class="io-box">
+            <span class="label">Concrete Input (JSON):</span><br>
+            <span class="json-punct">{</span><br>
+              <span class="json-key">"nums"</span><span class="json-punct">: [</span><br>
+                <span class="json-number">5</span><span class="json-punct">,</span><br>
+                <span class="json-number">2</span><span class="json-punct">,</span><br>
+                <span class="json-number">3</span><span class="json-punct">,</span><br>
+                <span class="json-number">1</span><br>
+              <span class="json-punct">]</span><br>
+            <span class="json-punct">}</span>
+          </div>
+          <div class="io-box">
+            <span class="label">Expected Final Answer (JSON):</span><br>
+            <span class="json-punct">[</span><span class="json-number">1</span><span class="json-punct">,</span> <span class="json-number">2</span><span class="json-punct">,</span> <span class="json-number">3</span><span class="json-punct">,</span> <span class="json-number">5</span><span class="json-punct">]</span>
+          </div>
+        </div>
+
+        <!-- Algorithm Visualization -->
+        <div class="section">
+          <div class="section-title">Step-by-Step Visualization</div>
+          <div class="visualizer" id="visualizer"></div>
+          <div class="step-info" id="stepInfo"></div>
+          <div class="controls">
+            <button class="btn-secondary" id="prevBtn" title="Previous step">◀ Prev</button>
+            <button class="btn-primary" id="nextBtn" title="Next step">Next ▶</button>
+            <button class="btn-warning" id="autoPlayBtn" title="Auto-play steps">▶ Auto Play</button>
+            <button class="btn-danger" id="resetBtn" title="Reset to beginning">↩ Reset</button>
+            <span class="step-counter" id="stepCounter"></span>
+          </div>
+        </div>
+
+        <!-- Checkpoint / Quiz -->
+        <div class="quiz-container" id="quizContainer">
+          <div class="quiz-question" id="quizQuestion"></div>
+          <div class="quiz-options" id="quizOptions"></div>
+          <div class="controls">
+            <button class="btn-primary" id="submitAnswerBtn">Submit Answer</button>
+            <button class="btn-warning" id="hintBtn">💡 Hint</button>
+            <button class="btn-danger" id="showAnswerBtn">👁 Show Answer</button>
+          </div>
+          <div class="feedback" id="feedback" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="section">
+          <div class="section-title">Learning Objectives</div>
+          <ul class="objectives-list" id="objectivesList"></ul>
+        </div>
+        <div class="section">
+          <div class="section-title">Reflection Questions</div>
+          <div class="reflection-questions" id="reflectionQuestions"></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Activity Log</div>
+          <ul class="log-list" id="logList"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- CONSTANTS & DATA ----------
+      var input = [5, 2, 3, 1];
+      var expectedOutput = [1, 2, 3, 5];
+
+      // Step definitions for the insertion sort trace
+      var steps = [
+        { arr: [5,2,3,1], i: null, j: null, key: null, desc: 'Initial array: [5, 2, 3, 1]. No sorted portion yet.' },
+        { arr: [5,2,3,1], i: 1, j: 0, key: 2, desc: 'Start inserting key = 2 (index 1). Compare with left element 5.' },
+        { arr: [5,5,3,1], i: 1, j: -1, key: 2, desc: '5 > 2, so shift 5 to the right. Array becomes [5,5,3,1]. j is now -1.' },
+        { arr: [2,5,3,1], i: 1, j: 0, key: null, desc: 'Insert key 2 at index 0. Sorted prefix: [2,5].' },
+        { arr: [2,5,3,1], i: 2, j: 1, key: 3, desc: 'Now insert key = 3 (index 2). Compare with left element 5.' },
+        { arr: [2,5,5,1], i: 2, j: 0, key: 3, desc: '5 > 3, shift 5 right. Array: [2,5,5,1]. j becomes 0.' },
+        { arr: [2,3,5,1], i: 2, j: 1, key: null, desc: '2 < 3, so insert key 3 at index 1. Sorted prefix: [2,3,5].' },
+        { arr: [2,3,5,1], i: 3, j: 2, key: 1, desc: 'Now insert key = 1 (index 3). Compare with left element 5.' },
+        { arr: [2,3,5,5], i: 3, j: 1, key: 1, desc: '5 > 1, shift 5 right. Array: [2,3,5,5].' },
+        { arr: [2,3,3,5], i: 3, j: 0, key: 1, desc: '3 > 1, shift 3 right. Array: [2,3,3,5].' },
+        { arr: [2,2,3,5], i: 3, j: -1, key: 1, desc: '2 > 1, shift 2 right. Array: [2,2,3,5].' },
+        { arr: [1,2,3,5], i: 3, j: 0, key: null, desc: 'Insert key 1 at index 0. Array is now sorted: [1,2,3,5]!' }
+      ];
+
+      var CHECKPOINT_STEP_INDEX = 4;
+      var checkpointData = {
+        question: 'Currently nums = [2,5,3,1], i=2, key=3, j=1. What is the state of nums after performing one comparison and shift?',
+        options: [
+          { value: '[2,5,5,1]', label: '[2,5,5,1]' },
+          { value: '[2,5,3,1]', label: '[2,5,3,1] (no change)' },
+          { value: '[2,3,5,1]', label: '[2,3,5,1]' },
+          { value: '[1,2,3,5]', label: '[1,2,3,5]' }
+        ],
+        correctValue: '[2,5,5,1]',
+        hintText: 'Hint: When the key is smaller than the element on the left, that element is shifted one position to the right. The key is not placed until all larger elements have been shifted.'
+      };
+
+      var learningObjectives = [
+        'Understand the maintenance of the sorted prefix nums[0..i-1] in insertion sort.',
+        'Master how the key variable temporarily holds the element to be inserted and is compared with elements on the left.',
+        'Predict the next insertion position based on changes in state.nums in the trace.'
+      ];
+
+      var reflectionQuestions = [
+        'Currently nums = [2,5,3,1], i=2, key=3, j=1. What is the state of nums after performing one comparison and shift?',
+        'In insertion sort, which part of the array always remains sorted? Please explain using indices from the state.',
+        'Given the original input nums = [4,2,7,1], if you want to increase the number of shifts during the first insertion, how would you modify a single element?',
+        'In the trace, one step changes nums from [3,7,4,2] to [3,7,7,2]. What happened in this step?'
+      ];
+
+      // ---------- STATE ----------
+      var currentStep = 0;
+      var quizAnswered = false;
+      var autoPlayInterval = null;
+      var logEntries = [];
+
+      // ---------- DOM ELEMENTS ----------
+      var visualizerEl = document.getElementById('visualizer');
+      var stepInfoEl = document.getElementById('stepInfo');
+      var prevBtn = document.getElementById('prevBtn');
+      var nextBtn = document.getElementById('nextBtn');
+      var autoPlayBtn = document.getElementById('autoPlayBtn');
+      var resetBtn = document.getElementById('resetBtn');
+      var stepCounterEl = document.getElementById('stepCounter');
+      var quizContainer = document.getElementById('quizContainer');
+      var quizQuestionEl = document.getElementById('quizQuestion');
+      var quizOptionsEl = document.getElementById('quizOptions');
+      var submitAnswerBtn = document.getElementById('submitAnswerBtn');
+      var hintBtn = document.getElementById('hintBtn');
+      var showAnswerBtn = document.getElementById('showAnswerBtn');
+      var feedbackEl = document.getElementById('feedback');
+      var logListEl = document.getElementById('logList');
+      var objectivesListEl = document.getElementById('objectivesList');
+      var reflectionQuestionsEl = document.getElementById('reflectionQuestions');
+
+      // ---------- INITIAL RENDER ----------
+      function renderStaticContent() {
+        objectivesListEl.innerHTML = learningObjectives.map(function(obj) {
+          return '<li>' + obj + '</li>';
+        }).join('');
+
+        reflectionQuestionsEl.innerHTML = reflectionQuestions.map(function(q, i) {
+          return '<details><summary>Question ' + (i + 1) + '</summary><p>' + q + '</p></details>';
+        }).join('');
+      }
+
+      // ---------- LOGGING ----------
+      function addLogEntry(message) {
+        var now = new Date();
+        var timestamp = now.toLocaleTimeString('en-US', { hour12: false });
+        logEntries.unshift({ timestamp: timestamp, message: message });
+        renderLog();
+      }
+
+      function renderLog() {
+        logListEl.innerHTML = logEntries.map(function(entry) {
+          return '<li><span class="timestamp">' + entry.timestamp + '</span>' + entry.message + '</li>';
+        }).join('');
+      }
+
+      // ---------- RENDER STEP ----------
+      function renderStep() {
+        var step = steps[currentStep];
+        var arr = step.arr;
+
+        // Build visualizer cells
+        var cellsHtml = '';
+        for (var idx = 0; idx < arr.length; idx++) {
+          var cellClass = 'cell';
+          if (step.i !== null && idx < step.i) {
+            cellClass += ' sorted';
+          }
+          if (idx === step.i && step.key !== null) {
+            cellClass += ' key';
+          }
+          if (idx === step.j && step.j >= 0) {
+            cellClass += ' compare';
+          }
+          cellsHtml +=
+            '<div class="' + cellClass + '">' +
+              '<span>' + arr[idx] + '</span>' +
+              '<span class="index">' + idx + '</span>' +
+            '</div>';
+        }
+        visualizerEl.innerHTML = cellsHtml;
+
+        // Step info
+        var infoHtml = '<p class="desc">' + step.desc + '</p>';
+        if (step.i !== null) {
+          infoHtml += '<p>Index i (insertion point): ' + step.i + '</p>';
+        }
+        if (step.j !== null) {
+          infoHtml += '<p>Index j (comparison): ' + (step.j >= 0 ? step.j : 'none (all larger elements shifted)') + '</p>';
+        }
+        if (step.key !== null) {
+          infoHtml += '<p>Key value: ' + step.key + '</p>';
+        }
+        stepInfoEl.innerHTML = infoHtml;
+        stepCounterEl.textContent = 'Step ' + (currentStep + 1) + ' / ' + steps.length;
+
+        // Enable/disable buttons
+        prevBtn.disabled = (currentStep === 0);
+        var isQuizActive = (currentStep === CHECKPOINT_STEP_INDEX && !quizAnswered);
+        nextBtn.disabled = isQuizActive;
+
+        // Show/hide quiz
+        if (currentStep === CHECKPOINT_STEP_INDEX) {
+          quizContainer.classList.add('active');
+          if (!quizAnswered) {
+            renderQuiz();
+          } else {
+            renderQuizWithFeedback();
+          }
+        } else {
+          quizContainer.classList.remove('active');
+        }
+      }
+
+      // ---------- QUIZ RENDERING ----------
+      function renderQuiz() {
+        quizQuestionEl.textContent = checkpointData.question;
+        quizOptionsEl.innerHTML = checkpointData.options.map(function(opt, i) {
+          return '<label>' +
+            '<input type="radio" name="quizOption" value="' + opt.value + '"' + (i === 0 ? ' checked' : '') + '>' +
+            opt.label +
+          '</label>';
+        }).join('');
+        feedbackEl.style.display = 'none';
+        feedbackEl.textContent = '';
+        submitAnswerBtn.disabled = false;
+        hintBtn.disabled = false;
+        showAnswerBtn.disabled = false;
+        var radios = document.querySelectorAll('input[name="quizOption"]');
+        for (var r = 0; r < radios.length; r++) {
+          radios[r].disabled = false;
+        }
+      }
+
+      function renderQuizWithFeedback() {
+        quizQuestionEl.textContent = checkpointData.question;
+        quizOptionsEl.innerHTML = checkpointData.options.map(function(opt) {
+          return '<label>' +
+            '<input type="radio" name="quizOption" value="' + opt.value + '" disabled>' +
+            opt.label +
+          '</label>';
+        }).join('');
+        submitAnswerBtn.disabled = true;
+        hintBtn.disabled = true;
+        showAnswerBtn.disabled = true;
+      }
+
+      function getSelectedOption() {
+        var selected = document.querySelector('input[name="quizOption"]:checked');
+        return selected ? selected.value : null;
+      }
+
+      // ---------- QUIZ ACTIONS ----------
+      function submitAnswer() {
+        if (quizAnswered) return;
+        var selected = getSelectedOption();
+        if (!selected) {
+          feedbackEl.style.display = 'block';
+          feedbackEl.textContent = 'Please select an option.';
+          feedbackEl.className = 'feedback incorrect';
+          return;
+        }
+        var isCorrect = (selected === checkpointData.correctValue);
+        quizAnswered = true;
+
+        feedbackEl.style.display = 'block';
+        feedbackEl.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
+        feedbackEl.textContent = isCorrect
+          ? '\u2705 Correct! The array becomes [2,5,5,1] after shifting 5 to the right.'
+          : '\u274C Incorrect. The correct answer is [2,5,5,1].';
+
+        addLogEntry('Submitted answer: ' + selected + ' - ' + (isCorrect ? 'Correct' : 'Incorrect'));
+
+        renderQuizWithFeedback();
+        nextBtn.disabled = false;
+        stopAutoPlay();
+      }
+
+      function showHint() {
+        if (quizAnswered) return;
+        feedbackEl.style.display = 'block';
+        feedbackEl.className = 'feedback';
+        feedbackEl.style.background = '#fef3c7';
+        feedbackEl.style.color = '#92400e';
+        feedbackEl.textContent = checkpointData.hintText;
+        addLogEntry('Viewed hint');
+      }
+
+      function showAnswer() {
+        if (quizAnswered) return;
+        quizAnswered = true;
+
+        quizOptionsEl.innerHTML = checkpointData.options.map(function(opt) {
+          var checkedAttr = (opt.value === checkpointData.correctValue) ? ' checked' : '';
+          var marker = (opt.value === checkpointData.correctValue) ? ' \u2190 Correct Answer' : '';
+          return '<label>' +
+            '<input type="radio" name="quizOption" value="' + opt.value + '" disabled' + checkedAttr + '>' +
+            opt.label + marker +
+          '</label>';
+        }).join('');
+
+        feedbackEl.style.display = 'block';
+        feedbackEl.className = 'feedback correct';
+        feedbackEl.textContent = 'The correct answer is [2,5,5,1].';
+        submitAnswerBtn.disabled = true;
+        hintBtn.disabled = true;
+        showAnswerBtn.disabled = true;
+        nextBtn.disabled = false;
+        addLogEntry('Viewed answer');
+        stopAutoPlay();
+      }
+
+      // ---------- NAVIGATION ----------
+      function goToStep(index) {
+        if (index < 0 || index >= steps.length) return;
+        if (index > currentStep && currentStep === CHECKPOINT_STEP_INDEX && !quizAnswered) {
+          return;
+        }
+        currentStep = index;
+        renderStep();
+        addLogEntry('Navigated to step ' + (index + 1));
+      }
+
+      function nextStep() {
+        if (currentStep < steps.length - 1) {
+          if (currentStep === CHECKPOINT_STEP_INDEX && !quizAnswered) {
+            return;
+          }
+          goToStep(currentStep + 1);
+        }
+      }
+
+      function prevStep() {
+        if (currentStep > 0) {
+          goToStep(currentStep - 1);
+        }
+      }
+
+      function resetSimulation() {
+        stopAutoPlay();
+        quizAnswered = false;
+        currentStep = 0;
+        renderStep();
+        addLogEntry('Reset simulation');
+      }
+
+      function startAutoPlay() {
+        if (autoPlayInterval) return;
+        autoPlayBtn.textContent = '\u23F8 Pause';
+        autoPlayInterval = setInterval(function() {
+          if (currentStep === CHECKPOINT_STEP_INDEX && !quizAnswered) {
+            stopAutoPlay();
+            return;
+          }
+          if (currentStep < steps.length - 1) {
+            nextStep();
+          } else {
+            stopAutoPlay();
+          }
+        }, 1500);
+        addLogEntry('Started auto-play');
+      }
+
+      function stopAutoPlay() {
+        if (autoPlayInterval) {
+          clearInterval(autoPlayInterval);
+          autoPlayInterval = null;
+          autoPlayBtn.textContent = '\u25B6 Auto Play';
+        }
+      }
+
+      function toggleAutoPlay() {
+        if (autoPlayInterval) {
+          stopAutoPlay();
+          addLogEntry('Stopped auto-play');
+        } else {
+          startAutoPlay();
+        }
+      }
+
+      // ---------- EVENT LISTENERS ----------
+      prevBtn.addEventListener('click', prevStep);
+      nextBtn.addEventListener('click', nextStep);
+      resetBtn.addEventListener('click', resetSimulation);
+      autoPlayBtn.addEventListener('click', toggleAutoPlay);
+      submitAnswerBtn.addEventListener('click', submitAnswer);
+      hintBtn.addEventListener('click', showHint);
+      showAnswerBtn.addEventListener('click', showAnswer);
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          nextStep();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          prevStep();
+        } else if (e.key === 'r' && e.ctrlKey) {
+          e.preventDefault();
+          resetSimulation();
+        }
+      });
+
+      // ---------- STARTUP ----------
+      renderStaticContent();
+      resetSimulation();
+    })();
+  </script>
+</body>
+</html>

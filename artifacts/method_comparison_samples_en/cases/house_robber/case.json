@@ -1,0 +1,117 @@
+{
+  "id": "house_robber",
+  "algorithm_id": "house_robber",
+  "title": "House Robber",
+  "family": "1D DP",
+  "family_id": "dp_1d",
+  "subfamily_id": "house_robber",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "dp",
+  "difficulty": "medium",
+  "problem": "A thief plans to rob a number of houses along a street. The houses are arranged in a straight line, each containing a certain amount of cash, represented by an integer array nums, where nums[i] is the cash amount in the i-th house (0-based index). Since adjacent houses are equipped with connected alarms, robbing two adjacent houses will trigger the alarm. Help the thief calculate the maximum total amount of money that can be robbed without triggering the alarm.",
+  "strategy": "Use dp[i] to record the maximum profit from the first i houses.",
+  "input_contract": "Input the nums array.",
+  "variant_name": "Dynamic Programming",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "Understand that the state dp[i] represents the maximum profit from the first i houses and its recurrence relation",
+    "Predict the next step's calculation from the changes in the dp array in the trace",
+    "Identify and verify monotonic invariants in the algorithm (e.g., dp[i] >= dp[i-1])"
+  ],
+  "required_views": [
+    "array",
+    "dp_table"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! According to the transition equation, dp[2] takes the optimal value of either not robbing the current house (using dp[1]) or robbing the current house (dp[0]+9).",
+      "feedback_wrong": "Recall the recurrence formula dp[i] = max(dp[i-1], dp[i-2]+nums[i]), and check the values of dp[0], dp[1], nums[2] again.",
+      "id": "task_1",
+      "oracle": "Check if the student's answer is max(dp[1], dp[0]+nums[2]) = max(7, 2+9)=11; can use verifier or direct calculation.",
+      "prompt": "Given the house amounts nums = [2,7,9,3,1], the dp array has been completed up to dp[0]=2, dp[1]=7. When computing i=2, what should be the value of dp[2]?",
+      "stage2_affordance": "Fill in the predicted value in the table and play the step demonstration.",
+      "trace_anchor": [
+        "dp[0]",
+        "dp[1]",
+        "nums[2]"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Great! The monotonicity of dp ensures that the optimal solution at each step does not degrade.",
+      "feedback_wrong": "Hint: dp[i] represents the optimal solution for the first i houses. Could it be smaller than dp[i-1]? Think again.",
+      "id": "task_2",
+      "oracle": "Check if the student's answer includes dp[i] ≥ dp[i-1] or non-decreasing property, or not exceeding the prefix sum. Accept semantically equivalent expressions.",
+      "prompt": "Observe the changes in the dp array throughout the algorithm execution and point out an invariant that always holds (e.g., what property does dp[i] satisfy?).",
+      "stage2_affordance": "Switch to numerical comparison mode, highlighting changes in adjacent dp values.",
+      "trace_anchor": [
+        "dp",
+        "i"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct! You successfully applied the algorithm to new data.",
+      "feedback_wrong": "Hint: Consider whether to rob the 4th house (amount 1) or not, and compare with previous gains. Try running the algorithm manually.",
+      "id": "task_3",
+      "oracle": "Use verifier to compute expected = 4, judge whether the student's answer is 4.",
+      "prompt": "If the house amounts are changed to nums = [1,2,3,1], manually calculate the maximum stealable amount.",
+      "stage2_affordance": "Modify nums in the array editing area; the view and results will update automatically.",
+      "trace_anchor": [
+        "nums",
+        "expected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Clear explanation! You accurately described the trade-off between robbing and not robbing.",
+      "feedback_wrong": "Review the transition equation: dp[i] either inherits directly from the previous step (not robbing) or from i-2 steps plus the current house (robbing). Please describe again.",
+      "id": "task_4",
+      "oracle": "Check if the student states: dp[3] = max(dp[2], dp[1]+nums[3]) = max(11, 7+3)=11, with the decision being not to rob the 3rd house.",
+      "prompt": "In the trace, when i=3, nums=[2,7,9,3], dp[2]=11 has been computed, and dp[3] is about to be calculated. Explain the decision process from state dp[2] to dp[3].",
+      "stage2_affordance": "Click on this step to highlight the dp[i-1] and dp[i-2] cells.",
+      "trace_anchor": [
+        "dp[2]",
+        "dp[3]",
+        "nums[3]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 12,
+      "index": 0,
+      "input_data": {
+        "nums": [
+          2,
+          7,
+          9,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "expected": 4,
+      "index": 1,
+      "input_data": {
+        "nums": [
+          1,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "expected": 0,
+      "index": 2,
+      "input_data": {
+        "nums": []
+      }
+    }
+  ]
+}

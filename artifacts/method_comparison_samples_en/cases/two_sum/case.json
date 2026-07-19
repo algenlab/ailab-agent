@@ -1,0 +1,126 @@
+{
+  "id": "two_sum",
+  "algorithm_id": "two_sum",
+  "title": "Two Sum",
+  "family": "Hash Table / map",
+  "family_id": "hash_map",
+  "subfamily_id": "two_sum",
+  "gate_layer": "family_core",
+  "support_level": "medium_plus",
+  "process_profile": "hash",
+  "difficulty": "medium",
+  "problem": "In an order fulfillment system, nums[i] represents the quantity of goods that can be directly picked from the i-th slot, and the order still lacks target units of the same goods. Find two different slots such that the sum of their quantities equals exactly target, and return their 0-based indices; if no such slots exist, return an empty array.",
+  "strategy": "Traverse the array, use a hash table to record the indices of values that have appeared, and check for the complement.",
+  "input_contract": "Input the nums array and target.",
+  "variant_name": "Hash Table One-pass",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "Master the changing patterns of the seen mapping and the need complement value in one-pass hash table scan",
+    "Able to predict the algorithm's next operation based on the current scan position i and the seen hash table",
+    "Able to understand the efficiency improvement from hash table lookups through repeated experiments"
+  ],
+  "required_views": [
+    "array",
+    "map"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! Continue to the next slot.",
+      "feedback_wrong": "Please observe the current need value, and note whether that value exists in seen.",
+      "id": "task_1",
+      "oracle": "Check if the next op is 'compare', and need = -2, hit=false",
+      "prompt": "Currently scanning to nums[2]=11, seen already contains {2:0, 7:1}, target=9. What operation will the algorithm perform next?",
+      "stage2_affordance": "In Stage2, click the next step button and observe the change in seen",
+      "trace_anchor": [
+        "state.seen",
+        "state.i"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Completely correct, seen only records the values of visited elements.",
+      "feedback_wrong": "Think again: when does the content of seen change? What is the relationship between i and the length of seen?",
+      "id": "task_2",
+      "oracle": "The correct answer is C, compare student choice",
+      "prompt": "During algorithm execution, which of the following always holds? (A) seen length equals i; (B) need is always positive; (C) the keys in seen are the values of elements already visited",
+      "stage2_affordance": "Step through and observe changes in seen and i",
+      "trace_anchor": [
+        "state.seen",
+        "state.i"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct, after the change, no two slots sum to 9.",
+      "feedback_wrong": "Please recalculate the sum of each combination, note that target is 9.",
+      "id": "task_3",
+      "oracle": "2+8=10≠9, 2+11=13, 2+15=17, no solution, expected to return []",
+      "prompt": "Change nums[1] from 7 to 8, target unchanged, can the algorithm still find a solution? Output the new indices or empty.",
+      "stage2_affordance": "Drag the slider to modify slot quantities and observe the result change",
+      "trace_anchor": [
+        "nums",
+        "target"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Explanation on point, that's exactly the accumulation process.",
+      "feedback_wrong": "Review the first step: when need is not in seen, what operation is performed?",
+      "id": "task_4",
+      "oracle": "seen changes from {} to {2:0}, because need=7 is not in seen, so 2 is added, then i becomes 1",
+      "prompt": "When the algorithm goes from i=0 to i=1, what change does seen undergo? Why?",
+      "stage2_affordance": "Go back to the first step, re-observe the addition action in seen",
+      "trace_anchor": [
+        "state.seen",
+        "state.i"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": [
+        0,
+        1
+      ],
+      "index": 0,
+      "input_data": {
+        "nums": [
+          2,
+          7,
+          11,
+          15
+        ],
+        "target": 9
+      }
+    },
+    {
+      "expected": [
+        1,
+        2
+      ],
+      "index": 1,
+      "input_data": {
+        "nums": [
+          3,
+          2,
+          4
+        ],
+        "target": 6
+      }
+    },
+    {
+      "expected": [],
+      "index": 2,
+      "input_data": {
+        "nums": [
+          1,
+          2,
+          3
+        ],
+        "target": 7
+      }
+    }
+  ]
+}

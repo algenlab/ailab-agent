@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Search - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dde1e6;
+            --text: #212529;
+            --text-secondary: #495057;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --mid-highlight: #f59e0b;
+            --mid-bg: #fffbeb;
+            --found-highlight: #10b981;
+            --found-bg: #ecfdf5;
+            --left-highlight: #3b82f6;
+            --right-highlight: #8b5cf6;
+            --eliminated: #e5e7eb;
+            --eliminated-text: #9ca3af;
+            --range-bg: #f1f5f9;
+            --tick-active: #2563eb;
+            --tick-inactive: #cbd5e1;
+            --tick-visited: #94a3b8;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --radius: 8px;
+            --radius-sm: 4px;
+            --font-mono: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: #eef1f5;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px 16px;
+        }
+
+        #app {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-left {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: -0.01em;
+            margin: 0;
+        }
+
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #top-result {
+            background: var(--success-light);
+            color: #065f46;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            border: 1px solid #a7f3d0;
+        }
+
+        #top-solution {
+            background: var(--accent-light);
+            color: #1e40af;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            border: 1px solid #bfdbfe;
+        }
+
+        #answer {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+            border: 2px solid #334155;
+        }
+
+        /* Main content row */
+        .main-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        /* Left: Code */
+        .left-panel {
+            flex: 0 0 340px;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            margin: 0;
+            border: 1px solid #334155;
+            user-select: text;
+            tab-size: 4;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.25s, box-shadow 0.25s;
+        }
+
+        #code .code-line.active {
+            background: #fef3c7;
+            color: #1e293b;
+            box-shadow: inset 3px 0 0 #f59e0b;
+            font-weight: 600;
+        }
+
+        #code .code-line.visited {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+
+        /* Center: Canvas */
+        .center-panel {
+            flex: 1;
+            min-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #canvas {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-height: 200px;
+            justify-content: center;
+            padding: 16px 8px;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            border: 1px dashed #dde1e6;
+            position: relative;
+        }
+
+        .array-container {
+            display: flex;
+            gap: 6px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .array-cell-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: transform 0.3s;
+        }
+
+        .array-cell-wrapper.popped {
+            transform: scale(1.08);
+            z-index: 2;
+        }
+
+        .pointer-labels {
+            display: flex;
+            gap: 2px;
+            height: 22px;
+            align-items: flex-end;
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: #64748b;
+        }
+
+        .pointer-label {
+            width: 50px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .pointer-label.visible {
+            opacity: 1;
+        }
+
+        .pointer-label.mid-label {
+            color: #d97706;
+        }
+        .pointer-label.left-label {
+            color: #2563eb;
+        }
+        .pointer-label.right-label {
+            color: #7c3aed;
+        }
+        .pointer-label.found-label {
+            color: #059669;
+        }
+
+        .array-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            border: 2px solid #dde1e6;
+            background: #ffffff;
+            color: #1e293b;
+            transition: all 0.3s;
+            cursor: default;
+            position: relative;
+        }
+
+        .array-cell.in-range {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            color: #1e293b;
+        }
+
+        .array-cell.mid-cell {
+            background: #fffbeb;
+            border-color: #f59e0b;
+            color: #92400e;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+            z-index: 2;
+            animation: pulse-mid 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-mid {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.08);
+            }
+        }
+
+        .array-cell.found-cell {
+            background: #ecfdf5;
+            border-color: #10b981;
+            color: #065f46;
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.25);
+            z-index: 3;
+            animation: pulse-found 0.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse-found {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(16, 185, 129, 0.06);
+            }
+        }
+
+        .array-cell.left-bound {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+            background: #eff6ff;
+        }
+
+        .array-cell.right-bound {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+            background: #f5f3ff;
+        }
+
+        .array-cell.eliminated {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #cbd5e1;
+            text-decoration: line-through;
+            text-decoration-color: #cbd5e1;
+            opacity: 0.6;
+        }
+
+        .array-index {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .array-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: #64748b;
+            align-items: center;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .legend-dot.mid {
+            background: #f59e0b;
+            border: 1px solid #d97706;
+        }
+        .legend-dot.left {
+            background: #3b82f6;
+            border: 1px solid #2563eb;
+        }
+        .legend-dot.right {
+            background: #8b5cf6;
+            border: 1px solid #7c3aed;
+        }
+        .legend-dot.found {
+            background: #10b981;
+            border: 1px solid #059669;
+        }
+        .legend-dot.elim {
+            background: #e5e7eb;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Right panel */
+        .right-panel {
+            flex: 0 0 300px;
+            min-width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #step-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        #step-desc {
+            font-size: 0.85rem;
+            color: #495057;
+            line-height: 1.5;
+        }
+
+        #op {
+            display: inline-block;
+            background: #f1f5f9;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
+        #state {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            color: #334155;
+            max-height: 160px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        #teaching {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            font-size: 0.82rem;
+            color: #78350f;
+            line-height: 1.5;
+        }
+
+        #teaching .checkpoint-prompt {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        .checkpoint-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 8px 0;
+        }
+
+        .checkpoint-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 2px solid #dde1e6;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.82rem;
+            background: #fff;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            text-align: left;
+            width: 100%;
+        }
+
+        .checkpoint-option:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+
+        .checkpoint-option.selected {
+            border-color: #2563eb;
+            background: #dbeafe;
+            font-weight: 600;
+        }
+
+        .checkpoint-option.correct-flash {
+            border-color: #16a34a !important;
+            background: #dcfce7 !important;
+            animation: flash-green 0.5s;
+        }
+
+        .checkpoint-option.incorrect-flash {
+            border-color: #dc2626 !important;
+            background: #fee2e2 !important;
+            animation: flash-red 0.5s;
+        }
+
+        @keyframes flash-green {
+            0%,
+            100% {
+                background: #dcfce7;
+            }
+            50% {
+                background: #bbf7d0;
+            }
+        }
+        @keyframes flash-red {
+            0%,
+            100% {
+                background: #fee2e2;
+            }
+            50% {
+                background: #fecaca;
+            }
+        }
+
+        .checkpoint-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .btn {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            white-space: nowrap;
+        }
+
+        .btn-submit {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+        .btn-submit:hover {
+            background: #1d4ed8;
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-submit:disabled {
+            background: #94a3b8;
+            border-color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-hint {
+            background: #fff;
+            color: #d97706;
+            border-color: #f59e0b;
+        }
+        .btn-hint:hover {
+            background: #fffbeb;
+        }
+
+        .btn-show {
+            background: #fff;
+            color: #64748b;
+            border-color: #cbd5e1;
+        }
+        .btn-show:hover {
+            background: #f1f5f9;
+        }
+
+        .feedback-area {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 6px;
+            min-height: 22px;
+            padding: 4px 0;
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+        }
+        .feedback-correct {
+            background: #dcfce7;
+            color: #065f46;
+        }
+        .feedback-incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        #step-evidence {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            font-size: 0.78rem;
+            color: #475569;
+            line-height: 1.5;
+        }
+        #step-evidence .ev-label {
+            font-weight: 700;
+            color: #334155;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Controls bar */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        #prev,
+        #play,
+        #next {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid #dde1e6;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            background: #fff;
+            color: #334155;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+        }
+        #prev:hover,
+        #next:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        #play {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+            min-width: 70px;
+        }
+        #play:hover {
+            background: #1d4ed8;
+        }
+        #play.paused {
+            background: #fff;
+            color: #2563eb;
+            border-color: #2563eb;
+        }
+
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 260px;
+            accent-color: #2563eb;
+            cursor: pointer;
+            height: 6px;
+        }
+
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow-x: auto;
+            position: relative;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .timeline-line {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            position: relative;
+        }
+
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            border: 2px solid transparent;
+            transition: all 0.25s;
+            background: transparent;
+            min-width: 60px;
+            position: relative;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .tick.active {
+            border-color: #2563eb;
+            background: #dbeafe;
+        }
+        .tick.visited {
+            opacity: 0.85;
+        }
+        .tick .tick-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            border: 2px solid #94a3b8;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .tick.active .tick-dot {
+            background: #2563eb;
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.2);
+        }
+        .tick.visited .tick-dot {
+            background: #64748b;
+            border-color: #475569;
+        }
+        .tick-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #64748b;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .tick.active .tick-label {
+            color: #1e40af;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            text-align: center;
+            white-space: nowrap;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tick.active .tick-op {
+            color: #475569;
+        }
+        .tick-connector {
+            width: 20px;
+            height: 2px;
+            background: #e2e8f0;
+            flex-shrink: 0;
+            border-radius: 1px;
+        }
+        .tick-connector.visited {
+            background: #64748b;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #learning-log h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 8px;
+            letter-spacing: 0.02em;
+        }
+        .log-entry {
+            font-size: 0.78rem;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 4px;
+            border-left: 3px solid #cbd5e1;
+            background: #fafbfc;
+            color: #475569;
+            line-height: 1.4;
+        }
+        .log-entry.correct {
+            border-left-color: #16a34a;
+            background: #f0fdf4;
+        }
+        .log-entry.incorrect {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        .log-entry.skipped {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .log-time {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            font-family: var(--font-mono);
+        }
+
+        @media (max-width: 900px) {
+            .main-row {
+                flex-direction: column;
+            }
+            .left-panel,
+            .right-panel {
+                flex: 1 1 auto;
+                min-width: auto;
+            }
+            .center-panel {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="header-left">
+                <h1 id="title">Binary Search</h1>
+                <p id="subtitle">Library shelf search — closed interval, discard half each comparison</p>
+            </div>
+            <div class="header-right">
+                <span id="top-result">✅ Result: index 4</span>
+                <span id="top-solution">O(log n) · Closed interval</span>
+                <span id="answer">4</span>
+            </div>
+        </div>
+
+        <!-- Main row -->
+        <div class="main-row">
+            <!-- Left: Code -->
+            <div class="left-panel panel">
+                <pre id="code"><span class="code-line" data-line="1">function binarySearch(nums, target) {</span><span class="code-line" data-line="2">    let left = 0, right = nums.length - 1;</span><span class="code-line" data-line="3">    while (left &lt;= right) {</span><span class="code-line" data-line="4">        let mid = left + Math.floor((right - left) / 2);</span><span class="code-line" data-line="5">        if (nums[mid] === target) {</span><span class="code-line" data-line="6">            return mid;</span><span class="code-line" data-line="7">        } else if (nums[mid] &lt; target) {</span><span class="code-line" data-line="8">            left = mid + 1;</span><span class="code-line" data-line="9">        } else {</span><span class="code-line" data-line="10">            right = mid - 1;</span><span class="code-line" data-line="11">        }</span><span class="code-line" data-line="12">    }</span><span class="code-line" data-line="13">    return -1;</span><span class="code-line" data-line="14">}</span></pre>
+            </div>
+
+            <!-- Center: Canvas -->
+            <div class="center-panel panel">
+                <div id="canvas">
+                    <div class="pointer-labels" id="pointer-labels"></div>
+                    <div class="array-container" id="array-container"></div>
+                    <div class="array-legend">
+                        <span><span class="legend-dot mid"></span> Mid</span>
+                        <span><span class="legend-dot left"></span> Left</span>
+                        <span><span class="legend-dot right"></span> Right</span>
+                        <span><span class="legend-dot found"></span> Found</span>
+                        <span><span class="legend-dot elim"></span> Eliminated</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: State & Teaching -->
+            <div class="right-panel panel">
+                <div>
+                    <strong id="step-title">Initialize Search Bounds</strong>
+                    <span id="op" style="margin-left:8px;">Set bounds</span>
+                </div>
+                <p id="step-desc">Set left pointer to 0 and right pointer to the last index 5. The search space covers the entire array.</p>
+                <div id="state">{
+                    "left": 0,
+                    "right": 5,
+                    "mid": null,
+                    "action": "initialize"
+                    }</div>
+                <div id="teaching">
+                    <p><strong>Teaching:</strong> Binary search works by repeatedly dividing the search interval in half. We start with the full array [0..5]. The key invariant: the target, if it exists, is always within [left, right].</p>
+                    <div class="checkpoint-area" id="checkpoint-area" style="display:none;"></div>
+                </div>
+                <div id="step-evidence">
+                    <span class="ev-label">Operation:</span> Initialize search bounds.<br>
+                    <span class="ev-label">Target:</span> Entire array indices 0 through 5.<br>
+                    <span class="ev-label">Before:</span> No bounds set.<br>
+                    <span class="ev-label">After:</span> left=0, right=5, search space size=6.
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button id="prev" title="Previous step">◀ Prev</button>
+            <button id="play" title="Auto-play steps">▶ Play</button>
+            <button id="next" title="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="5" value="1" step="1" title="Step slider">
+            <span id="counter">1 / 5</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline">
+            <div class="timeline-line" id="timeline-line"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div id="learning-log">
+            <h3>📋 Learning Log</h3>
+            <div id="log-entries">
+                <div class="log-entry"><span class="log-time">Page loaded</span> — Ready to explore binary search. Target is 9 in array [-1, 0, 3, 5, 9, 12].</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // STEP DATA
+            // ──────────────────────────────────────
+            const nums = [-1, 0, 3, 5, 9, 12];
+            const target = 9;
+            const N = 5; // number of steps
+
+            const steps = [{
+                index: 0,
+                label: 'Init',
+                op: 'Set bounds',
+                title: 'Initialize Search Bounds',
+                desc: 'Set left pointer to 0 and right pointer to the last index 5. The search space covers the entire array of 6 elements.',
+                codeLine: 2,
+                state: { left: 0, right: 5, mid: null, action: 'initialize' },
+                teachingHTML: '<p><strong>Teaching:</strong> Binary search works by repeatedly dividing the search interval in half. We start with the full array [0..5]. The key invariant: the target, if it exists, is always within [left,&nbsp;right].</p>',
+                evidence: '<span class="ev-label">Operation:</span> Initialize search bounds.<br><span class="ev-label">Target:</span> Entire array indices 0 through 5.<br><span class="ev-label">Before:</span> No bounds set.<br><span class="ev-label">After:</span> left=0, right=5, search space size=6.',
+                canvasHighlight: { left: 0, right: 5, mid: null, found: null, eliminated: [] },
+                checkpoint: null
+            }, {
+                index: 1,
+                label: 'Mid 1',
+                op: 'Compute mid',
+                title: 'First Midpoint',
+                desc: 'Calculate mid = left + ⌊(right − left) / 2⌋ = 0 + ⌊5/2⌋ = 2. The middle element is nums[2] = 3.',
+                codeLine: 4,
+                state: { left: 0, right: 5, mid: 2, 'nums[mid]': 3, target: 9 },
+                teachingHTML: '<p><strong>Teaching:</strong> We compute the middle index. Since left=0 and right=5, mid=2. Now we compare nums[2]=3 with the target 9.</p>',
+                evidence: '<span class="ev-label">Operation:</span> Compute midpoint.<br><span class="ev-label">Target:</span> Index mid = floor((0+5)/2) = 2.<br><span class="ev-label">Before:</span> left=0, right=5, mid unknown.<br><span class="ev-label">After:</span> mid=2, nums[mid]=3.',
+                canvasHighlight: { left: 0, right: 5, mid: 2, found: null, eliminated: [] },
+                checkpoint: {
+                    question: 'Compare nums[2]=3 with target=9. What should we do next?',
+                    options: [
+                        { text: 'Search the left half (indices 0–1)', value: 'left', correct: false },
+                        { text: 'Search the right half (indices 3–5)', value: 'right', correct: true },
+                        { text: 'Return index 2 — we found it', value: 'found', correct: false }
+                    ],
+                    hint: 'Since 3 is less than 9, and the array is sorted in ascending order, where must the target be?',
+                    correctAnswer: 'right',
+                    correctFeedback: 'Correct! Since 3 < 9 and the array is sorted, the target must be in the right half (indices 3–5). We update left = mid + 1 = 3.',
+                    incorrectFeedback: {
+                        'left': 'Not quite. Since 3 < 9 and the array is ascending, the target cannot be to the left of index 2. All values at indices 0–1 are even smaller.',
+                        'found': 'Not quite. nums[2]=3 is not equal to target=9. We need to keep searching.'
+                    }
+                }
+            }, {
+                index: 2,
+                label: 'Compare',
+                op: '3 < 9 → right',
+                title: 'Compare and Narrow',
+                desc: 'nums[2]=3 is less than target=9, so we discard the left half. Update left = mid + 1 = 3. The new search range is indices 3 through 5.',
+                codeLine: 8,
+                state: { left: 3, right: 5, mid: 2, 'nums[mid]': 3, comparison: '3 < 9', action: 'search right half' },
+                teachingHTML: '<p><strong>Teaching:</strong> Since 3 &lt; 9, the target must be in the right half. We move left to mid+1=3, effectively discarding indices 0–2. This is the "discard half" step that gives binary search its logarithmic power.</p>',
+                evidence: '<span class="ev-label">Operation:</span> Compare and narrow.<br><span class="ev-label">Target:</span> nums[mid]=3 vs target=9.<br><span class="ev-label">Dependency:</span> nums is sorted ascending.<br><span class="ev-label">Before:</span> left=0, right=5, mid=2.<br><span class="ev-label">After:</span> left=3, right=5, search space halved.',
+                canvasHighlight: { left: 3, right: 5, mid: null, found: null, eliminated: [0, 1, 2] },
+                checkpoint: null
+            }, {
+                index: 3,
+                label: 'Mid 2',
+                op: 'Compute mid',
+                title: 'Second Midpoint',
+                desc: 'Calculate mid = left + ⌊(right − left) / 2⌋ = 3 + ⌊2/2⌋ = 4. The middle element is nums[4] = 9.',
+                codeLine: 4,
+                state: { left: 3, right: 5, mid: 4, 'nums[mid]': 9, target: 9 },
+                teachingHTML: '<p><strong>Teaching:</strong> We compute the new midpoint of the reduced search space [3..5]. mid=4, and nums[4]=9. Now compare with the target.</p>',
+                evidence: '<span class="ev-label">Operation:</span> Compute midpoint.<br><span class="ev-label">Target:</span> Index mid = floor((3+5)/2) = 4.<br><span class="ev-label">Before:</span> left=3, right=5, mid unknown.<br><span class="ev-label">After:</span> mid=4, nums[mid]=9.',
+                canvasHighlight: { left: 3, right: 5, mid: 4, found: null, eliminated: [0, 1, 2] },
+                checkpoint: {
+                    question: 'Compare nums[4]=9 with target=9. What is the result?',
+                    options: [
+                        { text: '9 < 9, so search the left side', value: 'less', correct: false },
+                        { text: '9 > 9, so search the right side', value: 'greater', correct: false },
+                        { text: '9 == 9 — we found the target!', value: 'equal', correct: true }
+                    ],
+                    hint: 'Look carefully: nums[4] is 9 and the target is also 9. What does the equality check tell us?',
+                    correctAnswer: 'equal',
+                    correctFeedback: 'Exactly! nums[4]=9 equals the target. The condition nums[mid] === target is true, so we return mid=4.',
+                    incorrectFeedback: {
+                        'less': 'Check the values again. nums[4]=9 and target=9. Is 9 really less than 9? They are equal.',
+                        'greater': 'Check the values again. nums[4]=9 and target=9. Is 9 really greater than 9? They are equal.'
+                    }
+                }
+            }, {
+                index: 4,
+                label: 'Found',
+                op: 'Return 4',
+                title: 'Target Found!',
+                desc: 'nums[4]=9 equals target=9. We found the target at index 4! The algorithm returns 4.',
+                codeLine: 6,
+                state: { left: 3, right: 5, mid: 4, 'nums[mid]': 9, result: 'found at index 4', returned: 4 },
+                teachingHTML: '<p><strong>Teaching:</strong> 🎯 The target has been found at index 4. Binary search successfully located it in just 2 comparisons — O(log n) time on an array of 6 elements. In the worst case, it would take at most ⌈log₂(6)⌉ = 3 comparisons.</p>',
+                evidence: '<span class="ev-label">Operation:</span> Return result.<br><span class="ev-label">Target:</span> nums[mid]=9 equals target=9.<br><span class="ev-label">Before:</span> Searching range [3..5].<br><span class="ev-label">After:</span> Found at index 4. Return 4.',
+                canvasHighlight: { left: 3, right: 5, mid: 4, found: 4, eliminated: [0, 1, 2] },
+                checkpoint: null
+            }];
+
+            // ──────────────────────────────────────
+            // DOM REFERENCES
+            // ──────────────────────────────────────
+            const $ = (id) => document.getElementById(id);
+            const titleEl = $('title');
+            const subtitleEl = $('subtitle');
+            const topResultEl = $('top-result');
+            const topSolutionEl = $('top-solution');
+            const answerEl = $('answer');
+            const codeEl = $('code');
+            const stepTitleEl = $('step-title');
+            const stepDescEl = $('step-desc');
+            const opEl = $('op');
+            const canvasEl = $('canvas');
+            const pointerLabelsEl = $('pointer-labels');
+            const arrayContainerEl = $('array-container');
+            const prevBtn = $('prev');
+            const playBtn = $('play');
+            const nextBtn = $('next');
+            const rangeEl = $('range');
+            const counterEl = $('counter');
+            const timelineLineEl = $('timeline-line');
+            const teachingEl = $('teaching');
+            const stateEl = $('state');
+            const stepEvidenceEl = $('step-evidence');
+            const logEntriesEl = $('log-entries');
+            const checkpointAreaEl = $('checkpoint-area');
+
+            // ──────────────────────────────────────
+            // STATE
+            // ──────────────────────────────────────
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointState = {}; // per step index: { attempted, correct, selectedValue }
+            // Initialize checkpoint state for steps that have checkpoints
+            steps.forEach((step) => {
+                if (step.checkpoint) {
+                    checkpointState[step.index] = {
+                        attempted: false,
+                        correct: null,
+                        selectedValue: null,
+                        submissionCount: 0
+                    };
+                }
+            });
+
+            // ──────────────────────────────────────
+            // BUILD CANVAS (array visualization)
+            // ──────────────────────────────────────
+            function buildCanvasBase() {
+                // Build pointer labels row
+                let pointerHTML = '';
+                for (let i = 0; i < nums.length; i++) {
+                    pointerHTML +=
+                        `<span class="pointer-label" data-pidx="${i}" data-role="none" style="width:50px;text-align:center;">&nbsp;</span>`;
+                }
+                pointerLabelsEl.innerHTML = pointerHTML;
+
+                // Build array cells
+                let cellsHTML = '';
+                for (let i = 0; i < nums.length; i++) {
+                    cellsHTML += `
+                <div class="array-cell-wrapper" data-idx="${i}">
+                  <div class="array-cell" data-cell="${i}">${nums[i]}</div>
+                  <div class="array-index">${i}</div>
+                </div>`;
+                }
+                arrayContainerEl.innerHTML = cellsHTML;
+            }
+
+            function updateCanvas(highlight) {
+                const { left, right, mid, found, eliminated } = highlight;
+                // Update pointer labels
+                const allPLabels = pointerLabelsEl.querySelectorAll('.pointer-label');
+                allPLabels.forEach(pl => {
+                    pl.classList.remove('visible', 'mid-label', 'left-label', 'right-label', 'found-label');
+                    pl.textContent = '\u00A0';
+                    pl.dataset.role = 'none';
+                });
+                if (left !== null && left !== undefined && left >= 0 && left < nums.length) {
+                    const lpl = pointerLabelsEl.querySelector(`.pointer-label[data-pidx="${left}"]`);
+                    if (lpl) {
+                        lpl.textContent = 'L';
+                        lpl.classList.add('visible', 'left-label');
+                        lpl.dataset.role = 'left';
+                    }
+                }
+                if (right !== null && right !== undefined && right >= 0 && right < nums.length && right !== left) {
+                    const rpl = pointerLabelsEl.querySelector(`.pointer-label[data-pidx="${right}"]`);
+                    if (rpl) {
+                        rpl.textContent = 'R';
+                        rpl.classList.add('visible', 'right-label');
+                        rpl.dataset.role = 'right';
+                    }
+                }
+                if (mid !== null && mid !== undefined && mid >= 0 && mid < nums.length) {
+                    const mpl = pointerLabelsEl.querySelector(`.pointer-label[data-pidx="${mid}"]`);
+                    if (mpl) {
+                        mpl.textContent = 'M';
+                        mpl.classList.add('visible', 'mid-label');
+                        mpl.dataset.role = 'mid';
+                    }
+                }
+                if (found !== null && found !== undefined && found >= 0 && found < nums.length) {
+                    const fpl = pointerLabelsEl.querySelector(`.pointer-label[data-pidx="${found}"]`);
+                    if (fpl) {
+                        fpl.textContent = '✓';
+                        fpl.classList.add('visible', 'found-label');
+                        fpl.dataset.role = 'found';
+                    }
+                }
+
+                // Update cells
+                const allCells = arrayContainerEl.querySelectorAll('.array-cell');
+                const allWrappers = arrayContainerEl.querySelectorAll('.array-cell-wrapper');
+                allCells.forEach(cell => {
+                    const idx = parseInt(cell.dataset.cell);
+                    cell.classList.remove('in-range', 'mid-cell', 'found-cell', 'left-bound', 'right-bound',
+                        'eliminated');
+                });
+                allWrappers.forEach(w => w.classList.remove('popped'));
+
+                // Mark eliminated
+                if (eliminated && eliminated.length > 0) {
+                    eliminated.forEach(i => {
+                        const cell = arrayContainerEl.querySelector(`.array-cell[data-cell="${i}"]`);
+                        if (cell) cell.classList.add('eliminated');
+                    });
+                }
+
+                // Mark in-range (between left and right, not eliminated)
+                if (left !== null && left !== undefined && right !== null && right !== undefined) {
+                    for (let i = left; i <= right; i++) {
+                        if (eliminated && eliminated.includes(i)) continue;
+                        const cell = arrayContainerEl.querySelector(`.array-cell[data-cell="${i}"]`);
+                        if (cell && !cell.classList.contains('eliminated')) {
+                            cell.classList.add('in-range');
+                        }
+                    }
+                }
+
+                // Mark left bound
+                if (left !== null && left !== undefined && left >= 0 && left < nums.length &&
+                    !(eliminated && eliminated.includes(left))) {
+                    const lcell = arrayContainerEl.querySelector(`.array-cell[data-cell="${left}"]`);
+                    if (lcell && !lcell.classList.contains('eliminated')) {
+                        lcell.classList.add('left-bound');
+                    }
+                }
+
+                // Mark right bound
+                if (right !== null && right !== undefined && right >= 0 && right < nums.length && right !== left &&
+                    !(eliminated && eliminated.includes(right))) {
+                    const rcell = arrayContainerEl.querySelector(`.array-cell[data-cell="${right}"]`);
+                    if (rcell && !rcell.classList.contains('eliminated')) {
+                        rcell.classList.add('right-bound');
+                    }
+                }
+
+                // Mark mid
+                if (mid !== null && mid !== undefined && mid >= 0 && mid < nums.length) {
+                    const mcell = arrayContainerEl.querySelector(`.array-cell[data-cell="${mid}"]`);
+                    if (mcell) {
+                        mcell.classList.add('mid-cell');
+                        const mwrapper = mcell.closest('.array-cell-wrapper');
+                        if (mwrapper) mwrapper.classList.add('popped');
+                    }
+                }
+
+                // Mark found
+                if (found !== null && found !== undefined && found >= 0 && found < nums.length) {
+                    const fcell = arrayContainerEl.querySelector(`.array-cell[data-cell="${found}"]`);
+                    if (fcell) {
+                        fcell.classList.remove('mid-cell');
+                        fcell.classList.add('found-cell');
+                        const fwrapper = fcell.closest('.array-cell-wrapper');
+                        if (fwrapper) fwrapper.classList.add('popped');
+                    }
+                }
+            }
+
+            // ──────────────────────────────────────
+            // BUILD TIMELINE
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                timelineLineEl.innerHTML = '';
+                steps.forEach((step, i) => {
+                    if (i > 0) {
+                        const connector = document.createElement('span');
+                        connector.className = 'tick-connector';
+                        connector.dataset.connector = i;
+                        timelineLineEl.appendChild(connector);
+                    }
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.dataset.stepIndex = i;
+                    tick.innerHTML = `
+                <span class="tick-dot"></span>
+                <span class="tick-label">${step.label}</span>
+                <span class="tick-op">${step.op}</span>`;
+                    tick.addEventListener('click', () => {
+                        setStep(i);
+                        stopPlay();
+                    });
+                    timelineLineEl.appendChild(tick);
+                });
+            }
+
+            function updateTimeline() {
+                const allTicks = timelineLineEl.querySelectorAll('.tick');
+                const allConnectors = timelineLineEl.querySelectorAll('.tick-connector');
+                allTicks.forEach((tick, i) => {
+                    tick.classList.remove('active', 'visited');
+                    if (i < currentStepIndex) tick.classList.add('visited');
+                    if (i === currentStepIndex) tick.classList.add('active');
+                });
+                allConnectors.forEach(conn => {
+                    const ci = parseInt(conn.dataset.connector);
+                    conn.classList.toggle('visited', ci <= currentStepIndex);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // BUILD CHECKPOINT UI
+            // ──────────────────────────────────────
+            function buildCheckpointUI(step) {
+                const cp = step.checkpoint;
+                if (!cp) {
+                    checkpointAreaEl.style.display = 'none';
+                    checkpointAreaEl.innerHTML = '';
+                    return;
+                }
+                checkpointAreaEl.style.display = 'block';
+                const cs = checkpointState[step.index] || { attempted: false, correct: null, selectedValue: null,
+                    submissionCount: 0 };
+
+                let optionsHTML = cp.options.map((opt, oi) => {
+                    const selClass = (cs.selectedValue === opt.value) ? ' selected' : '';
+                    return `<button class="checkpoint-option${selClass}" data-opt-value="${opt.value}" data-opt-index="${oi}">${opt.text}</button>`;
+                }).join('');
+
+                checkpointAreaEl.innerHTML = `
+              <div class="checkpoint-prompt">🧠 Checkpoint: ${cp.question}</div>
+              <div class="checkpoint-options" id="cp-options">${optionsHTML}</div>
+              <div class="checkpoint-buttons">
+                <button class="btn btn-submit" id="cp-submit" disabled>Submit Answer</button>
+                <button class="btn btn-hint" id="cp-hint">💡 Hint</button>
+                <button class="btn btn-show" id="cp-show">👁 Show Answer</button>
+              </div>
+              <div class="feedback-area" id="cp-feedback"></div>`;
+
+                // Wire up option selection
+                const optButtons = checkpointAreaEl.querySelectorAll('.checkpoint-option');
+                const submitBtn = checkpointAreaEl.querySelector('#cp-submit');
+                const hintBtn = checkpointAreaEl.querySelector('#cp-hint');
+                const showBtn = checkpointAreaEl.querySelector('#cp-show');
+                const feedbackEl = checkpointAreaEl.querySelector('#cp-feedback');
+                let selectedValue = cs.selectedValue;
+
+                // Restore feedback if already attempted
+                if (cs.attempted && cs.correct === true) {
+                    feedbackEl.textContent = '✅ ' + cp.correctFeedback;
+                    feedbackEl.className = 'feedback-area feedback-correct';
+                    submitBtn.disabled = true;
+                    // Highlight correct option
+                    optButtons.forEach(ob => {
+                        if (ob.dataset.optValue === cp.correctAnswer) {
+                            ob.classList.add('correct-flash');
+                        }
+                    });
+                } else if (cs.attempted && cs.correct === false && cs.selectedValue) {
+                    const fb = cp.incorrectFeedback[cs.selectedValue] || 'That was not correct.';
+                    feedbackEl.textContent = '❌ ' + fb;
+                    feedbackEl.className = 'feedback-area feedback-incorrect';
+                    // Highlight the wrong option
+                    optButtons.forEach(ob => {
+                        if (ob.dataset.optValue === cs.selectedValue) {
+                            ob.classList.add('incorrect-flash');
+                        }
+                    });
+                }
+
+                optButtons.forEach(ob => {
+                    ob.addEventListener('click', () => {
+                        if (cs.attempted && cs.correct === true) return; // locked after correct
+                        optButtons.forEach(o => o.classList.remove('selected'));
+                        ob.classList.add('selected');
+                        selectedValue = ob.dataset.optValue;
+                        submitBtn.disabled = false;
+                        // Clear old feedback
+                        feedbackEl.textContent = '';
+                        feedbackEl.className = 'feedback-area';
+                        optButtons.forEach(o => {
+                            o.classList.remove('correct-flash',
+                            'incorrect-flash');
+                        });
+                    });
+                });
+
+                submitBtn.addEventListener('click', () => {
+                    if (!selectedValue) return;
+                    const isCorrect = (selectedValue === cp.correctAnswer);
+                    checkpointState[step.index] = {
+                        attempted: true,
+                        correct: isCorrect,
+                        selectedValue: selectedValue,
+                        submissionCount: (cs.submissionCount || 0) + 1
+                    };
+                    const updatedCs = checkpointState[step.index];
+
+                    // Flash the selected option
+                    optButtons.forEach(o => o.classList.remove('correct-flash', 'incorrect-flash'));
+                    const chosenBtn = checkpointAreaEl.querySelector(`.checkpoint-option[data-opt-value="${selectedValue}"]`);
+                    if (chosenBtn) {
+                        chosenBtn.classList.add(isCorrect ? 'correct-flash' : 'incorrect-flash');
+                    }
+
+                    // Show feedback
+                    if (isCorrect) {
+                        feedbackEl.textContent = '✅ ' + cp.correctFeedback;
+                        feedbackEl.className = 'feedback-area feedback-correct';
+                        submitBtn.disabled = true;
+                        // Also highlight the correct answer
+                        const correctBtn = checkpointAreaEl.querySelector(
+                            `.checkpoint-option[data-opt-value="${cp.correctAnswer}"]`);
+                        if (correctBtn && correctBtn !== chosenBtn) {
+                            correctBtn.classList.add('correct-flash');
+                        }
+                    } else {
+                        const fb = cp.incorrectFeedback[selectedValue] || 'That was not correct. Try again.';
+                        feedbackEl.textContent = '❌ ' + fb;
+                        feedbackEl.className = 'feedback-area feedback-incorrect';
+                    }
+
+                    // Append to learning log
+                    appendLogEntry(step, selectedValue, isCorrect, updatedCs.submissionCount);
+
+                    // If correct, lock selection
+                    if (isCorrect) {
+                        optButtons.forEach(o => o.style.pointerEvents = 'none');
+                    }
+                });
+
+                hintBtn.addEventListener('click', () => {
+                    feedbackEl.textContent = '💡 Hint: ' + cp.hint;
+                    feedbackEl.className = 'feedback-area';
+                    feedbackEl.style.color = '#92400e';
+                    feedbackEl.style.background = '#fffbeb';
+                });
+
+                showBtn.addEventListener('click', () => {
+                    // Reveal correct answer
+                    optButtons.forEach(o => {
+                        o.classList.remove('selected', 'correct-flash', 'incorrect-flash');
+                        if (o.dataset.optValue === cp.correctAnswer) {
+                            o.classList.add('correct-flash');
+                        }
+                    });
+                    feedbackEl.textContent = '👁 Answer: ' + cp.correctFeedback;
+                    feedbackEl.className = 'feedback-area feedback-correct';
+                    submitBtn.disabled = true;
+                    // Mark as shown
+                    if (!checkpointState[step.index] || !checkpointState[step.index].attempted || checkpointState[
+                            step.index].correct !== true) {
+                        checkpointState[step.index] = {
+                            attempted: true,
+                            correct: null,
+                            selectedValue: null,
+                            submissionCount: (checkpointState[step.index]?.submissionCount || 0),
+                            shown: true
+                        };
+                        appendLogEntry(step, '(shown by learner)', null,
+                            checkpointState[step.index].submissionCount);
+                    }
+                    optButtons.forEach(o => o.style.pointerEvents = 'none');
+                });
+
+                // If already correct, lock
+                if (cs.attempted && cs.correct === true) {
+                    optButtons.forEach(o => o.style.pointerEvents = 'none');
+                    submitBtn.disabled = true;
+                }
+            }
+
+            function appendLogEntry(step, selectedValue, isCorrect, submissionCount) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry';
+                if (isCorrect === true) entryDiv.classList.add('correct');
+                else if (isCorrect === false) entryDiv.classList.add('incorrect');
+                else entryDiv.classList.add('skipped');
+
+                const answerText = (selectedValue === '(shown by learner)') ? 'Viewed answer' :
+                    `Answered: "${selectedValue}"`;
+                const resultText = (isCorrect === true) ? '✅ Correct' : (isCorrect === false) ? '❌ Incorrect' :
+                    '👁 Revealed';
+                entryDiv.innerHTML =
+                    `<span class="log-time">${timeStr}</span> — Step "${step.label}": ${answerText} — ${resultText} (attempt #${submissionCount || 1})`;
+                logEntriesEl.appendChild(entryDiv);
+                logEntriesEl.scrollTop = logEntriesEl.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // UPDATE ALL UI FOR CURRENT STEP
+            // ──────────────────────────────────────
+            function updateAllUI() {
+                const step = steps[currentStepIndex];
+                const totalSteps = steps.length;
+
+                // Step title, desc, op
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                opEl.textContent = step.op;
+
+                // Counter
+                counterEl.textContent = `${currentStepIndex + 1} / ${totalSteps}`;
+
+                // Range slider
+                rangeEl.value = currentStepIndex + 1;
+                rangeEl.max = totalSteps;
+
+                // State JSON
+                stateEl.textContent = JSON.stringify(step.state, null, 2);
+
+                // Teaching
+                teachingEl.innerHTML = step.teachingHTML;
+                // Re-attach checkpoint area
+                const cpArea = teachingEl.querySelector('.checkpoint-area');
+                if (cpArea && cpArea.id === 'checkpoint-area') {
+                    // checkpoint area is inside teaching, update its reference
+                }
+                // Actually, we need to rebuild the checkpoint area reference
+                // Since teachingEl.innerHTML overwrites, we need to re-insert checkpointAreaEl
+                const existingCp = teachingEl.querySelector('#checkpoint-area');
+                if (!existingCp && checkpointAreaEl) {
+                    teachingEl.appendChild(checkpointAreaEl);
+                }
+                // Ensure checkpointAreaEl is in the teaching div
+                if (checkpointAreaEl && checkpointAreaEl.parentElement !== teachingEl) {
+                    teachingEl.appendChild(checkpointAreaEl);
+                }
+
+                // Build checkpoint UI
+                buildCheckpointUI(step);
+
+                // Step evidence
+                stepEvidenceEl.innerHTML = step.evidence;
+
+                // Code highlighting
+                const allCodeLines = codeEl.querySelectorAll('.code-line');
+                allCodeLines.forEach(cl => {
+                    cl.classList.remove('active', 'visited');
+                    const lineNum = parseInt(cl.dataset.line);
+                    if (lineNum === step.codeLine) {
+                        cl.classList.add('active');
+                    } else if (lineNum < step.codeLine && currentStepIndex > 0) {
+                        // Mark lines that have been executed in previous steps
+                    }
+                });
+                // Mark visited lines up to current step's code line
+                const visitedLines = new Set();
+                for (let si = 0; si <= currentStepIndex; si++) {
+                    visitedLines.add(steps[si].codeLine);
+                }
+                allCodeLines.forEach(cl => {
+                    const lineNum = parseInt(cl.dataset.line);
+                    if (visitedLines.has(lineNum) && lineNum !== step.codeLine) {
+                        cl.classList.add('visited');
+                    }
+                });
+
+                // Canvas
+                updateCanvas(step.canvasHighlight);
+
+                // Timeline
+                updateTimeline();
+
+                // Buttons
+                prevBtn.disabled = (currentStepIndex === 0);
+                nextBtn.disabled = (currentStepIndex >= totalSteps - 1);
+            }
+
+            function setStep(index) {
+                if (index < 0 || index >= steps.length) return;
+                currentStepIndex = index;
+                updateAllUI();
+            }
+
+            // ──────────────────────────────────────
+            // PLAY / PAUSE
+            // ──────────────────────────────────────
+            function startPlay() {
+                if (playInterval) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸ Pause';
+                playBtn.classList.add('paused');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < steps.length - 1) {
+                        setStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                playBtn.classList.remove('paused');
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // EVENT LISTENERS
+            // ──────────────────────────────────────
+            prevBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) setStep(currentStepIndex - 1);
+            });
+
+            nextBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < steps.length - 1) setStep(currentStepIndex + 1);
+            });
+
+            playBtn.addEventListener('click', togglePlay);
+
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                setStep(val - 1);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex < steps.length - 1) setStep(currentStepIndex + 1);
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex > 0) setStep(currentStepIndex - 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // INITIALIZATION
+            // ──────────────────────────────────────
+            function init() {
+                // Set answer
+                answerEl.textContent = '4';
+
+                // Build canvas base structure
+                buildCanvasBase();
+
+                // Build timeline
+                buildTimeline();
+
+                // Move checkpoint area into teaching
+                if (checkpointAreaEl && checkpointAreaEl.parentElement !== teachingEl) {
+                    teachingEl.appendChild(checkpointAreaEl);
+                }
+
+                // Set initial step
+                setStep(0);
+
+                // Ensure counter shows 1 / N
+                counterEl.textContent = `1 / ${steps.length}`;
+                rangeEl.max = steps.length;
+                rangeEl.value = 1;
+            }
+
+            init();
+
+            console.log('Binary Search tutoring page initialized. Explore the steps using Next/Prev, the timeline, or the range slider. Use Space to play/pause.');
+        })();
+    </script>
+</body>
+</html>

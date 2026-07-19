@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijkstra Shortest Path - Algorithm Tutor</title>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --surface: #ffffff;
+            --border: #dde1e6;
+            --text: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --accent: #3b7ddd;
+            --accent-light: #e8f0fe;
+            --success: #2e8b57;
+            --success-light: #e6f4ec;
+            --warning: #e89b3c;
+            --warning-light: #fef7ed;
+            --danger: #c0392b;
+            --danger-light: #fdedec;
+            --visited: #4caf84;
+            --current: #4a90d9;
+            --dependent: #f0a050;
+            --unvisited: #d5dbe3;
+            --code-highlight: #fef9e7;
+            --timeline-active: #3b7ddd;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 3px 10px rgba(0, 0, 0, 0.1);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --font-sans: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .page-container {
+            max-width: 1300px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow-sm);
+        }
+        #title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #1a3a5c;
+            margin: 0 0 2px;
+            letter-spacing: -0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin: 0;
+        }
+
+        /* Top result & solution */
+        .top-info {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .top-card {
+            flex: 1;
+            min-width: 240px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow-sm);
+        }
+        .top-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin: 0 0 6px;
+            font-weight: 600;
+        }
+        #top-result {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            background: #f9fafb;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            word-break: break-all;
+            color: #1a3a5c;
+            border: 1px solid #eef1f5;
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 1100px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel h3 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.55;
+            background: #fcfdfe;
+            border: 1px solid #eef1f5;
+            border-radius: var(--radius-sm);
+            padding: 10px 0;
+            overflow-x: auto;
+            white-space: pre;
+            counter-reset: codeline;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .code-line {
+            display: flex;
+            align-items: flex-start;
+            padding: 2px 14px 2px 8px;
+            transition: background var(--transition);
+            border-left: 3px solid transparent;
+            cursor: default;
+            min-height: 22px;
+        }
+        .code-line .line-num {
+            color: #b0b8c1;
+            min-width: 32px;
+            text-align: right;
+            margin-right: 10px;
+            user-select: none;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+        .code-line .line-text {
+            flex: 1;
+            white-space: pre;
+        }
+        .code-line.highlight {
+            background: var(--code-highlight);
+            border-left-color: #f0c040;
+        }
+        .code-line.highlight-active {
+            background: #fff3cd;
+            border-left-color: #e8a820;
+            font-weight: 600;
+        }
+
+        /* Canvas panel */
+        #canvas {
+            position: relative;
+            min-height: 340px;
+            background: #fcfdfe;
+            border: 1px solid #eef1f5;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .graph-svg {
+            width: 100%;
+            height: 100%;
+            min-height: 320px;
+        }
+        .node-overlay {
+            position: absolute;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all var(--transition);
+            border: 3px solid transparent;
+            text-align: center;
+            line-height: 1.1;
+        }
+        .node-overlay .node-dist {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #555;
+            margin-top: 1px;
+        }
+        .node-overlay.unvisited {
+            background: #eef1f5;
+            border-color: #ccd4dd;
+            color: #7a8594;
+        }
+        .node-overlay.visited {
+            background: #d5f0e3;
+            border-color: #4caf84;
+            color: #1e5c3a;
+        }
+        .node-overlay.current {
+            background: #dceaf9;
+            border-color: #4a90d9;
+            color: #1a3d6e;
+            box-shadow: 0 0 0 6px rgba(74, 144, 217, 0.18);
+            animation: pulse-current 1.6s ease-in-out infinite;
+        }
+        .node-overlay.dependent {
+            background: #fef0e0;
+            border-color: #f0a050;
+            color: #7a4a20;
+        }
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(74, 144, 217, 0.05);
+            }
+        }
+        .heap-display {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            background: #fffef9;
+            border: 1px solid #e5dcc0;
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: #6b5e30;
+            pointer-events: none;
+            box-shadow: var(--shadow-sm);
+        }
+        .heap-display span {
+            font-weight: 600;
+            display: block;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #a09050;
+            margin-bottom: 2px;
+        }
+
+        /* State panel */
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #f9fafb;
+            border: 1px solid #eef1f5;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 180px;
+            overflow-y: auto;
+            color: #2c3e50;
+        }
+
+        /* Teaching & evidence */
+        #teaching {
+            font-size: 0.88rem;
+            color: #3d4f5f;
+            line-height: 1.55;
+            background: #fafcfd;
+            border: 1px solid #eef3f7;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            min-height: 40px;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #5a6c7d;
+            background: #f8fafb;
+            border: 1px solid #eef2f5;
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            line-height: 1.45;
+            min-height: 36px;
+        }
+
+        /* Checkpoint area */
+        #checkpoint-area {
+            background: #fffef8;
+            border: 2px solid #e5d890;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        #checkpoint-area.active {
+            display: flex;
+        }
+        #checkpoint-area .cp-prompt {
+            font-weight: 600;
+            color: #5a4a20;
+            font-size: 0.9rem;
+        }
+        #checkpoint-area .cp-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #checkpoint-area input[type="text"] {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px 10px;
+            border: 2px solid #d5ccb0;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            background: #fffef9;
+            transition: border var(--transition);
+        }
+        #checkpoint-area input[type="text"]:focus {
+            outline: none;
+            border-color: #c0a840;
+            box-shadow: 0 0 0 3px rgba(200, 170, 60, 0.1);
+        }
+        #checkpoint-area button {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #d5ccb0;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all var(--transition);
+            background: #fffef7;
+            color: #5a4a20;
+            white-space: nowrap;
+        }
+        #checkpoint-area button:hover {
+            background: #fef9e0;
+            border-color: #c0a040;
+        }
+        #checkpoint-area button.cp-submit {
+            background: #4a90d9;
+            color: #fff;
+            border-color: #3b7dc8;
+        }
+        #checkpoint-area button.cp-submit:hover {
+            background: #3b7dc8;
+        }
+        #checkpoint-area button.cp-show {
+            background: #f5f0e0;
+            color: #6b5020;
+            border-color: #d5c090;
+        }
+        #cp-feedback {
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            display: none;
+        }
+        #cp-feedback.correct {
+            display: block;
+            background: #e6f4ec;
+            color: #1e5c3a;
+            border: 1px solid #b8dcc8;
+        }
+        #cp-feedback.incorrect {
+            display: block;
+            background: #fdedec;
+            color: #8b2114;
+            border: 1px solid #f0c4bc;
+        }
+        #cp-feedback.revealed {
+            display: block;
+            background: #e8f0fe;
+            color: #1a3d6e;
+            border: 1px solid #b8cfe8;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-bar button {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all var(--transition);
+            background: #fff;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .nav-bar button:hover {
+            background: #f5f7fa;
+            border-color: #bcc4d0;
+        }
+        .nav-bar button:active {
+            background: #e8ecf2;
+        }
+        .nav-bar button.active-play {
+            background: #4caf84;
+            color: #fff;
+            border-color: #3a9d6e;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1a3a5c;
+            min-width: 60px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1a3a5c;
+            margin: 0;
+            flex-basis: 100%;
+            text-align: center;
+        }
+        #step-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            flex-basis: 100%;
+            text-align: center;
+            margin: -6px 0 0;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: #fff;
+            background: #5a6c7d;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 4px 0;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            cursor: pointer;
+            background: #fff;
+            transition: all var(--transition);
+            min-width: 70px;
+            text-align: center;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            border-color: #b0bcc8;
+            background: #f9fafb;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: #e8f0fe;
+            box-shadow: 0 0 0 3px rgba(59, 125, 221, 0.12);
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #3d4f5f;
+        }
+        .tick.active .tick-label {
+            color: #1a3a5c;
+        }
+        .tick-op {
+            font-size: 0.68rem;
+            color: #7a8594;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .tick.active .tick-op {
+            color: #3b7ddd;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow-sm);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #learning-log h3 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin: 0 0 8px;
+            font-weight: 600;
+        }
+        .log-entry {
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            margin: 4px 0;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid #d5dbe3;
+            background: #fafbfc;
+            line-height: 1.4;
+        }
+        .log-entry.correct-entry {
+            border-left-color: #4caf84;
+            background: #f6fdf9;
+        }
+        .log-entry.incorrect-entry {
+            border-left-color: #e07060;
+            background: #fefaf9;
+        }
+        .log-entry .log-time {
+            font-size: 0.68rem;
+            color: #999;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #f0f7f3;
+            border: 2px solid #4caf84;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            color: #1e5c3a;
+            font-weight: 600;
+            text-align: center;
+            word-break: break-all;
+        }
+        .answer-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .answer-section h3 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Edge label styling in SVG */
+        .edge-weight {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            fill: #5a6c7d;
+            font-weight: 600;
+        }
+        .edge-line {
+            stroke: #bcc4d0;
+            stroke-width: 2.2;
+            fill: none;
+            transition: stroke var(--transition), stroke-width var(--transition);
+        }
+        .edge-line.relaxed {
+            stroke: #f0a050;
+            stroke-width: 3;
+        }
+        .edge-line.updated {
+            stroke: #4caf84;
+            stroke-width: 3.2;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header">
+            <h1 id="title">Dijkstra Shortest Path</h1>
+            <p id="subtitle">Emergency dispatch: Find shortest travel times from the starting intersection to all reachable intersections using a min-heap priority queue.</p>
+        </div>
+
+        <!-- Top info -->
+        <div class="top-info">
+            <div class="top-card">
+                <h3>Expected Output</h3>
+                <div id="top-result">{"A": 0, "B": 2, "C": 3}</div>
+            </div>
+            <div class="top-card">
+                <h3>Solution Approach</h3>
+                <div id="top-solution">Use Dijkstra's algorithm with a min-heap. Start at A (distance 0). Relax edges A→B (weight 2) and A→C (weight 5). Then process B to find the shorter path A→B→C with total distance 3, beating the direct A→C path.</div>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left: Code -->
+            <div class="panel">
+                <h3>Algorithm Code</h3>
+                <div id="code"></div>
+            </div>
+            <!-- Center: Canvas -->
+            <div class="panel">
+                <h3>Graph &amp; State Visualization</h3>
+                <div id="canvas">
+                    <svg class="graph-svg" viewBox="0 0 400 310" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#bcc4d0" />
+                            </marker>
+                            <marker id="arrowhead-relaxed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#f0a050" />
+                            </marker>
+                            <marker id="arrowhead-updated" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#4caf84" />
+                            </marker>
+                        </defs>
+                        <!-- Edge A->B -->
+                        <path id="edge-AB" class="edge-line" d="M 175 62 L 90 200" marker-end="url(#arrowhead)" />
+                        <text x="118" y="120" class="edge-weight" id="edge-weight-AB">2</text>
+                        <!-- Edge A->C -->
+                        <path id="edge-AC" class="edge-line" d="M 225 62 L 310 200" marker-end="url(#arrowhead)" />
+                        <text x="275" y="120" class="edge-weight" id="edge-weight-AC">5</text>
+                        <!-- Edge B->C -->
+                        <path id="edge-BC" class="edge-line" d="M 128 232 L 272 232" marker-end="url(#arrowhead)" />
+                        <text x="190" y="222" class="edge-weight" id="edge-weight-BC">1</text>
+                    </svg>
+                    <!-- Node overlays -->
+                    <div class="node-overlay unvisited" id="node-A" style="top:28px;left:172px;">A<span class="node-dist">dist: 0</span></div>
+                    <div class="node-overlay unvisited" id="node-B" style="top:195px;left:55px;">B<span class="node-dist">dist: ∞</span></div>
+                    <div class="node-overlay unvisited" id="node-C" style="top:195px;left:289px;">C<span class="node-dist">dist: ∞</span></div>
+                    <!-- Heap display -->
+                    <div class="heap-display" id="heap-overlay"><span>Min-Heap</span>[(0, A)]</div>
+                </div>
+            </div>
+            <!-- Right: State + Teaching -->
+            <div class="panel">
+                <h3>Current State (JSON)</h3>
+                <div id="state"></div>
+                <h3>Teaching Explanation</h3>
+                <div id="teaching"></div>
+                <h3>Step Evidence</h3>
+                <div id="step-evidence"></div>
+                <!-- Checkpoint area -->
+                <div id="checkpoint-area">
+                    <div class="cp-prompt" id="cp-prompt"></div>
+                    <div class="cp-row">
+                        <input type="text" id="cp-input" placeholder="Type your answer..." aria-label="Checkpoint answer input">
+                        <button class="cp-submit" id="cp-submit">Submit</button>
+                        <button id="cp-hint">Hint</button>
+                        <button class="cp-show" id="cp-show">Show Answer</button>
+                    </div>
+                    <div id="cp-feedback"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step info bar -->
+        <div class="nav-bar" style="flex-wrap:wrap;gap:6px;">
+            <span id="op">INIT</span>
+            <strong id="step-title">Initialize Distances</strong>
+            <span id="step-desc" style="flex-basis:100%;">Setting up the distance map and priority queue.</span>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-bar">
+            <button id="prev" aria-label="Previous step">◀ Prev</button>
+            <button id="play" aria-label="Play or pause auto-advance">▶ Play</button>
+            <button id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="5" value="1" aria-label="Step slider">
+            <span id="counter">1 / 5</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline"></div>
+
+        <!-- Learning log -->
+        <div id="learning-log">
+            <h3>Learning Log</h3>
+            <div id="log-entries">No submissions yet. Answer checkpoint questions to build your learning log.</div>
+        </div>
+
+        <!-- Answer section -->
+        <div class="answer-section">
+            <h3>Final Answer:</h3>
+            <span id="answer">{"A": 0, "B": 2, "C": 3}</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step definitions
+            // ──────────────────────────────────────
+            const steps = [{
+                id: 1,
+                title: "Initialize Distances",
+                desc: "Set distance to start node A as 0, all other nodes as infinity. Initialize the min-heap with (0, A).",
+                op: "INIT",
+                highlightLines: [1, 2, 3, 4, 5, 6, 7],
+                state: { dist: { A: 0, B: "Infinity", C: "Infinity" }, heap: [
+                        [0, "A"]
+                    ], visited: [] },
+                teaching: "Dijkstra's algorithm starts by setting the distance to the source node as 0 and all other nodes as infinity. A min-heap (priority queue) is initialized with the source node to efficiently retrieve the node with the smallest tentative distance at each iteration.",
+                evidence: "Operation: Initialize. Targets: All nodes. Dependencies: None. Before: No distances set. After: dist[A]=0, dist[B]=∞, dist[C]=∞. Heap: [(0, A)]. Visited: empty.",
+                nodeStatus: { A: "current", B: "unvisited", C: "unvisited" },
+                edgeStyles: { AB: "default", AC: "default", BC: "default" },
+                heapText: "[(0, A)]",
+                checkpoint: null
+            }, {
+                id: 2,
+                title: "Process Node A & Relax Edges",
+                desc: "Pop A from heap (distance 0). Relax edges A→B (weight 2) and A→C (weight 5). Update distances for B and C.",
+                op: "RELAX A",
+                highlightLines: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+                state: { dist: { A: 0, B: 2, C: 5 }, heap: [
+                        [2, "B"],
+                        [5, "C"]
+                    ], visited: ["A"] },
+                teaching: "Node A is popped from the heap with the smallest distance (0). We relax its outgoing edges: the path A→B gives distance 0+2=2 (which is less than ∞), and A→C gives 0+5=5 (also less than ∞). Both improved distances are pushed to the heap. Notice that C currently shows distance 5—but there might be a shorter path through B.",
+                evidence: "Operation: Relax. Targets: B, C (neighbors of A). Dependencies: dist[A]=0 must be finalized. Before: dist[B]=∞, dist[C]=∞. After: dist[B]=2, dist[C]=5. Pushed (2,B) and (5,C) to heap. Visited: [A].",
+                nodeStatus: { A: "visited", B: "dependent", C: "dependent" },
+                edgeStyles: { AB: "relaxed", AC: "relaxed", BC: "default" },
+                heapText: "[(2, B), (5, C)]",
+                checkpoint: {
+                    prompt: "After processing node A, what is the current distance to node C?",
+                    answer: "5",
+                    hint: "Look at the edge weight from A to C (which is 5). Since distance to A is 0, the path A→C has total distance 0 + 5 = 5.",
+                    showAnswer: "5"
+                }
+            }, {
+                id: 3,
+                title: "Process Node B & Find Shorter Path",
+                desc: "Pop B from heap (distance 2). Relax edge B→C (weight 1). Found a shorter path to C: 2+1=3 < 5!",
+                op: "RELAX B",
+                highlightLines: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+                state: { dist: { A: 0, B: 2, C: 3 }, heap: [
+                        [3, "C"],
+                        [5, "C"]
+                    ], visited: ["A", "B"] },
+                teaching: "Node B is popped with distance 2 (the current minimum in the heap). Its only outgoing edge B→C has weight 1, giving a total path A→B→C of 2+1=3, which is less than the current dist[C]=5. This is the key insight of Dijkstra: a longer initial path can lead to a shorter overall path through intermediate nodes. The distance to C is updated from 5 to 3.",
+                evidence: "Operation: Relax. Target: C (neighbor of B). Dependencies: dist[B]=2 must be finalized. Before: dist[C]=5. After: dist[C]=3 (improved!). Pushed (3,C) to heap. Visited: [A, B]. Heap now has two entries for C: (3,C) and the stale (5,C).",
+                nodeStatus: { A: "visited", B: "current", C: "dependent" },
+                edgeStyles: { AB: "visited", AC: "default", BC: "updated" },
+                heapText: "[(3, C), (5, C)]",
+                checkpoint: {
+                    prompt: "After processing node B and relaxing edge B→C, what is the new distance to node C?",
+                    answer: "3",
+                    hint: "Add the distance to B (which is 2) and the weight of edge B→C (which is 1). Compare this sum (3) with the previous distance to C (5). The smaller value wins.",
+                    showAnswer: "3"
+                }
+            }, {
+                id: 4,
+                title: "Process Node C (First Pop)",
+                desc: "Pop C from heap with distance 3. Node C has no outgoing edges to relax. Mark C as visited.",
+                op: "PROCESS C",
+                highlightLines: [8, 9, 10, 11, 12, 13, 14],
+                state: { dist: { A: 0, B: 2, C: 3 }, heap: [
+                        [5, "C"]
+                    ], visited: ["A", "B", "C"] },
+                teaching: "The heap contained two entries for C: (3, C) and (5, C). The one with distance 3 is popped first since the heap is sorted ascending. C has no outgoing edges to relax. The algorithm marks C as visited. The stale entry (5, C) remains in the heap for now.",
+                evidence: "Operation: Extract-min and process. Target: C. Dependencies: dist[C]=3 is the smallest in the heap. Before: C unvisited, heap had [(3,C),(5,C)]. After: C visited, heap has [(5,C)]. No edges to relax from C.",
+                nodeStatus: { A: "visited", B: "visited", C: "current" },
+                edgeStyles: { AB: "visited", AC: "default", BC: "visited" },
+                heapText: "[(5, C)]  ← stale entry",
+                checkpoint: null
+            }, {
+                id: 5,
+                title: "Skip Stale Entry & Finish",
+                desc: "Pop stale entry (5, C). C is already visited, so skip it. Heap is now empty. Algorithm complete!",
+                op: "FINISH",
+                highlightLines: [8, 9, 10, 11, 19, 20],
+                state: { dist: { A: 0, B: 2, C: 3 }, heap: [], visited: ["A", "B", "C"] },
+                teaching: "The remaining heap entry (5, C) is popped, but C is already in the visited set. This is a stale entry from before the distance update—it is safely skipped. With the heap empty, the algorithm terminates. The final shortest distances are: A=0, B=2, C=3. The path to C is A→B→C with total weight 3.",
+                evidence: "Operation: Skip stale and return. Target: stale (5,C). Dependencies: C already visited. Before: heap=[(5,C)]. After: heap=[], algorithm ends. Returning dist = {A:0, B:2, C:3}.",
+                nodeStatus: { A: "visited", B: "visited", C: "visited" },
+                edgeStyles: { AB: "visited", AC: "default", BC: "visited" },
+                heapText: "[]  (empty)",
+                checkpoint: {
+                    prompt: "What is the final shortest distance from A to C?",
+                    answer: "3",
+                    hint: "Consider the path A→B→C with total weight 2+1=3, compared to the direct path A→C with weight 5. The shorter path wins.",
+                    showAnswer: "3"
+                }
+            }];
+
+            const totalSteps = steps.length;
+            let currentStepIndex = 0;
+            let playInterval = null;
+            let isPlaying = false;
+            let checkpointAnswered = {}; // track which checkpoint steps have been answered
+
+            // ──────────────────────────────────────
+            // Code lines for display
+            // ──────────────────────────────────────
+            const codeLines = [
+                'function dijkstra(weighted_graph, start) {',
+                '  const dist = {};',
+                '  for (let node in weighted_graph) {',
+                '    dist[node] = Infinity;',
+                '  }',
+                '  dist[start] = 0;',
+                '  const heap = [[0, start]];',
+                '  const visited = new Set();',
+                '  while (heap.length > 0) {',
+                '    heap.sort((a, b) => a[0] - b[0]);',
+                '    const [d, u] = heap.shift();',
+                '    if (visited.has(u)) continue;',
+                '    visited.add(u);',
+                '    for (let [v, w] of weighted_graph[u]) {',
+                '      const newDist = d + w;',
+                '      if (newDist < dist[v]) {',
+                '        dist[v] = newDist;',
+                '        heap.push([newDist, v]);',
+                '      }',
+                '    }',
+                '  }',
+                '  return dist;',
+                '}'
+            ];
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $ = (id) => document.getElementById(id);
+            const codeEl = $('code');
+            const canvasEl = $('canvas');
+            const stepTitleEl = $('step-title');
+            const stepDescEl = $('step-desc');
+            const opEl = $('op');
+            const prevBtn = $('prev');
+            const playBtn = $('play');
+            const nextBtn = $('next');
+            const rangeEl = $('range');
+            const counterEl = $('counter');
+            const timelineEl = $('timeline');
+            const teachingEl = $('teaching');
+            const stateEl = $('state');
+            const stepEvidenceEl = $('step-evidence');
+            const answerEl = $('answer');
+            const checkpointArea = $('checkpoint-area');
+            const cpPrompt = $('cp-prompt');
+            const cpInput = $('cp-input');
+            const cpSubmit = $('cp-submit');
+            const cpHint = $('cp-hint');
+            const cpShow = $('cp-show');
+            const cpFeedback = $('cp-feedback');
+            const logEntries = $('log-entries');
+            const heapOverlay = $('heap-overlay');
+            const nodeA = $('node-A');
+            const nodeB = $('node-B');
+            const nodeC = $('node-C');
+
+            // Edge SVG elements
+            const edgeAB = document.getElementById('edge-AB');
+            const edgeAC = document.getElementById('edge-AC');
+            const edgeBC = document.getElementById('edge-BC');
+
+            // ──────────────────────────────────────
+            // Initialize #answer (requirement 11)
+            // ──────────────────────────────────────
+            answerEl.textContent = '{"A": 0, "B": 2, "C": 3}';
+
+            // ──────────────────────────────────────
+            // Build code display
+            // ──────────────────────────────────────
+            function buildCodeDisplay() {
+                codeEl.innerHTML = '';
+                codeLines.forEach((line, idx) => {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.className = 'code-line';
+                    lineDiv.setAttribute('data-line', idx);
+                    const numSpan = document.createElement('span');
+                    numSpan.className = 'line-num';
+                    numSpan.textContent = idx + 1;
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'line-text';
+                    textSpan.textContent = line;
+                    lineDiv.appendChild(numSpan);
+                    lineDiv.appendChild(textSpan);
+                    codeEl.appendChild(lineDiv);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Build timeline
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('type', 'button');
+                    tick.setAttribute('aria-label', 'Go to step ' + (idx + 1) + ': ' + step.op);
+                    tick.addEventListener('click', () => goToStep(idx));
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'tick-label';
+                    labelSpan.textContent = 'Step ' + (idx + 1);
+                    const opSpan = document.createElement('span');
+                    opSpan.className = 'tick-op';
+                    opSpan.textContent = step.op;
+                    tick.appendChild(labelSpan);
+                    tick.appendChild(opSpan);
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Update all UI for the current step
+            // ──────────────────────────────────────
+            function updateUI() {
+                const step = steps[currentStepIndex];
+                const stepNum = currentStepIndex + 1;
+
+                // Counter & range
+                counterEl.textContent = stepNum + ' / ' + totalSteps;
+                rangeEl.value = stepNum;
+                rangeEl.max = totalSteps;
+
+                // Step info
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                opEl.textContent = step.op;
+
+                // Code highlighting
+                const allCodeLines = codeEl.querySelectorAll('.code-line');
+                allCodeLines.forEach(cl => {
+                    cl.classList.remove('highlight', 'highlight-active');
+                });
+                if (step.highlightLines && step.highlightLines.length > 0) {
+                    step.highlightLines.forEach(lineNum => {
+                        const lineIdx = lineNum - 1;
+                        const el = codeEl.querySelector(`.code-line[data-line="${lineIdx}"]`);
+                        if (el) {
+                            el.classList.add('highlight');
+                        }
+                    });
+                    // Make the "most active" line extra highlighted (the middle of the range)
+                    const activeLineIdx = step.highlightLines[Math.floor(step.highlightLines.length / 2)] -
+                        1;
+                    const activeEl = codeEl.querySelector(`.code-line[data-line="${activeLineIdx}"]`);
+                    if (activeEl) {
+                        activeEl.classList.add('highlight-active');
+                    }
+                }
+
+                // Teaching & evidence
+                teachingEl.textContent = step.teaching;
+                stepEvidenceEl.textContent = step.evidence;
+
+                // State JSON
+                stateEl.textContent = JSON.stringify(step.state, null, 2);
+
+                // Node statuses
+                updateNodeVisuals(step);
+
+                // Edge styles
+                updateEdgeStyles(step);
+
+                // Heap overlay
+                heapOverlay.innerHTML = '<span>Min-Heap</span>' + step.heapText;
+
+                // Timeline ticks
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.toggle('active', i === currentStepIndex);
+                });
+
+                // Checkpoint
+                updateCheckpointUI(step);
+
+                // Scroll code to highlighted area
+                const firstHL = codeEl.querySelector('.code-line.highlight');
+                if (firstHL) {
+                    firstHL.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            function updateNodeVisuals(step) {
+                const nodes = { A: nodeA, B: nodeB, C: nodeC };
+                const distMap = step.state.dist;
+                for (const [nodeName, status] of Object.entries(step.nodeStatus)) {
+                    const el = nodes[nodeName];
+                    if (!el) continue;
+                    // Remove all status classes
+                    el.classList.remove('unvisited', 'visited', 'current', 'dependent');
+                    el.classList.add(status);
+                    // Update distance label
+                    const distSpan = el.querySelector('.node-dist');
+                    if (distSpan) {
+                        const dVal = distMap[nodeName];
+                        const displayVal = (dVal === "Infinity" || dVal === Infinity) ? '∞' : dVal;
+                        distSpan.textContent = 'dist: ' + displayVal;
+                    }
+                }
+            }
+
+            function updateEdgeStyles(step) {
+                const edgeMap = { AB: edgeAB, AC: edgeAC, BC: edgeBC };
+                const markerMap = {
+                    default: 'url(#arrowhead)',
+                    relaxed: 'url(#arrowhead-relaxed)',
+                    updated: 'url(#arrowhead-updated)',
+                    visited: 'url(#arrowhead)'
+                };
+                for (const [edgeKey, style] of Object.entries(step.edgeStyles)) {
+                    const el = edgeMap[edgeKey];
+                    if (!el) continue;
+                    el.classList.remove('relaxed', 'updated');
+                    if (style === 'relaxed') el.classList.add('relaxed');
+                    if (style === 'updated') el.classList.add('updated');
+                    if (style === 'visited') {
+                        el.classList.remove('relaxed', 'updated');
+                        el.style.stroke = '#4caf84';
+                        el.style.strokeWidth = '2.5';
+                        el.setAttribute('marker-end', 'url(#arrowhead)');
+                    } else if (style === 'relaxed') {
+                        el.style.stroke = '#f0a050';
+                        el.style.strokeWidth = '3';
+                        el.setAttribute('marker-end', markerMap['relaxed']);
+                    } else if (style === 'updated') {
+                        el.style.stroke = '#4caf84';
+                        el.style.strokeWidth = '3.2';
+                        el.setAttribute('marker-end', markerMap['updated']);
+                    } else {
+                        el.style.stroke = '#bcc4d0';
+                        el.style.strokeWidth = '2.2';
+                        el.setAttribute('marker-end', markerMap['default']);
+                    }
+                }
+            }
+
+            function updateCheckpointUI(step) {
+                if (step.checkpoint) {
+                    checkpointArea.classList.add('active');
+                    cpPrompt.textContent = '🔍 Checkpoint: ' + step.checkpoint.prompt;
+                    cpInput.value = '';
+                    cpFeedback.textContent = '';
+                    cpFeedback.className = '';
+                    cpFeedback.style.display = 'none';
+                    cpInput.disabled = false;
+                    cpSubmit.disabled = false;
+                    // If already answered in this session, show a subtle indicator
+                    if (checkpointAnswered[currentStepIndex]) {
+                        cpFeedback.textContent = '✓ You previously answered this checkpoint correctly.';
+                        cpFeedback.className = 'correct';
+                        cpFeedback.style.display = 'block';
+                    }
+                } else {
+                    checkpointArea.classList.remove('active');
+                    cpFeedback.style.display = 'none';
+                    cpFeedback.className = '';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                updateUI();
+            }
+
+            function nextStep() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸ Pause';
+                playBtn.classList.add('active-play');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        nextStep();
+                    } else {
+                        stopPlay();
+                    }
+                }, 2500);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                playBtn.classList.remove('active-play');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint handling
+            // ──────────────────────────────────────
+            function appendLogEntry(question, userAnswer, isCorrect, feedbackText) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + (isCorrect ? 'correct-entry' : 'incorrect-entry');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const icon = isCorrect ? '✓ Correct' : '✗ Incorrect';
+                entry.innerHTML =
+                    '<span class="log-time">' + timeStr + '</span> <strong>' + icon + '</strong><br>Question: ' +
+                    question + '<br>Your answer: <code>' + userAnswer +
+                    '</code><br>Feedback: ' + feedbackText;
+                // Remove placeholder if present
+                if (logEntries.querySelector(':scope') && logEntries.textContent.includes(
+                        'No submissions yet')) {
+                    logEntries.innerHTML = '';
+                }
+                logEntries.appendChild(entry);
+                logEntries.scrollTop = logEntries.scrollHeight;
+            }
+
+            function handleCheckpointSubmit() {
+                const step = steps[currentStepIndex];
+                if (!step.checkpoint) return;
+
+                const userAnswer = cpInput.value.trim();
+                if (userAnswer === '') {
+                    cpFeedback.textContent = 'Please type an answer before submitting.';
+                    cpFeedback.className = 'incorrect';
+                    cpFeedback.style.display = 'block';
+                    return;
+                }
+
+                const correctAnswer = step.checkpoint.answer;
+                const isCorrect = (userAnswer === correctAnswer);
+
+                if (isCorrect) {
+                    cpFeedback.textContent =
+                        '✓ Correct! The answer is ' + correctAnswer + '. ' + getCorrectExplanation(
+                            currentStepIndex);
+                    cpFeedback.className = 'correct';
+                    cpFeedback.style.display = 'block';
+                    checkpointAnswered[currentStepIndex] = true;
+                    cpInput.disabled = true;
+                    cpSubmit.disabled = true;
+                } else {
+                    cpFeedback.textContent =
+                        '✗ Incorrect. Your answer was "' + userAnswer +
+                        '". Review the current state and try again. Hint: ' + step.checkpoint.hint;
+                    cpFeedback.className = 'incorrect';
+                    cpFeedback.style.display = 'block';
+                }
+
+                appendLogEntry(step.checkpoint.prompt, userAnswer, isCorrect, cpFeedback.textContent);
+            }
+
+            function getCorrectExplanation(stepIdx) {
+                if (stepIdx === 1) return 'The direct edge A→C has weight 5, and since A has distance 0, the tentative distance to C is 5.';
+                if (stepIdx === 2)
+                return 'The path through B gives 2+1=3, which is shorter than the previous distance of 5. Dijkstra correctly updates it.';
+                if (stepIdx === 4)
+                return 'The shortest path from A to C is A→B→C with total weight 3, as confirmed by the algorithm.';
+                return 'This matches the expected output.';
+            }
+
+            function handleCheckpointHint() {
+                const step = steps[currentStepIndex];
+                if (!step.checkpoint) return;
+                cpFeedback.textContent = '💡 Hint: ' + step.checkpoint.hint;
+                cpFeedback.className = 'revealed';
+                cpFeedback.style.display = 'block';
+            }
+
+            function handleCheckpointShow() {
+                const step = steps[currentStepIndex];
+                if (!step.checkpoint) return;
+                cpInput.value = step.checkpoint.showAnswer;
+                cpFeedback.textContent = '📖 The answer is: ' + step.checkpoint.showAnswer +
+                    '. Study this carefully to understand why.';
+                cpFeedback.className = 'revealed';
+                cpFeedback.style.display = 'block';
+                cpInput.disabled = true;
+                cpSubmit.disabled = true;
+                checkpointAnswered[currentStepIndex] = true;
+                appendLogEntry(step.checkpoint.prompt, '[Revealed] ' + step.checkpoint.showAnswer, true,
+                    'Answer revealed by learner.');
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            prevBtn.addEventListener('click', () => { stopPlay();
+                prevStep(); });
+            nextBtn.addEventListener('click', () => { stopPlay();
+                nextStep(); });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value) - 1;
+                goToStep(val);
+            });
+            cpSubmit.addEventListener('click', handleCheckpointSubmit);
+            cpHint.addEventListener('click', handleCheckpointHint);
+            cpShow.addEventListener('click', handleCheckpointShow);
+            cpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleCheckpointSubmit();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowRight') { stopPlay();
+                    nextStep(); }
+                if (e.key === 'ArrowLeft') { stopPlay();
+                    prevStep(); }
+                if (e.key === ' ') { e.preventDefault();
+                    togglePlay(); }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize everything
+            // ──────────────────────────────────────
+            buildCodeDisplay();
+            buildTimeline();
+            goToStep(0);
+
+            // Ensure #answer is set correctly on load
+            answerEl.textContent = '{"A": 0, "B": 2, "C": 3}';
+
+            console.log('Dijkstra Shortest Path tutoring page initialized. Total steps:', totalSteps);
+            console.log('Navigate using Prev/Next buttons, timeline ticks, the slider, or arrow keys.');
+            console.log('Press Space to toggle auto-play. Look for checkpoint questions at key steps.');
+        })();
+    </script>
+</body>
+</html>

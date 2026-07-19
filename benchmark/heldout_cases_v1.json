@@ -1,0 +1,1739 @@
+{
+  "schema_version": "unseen-family-cases-v1",
+  "benchmark_version": "heldout-v1-20260713",
+  "created_at": "2026-07-13T19:55:13.214933+08:00",
+  "description": "Forty newly frozen sample-0 tasks from public problem sources. No solver, tracker, verifier, or generated artifact was used to author this file.",
+  "cases": [
+    {
+      "id": "heldout_frog_energy",
+      "title": "青蛙跳石最小体力",
+      "problem": "青蛙从第 0 块石头出发，每次跳 1 或 2 块，代价为两块石头高度差的绝对值。返回到最后一块石头的最小总代价。",
+      "family": "一维 DP",
+      "family_id": "dp_1d",
+      "subfamily_id": "linear_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "dp[i] 取从 i-1 或 i-2 跳来的较小代价。",
+      "source": {
+        "name": "AtCoder Educational DP Contest A",
+        "url": "https://atcoder.jp/contests/dp/tasks/dp_a"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "heights": [
+              10,
+              30,
+              40,
+              20
+            ]
+          },
+          "expected": 30,
+          "input_sha256": "69d29efd693fa63997095415898e4aceffe090837d9dce42c3a30cec09b01abb",
+          "expected_sha256": "624b60c58c9d8bfb6ff1886c2fd605d2adeb6ea4da576068201b6c6958ce93f4"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "9e008b6e70f398d50a4c6935a4945c02b87f57f727988a3c72850cbbf6c179d3"
+    },
+    {
+      "id": "heldout_delete_and_earn",
+      "title": "删除并获得点数",
+      "problem": "选择一个数 x 可获得 x 点，同时必须删除所有 x-1 与 x+1。可重复处理剩余元素，返回最大得分。",
+      "family": "一维 DP",
+      "family_id": "dp_1d",
+      "subfamily_id": "value_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "按数值聚合点数后做相邻不可同时选择的一维 DP。",
+      "source": {
+        "name": "LeetCode 740",
+        "url": "https://leetcode.com/problems/delete-and-earn/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              3,
+              4,
+              2,
+              3,
+              3,
+              4
+            ]
+          },
+          "expected": 10,
+          "input_sha256": "bc06b297bff0302ac597b9ed1bde90e79f880ee8c0beadae1ad3b37e5f42ef28",
+          "expected_sha256": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "3186b2d3ebc90abc9dc83a5d3f854cda6c4d4d3116b4e5d3aeff34ea9eb88bbd"
+    },
+    {
+      "id": "heldout_wiggle_subsequence",
+      "title": "最长摆动子序列",
+      "problem": "若相邻差值严格正负交替，则序列为摆动序列。返回给定数组最长摆动子序列长度。",
+      "family": "一维 DP",
+      "family_id": "dp_1d",
+      "subfamily_id": "sequence_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "维护以上升差结尾和以下降差结尾的最优长度。",
+      "source": {
+        "name": "LeetCode 376",
+        "url": "https://leetcode.com/problems/wiggle-subsequence/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              1,
+              7,
+              4,
+              9,
+              2,
+              5
+            ]
+          },
+          "expected": 6,
+          "input_sha256": "b5df2a912581475c2c16ed279488b5ecef9d0042df06f47fb5dffcaab493b86e",
+          "expected_sha256": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "4509cd646aede948ac27a6cfb8ad52369ee34e0971c1670b63c8f24b3ea6b289"
+    },
+    {
+      "id": "heldout_maximal_square",
+      "title": "最大全 1 正方形面积",
+      "problem": "给定只含 0/1 的矩阵，返回其中只包含 1 的最大正方形面积。",
+      "family": "二维 DP",
+      "family_id": "dp_2d",
+      "subfamily_id": "matrix_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "dp[i][j] 由左、上、左上三格最小值加一。",
+      "source": {
+        "name": "LeetCode 221",
+        "url": "https://leetcode.com/problems/maximal-square/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "matrix": [
+              [
+                "1",
+                "0",
+                "1",
+                "0",
+                "0"
+              ],
+              [
+                "1",
+                "0",
+                "1",
+                "1",
+                "1"
+              ],
+              [
+                "1",
+                "1",
+                "1",
+                "1",
+                "1"
+              ],
+              [
+                "1",
+                "0",
+                "0",
+                "1",
+                "0"
+              ]
+            ]
+          },
+          "expected": 4,
+          "input_sha256": "cc280cf19d04b52bd58ec366e62184440baf317ba7d1833907c56842aa3817ea",
+          "expected_sha256": "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "217a6d8d2436ec4ffaf453b508fbfe42c516632adf0f4126099e1dcf448349e2"
+    },
+    {
+      "id": "heldout_dungeon_health",
+      "title": "地下城游戏最低初始生命",
+      "problem": "骑士从左上角走到右下角，只能向右或向下。格子会增减生命，生命值始终至少为 1。返回所需最低初始生命。",
+      "family": "二维 DP",
+      "family_id": "dp_2d",
+      "subfamily_id": "reverse_grid_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "从终点反向 DP，记录进入每格前至少需要的生命。",
+      "source": {
+        "name": "LeetCode 174",
+        "url": "https://leetcode.com/problems/dungeon-game/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "dungeon": [
+              [
+                -2,
+                -3,
+                3
+              ],
+              [
+                -5,
+                -10,
+                1
+              ],
+              [
+                10,
+                30,
+                -5
+              ]
+            ]
+          },
+          "expected": 7,
+          "input_sha256": "195871140013c05e511f581da2bca287131be9e35d3075403e5f7c98944f973d",
+          "expected_sha256": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "093884ed205b0cd495d65cd4ea43b4c5e055c07675c74487556cd200607045ab"
+    },
+    {
+      "id": "heldout_cherry_two_robots",
+      "title": "双机器人摘樱桃",
+      "problem": "两个机器人从网格顶行两端出发，每行各向左下、下或右下移动；同一格樱桃只计一次。返回最大樱桃数。",
+      "family": "二维 DP",
+      "family_id": "dp_2d",
+      "subfamily_id": "multi_agent_grid_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "按行对两个列位置做三维状态转移。",
+      "source": {
+        "name": "LeetCode 1463",
+        "url": "https://leetcode.com/problems/cherry-pickup-ii/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "grid": [
+              [
+                3,
+                1,
+                1
+              ],
+              [
+                2,
+                5,
+                1
+              ],
+              [
+                1,
+                5,
+                5
+              ],
+              [
+                2,
+                1,
+                1
+              ]
+            ]
+          },
+          "expected": 24,
+          "input_sha256": "8ad138e15961a6c553688570ab5247c85edcf4696d446c5423e9f45c9ead0f4e",
+          "expected_sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "bd3d2408a119da821832e8f527419bc2794517c6c221e4ac0bb6dafd57f9e4d7"
+    },
+    {
+      "id": "heldout_target_sum_ways",
+      "title": "目标和表达式数量",
+      "problem": "给每个整数添加正号或负号，返回表达式结果等于 target 的方案数。",
+      "family": "DP 核心扩展",
+      "family_id": "dp_core",
+      "subfamily_id": "subset_count",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "用和差转换为子集计数，或直接维护可达和的计数。",
+      "source": {
+        "name": "LeetCode 494",
+        "url": "https://leetcode.com/problems/target-sum/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "target": 3
+          },
+          "expected": 5,
+          "input_sha256": "e0ba76c9a674198887ff63b88e238c9a0a8882a9cd8f949a8d4be31f87b5ca4f",
+          "expected_sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "b56e43614a2734da2c513c0667371412575aebde55653dcd569f60ec3db1af54"
+    },
+    {
+      "id": "heldout_coin_change_combinations",
+      "title": "零钱兑换组合数",
+      "problem": "给定不同面额 coins 和总额 amount，返回凑成总额的无序组合数量。",
+      "family": "DP 核心扩展",
+      "family_id": "dp_core",
+      "subfamily_id": "complete_knapsack",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "完全背包按硬币外层、金额内层累计组合数。",
+      "source": {
+        "name": "LeetCode 518",
+        "url": "https://leetcode.com/problems/coin-change-ii/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "amount": 5,
+            "coins": [
+              1,
+              2,
+              5
+            ]
+          },
+          "expected": 4,
+          "input_sha256": "4b951e534133d168c9da7db9136eb5758d041ad9070a82119d8e44a00be22830",
+          "expected_sha256": "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "5ee723475bfcd43b7f5994e09d38eb770fe2d913951788932f14e4a1d95b259e"
+    },
+    {
+      "id": "heldout_word_break",
+      "title": "单词拆分可行性",
+      "problem": "判断字符串 s 是否可由词典中的一个或多个单词拼接而成，词典单词可以重复使用。",
+      "family": "DP 核心扩展",
+      "family_id": "dp_core",
+      "subfamily_id": "string_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "dp[i] 表示前 i 个字符能否拆分，枚举前驱切分点。",
+      "source": {
+        "name": "LeetCode 139",
+        "url": "https://leetcode.com/problems/word-break/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "s": "leetcode",
+            "word_dict": [
+              "leet",
+              "code",
+              "lee",
+              "tcode"
+            ]
+          },
+          "expected": true,
+          "input_sha256": "96436ad7152ce56bf0289948cf036f168fc1dd943f880d6ec5e07aa4f6c9c731",
+          "expected_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "aec2c998837f46d4f9f84f12d5884581c80ce0f9179b1edd4ceba2445f3644ba"
+    },
+    {
+      "id": "heldout_kth_missing_positive",
+      "title": "第 k 个缺失正整数",
+      "problem": "给定严格递增正整数数组 arr 和 k，返回从 1 开始计数的第 k 个缺失正整数。",
+      "family": "二分",
+      "family_id": "binary_search",
+      "subfamily_id": "answer_binary_search",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "binary_search",
+      "strategy": "arr[i]-i-1 是下标 i 前缺失数量，对其二分。",
+      "source": {
+        "name": "LeetCode 1539",
+        "url": "https://leetcode.com/problems/kth-missing-positive-number/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "arr": [
+              2,
+              3,
+              4,
+              7,
+              11
+            ],
+            "k": 5
+          },
+          "expected": 9,
+          "input_sha256": "13426e447d7bbfe5730a39b18a44546be3bded07fdda9ce7993f9ff569170224",
+          "expected_sha256": "19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "4d366254297540c9d801b27c840525421c8dce2197a4579e727a2d730307552e"
+    },
+    {
+      "id": "heldout_ship_capacity",
+      "title": "D 天内送达包裹的最低运力",
+      "problem": "包裹必须按 weights 顺序装船，每天总重量不能超过运力。返回 days 天内送完的最低运力。",
+      "family": "二分",
+      "family_id": "binary_search",
+      "subfamily_id": "binary_answer",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "binary_search",
+      "strategy": "对运力做答案二分，用贪心模拟所需天数。",
+      "source": {
+        "name": "LeetCode 1011",
+        "url": "https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "weights": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "days": 5
+          },
+          "expected": 15,
+          "input_sha256": "d02c7a83be81db1c35d2a390f6139cce27e6dbeaad14e684606a6886313a13ae",
+          "expected_sha256": "e629fa6598d732768f7c726b4b621285f9c3b85303900aa912017db7617d8bdb"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "ee47984f91b53101dd51b56827a084303d18a2b63f58dd29f0d6226e8aba346f"
+    },
+    {
+      "id": "heldout_median_two_sorted",
+      "title": "两个有序数组的中位数",
+      "problem": "给定两个有序数组，返回合并后的中位数。",
+      "family": "二分",
+      "family_id": "binary_search",
+      "subfamily_id": "partition_binary_search",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "binary_search",
+      "strategy": "在较短数组上二分分割位置，使左右两侧元素数量和大小关系满足中位数条件。",
+      "source": {
+        "name": "LeetCode 4",
+        "url": "https://leetcode.com/problems/median-of-two-sorted-arrays/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums1": [
+              1,
+              3
+            ],
+            "nums2": [
+              2
+            ]
+          },
+          "expected": 2,
+          "input_sha256": "f2216bfe02232f44d2c961ab6f50288ed44cb4da5a19c28b109540345272c4a8",
+          "expected_sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "dede7ba9c9dceeb80431523f0351d91fa729f28cb041970c806c491513477521"
+    },
+    {
+      "id": "heldout_trapping_rain_water",
+      "title": "接雨水",
+      "problem": "给定柱高数组，返回下雨后可接的总水量。",
+      "family": "数组指针 / 窗口 / 前缀",
+      "family_id": "array_pointer",
+      "subfamily_id": "two_pointer",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "array_pointer",
+      "strategy": "双指针维护左右最高柱，较低侧可立即结算。",
+      "source": {
+        "name": "LeetCode 42",
+        "url": "https://leetcode.com/problems/trapping-rain-water/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "height": [
+              0,
+              1,
+              0,
+              2,
+              1,
+              0,
+              1,
+              3,
+              2,
+              1,
+              2,
+              1
+            ]
+          },
+          "expected": 6,
+          "input_sha256": "2f021abd72a16964f59d3a7c1a5de358b894c38c3011831dda6443767fde957a",
+          "expected_sha256": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "a5175730bacded00991ef4279f08bab156a51c0c4391078ce3acde56396bf420"
+    },
+    {
+      "id": "heldout_longest_ones_k_flips",
+      "title": "最多翻转 K 个零后的最长连续 1",
+      "problem": "二进制数组中最多把 k 个 0 翻成 1，返回最长连续 1 区间长度。",
+      "family": "数组指针 / 窗口 / 前缀",
+      "family_id": "array_pointer",
+      "subfamily_id": "sliding_window",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "array_pointer",
+      "strategy": "滑动窗口维持窗口内零的数量不超过 k。",
+      "source": {
+        "name": "LeetCode 1004",
+        "url": "https://leetcode.com/problems/max-consecutive-ones-iii/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              1,
+              1,
+              1,
+              0,
+              0,
+              0,
+              1,
+              1,
+              1,
+              1,
+              0
+            ],
+            "k": 2
+          },
+          "expected": 6,
+          "input_sha256": "4af627bd7b78b47b01e05607a22c11c2411ea15b0941bff04aebe08bfd0d55fa",
+          "expected_sha256": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "08980719e091b94095d0ff53240fb23955efb00dab2e15c3e72b9496393d51f4"
+    },
+    {
+      "id": "heldout_group_ones_circular",
+      "title": "环形数组聚集所有 1 的最少交换",
+      "problem": "在环形二进制数组中，可交换任意两个位置。返回把所有 1 聚在一起所需的最少交换次数。",
+      "family": "数组指针 / 窗口 / 前缀",
+      "family_id": "array_pointer",
+      "subfamily_id": "circular_window",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "array_pointer",
+      "strategy": "窗口长度固定为 1 的总数，在双倍数组上最大化窗口内的 1。",
+      "source": {
+        "name": "LeetCode 2134",
+        "url": "https://leetcode.com/problems/minimum-swaps-to-group-all-1s-together-ii/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              0,
+              1,
+              0,
+              1,
+              1,
+              0,
+              0
+            ]
+          },
+          "expected": 1,
+          "input_sha256": "19b81d721cef10a463411dcfc3528534001f7bf11ce188b7af1d03b34f358d27",
+          "expected_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "e0a191ff87dc60c51887e9bfdd1c9d45689ede73a6f64f25b3030b6e18463575"
+    },
+    {
+      "id": "heldout_eventual_safe_nodes",
+      "title": "最终安全节点",
+      "problem": "有向图中，从节点出发的每条路径最终都终止，则该节点安全。返回所有安全节点升序列表。",
+      "family": "BFS/DFS 基础图",
+      "family_id": "basic_graph",
+      "subfamily_id": "dfs_cycle",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "bfs",
+      "strategy": "DFS 三色标记检测是否能到达环，或在反图上拓扑删除。",
+      "source": {
+        "name": "LeetCode 802",
+        "url": "https://leetcode.com/problems/find-eventual-safe-states/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "graph": [
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                5
+              ],
+              [
+                0
+              ],
+              [
+                5
+              ],
+              [],
+              []
+            ]
+          },
+          "expected": [
+            2,
+            4,
+            5,
+            6
+          ],
+          "input_sha256": "09041b0ef2b0e926aa2ce02ce000a4fe1b6d9d89070cc9ccff890082da68b485",
+          "expected_sha256": "3031dfe32f0eb1c774c2365302573130a567802943dc59ce71d4041715a41c20"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "c367513d9a043401c2a137d4335f7d05ee5cb1cfba40d20ce473811733e6d32d"
+    },
+    {
+      "id": "heldout_parallel_courses",
+      "title": "完成所有课程的最少学期",
+      "problem": "relations 中 [u,v] 表示课程 u 是 v 的先修课；每学期可同时学习所有先修已完成课程。返回完成 n 门课的最少学期，若有环返回 -1。",
+      "family": "BFS/DFS 基础图",
+      "family_id": "basic_graph",
+      "subfamily_id": "topological_layers",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "bfs",
+      "strategy": "拓扑 BFS 按层统计学期并检测环。",
+      "source": {
+        "name": "LeetCode 1136",
+        "url": "https://leetcode.com/problems/parallel-courses/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "n": 3,
+            "relations": [
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ]
+            ]
+          },
+          "expected": 2,
+          "input_sha256": "df875fdfbe92b537972518a85c5c71fd6c903cdc3abb3fd3f719e20204efea1b",
+          "expected_sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "294b7c2db9caf2a2dbd148cea1e3328f0247bb3ccb120bc4bb794bf7ca68b3fa"
+    },
+    {
+      "id": "heldout_open_lock",
+      "title": "打开转盘锁",
+      "problem": "四位转盘锁每次可把一位加一或减一，遇到 deadends 状态会锁死。从 0000 到 target 最少需要多少次旋转，不可达返回 -1。",
+      "family": "BFS/DFS 基础图",
+      "family_id": "basic_graph",
+      "subfamily_id": "state_bfs",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "bfs",
+      "strategy": "把每个锁状态视为图节点，用 BFS 求最短层数。",
+      "source": {
+        "name": "LeetCode 752",
+        "url": "https://leetcode.com/problems/open-the-lock/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "deadends": [
+              "0201",
+              "0101",
+              "0102",
+              "1212",
+              "2002"
+            ],
+            "target": "0202"
+          },
+          "expected": 6,
+          "input_sha256": "952f1a3565ff9e87075e808d4be607aa4bd87257e037ae698f3895a5083eafc0",
+          "expected_sha256": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "8c678208ba8c98c2ee9ad84f83bfff23e48c79eb680253e58c251e5a1e9946c5"
+    },
+    {
+      "id": "heldout_cheapest_flight_k_stops",
+      "title": "K 次中转内最便宜航班",
+      "problem": "给定航班 [u,v,price]，返回 src 到 dst 且最多 k 次中转的最低价格，不可达返回 -1。",
+      "family": "最短路 / MST",
+      "family_id": "shortest_path_mst",
+      "subfamily_id": "bounded_bellman_ford",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "shortest_path_mst",
+      "strategy": "做 k+1 轮 Bellman-Ford 松弛，每轮只读取上一轮距离。",
+      "source": {
+        "name": "LeetCode 787",
+        "url": "https://leetcode.com/problems/cheapest-flights-within-k-stops/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "n": 4,
+            "flights": [
+              [
+                0,
+                1,
+                100
+              ],
+              [
+                1,
+                2,
+                100
+              ],
+              [
+                2,
+                3,
+                100
+              ],
+              [
+                0,
+                3,
+                700
+              ],
+              [
+                1,
+                3,
+                600
+              ]
+            ],
+            "src": 0,
+            "dst": 3,
+            "k": 1
+          },
+          "expected": 700,
+          "input_sha256": "d310d5d76756f40dd530f9975a2056383f3eba3531aafe4d520fcfdfe3e1be84",
+          "expected_sha256": "99ee50221221864d50c60baea6f14d8ac2e235cc6e78be6088cd40cc97fca394"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "51f19c8e54a31cbb47844063a8c2e0deaeec391d400f53b1539a5c1e90c958c5"
+    },
+    {
+      "id": "heldout_minimum_effort_path",
+      "title": "最小体力消耗路径",
+      "problem": "网格路径的体力消耗定义为相邻格高度差绝对值的最大值。返回左上到右下路径的最小体力消耗。",
+      "family": "最短路 / MST",
+      "family_id": "shortest_path_mst",
+      "subfamily_id": "minimax_dijkstra",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "shortest_path_mst",
+      "strategy": "Dijkstra 的路径代价取当前代价与新边差值的最大值。",
+      "source": {
+        "name": "LeetCode 1631",
+        "url": "https://leetcode.com/problems/path-with-minimum-effort/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "heights": [
+              [
+                1,
+                2,
+                2
+              ],
+              [
+                3,
+                8,
+                2
+              ],
+              [
+                5,
+                3,
+                5
+              ]
+            ]
+          },
+          "expected": 2,
+          "input_sha256": "787d56302556e6e2b15a08e4a9b13ff11e9aa656a16a3b7f2c3a1ac0fd44a80b",
+          "expected_sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "745f315a227809d78bea07dee5977b2d208f78b872a7c00a6f1bd5f86385b441"
+    },
+    {
+      "id": "heldout_connect_points_mst",
+      "title": "连接所有点的最小费用",
+      "problem": "平面点之间连边代价为曼哈顿距离，返回连接所有点的最小总费用。",
+      "family": "最短路 / MST",
+      "family_id": "shortest_path_mst",
+      "subfamily_id": "prim_mst",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "shortest_path_mst",
+      "strategy": "在完全图上运行 Prim，动态计算到树的最短曼哈顿距离。",
+      "source": {
+        "name": "LeetCode 1584",
+        "url": "https://leetcode.com/problems/min-cost-to-connect-all-points/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "points": [
+              [
+                0,
+                0
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                10
+              ],
+              [
+                5,
+                2
+              ],
+              [
+                7,
+                0
+              ]
+            ]
+          },
+          "expected": 20,
+          "input_sha256": "37dd1131c9c556e83214e22afc0476b9f2c10809e36c106f4fe96a218dbbfd8d",
+          "expected_sha256": "f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "64693489566d4766f639604beb986d1319d4e819bab8fa12fd993b32f36c1c80"
+    },
+    {
+      "id": "heldout_longest_happy_prefix",
+      "title": "最长快乐前缀",
+      "problem": "返回字符串中既是前缀又是后缀的最长非完整字符串。",
+      "family": "字符串高级算法",
+      "family_id": "string_advanced",
+      "subfamily_id": "kmp_prefix",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "string",
+      "strategy": "计算 KMP 前缀函数，答案长度为最后一个 pi 值。",
+      "source": {
+        "name": "LeetCode 1392",
+        "url": "https://leetcode.com/problems/longest-happy-prefix/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "s": "level"
+          },
+          "expected": "l",
+          "input_sha256": "fb8095d3d604b9eeb600e688bdd4bbb7d022b77994bd65b6640c2d1d31e1b483",
+          "expected_sha256": "fbdc9072aa3d1b97bdde1b18d5babeedfa1c3519d5e51a5f90567ce7bdd86589"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "c22f3ef87ceda3965fcdd78448d3d0318171299ee6854a1da528be79075ab0eb"
+    },
+    {
+      "id": "heldout_minimum_window",
+      "title": "最小覆盖子串",
+      "problem": "返回 s 中覆盖 t 全部字符及其次数的最短子串；无解返回空串。",
+      "family": "字符串高级算法",
+      "family_id": "string_advanced",
+      "subfamily_id": "string_sliding_window",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "string",
+      "strategy": "滑动窗口维护需求计数，满足后收缩左边界。",
+      "source": {
+        "name": "LeetCode 76",
+        "url": "https://leetcode.com/problems/minimum-window-substring/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "s": "ADOBECODEBANC",
+            "t": "ABC"
+          },
+          "expected": "BANC",
+          "input_sha256": "22650894e0968266c8169094ce0e4ea9766d13d50a4ec9d744279118859dbd49",
+          "expected_sha256": "3097e6743470ec804b9245a9f323e2cde9f9123d9698061ce44bd9277e8c0826"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "4fc1ac53ea47b068801f81466e220454028ec04e7b28ae08dba7d5393007c201"
+    },
+    {
+      "id": "heldout_repeated_substring",
+      "title": "重复子串模式",
+      "problem": "判断字符串能否由某个非空子串重复多次构成。",
+      "family": "字符串高级算法",
+      "family_id": "string_advanced",
+      "subfamily_id": "periodicity",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "string",
+      "strategy": "利用 KMP 最长相等前后缀判断最小周期是否整除长度。",
+      "source": {
+        "name": "LeetCode 459",
+        "url": "https://leetcode.com/problems/repeated-substring-pattern/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "s": "abcabcabcabc"
+          },
+          "expected": true,
+          "input_sha256": "3ec6e2617a4dfd5d3b646718b33612cae52894e1d793633cc968e775eee1351c",
+          "expected_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "45a042aa6643bc4d3c2645d5ce250a5b0c6807d16c481c238485eccdf5bcc050"
+    },
+    {
+      "id": "heldout_largest_histogram_rectangle",
+      "title": "柱状图中最大矩形",
+      "problem": "给定柱状图高度，返回可形成的最大矩形面积。",
+      "family": "栈 / 队列 / 单调栈",
+      "family_id": "monotonic_stack",
+      "subfamily_id": "monotonic_stack",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "monotonic_stack",
+      "strategy": "单调递增栈在遇到更低柱时结算被弹出柱的左右边界。",
+      "source": {
+        "name": "LeetCode 84",
+        "url": "https://leetcode.com/problems/largest-rectangle-in-histogram/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "heights": [
+              2,
+              1,
+              5,
+              6,
+              2,
+              3
+            ]
+          },
+          "expected": 10,
+          "input_sha256": "8f82d232acb126ab7987e65339ab8a47a018b9f88700e49fbb7ded3a46562fbf",
+          "expected_sha256": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "c3f66fca1ec15541dc4d05de80ccfa79377ab25ee738ea168044390f3ae0d806"
+    },
+    {
+      "id": "heldout_remove_k_digits",
+      "title": "移掉 K 位数字",
+      "problem": "从非负整数字符串中删除 k 位，使剩余数字最小；去除前导零，空结果返回 0。",
+      "family": "栈 / 队列 / 单调栈",
+      "family_id": "monotonic_stack",
+      "subfamily_id": "greedy_stack",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "monotonic_stack",
+      "strategy": "维护单调递增字符栈，当前位更小时弹出前面较大数字。",
+      "source": {
+        "name": "LeetCode 402",
+        "url": "https://leetcode.com/problems/remove-k-digits/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "num": "1432219",
+            "k": 3
+          },
+          "expected": "1219",
+          "input_sha256": "dac368a0b4a06d5de91070da2496f340c363a08d3ac0ceb1bd83b011d8d0b56d",
+          "expected_sha256": "d8d8d691fda7a82788b132e5b3bcaa6ed783b40ef4480e8ed86e6b219c6eed9c"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "01bc9443b9ac300954bc0980b5400edaea508f5db99d209717b60fb15e4904c4"
+    },
+    {
+      "id": "heldout_sliding_window_max",
+      "title": "滑动窗口最大值",
+      "problem": "返回长度为 k 的每个滑动窗口中的最大值。",
+      "family": "栈 / 队列 / 单调栈",
+      "family_id": "monotonic_stack",
+      "subfamily_id": "monotonic_deque",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "monotonic_stack",
+      "strategy": "单调递减双端队列保存仍在窗口内的候选下标。",
+      "source": {
+        "name": "LeetCode 239",
+        "url": "https://leetcode.com/problems/sliding-window-maximum/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              1,
+              3,
+              -1,
+              -3,
+              5,
+              3,
+              6,
+              7
+            ],
+            "k": 3
+          },
+          "expected": [
+            3,
+            3,
+            5,
+            5,
+            6,
+            7
+          ],
+          "input_sha256": "2730e0222fc65c5132e89cbf3b95dc5222d2dcdb63c252bc56d2beab54379690",
+          "expected_sha256": "8deb9d7601491a58a9da5966a3312271a8ce4bca415718e505753ea52f433273"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "3072cd174947805de060645f32c3704a6e841def53ea688ca22c49c7af55a51c"
+    },
+    {
+      "id": "heldout_bst_kth_smallest",
+      "title": "BST 第 k 小元素",
+      "problem": "给定二叉搜索树的层序数组和 k，返回第 k 小节点值。",
+      "family": "树 / BST / LCA",
+      "family_id": "tree_bst_lca",
+      "subfamily_id": "bst_inorder",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "tree",
+      "strategy": "中序遍历 BST 得到升序序列并计数。",
+      "source": {
+        "name": "LeetCode 230",
+        "url": "https://leetcode.com/problems/kth-smallest-element-in-a-bst/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nodes": [
+              5,
+              3,
+              6,
+              2,
+              4,
+              null,
+              null,
+              1
+            ],
+            "k": 3
+          },
+          "expected": 3,
+          "input_sha256": "c1645d5f504e19da8df105668b8e550bef3b9ebe5e0274facbf7974c99b52d2b",
+          "expected_sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "1e0f93adc1b2a8c72c28399c6f16b61ada42ecf6308476aefe37024b23af0ff4"
+    },
+    {
+      "id": "heldout_tree_right_view",
+      "title": "二叉树右视图",
+      "problem": "给定二叉树层序数组，返回从右侧看到的每层节点值。",
+      "family": "树 / BST / LCA",
+      "family_id": "tree_bst_lca",
+      "subfamily_id": "level_order",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "tree",
+      "strategy": "层序遍历并记录每层最后一个节点。",
+      "source": {
+        "name": "LeetCode 199",
+        "url": "https://leetcode.com/problems/binary-tree-right-side-view/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nodes": [
+              1,
+              2,
+              3,
+              null,
+              5,
+              null,
+              4
+            ]
+          },
+          "expected": [
+            1,
+            3,
+            4
+          ],
+          "input_sha256": "ebf6865e42909f9da2ea5ec7777741c93dc3f9af9c19881f77dd382a16fb8cda",
+          "expected_sha256": "4614978b279759e8070ee2c50ccc165f1a7dffe29bdd07de7af1cdf11fa91873"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "9f87fc53f29ac9922655f53a35d99457a50cc125f6f10406a8db5393ada4a16d"
+    },
+    {
+      "id": "heldout_bst_lca",
+      "title": "BST 最近公共祖先",
+      "problem": "给定二叉搜索树层序数组与节点值 p、q，返回二者最近公共祖先的值。",
+      "family": "树 / BST / LCA",
+      "family_id": "tree_bst_lca",
+      "subfamily_id": "bst_lca",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "tree",
+      "strategy": "利用 BST 大小关系同时向左或向右，首次分叉点即答案。",
+      "source": {
+        "name": "LeetCode 235",
+        "url": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nodes": [
+              6,
+              2,
+              8,
+              0,
+              4,
+              7,
+              9,
+              null,
+              null,
+              3,
+              5
+            ],
+            "p": 2,
+            "q": 8
+          },
+          "expected": 6,
+          "input_sha256": "90003d96850dc73bd4431363f0a2d589d7331bdc10c170e95faf421b35c38e13",
+          "expected_sha256": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "1913d7c0b7e722eebb3d909dd134030b08d80d84f7fb73e9019aea4452795ad6"
+    },
+    {
+      "id": "heldout_tree_house_robber",
+      "title": "打家劫舍 III",
+      "problem": "二叉树相邻父子节点不能同时选择，返回可选择节点值的最大和。",
+      "family": "树形 DP",
+      "family_id": "tree_dp",
+      "subfamily_id": "take_skip_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "树形 DP 对每个节点返回选择与不选择两种收益。",
+      "source": {
+        "name": "LeetCode 337",
+        "url": "https://leetcode.com/problems/house-robber-iii/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nodes": [
+              3,
+              2,
+              3,
+              null,
+              3,
+              null,
+              1
+            ]
+          },
+          "expected": 7,
+          "input_sha256": "dca02045dfad2eb640892d51ee0a3302f44f1d05bab8a7b97403d69d46bfc25e",
+          "expected_sha256": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "a2be73dcd0eba37685dd097853fd3d353cf7b6c5e43c48cd717844590080a4ed"
+    },
+    {
+      "id": "heldout_binary_tree_cameras",
+      "title": "监控二叉树",
+      "problem": "摄像头可监控自身、父节点和直接子节点。返回监控整棵树所需的最少摄像头数。",
+      "family": "树形 DP",
+      "family_id": "tree_dp",
+      "subfamily_id": "tree_state_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "后序遍历按未覆盖、放摄像头、已覆盖三种状态贪心。",
+      "source": {
+        "name": "LeetCode 968",
+        "url": "https://leetcode.com/problems/binary-tree-cameras/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nodes": [
+              0,
+              0,
+              null,
+              0,
+              0
+            ]
+          },
+          "expected": 1,
+          "input_sha256": "afe60e67719edcfaf9ac4ace220645b8d52b3f2e86f56b4ec1a2c4aa3afb30e7",
+          "expected_sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "50a98bc15a0802066e52bae74682a454f85ac63a142a44e15cc5af6ca0f664cd"
+    },
+    {
+      "id": "heldout_equations_satisfiable",
+      "title": "等式方程可满足性",
+      "problem": "变量为小写字母，方程形式为 a==b 或 a!=b。判断能否同时满足全部方程。",
+      "family": "并查集",
+      "family_id": "union_find",
+      "subfamily_id": "equation_union",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "union_find",
+      "strategy": "先合并所有等式，再检查不等式两端是否落在同一集合。",
+      "source": {
+        "name": "LeetCode 990",
+        "url": "https://leetcode.com/problems/satisfiability-of-equality-equations/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "equations": [
+              "a==b",
+              "b!=c",
+              "c==a"
+            ]
+          },
+          "expected": false,
+          "input_sha256": "851703bae24533faa658400abc637917009aae190d7bd66de1ca478490fae509",
+          "expected_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "47f90001089f0aca9123029a6e6835d7c2e2e4b0bdcc13374cbc7658b258d19a"
+    },
+    {
+      "id": "heldout_earliest_friendship",
+      "title": "所有人成为朋友的最早时刻",
+      "problem": "日志 [timestamp,a,b] 表示两人在该时刻成为朋友，友谊可传递。返回所有 n 个人连通的最早时间，不可能返回 -1。",
+      "family": "并查集",
+      "family_id": "union_find",
+      "subfamily_id": "offline_connectivity",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "union_find",
+      "strategy": "按时间排序后逐条 union，集合数变为 1 时返回时间。",
+      "source": {
+        "name": "LeetCode 1101",
+        "url": "https://leetcode.com/problems/the-earliest-moment-when-everyone-become-friends/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "n": 6,
+            "logs": [
+              [
+                20190101,
+                0,
+                1
+              ],
+              [
+                20190104,
+                3,
+                4
+              ],
+              [
+                20190107,
+                2,
+                3
+              ],
+              [
+                20190211,
+                1,
+                5
+              ],
+              [
+                20190224,
+                2,
+                4
+              ],
+              [
+                20190301,
+                0,
+                3
+              ],
+              [
+                20190312,
+                1,
+                2
+              ],
+              [
+                20190322,
+                4,
+                5
+              ]
+            ]
+          },
+          "expected": 20190301,
+          "input_sha256": "6c1a0667b7d9d468d0d249211437c66fd3d6ea1a806e279c11d4d24541cb4ca1",
+          "expected_sha256": "e1454803cc739a1c913ccdc31aebf457d50b168df17bbdea5dca12c10dbf56cf"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "584e5925262c4653845b9f15a69b4393ebf54bf6ce532204a08f46d4525acb52"
+    },
+    {
+      "id": "heldout_count_smaller_after_self",
+      "title": "右侧小于当前元素的数量",
+      "problem": "对数组每个位置，返回其右侧严格小于该元素的数量。",
+      "family": "区间结构",
+      "family_id": "range_structure",
+      "subfamily_id": "fenwick_tree",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "range_structure",
+      "strategy": "离散化后从右向左，用树状数组查询较小值频次并更新当前值。",
+      "source": {
+        "name": "LeetCode 315",
+        "url": "https://leetcode.com/problems/count-of-smaller-numbers-after-self/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              5,
+              2,
+              6,
+              1
+            ]
+          },
+          "expected": [
+            2,
+            1,
+            1,
+            0
+          ],
+          "input_sha256": "a52c6d7bdbd20a58d2023a6c06fb908e22704e0f903495225b8bfb91fbb8832e",
+          "expected_sha256": "0186951a192a1a9f9bcbab32030f8b0b6185bbeb6e8bc5e44cfa7a8d4b34748c"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "ef510e92407d8e03e4c17815a8f353b2759ca4f24de12295a1208fc7ec49a9bf"
+    },
+    {
+      "id": "heldout_range_add_point_query",
+      "title": "区间增量后的点查询",
+      "problem": "长度 n 的零数组依次执行闭区间增量 [left,right,delta]，返回指定 query 下标的最终值。",
+      "family": "区间结构",
+      "family_id": "range_structure",
+      "subfamily_id": "difference_array",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "range_structure",
+      "strategy": "差分数组做区间加法，再前缀恢复并读取查询点。",
+      "source": {
+        "name": "LeetCode 370",
+        "url": "https://leetcode.com/problems/range-addition/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "n": 5,
+            "updates": [
+              [
+                1,
+                3,
+                2
+              ],
+              [
+                2,
+                4,
+                3
+              ],
+              [
+                0,
+                2,
+                -2
+              ]
+            ],
+            "queries": [
+              0,
+              2,
+              4
+            ]
+          },
+          "expected": [
+            -2,
+            3,
+            3
+          ],
+          "input_sha256": "5e9f83efac30de95cb3acab4bcca65bde4e64a93770716ca10367c9dcf6fd20f",
+          "expected_sha256": "49bc77187eb6b8d28fa5260f72722ccfb607d3e4bce20a6a5830e585c84c8918"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "187be7c339c1cea15b246a6e9e139c95db3e1492d325e3555793b33f161236b8"
+    },
+    {
+      "id": "heldout_single_number_three",
+      "title": "只出现一次的数字 II",
+      "problem": "除一个元素只出现一次外，其余元素都恰好出现三次。返回只出现一次的元素。",
+      "family": "数学与位运算",
+      "family_id": "math_bit",
+      "subfamily_id": "bit_count",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "math_bit",
+      "strategy": "逐位统计 1 的数量并对 3 取模，或维护有限状态位掩码。",
+      "source": {
+        "name": "LeetCode 137",
+        "url": "https://leetcode.com/problems/single-number-ii/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "nums": [
+              2,
+              2,
+              3,
+              2
+            ]
+          },
+          "expected": 3,
+          "input_sha256": "38f957de2067ec03b316e09dfe5702c5fb9f309a2ead9031c10cb3bcce3ee422",
+          "expected_sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "9ef602436d3e3984a01b14cb7e60471ea3c0134f91a229628913b2997f663de5"
+    },
+    {
+      "id": "heldout_nth_ugly_number",
+      "title": "第 n 个丑数",
+      "problem": "正整数的质因数只有 2、3、5 时称为丑数，1 也是丑数。返回第 n 个丑数。",
+      "family": "数学与位运算",
+      "family_id": "math_bit",
+      "subfamily_id": "number_sequence",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "math_bit",
+      "strategy": "三指针动态生成分别乘 2、3、5 的下一个候选。",
+      "source": {
+        "name": "LeetCode 264",
+        "url": "https://leetcode.com/problems/ugly-number-ii/"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "n": 10
+          },
+          "expected": 12,
+          "input_sha256": "3ff6698e101869f36e088516c6c0ca6495c40c0abdae72f6e4d124610dace7b0",
+          "expected_sha256": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "0a84e33d0ed5899630b5aac3a4c1a4605e134a931696f86d51e41fe9905950d4"
+    },
+    {
+      "id": "heldout_source_scc_count",
+      "title": "缩点图零入度分量数",
+      "problem": "给定 n 个节点的有向边，先求强连通分量并缩点，返回缩点图中入度为 0 的分量数量。",
+      "family": "图高级",
+      "family_id": "advanced_graph",
+      "subfamily_id": "tarjan_scc",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "advanced_graph",
+      "strategy": "Tarjan 或 Kosaraju 求 SCC，再统计跨分量边带来的入度。",
+      "source": {
+        "name": "CP-Algorithms SCC",
+        "url": "https://cp-algorithms.com/graph/strongly-connected-components.html"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "n": 5,
+            "edges": [
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                4,
+                3
+              ]
+            ]
+          },
+          "expected": 2,
+          "input_sha256": "a790c5edbbdff0dee203bf0feeb4606c62b02591c9ad24c987ac53655370d919",
+          "expected_sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "304a0231854f9011eec068184f69e5fadaabd83ec106d4da3c54247a0f0f7031"
+    },
+    {
+      "id": "heldout_bipartite_matching_size",
+      "title": "二分图最大匹配数",
+      "problem": "给定左侧节点列表、右侧节点列表和允许匹配边，返回一对一最大匹配的边数。",
+      "family": "图高级",
+      "family_id": "advanced_graph",
+      "subfamily_id": "bipartite_matching",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "advanced_graph",
+      "strategy": "逐个左节点寻找增广路，必要时递归改配已匹配右节点。",
+      "source": {
+        "name": "CP-Algorithms Kuhn Matching",
+        "url": "https://cp-algorithms.com/graph/kuhn_maximum_bipartite_matching.html"
+      },
+      "samples": [
+        {
+          "input_data": {
+            "left": [
+              "A",
+              "B",
+              "C"
+            ],
+            "right": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "edges": [
+              [
+                "A",
+                "X"
+              ],
+              [
+                "A",
+                "Y"
+              ],
+              [
+                "B",
+                "Y"
+              ],
+              [
+                "C",
+                "Y"
+              ],
+              [
+                "C",
+                "Z"
+              ]
+            ]
+          },
+          "expected": 3,
+          "input_sha256": "a1f917129a715d55e787af758d8f9a53c310887edc0572499d8d4b1cbc1825b4",
+          "expected_sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+        }
+      ],
+      "oracle": {
+        "implementation": "scripts/freeze_heldout_benchmark.py:oracle",
+        "sha256": "c883ab4a71d52500f20c3f3efb9750ae9e59b8140a838a2edba1156b049137d8"
+      },
+      "case_sha256": "70e18bcbb77dacdb8f3cfa1a48bca9edfc9a1e3c3f653ac30b9a1c898ff0fc4c"
+    }
+  ]
+}

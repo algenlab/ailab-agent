@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kth Largest Element in an Array - AlgoLab Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --card: #ffffff;
+            --border: #e2e5ea;
+            --text: #1a1d23;
+            --text-secondary: #5a5f6b;
+            --accent: #3b6ef6;
+            --accent-light: #eef3ff;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+            --error: #dc2626;
+            --error-bg: #fef2f2;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+            --heap-top: #16a34a;
+            --heap-other: #3b6ef6;
+            --current-num: #f59e0b;
+            --processed: #9ca3af;
+            --active-step: #3b6ef6;
+            --timeline-done: #16a34a;
+            --timeline-pending: #d1d5db;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .header-left h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        #top-result {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--success);
+            background: var(--success-bg);
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--success);
+            min-width: 60px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        #top-result.hidden-answer {
+            opacity: 0.25;
+            border-style: dashed;
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            max-width: 200px;
+            text-align: right;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 16px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .panel h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            white-space: pre;
+            background: #1e2233;
+            color: #d4d8e6;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            overflow-x: auto;
+            position: relative;
+            counter-reset: codeline;
+        }
+        #code .cline {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background 0.35s, color 0.35s;
+            position: relative;
+        }
+        #code .cline.active-line {
+            background: rgba(59, 110, 246, 0.35);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+        #code .cline .kw {
+            color: #c792ea;
+        }
+        #code .cline .fn {
+            color: #82aaff;
+        }
+        #code .cline .num {
+            color: #f78c6c;
+        }
+        #code .cline .str {
+            color: #c3e88d;
+        }
+        #code .cline .cm {
+            color: #676e8a;
+            font-style: italic;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            border: 1px dashed var(--border);
+            position: relative;
+            transition: all 0.3s;
+        }
+        .canvas-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .canvas-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-right: 4px;
+        }
+        .array-cell {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.35s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .array-cell.processed {
+            background: #e5e7eb;
+            color: #6b7280;
+            border-color: #d1d5db;
+        }
+        .array-cell.current {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+            animation: pulse-current 0.8s ease-in-out infinite;
+        }
+        .array-cell.pending {
+            background: #ffffff;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 7px rgba(245, 158, 11, 0.08);
+            }
+        }
+        .heap-node {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.4s;
+            border: 3px solid transparent;
+            position: relative;
+        }
+        .heap-node.top-node {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #16a34a;
+            box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.15);
+            font-size: 1.15rem;
+        }
+        .heap-node.child-node {
+            background: #eef3ff;
+            color: #1e40af;
+            border-color: #3b6ef6;
+        }
+        .heap-connector {
+            width: 2px;
+            height: 20px;
+            background: #cbd5e1;
+            position: relative;
+        }
+        .heap-tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0px;
+        }
+        .heap-children-row {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .heap-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px dashed #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #cbd5e1;
+            font-size: 0.75rem;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        .badge-skip {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .badge-add {
+            background: #eef3ff;
+            color: #3b6ef6;
+        }
+        .badge-replace {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge-result {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--card);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f1f3f5;
+            border-color: #c4c9d1;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.accent:hover {
+            background: #2b5de0;
+        }
+        .btn.success {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+        .btn.warning {
+            background: var(--warning);
+            color: #1a1d23;
+            border-color: var(--warning);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text);
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+            justify-content: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #f3f4f6;
+            transition: all 0.25s;
+            min-width: 50px;
+            text-align: center;
+        }
+        .tick:hover {
+            background: #e5e7eb;
+            border-color: #c4c9d1;
+        }
+        .tick.active-tick {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 110, 246, 0.15);
+        }
+        .tick.done-tick {
+            background: #dcfce7;
+            border-color: #16a34a;
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* Info panels */
+        #step-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+        #step-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+        #op {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #f1f3f5;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: var(--text);
+            margin-top: 4px;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #fafbfc;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            color: #374151;
+            max-height: 140px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            background: #f9fafb;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--accent);
+            margin-top: 6px;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            margin-top: 10px;
+            padding: 12px 16px;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .checkpoint-area h4 {
+            font-size: 0.9rem;
+            color: #92400e;
+            margin: 0;
+        }
+        .checkpoint-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .checkpoint-input-row input {
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #d1d5db;
+            font-size: 0.9rem;
+            width: 100px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+        .feedback-msg {
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+        .feedback-correct {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .feedback-incorrect {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        /* Learning log */
+        #learning-log {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px;
+            background: #fafbfc;
+        }
+        .log-entry {
+            padding: 5px 8px;
+            border-bottom: 1px solid #f1f3f5;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-icon {
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .log-icon.correct {
+            color: #16a34a;
+        }
+        .log-icon.incorrect {
+            color: #dc2626;
+        }
+        .log-icon.info {
+            color: #3b6ef6;
+        }
+        .log-text {
+            color: var(--text);
+        }
+        .log-timestamp {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        #answer {
+            display: none;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .highlight-num {
+            font-weight: 700;
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div id="title">Kth Largest Element in an Array</div>
+                <div id="subtitle">Heap / TopK &bull; Min-heap of capacity k</div>
+            </div>
+            <div class="header-right">
+                <div id="top-result" class="hidden-answer">?</div>
+                <div id="top-solution">The K-th highest rating from the stream, found via a size-k min-heap.</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Code Panel -->
+            <div class="panel">
+                <h3>Algorithm Code</h3>
+                <div id="code">
+                    <span class="cline" data-line="0"><span class="kw">def</span> <span class="fn">findKthLargest</span>(nums, k):</span>
+                    <span class="cline" data-line="1">    heap = []  <span class="cm"># min-heap of capacity k</span></span>
+                    <span class="cline" data-line="2">    <span class="kw">for</span> num <span class="kw">in</span> nums:</span>
+                    <span class="cline" data-line="3">        <span class="kw">if</span> len(heap) &lt; k:</span>
+                    <span class="cline" data-line="4">            heapq.heappush(heap, num)  <span class="cm"># add directly</span></span>
+                    <span class="cline" data-line="5">        <span class="kw">elif</span> num &gt; heap[<span class="num">0</span>]:</span>
+                    <span class="cline" data-line="6">            heapq.heapreplace(heap, num)  <span class="cm"># replace top</span></span>
+                    <span class="cline" data-line="7">        <span class="cm"># else: num &lt;= heap[0], skip it</span></span>
+                    <span class="cline" data-line="8">    <span class="kw">return</span> heap[<span class="num">0</span>]  <span class="cm"># top = k-th largest</span></span>
+                </div>
+            </div>
+
+            <!-- Canvas Panel -->
+            <div class="panel">
+                <h3>Visualization</h3>
+                <div id="canvas">
+                    <div class="canvas-row" id="array-row">
+                        <span class="canvas-label">Array:</span>
+                    </div>
+                    <div class="canvas-row" id="heap-row">
+                        <span class="canvas-label">Min-Heap (k=2):</span>
+                        <div class="heap-tree" id="heap-tree"></div>
+                    </div>
+                    <div id="status-row" style="margin-top:4px;"></div>
+                </div>
+            </div>
+
+            <!-- Step Info Panel -->
+            <div class="panel">
+                <h3>Step Details</h3>
+                <div id="step-title">Initialization</div>
+                <div id="step-desc">Setting up the algorithm.</div>
+                <div id="op">heap = [], k = 2</div>
+                <div id="step-evidence">Preparing to process the array.</div>
+            </div>
+
+            <!-- Teaching & State Panel -->
+            <div class="panel">
+                <h3>Teaching &amp; State</h3>
+                <div id="teaching">We use a min-heap of size k to efficiently track the k largest elements seen so far.</div>
+                <div class="section-label" style="margin-top:8px;">Current State (JSON)</div>
+                <div id="state">{"heap": [], "k": 2, "processed": [], "top": null}</div>
+                <div id="checkpoint-container"></div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel" style="padding:12px 20px;">
+            <div class="controls-bar">
+                <button class="btn" id="prev" aria-label="Previous step">&larr; Prev</button>
+                <button class="btn accent" id="play" aria-label="Play auto-advance">&#9654; Play</button>
+                <button class="btn" id="next" aria-label="Next step">Next &rarr;</button>
+                <span id="counter">1 / 8</span>
+                <input type="range" id="range" min="1" max="8" value="1" aria-label="Step slider">
+            </div>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="panel">
+            <h3>Learning Log</h3>
+            <div id="learning-log">
+                <div class="log-entry">
+                    <span class="log-icon info">&#9432;</span>
+                    <span class="log-text">Page loaded. Explore the steps to learn how a min-heap finds the K-th largest element.</span>
+                    <span class="log-timestamp">Start</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden answer element -->
+        <div id="answer">5</div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step data
+            // ──────────────────────────────────────
+            const steps = [{
+                title: 'Initialization',
+                desc: 'Set up an empty min-heap with capacity k=2. The heap will store the k largest elements seen so far.',
+                op: 'heap = [], k = 2',
+                codeLine: 1,
+                heap: [],
+                currentNum: null,
+                processed: [],
+                top: null,
+                statusType: '',
+                statusText: '',
+                teaching: 'We use a min-heap of size k to efficiently track the k largest elements. The smallest element in this heap (the top) is the k-th largest overall. When the heap has fewer than k elements, we simply add new elements directly.',
+                evidence: 'heap initialized as empty list; k set to 2. Ready to process the input array [3, 2, 1, 5, 6, 4].',
+                checkpoint: null
+            }, {
+                title: 'Process First Element (3)',
+                desc: 'The heap has 0 elements (< k=2), so we add 3 directly without any comparison.',
+                op: 'push 3 → heap = [3]',
+                codeLine: 4,
+                heap: [3],
+                currentNum: 3,
+                processed: [3],
+                top: null,
+                statusType: 'add',
+                statusText: 'Added (heap not full)',
+                teaching: 'Since the heap is not full (size 0 < k=2), we add 3 without comparing. The heap now contains [3]. With only 1 element, we cannot yet determine the 2nd largest.',
+                evidence: 'num=3, len(heap)=0 < k=2 → heappush(heap, 3) → heap=[3]. Top is 3 but we need k=2 elements for a valid k-th largest.',
+                checkpoint: null
+            }, {
+                title: 'Process Second Element (2)',
+                desc: 'Heap size is 1 (< k=2), so we add 2. After heapify, the min-heap has 2 at the top and 3 as its child.',
+                op: 'push 2 → heap = [2, 3], top = 2',
+                codeLine: 4,
+                heap: [2, 3],
+                currentNum: 2,
+                processed: [3, 2],
+                top: 2,
+                statusType: 'add',
+                statusText: 'Added (heap now full)',
+                teaching: 'The heap is now full (size=2=k). The min-heap property places 2 at the top. This means 2 is the current 2nd largest element among the processed values [3, 2]. The top of the min-heap is always the k-th largest.',
+                evidence: 'num=2, len(heap)=1 < k=2 → heappush(heap, 2) → heapify → heap=[2, 3], top=2. Now heap is full.',
+                checkpoint: {
+                    question: 'After adding 2, what value is at the top of the min-heap?',
+                    answer: '2',
+                    hint: 'The min-heap places the smallest element at the top. After adding 2 to [3], which is smaller?',
+                    correctFeedback: 'Correct! The min-heap is [2, 3] and the top (smallest) is 2. This 2 is the 2nd largest element among [3, 2].',
+                    incorrectFeedback: 'Not quite. The heap is [2, 3] after heapify. The top of a min-heap is the minimum value, which is 2.'
+                }
+            }, {
+                title: 'Process Third Element (1)',
+                desc: '1 is less than the heap top (2). Since 1 cannot be among the top 2 largest, we skip it.',
+                op: '1 < top(2) → skip, heap = [2, 3]',
+                codeLine: 7,
+                heap: [2, 3],
+                currentNum: 1,
+                processed: [3, 2, 1],
+                top: 2,
+                statusType: 'skip',
+                statusText: 'Skipped (1 < top)',
+                teaching: 'Now the heap is full. We compare 1 with the top (2). Since 1 < 2, 1 cannot be among the top 2 largest elements seen so far. The heap remains unchanged. This is the key efficiency: we skip elements smaller than the current k-th largest.',
+                evidence: 'num=1, heap full, 1 < top=2 → skip (num is not among top k). Heap unchanged: [2, 3], top remains 2.',
+                checkpoint: null
+            }, {
+                title: 'Process Fourth Element (5)',
+                desc: '5 is greater than the heap top (2), so 5 deserves a place in the top 2. We remove 2 and insert 5.',
+                op: '5 > top(2) → replace → heap = [3, 5], top = 3',
+                codeLine: 6,
+                heap: [3, 5],
+                currentNum: 5,
+                processed: [3, 2, 1, 5],
+                top: 3,
+                statusType: 'replace',
+                statusText: 'Replaced (5 > top)',
+                teaching: '5 > 2 (current top), so 5 earns a spot among the top 2 largest. We pop the smallest (2) and push 5. After heapify, the new top is 3 — the 2nd largest among [3, 2, 1, 5]. Notice how the k-th largest value can increase as larger numbers arrive.',
+                evidence: 'num=5, heap full, 5 > top=2 → heapreplace(heap, 5) → pop 2, push 5, heapify → heap=[3, 5], top=3.',
+                checkpoint: {
+                    question: 'After replacing with 5, what is the new top of the min-heap?',
+                    answer: '3',
+                    hint: 'The heap becomes [3, 5] after replacing 2 with 5 and heapifying. The top of a min-heap is the minimum value.',
+                    correctFeedback: 'Correct! After the replacement and heapify, the heap is [3, 5] and the top (minimum) is 3. This is the 2nd largest element so far.',
+                    incorrectFeedback: 'Not quite. After the replacement, the heap is [3, 5]. The top of the min-heap is the smaller value, which is 3.'
+                }
+            }, {
+                title: 'Process Fifth Element (6)',
+                desc: '6 > top(3), so 6 enters the heap. After replacing 3 with 6, the new top becomes 5.',
+                op: '6 > top(3) → replace → heap = [5, 6], top = 5',
+                codeLine: 6,
+                heap: [5, 6],
+                currentNum: 6,
+                processed: [3, 2, 1, 5, 6],
+                top: 5,
+                statusType: 'replace',
+                statusText: 'Replaced (6 > top)',
+                teaching: '6 > 3 (current top), so 6 enters the heap. After popping 3 and pushing 6, the heap becomes [5, 6] with top=5. The 2nd largest element among all processed numbers is now 5.',
+                evidence: 'num=6, heap full, 6 > top=3 → heapreplace(heap, 6) → pop 3, push 6, heapify → heap=[5, 6], top=5.',
+                checkpoint: null
+            }, {
+                title: 'Process Sixth Element (4)',
+                desc: '4 < top(5), so 4 is skipped. It cannot be among the top 2 largest elements.',
+                op: '4 < top(5) → skip, heap = [5, 6]',
+                codeLine: 7,
+                heap: [5, 6],
+                currentNum: 4,
+                processed: [3, 2, 1, 5, 6, 4],
+                top: 5,
+                statusType: 'skip',
+                statusText: 'Skipped (4 < top)',
+                teaching: '4 < 5 (current top), so 4 is not among the top 2 largest. The heap remains [5, 6] with top=5. All 6 elements have now been processed.',
+                evidence: 'num=4, heap full, 4 < top=5 → skip. Heap unchanged: [5, 6], top remains 5. All elements processed.',
+                checkpoint: null
+            }, {
+                title: 'Final Result',
+                desc: 'All elements have been processed. The top of the min-heap is the K-th largest element in the array.',
+                op: 'return heap[0] = 5',
+                codeLine: 8,
+                heap: [5, 6],
+                currentNum: null,
+                processed: [3, 2, 1, 5, 6, 4],
+                top: 5,
+                statusType: 'result',
+                statusText: 'Answer: 5',
+                teaching: 'After processing all 6 elements, the heap contains [5, 6] and the top (5) is our final answer. The 2nd largest element in [3, 2, 1, 5, 6, 4] is indeed 5. The min-heap of size k=2 correctly maintained the k largest elements throughout the stream.',
+                evidence: 'All elements processed. heap=[5, 6], return heap[0]=5. Verified: sorted array = [1, 2, 3, 4, 5, 6], 2nd largest = 5.',
+                checkpoint: {
+                    question: 'What is the final 2nd largest element?',
+                    answer: '5',
+                    hint: 'The heap is [5, 6] after all processing. The top of the min-heap (index 0) holds the k-th largest.',
+                    correctFeedback: 'Correct! The final answer is 5. The min-heap [5, 6] has 5 at the top, which is the 2nd largest element in the entire array.',
+                    incorrectFeedback: 'Not quite. After all processing, the heap is [5, 6]. The top of the min-heap is 5, which is the 2nd largest element.'
+                }
+            }];
+
+            const N = steps.length; // 8
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            let currentStepIndex = 0; // 0-based
+            let isPlaying = false;
+            let playInterval = null;
+            const checkpointResponses = {}; // { stepIndex: {answered: bool, correct: bool, userAnswer: str} }
+            const learningLogEntries = [];
+
+            // ──────────────────────────────────────
+            // DOM refs
+            // ──────────────────────────────────────
+            const $ = (id) => document.getElementById(id);
+            const counterEl = $('counter');
+            const rangeEl = $('range');
+            const timelineEl = $('timeline');
+            const prevBtn = $('prev');
+            const playBtn = $('play');
+            const nextBtn = $('next');
+            const stepTitleEl = $('step-title');
+            const stepDescEl = $('step-desc');
+            const opEl = $('op');
+            const canvasEl = $('canvas');
+            const teachingEl = $('teaching');
+            const stateEl = $('state');
+            const stepEvidenceEl = $('step-evidence');
+            const topResultEl = $('top-result');
+            const answerEl = $('answer');
+            const checkpointContainer = $('checkpoint-container');
+            const learningLogEl = $('learning-log');
+            const codeEl = $('code');
+            const arrayRowEl = $('array-row');
+            const heapTreeEl = $('heap-tree');
+            const statusRowEl = $('status-row');
+
+            // ──────────────────────────────────────
+            // Build timeline
+            // ──────────────────────────────────────
+            const tickLabels = ['Init', 'Num 3', 'Num 2', 'Num 1', 'Num 5', 'Num 6', 'Num 4', 'Result'];
+            const tickOps = ['heap=[]', 'push 3', 'push 2', 'skip', 'replace', 'replace', 'skip', 'return 5'];
+
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                for (let i = 0; i < N; i++) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i);
+                    tick.setAttribute('role', 'button');
+                    tick.setAttribute('tabindex', '0');
+                    tick.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + tickLabels[i] + ' - ' + tickOps[i]);
+                    tick.innerHTML = '<span class="tick-label">' + tickLabels[i] + '</span>' +
+                        '<span class="tick-op">' + tickOps[i] + '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(parseInt(this.getAttribute('data-step')));
+                    });
+                    timelineEl.appendChild(tick);
+                }
+            }
+
+            function updateTimelineHighlight() {
+                const allTicks = timelineEl.querySelectorAll('.tick');
+                allTicks.forEach((tick, i) => {
+                    tick.classList.remove('active-tick', 'done-tick');
+                    if (i === currentStepIndex) {
+                        tick.classList.add('active-tick');
+                    } else if (i < currentStepIndex) {
+                        tick.classList.add('done-tick');
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Build canvas (array + heap)
+            // ──────────────────────────────────────
+            const allNums = [3, 2, 1, 5, 6, 4];
+
+            function buildCanvas() {
+                const step = steps[currentStepIndex];
+                // Array row
+                arrayRowEl.innerHTML = '<span class="canvas-label">Array:</span>';
+                const processedSet = new Set(step.processed);
+                const currentNum = step.currentNum;
+
+                allNums.forEach((num, idx) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell';
+                    cell.textContent = num;
+                    if (num === currentNum && currentStepIndex > 0 && currentStepIndex < N - 1) {
+                        cell.classList.add('current');
+                    } else if (processedSet.has(num) && !(num === currentNum && currentStepIndex > 0 &&
+                        currentStepIndex < N - 1)) {
+                        cell.classList.add('processed');
+                    } else if (!processedSet.has(num) && num !== currentNum) {
+                        cell.classList.add('pending');
+                    }
+                    // For final step, mark all as processed
+                    if (currentStepIndex === N - 1) {
+                        cell.classList.remove('current', 'pending');
+                        cell.classList.add('processed');
+                    }
+                    arrayRowEl.appendChild(cell);
+                });
+
+                // Heap tree
+                heapTreeEl.innerHTML = '';
+                const heap = step.heap;
+                if (heap.length === 0) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'heap-placeholder';
+                    placeholder.textContent = 'empty';
+                    heapTreeEl.appendChild(placeholder);
+                } else if (heap.length === 1) {
+                    const root = document.createElement('div');
+                    root.className = 'heap-node top-node';
+                    root.textContent = heap[0];
+                    root.setAttribute('aria-label', 'Heap root: ' + heap[0]);
+                    heapTreeEl.appendChild(root);
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'heap-placeholder';
+                    placeholder.textContent = '...';
+                    placeholder.style.marginTop = '4px';
+                    heapTreeEl.appendChild(placeholder);
+                } else {
+                    // heap.length >= 2
+                    const root = document.createElement('div');
+                    root.className = 'heap-node top-node';
+                    root.textContent = heap[0];
+                    root.setAttribute('aria-label', 'Heap top (k-th largest): ' + heap[0]);
+                    heapTreeEl.appendChild(root);
+                    const connector = document.createElement('div');
+                    connector.className = 'heap-connector';
+                    heapTreeEl.appendChild(connector);
+                    const childrenRow = document.createElement('div');
+                    childrenRow.className = 'heap-children-row';
+                    for (let i = 1; i < Math.min(heap.length, 3); i++) {
+                        const child = document.createElement('div');
+                        child.className = 'heap-node child-node';
+                        child.textContent = heap[i];
+                        child.setAttribute('aria-label', 'Heap child: ' + heap[i]);
+                        childrenRow.appendChild(child);
+                    }
+                    if (heap.length < 3) {
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'heap-placeholder';
+                        placeholder.textContent = '...';
+                        childrenRow.appendChild(placeholder);
+                    }
+                    heapTreeEl.appendChild(childrenRow);
+                }
+
+                // Status row
+                statusRowEl.innerHTML = '';
+                if (step.statusText) {
+                    const badge = document.createElement('span');
+                    badge.className = 'status-badge badge-' + step.statusType;
+                    badge.textContent = step.statusText;
+                    statusRowEl.appendChild(badge);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Update code highlighting
+            // ──────────────────────────────────────
+            function updateCodeHighlight() {
+                const step = steps[currentStepIndex];
+                const allClines = codeEl.querySelectorAll('.cline');
+                allClines.forEach(cl => cl.classList.remove('active-line'));
+                if (step.codeLine !== null && step.codeLine >= 0 && step.codeLine < allClines.length) {
+                    allClines[step.codeLine].classList.add('active-line');
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Update all UI
+            // ──────────────────────────────────────
+            function updateAllUI() {
+                const step = steps[currentStepIndex];
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                opEl.textContent = step.op;
+                teachingEl.textContent = step.teaching;
+                stepEvidenceEl.textContent = step.evidence;
+                stateEl.textContent = JSON.stringify({
+                    heap: step.heap,
+                    k: 2,
+                    processed: step.processed,
+                    top: step.top,
+                    currentNum: step.currentNum
+                }, null, 2);
+                counterEl.textContent = (currentStepIndex + 1) + ' / ' + N;
+                rangeEl.value = currentStepIndex + 1;
+                updateTimelineHighlight();
+                updateCodeHighlight();
+                buildCanvas();
+                buildCheckpointUI();
+                updateTopResult();
+                updateAnswerElement();
+                updateButtonStates();
+            }
+
+            function updateTopResult() {
+                const step = steps[currentStepIndex];
+                if (currentStepIndex === N - 1) {
+                    topResultEl.textContent = '5';
+                    topResultEl.classList.remove('hidden-answer');
+                } else if (step.top !== null) {
+                    topResultEl.textContent = step.top;
+                    topResultEl.classList.add('hidden-answer');
+                } else {
+                    topResultEl.textContent = '?';
+                    topResultEl.classList.add('hidden-answer');
+                }
+            }
+
+            function updateAnswerElement() {
+                // #answer always has the bare final answer
+                answerEl.textContent = '5';
+            }
+
+            function updateButtonStates() {
+                prevBtn.disabled = (currentStepIndex === 0);
+                nextBtn.disabled = (currentStepIndex === N - 1);
+                if (currentStepIndex === N - 1 && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint UI
+            // ──────────────────────────────────────
+            function buildCheckpointUI() {
+                const step = steps[currentStepIndex];
+                checkpointContainer.innerHTML = '';
+                if (!step.checkpoint) return;
+
+                const cp = step.checkpoint;
+                const existing = checkpointResponses[currentStepIndex];
+                const wrapper = document.createElement('div');
+                wrapper.className = 'checkpoint-area';
+                wrapper.innerHTML = '<h4>&#128161; Checkpoint: ' + cp.question + '</h4>';
+
+                const inputRow = document.createElement('div');
+                inputRow.className = 'checkpoint-input-row';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Your answer...';
+                input.setAttribute('aria-label', 'Your answer for checkpoint');
+                if (existing) {
+                    input.value = existing.userAnswer;
+                    input.disabled = true;
+                }
+                inputRow.appendChild(input);
+
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'btn accent';
+                submitBtn.textContent = 'Submit';
+                if (existing) submitBtn.disabled = true;
+                submitBtn.addEventListener('click', function() {
+                    handleCheckpointSubmit(input.value.trim(), cp, input, submitBtn, hintBtn, showBtn,
+                        feedbackArea);
+                });
+                inputRow.appendChild(submitBtn);
+
+                const hintBtn = document.createElement('button');
+                hintBtn.className = 'btn warning';
+                hintBtn.textContent = 'Hint';
+                hintBtn.addEventListener('click', function() {
+                    showCheckpointHint(cp, feedbackArea);
+                });
+                inputRow.appendChild(hintBtn);
+
+                const showBtn = document.createElement('button');
+                showBtn.className = 'btn';
+                showBtn.textContent = 'Show Answer';
+                showBtn.addEventListener('click', function() {
+                    revealCheckpointAnswer(cp, input, submitBtn, hintBtn, showBtn, feedbackArea);
+                });
+                inputRow.appendChild(showBtn);
+
+                wrapper.appendChild(inputRow);
+
+                const feedbackArea = document.createElement('div');
+                feedbackArea.className = 'feedback-msg';
+                feedbackArea.style.display = 'none';
+                if (existing) {
+                    feedbackArea.style.display = 'block';
+                    if (existing.correct) {
+                        feedbackArea.className = 'feedback-msg feedback-correct';
+                        feedbackArea.textContent = '✓ ' + cp.correctFeedback;
+                    } else {
+                        feedbackArea.className = 'feedback-msg feedback-incorrect';
+                        feedbackArea.textContent = '✗ ' + cp.incorrectFeedback;
+                    }
+                }
+                wrapper.appendChild(feedbackArea);
+
+                checkpointContainer.appendChild(wrapper);
+            }
+
+            function handleCheckpointSubmit(userAnswer, cp, input, submitBtn, hintBtn, showBtn, feedbackArea) {
+                if (!userAnswer) {
+                    feedbackArea.style.display = 'block';
+                    feedbackArea.className = 'feedback-msg feedback-incorrect';
+                    feedbackArea.textContent = 'Please enter an answer before submitting.';
+                    return;
+                }
+                const isCorrect = (userAnswer.trim() === cp.answer.trim());
+                feedbackArea.style.display = 'block';
+                if (isCorrect) {
+                    feedbackArea.className = 'feedback-msg feedback-correct';
+                    feedbackArea.textContent = '✓ ' + cp.correctFeedback;
+                } else {
+                    feedbackArea.className = 'feedback-msg feedback-incorrect';
+                    feedbackArea.textContent = '✗ ' + cp.incorrectFeedback;
+                }
+                checkpointResponses[currentStepIndex] = {
+                    answered: true,
+                    correct: isCorrect,
+                    userAnswer: userAnswer.trim()
+                };
+                input.disabled = true;
+                submitBtn.disabled = true;
+                appendLearningLog(isCorrect, userAnswer, cp);
+            }
+
+            function showCheckpointHint(cp, feedbackArea) {
+                feedbackArea.style.display = 'block';
+                feedbackArea.className = 'feedback-msg';
+                feedbackArea.style.background = '#fffbeb';
+                feedbackArea.style.color = '#92400e';
+                feedbackArea.textContent = '💡 Hint: ' + cp.hint;
+                appendLearningLogInfo('Hint requested: ' + cp.hint);
+            }
+
+            function revealCheckpointAnswer(cp, input, submitBtn, hintBtn, showBtn, feedbackArea) {
+                input.value = cp.answer;
+                input.disabled = true;
+                submitBtn.disabled = true;
+                hintBtn.disabled = true;
+                showBtn.disabled = true;
+                feedbackArea.style.display = 'block';
+                feedbackArea.className = 'feedback-msg';
+                feedbackArea.style.background = '#eef3ff';
+                feedbackArea.style.color = '#1e40af';
+                feedbackArea.textContent = '📖 Answer revealed: ' + cp.answer + '. ' + cp.correctFeedback;
+                checkpointResponses[currentStepIndex] = {
+                    answered: true,
+                    correct: false,
+                    userAnswer: '(revealed) ' + cp.answer,
+                    revealed: true
+                };
+                appendLearningLogInfo('Answer revealed for checkpoint: ' + cp.answer);
+            }
+
+            function appendLearningLog(isCorrect, userAnswer, cp) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const entry = {
+                    icon: isCorrect ? 'correct' : 'incorrect',
+                    text: (isCorrect ? 'Correct: ' : 'Incorrect: ') + 'You answered "' + userAnswer +
+                        '" for: ' + cp.question + ' (Expected: ' + cp.answer + ')',
+                    time: timeStr,
+                    type: isCorrect ? 'correct' : 'incorrect'
+                };
+                learningLogEntries.push(entry);
+                renderLearningLog();
+            }
+
+            function appendLearningLogInfo(msg) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                learningLogEntries.push({
+                    icon: 'info',
+                    text: msg,
+                    time: timeStr,
+                    type: 'info'
+                });
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                learningLogEl.innerHTML = '';
+                if (learningLogEntries.length === 0) {
+                    learningLogEl.innerHTML =
+                        '<div class="log-entry"><span class="log-icon info">&#9432;</span><span class="log-text">No entries yet. Interact with checkpoints to build your learning log.</span></div>';
+                    return;
+                }
+                learningLogEntries.forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry';
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'log-icon ' + entry.type;
+                    iconSpan.textContent = entry.type === 'correct' ? '✓' : entry.type === 'incorrect' ? '✗' :
+                        'ℹ';
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'log-text';
+                    textSpan.textContent = entry.text;
+                    const timeSpan = document.createElement('span');
+                    timeSpan.className = 'log-timestamp';
+                    timeSpan.textContent = entry.time;
+                    div.appendChild(iconSpan);
+                    div.appendChild(textSpan);
+                    div.appendChild(timeSpan);
+                    learningLogEl.appendChild(div);
+                });
+                learningLogEl.scrollTop = learningLogEl.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0 || index >= N) return;
+                currentStepIndex = index;
+                updateAllUI();
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸ Pause';
+                playBtn.classList.add('warning');
+                playBtn.classList.remove('accent');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < N - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1600);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                playBtn.classList.remove('warning');
+                playBtn.classList.add('accent');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= N - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            prevBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex - 1);
+            });
+            nextBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex + 1);
+            });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                goToStep(val - 1);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize
+            // ──────────────────────────────────────
+            function init() {
+                buildTimeline();
+                updateAllUI();
+                rangeEl.setAttribute('max', N);
+                rangeEl.setAttribute('min', '1');
+                rangeEl.value = 1;
+                answerEl.textContent = '5';
+            }
+
+            init();
+            console.log('AlgoLab tutoring page ready: Kth Largest Element (Min-Heap TopK)');
+        })();
+    </script>
+</body>
+</html>

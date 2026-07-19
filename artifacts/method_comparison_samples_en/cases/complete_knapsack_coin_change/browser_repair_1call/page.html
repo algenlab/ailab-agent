@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Knapsack Coin Change - DP Core Extension</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dde1e6;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --accent: #2563eb;
+            --accent-light: #e8f0fe;
+            --green: #10b981;
+            --green-bg: #d1fae5;
+            --yellow: #f59e0b;
+            --yellow-bg: #fef3c7;
+            --red: #ef4444;
+            --red-bg: #fee2e2;
+            --blue-bg: #dbeafe;
+            --gold: #d97706;
+            --gold-bg: #fef9c3;
+            --gray-bg: #f1f5f9;
+            --cell-size: 52px;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: #eef1f5;
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .page-container {
+            max-width: 1300px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-left: 5px solid var(--accent);
+        }
+        #title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .header-results {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--green);
+            background: var(--green-bg);
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            color: #4b5563;
+            background: var(--gray-bg);
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        /* Main layout */
+        .main-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .panel {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+        }
+        .panel-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #8899aa;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        #code-panel {
+            flex: 1 1 320px;
+            min-width: 280px;
+            max-width: 420px;
+        }
+        #viz-panel {
+            flex: 2 1 500px;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #info-panel {
+            flex: 1 1 300px;
+            min-width: 260px;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Code */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 6px;
+            padding: 12px 14px;
+            overflow-x: auto;
+            white-space: pre;
+            margin: 0;
+            border: 1px solid #334155;
+            position: relative;
+        }
+        #code .line {
+            display: block;
+            padding: 1px 6px;
+            margin: 0 -6px;
+            border-radius: 3px;
+            transition: background 0.25s;
+        }
+        #code .line.highlight {
+            background: #3b4f6b;
+            border-left: 3px solid #facc15;
+            padding-left: 9px;
+            margin-left: -9px;
+            font-weight: 600;
+            color: #fff;
+        }
+        #code .line.highlight-secondary {
+            background: #2d3b4f;
+            border-left: 3px solid #60a5fa;
+            padding-left: 9px;
+            margin-left: -9px;
+            color: #cbd5e1;
+        }
+
+        /* Canvas / DP Table */
+        #canvas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 8px 4px;
+            min-height: 100px;
+            background: #fafbfc;
+            border-radius: 6px;
+            border: 1px dashed var(--border);
+            position: relative;
+        }
+        .dp-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            cursor: default;
+            position: relative;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+        .dp-cell .cell-idx {
+            font-size: 0.6rem;
+            font-weight: 400;
+            color: #777;
+            line-height: 1;
+            margin-bottom: 1px;
+        }
+        .dp-cell .cell-val {
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .dp-cell.cell-base {
+            background: #d1fae5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+        .dp-cell.cell-current {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25);
+            z-index: 2;
+            transform: scale(1.08);
+        }
+        .dp-cell.cell-dependent {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+        .dp-cell.cell-computed {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+        .dp-cell.cell-unvisited {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #94a3b8;
+        }
+        .dp-cell.cell-answer {
+            background: #fef9c3;
+            border-color: #d97706;
+            color: #78350f;
+            box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.3);
+            z-index: 2;
+            transform: scale(1.08);
+            animation: pulse-answer 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-answer {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(217, 119, 6, 0.08);
+            }
+        }
+        .cell-arrow {
+            position: absolute;
+            font-size: 0.65rem;
+            color: #3b82f6;
+            font-weight: 700;
+            pointer-events: none;
+            top: -16px;
+            white-space: nowrap;
+        }
+
+        /* Info panels */
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        #op {
+            display: inline-block;
+            background: #e8f0fe;
+            color: #1e40af;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            margin-bottom: 6px;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            background: #f8fafc;
+            border-radius: 4px;
+            padding: 8px 10px;
+            white-space: pre-wrap;
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            line-height: 1.4;
+        }
+        #teaching {
+            font-size: 0.84rem;
+            color: #444;
+            padding: 8px 0;
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.78rem;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 5px;
+            padding: 8px 10px;
+            color: #78350f;
+            line-height: 1.5;
+        }
+
+        /* Timeline */
+        .timeline-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+        }
+        #timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 7px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #dde1e6;
+            background: #fff;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            min-width: 48px;
+            user-select: none;
+            font-size: 0.75rem;
+        }
+        .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        .tick.active {
+            border-color: #2563eb;
+            background: #dbeafe;
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #374151;
+            line-height: 1.1;
+        }
+        .tick .tick-op {
+            font-size: 0.6rem;
+            color: #6b7280;
+            line-height: 1.1;
+            font-family: var(--font-mono);
+            margin-top: 1px;
+        }
+        .tick.checkpoint-tick {
+            border-style: dashed;
+            border-color: #f59e0b;
+            background: #fffdf7;
+        }
+        .tick.checkpoint-tick .tick-label::after {
+            content: ' ⚑';
+            color: #f59e0b;
+            font-size: 0.65rem;
+        }
+
+        /* Navigation */
+        .nav-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .nav-btn {
+            padding: 7px 15px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: all 0.15s;
+            color: #374151;
+            user-select: none;
+        }
+        .nav-btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .nav-btn:active {
+            background: #e2e8f0;
+        }
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #play.playing {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            min-width: 50px;
+            text-align: center;
+            color: #374151;
+        }
+        #range {
+            flex: 1 1 100px;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: #2563eb;
+            cursor: pointer;
+        }
+
+        /* Checkpoint */
+        .checkpoint-container {
+            background: #fffdf7;
+            border: 2px dashed #f59e0b;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-top: 8px;
+            display: none;
+        }
+        .checkpoint-container.visible {
+            display: block;
+        }
+        .checkpoint-prompt {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .checkpoint-input {
+            padding: 7px 10px;
+            border-radius: 5px;
+            border: 2px solid #dde1e6;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            width: 100px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .checkpoint-input:focus {
+            outline: none;
+            border-color: #f59e0b;
+        }
+        .checkpoint-btn {
+            padding: 7px 13px;
+            border-radius: 5px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.78rem;
+            margin: 4px 3px;
+            transition: all 0.15s;
+            background: #fff;
+            color: #374151;
+        }
+        .checkpoint-btn:hover {
+            background: #f1f5f9;
+        }
+        .checkpoint-btn.btn-submit {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+        .checkpoint-btn.btn-submit:hover {
+            background: #1d4ed8;
+        }
+        .checkpoint-btn.btn-hint {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        .checkpoint-btn.btn-show {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+        .checkpoint-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            display: none;
+        }
+        .checkpoint-feedback.correct {
+            display: block;
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .checkpoint-feedback.incorrect {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .learning-log h4 {
+            margin: 0 0 6px 0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #8899aa;
+        }
+        .log-entry {
+            font-size: 0.76rem;
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin: 2px 0;
+            border-left: 3px solid #cbd5e1;
+            background: #fafbfc;
+            color: #444;
+        }
+        .log-entry.log-correct {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .log-entry.log-incorrect {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        #answer {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .main-row {
+                flex-direction: column;
+            }
+            #code-panel,
+            #viz-panel,
+            #info-panel {
+                max-width: 100%;
+                flex: 1 1 auto;
+            }
+            .dp-cell {
+                width: 38px;
+                height: 38px;
+                font-size: 0.7rem;
+            }
+            .dp-cell .cell-idx {
+                font-size: 0.5rem;
+            }
+            .dp-cell .cell-val {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div>
+                <h1 id="title">Complete Knapsack Coin Change</h1>
+                <p id="subtitle">DP Core Extension — Unlimited coins, minimum count</p>
+            </div>
+            <div class="header-results">
+                <span id="top-result">Result: —</span>
+                <span id="top-solution">Solution: —</span>
+            </div>
+        </div>
+
+        <!-- Main row -->
+        <div class="main-row">
+            <!-- Code panel -->
+            <div class="panel" id="code-panel">
+                <div class="panel-label">Algorithm Code</div>
+                <pre id="code"><span class="line line-1">function coinChange(coins, amount) {</span><span class="line line-2">    const dp = new Array(amount + 1).fill(Infinity);</span><span class="line line-3">    dp[0] = 0;</span><span class="line line-4"></span><span class="line line-5">    for (let c = 1; c &lt;= amount; c++) {</span><span class="line line-6">        for (const coin of coins) {</span><span class="line line-7">            if (coin &lt;= c) {</span><span class="line line-8">                dp[c] = Math.min(dp[c], dp[c - coin] + 1);</span><span class="line line-9">            }</span><span class="line line-10">        }</span><span class="line line-11">    }</span><span class="line line-12"></span><span class="line line-13">    return dp[amount] === Infinity ? -1 : dp[amount];</span><span class="line line-14">}</span></pre>
+            </div>
+
+            <!-- Visualization panel -->
+            <div class="panel" id="viz-panel">
+                <div class="panel-label">DP Table Visualization — dp[0 .. amount]</div>
+                <div id="canvas">
+                    <!-- dp cells rendered by JS -->
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:0.7rem;color:#666;margin-top:4px;justify-content:center;">
+                    <span>🟢 Base (dp[0]=0)</span>
+                    <span>🟡 Current cell</span>
+                    <span>🔵 Dependency</span>
+                    <span>⬜ Computed</span>
+                    <span>⬜░ Unvisited</span>
+                    <span>🟠 Final answer</span>
+                </div>
+            </div>
+
+            <!-- Info panel -->
+            <div class="panel" id="info-panel">
+                <div class="panel-label">Step Details</div>
+                <div id="step-title">Initialization</div>
+                <div id="step-desc">Setting up the DP array.</div>
+                <span id="op">dp[0] = 0</span>
+                <div class="panel-label" style="margin-top:8px;">Current State (JSON)</div>
+                <div id="state">{ }</div>
+                <div class="panel-label" style="margin-top:8px;">Teaching Notes</div>
+                <div id="teaching">We initialize the dp array where dp[c] represents the minimum coins needed for amount c. dp[0] = 0 because zero coins are needed to make amount 0. All other entries start at Infinity (unreachable).</div>
+                <div class="panel-label" style="margin-top:8px;">Step Evidence</div>
+                <div id="step-evidence">Operation: Initialize. Target: dp[0]. Before: undefined. After: dp[0] = 0. All other dp[c] = Infinity.</div>
+            </div>
+        </div>
+
+        <!-- Checkpoint area -->
+        <div class="checkpoint-container" id="checkpoint-container">
+            <div class="checkpoint-prompt" id="checkpoint-prompt">What value should dp[5] be?</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <input type="number" class="checkpoint-input" id="checkpoint-input" placeholder="?" min="0" step="1">
+                <button class="checkpoint-btn btn-submit" id="checkpoint-submit">Submit</button>
+                <button class="checkpoint-btn btn-hint" id="checkpoint-hint">Hint</button>
+                <button class="checkpoint-btn btn-show" id="checkpoint-show">Show Answer</button>
+            </div>
+            <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+        </div>
+
+        <!-- Timeline and navigation -->
+        <div class="timeline-section">
+            <div class="panel-label">Step Timeline</div>
+            <div id="timeline">
+                <!-- ticks rendered by JS -->
+            </div>
+            <div class="nav-row">
+                <button class="nav-btn" id="prev" aria-label="Previous step">◀ Prev</button>
+                <button class="nav-btn" id="play" aria-label="Play auto-advance">▶ Play</button>
+                <button class="nav-btn" id="next" aria-label="Next step">Next ▶</button>
+                <input type="range" id="range" min="0" max="8" value="0" step="1" aria-label="Step range slider">
+                <span id="counter">1 / 9</span>
+            </div>
+        </div>
+
+        <!-- Learning log -->
+        <div class="learning-log" id="learning-log">
+            <h4>Learning Log</h4>
+            <div id="log-entries">
+                <div class="log-entry">Session started. Ready to learn the coin change DP algorithm.</div>
+            </div>
+        </div>
+
+        <!-- Hidden answer -->
+        <div id="answer">3</div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step data for coin change DP
+            // coins = [1, 2, 5], amount = 11
+            // ──────────────────────────────────────
+            const InfinitySymbol = '∞';
+            const INF = Number.POSITIVE_INFINITY;
+
+            // Helper to format dp value
+            function fmtVal(v) {
+                return v === INF ? InfinitySymbol : String(v);
+            }
+
+            // Build dp state at each step
+            function buildDpState(computedUpTo) {
+                // Returns array of length 12 (indices 0..11)
+                const dp = new Array(12).fill(INF);
+                dp[0] = 0;
+                if (computedUpTo >= 1) dp[1] = 1;
+                if (computedUpTo >= 2) dp[2] = 1;
+                if (computedUpTo >= 3) dp[3] = 2;
+                if (computedUpTo >= 4) dp[4] = 2;
+                if (computedUpTo >= 5) dp[5] = 1;
+                if (computedUpTo >= 6) dp[6] = 2;
+                if (computedUpTo >= 7) dp[7] = 2;
+                if (computedUpTo >= 8) dp[8] = 3;
+                if (computedUpTo >= 9) dp[9] = 3;
+                if (computedUpTo >= 10) dp[10] = 2;
+                if (computedUpTo >= 11) dp[11] = 3;
+                return dp;
+            }
+
+            // Dependencies for each computation step
+            function getDependencies(c) {
+                // Returns array of {coin, depIndex} for amount c
+                const coins = [1, 2, 5];
+                const deps = [];
+                for (const coin of coins) {
+                    if (coin <= c) {
+                        deps.push({ coin, depIndex: c - coin });
+                    }
+                }
+                return deps;
+            }
+
+            const steps = [
+                { // Step 0: Init
+                    computedUpTo: 0,
+                    currentCell: null,
+                    title: 'Initialization',
+                    desc: 'Set up the DP array. dp[0] = 0; all other entries are Infinity.',
+                    op: 'dp[0] = 0',
+                    codeHighlights: [2, 3],
+                    teaching: 'We initialize the dp array where dp[c] represents the minimum number of coins needed to make amount c. dp[0] = 0 because zero coins are needed to make amount 0. All other entries start at Infinity, meaning "not yet reachable." This is the foundation of the DP approach.',
+                    evidence: 'Operation: Initialize dp array of size amount+1 (12 elements). Target: dp[0]. Before: undefined. After: dp[0] = 0. All other dp[c] = Infinity. The base case is set.',
+                    isCheckpoint: false,
+                    checkpointPrompt: '',
+                    checkpointAnswer: null,
+                    checkpointHint: '',
+                },
+                { // Step 1: c=1
+                    computedUpTo: 1,
+                    currentCell: 1,
+                    title: 'Process Amount c = 1',
+                    desc: 'Try all coins ≤ 1. Only coin 1 fits. dp[1] = min(Infinity, dp[0] + 1) = 1.',
+                    op: 'dp[1] = dp[0] + 1 = 1',
+                    codeHighlights: [5, 6, 7, 8],
+                    teaching: 'For amount c = 1, we consider each coin. Coin 1 ≤ 1, so dp[1] = min(Infinity, dp[1-1] + 1) = min(Infinity, 1) = 1. Coins 2 and 5 are too large. Notice we use dp[0] — the base case. This is the "core extension" pattern: smaller solutions build larger ones.',
+                    evidence: 'Operation: Compute dp[1]. Targets: dp[1]. Dependencies: dp[0] (via coin 1). Before: dp[1] = Infinity. After: dp[1] = 1. Only coin 1 could be used.',
+                    isCheckpoint: false,
+                    checkpointPrompt: '',
+                    checkpointAnswer: null,
+                    checkpointHint: '',
+                },
+                { // Step 2: c=2
+                    computedUpTo: 2,
+                    currentCell: 2,
+                    title: 'Process Amount c = 2',
+                    desc: 'Try coins 1 and 2. dp[2] = min(dp[1]+1=2, dp[0]+1=1) = 1 via coin 2.',
+                    op: 'dp[2] = dp[0] + 1 = 1 (coin 2)',
+                    codeHighlights: [5, 6, 7, 8],
+                    teaching: 'For c = 2, coin 1 gives dp[1]+1 = 2, but coin 2 gives dp[0]+1 = 1. We take the minimum: 1 coin of denomination 2. This shows how the algorithm naturally finds the optimal coin for each amount by trying all possibilities.',
+                    evidence: 'Operation: Compute dp[2]. Targets: dp[2]. Dependencies: dp[1] (via coin 1), dp[0] (via coin 2). Before: dp[2] = Infinity. After: dp[2] = 1. Best choice: use coin 2 once.',
+                    isCheckpoint: false,
+                    checkpointPrompt: '',
+                    checkpointAnswer: null,
+                    checkpointHint: '',
+                },
+                { // Step 3: c=3
+                    computedUpTo: 3,
+                    currentCell: 3,
+                    title: 'Process Amount c = 3',
+                    desc: 'Try coins 1 and 2. dp[3] = min(dp[2]+1=2, dp[1]+1=2) = 2.',
+                    op: 'dp[3] = dp[2] + 1 = 2',
+                    codeHighlights: [5, 6, 7, 8],
+                    teaching: 'For c = 3, coin 1 references dp[2]=1 → 2 coins; coin 2 references dp[1]=1 → 2 coins. Both yield 2. Coin 5 is too large. So dp[3] = 2 (e.g., 1+2 or 2+1). The algorithm does not track which coins — only the minimum count.',
+                    evidence: 'Operation: Compute dp[3]. Targets: dp[3]. Dependencies: dp[2] (via coin 1), dp[1] (via coin 2). Before: dp[3] = Infinity. After: dp[3] = 2. Two coins needed.',
+                    isCheckpoint: false,
+                    checkpointPrompt: '',
+                    checkpointAnswer: null,
+                    checkpointHint: '',
+                },
+                { // Step 4: c=4
+                    computedUpTo: 4,
+                    currentCell: 4,
+                    title: 'Process Amount c = 4',
+                    desc: 'Try coins 1 and 2. dp[4] = min(dp[3]+1=3, dp[2]+1=2) = 2 via two coin-2s.',
+                    op: 'dp[4] = dp[2] + 1 = 2 (coin 2)',
+                    codeHighlights: [5, 6, 7, 8],
+                    teaching: 'For c = 4, coin 1 gives dp[3]+1 = 3, coin 2 gives dp[2]+1 = 2. Minimum is 2, using two coins of denomination 2. This demonstrates coin reuse: dp[2] itself used coin 2, and we add another coin 2. The increasing-capacity loop allows unlimited reuse.',
+                    evidence: 'Operation: Compute dp[4]. Targets: dp[4]. Dependencies: dp[3] (via coin 1), dp[2] (via coin 2). Before: dp[4] = Infinity. After: dp[4] = 2. Best: two coins of 2.',
+                    isCheckpoint: false,
+                    checkpointPrompt: '',
+                    checkpointAnswer: null,
+                    checkpointHint: '',
+                },
+                { // Step 5: c=5 — CHECKPOINT
+                    computedUpTo: 5,
+                    currentCell: 5,
+                    title: 'Process Amount c = 5 ⚑',
+                    desc: 'Try coins 1, 2, and 5. dp[5] = min(dp[4]+1=3, dp[3]+1=3, dp[0]+1=1) = 1 via coin 5.',
+                    op: 'dp[5] = dp[0] + 1 = 1 (coin 5)',
+                    codeHighlights: [5, 6, 7, 8],
+                    teaching: 'Now all three coins are candidates! Coin 1 → dp[4]+1 = 3, coin 2 → dp[3]+1 = 3, coin 5 → dp[0]+1 = 1. The minimum is 1 — a single 5-coin suffices. This is a key milestone: a larger coin can dramatically reduce the count. The "increasing capacity" loop ensures that when we reach c=5, dp[0] through dp[4] are already optimal.',
+                    evidence: 'Operation: Compute dp[5]. Targets: dp[5]. Dependencies: dp[4] (via coin 1), dp[3] (via coin 2), dp[0] (via coin 5). Before: dp[5] = Infinity. After: dp[5] = 1. Best: one coin of 5.',
+                    isCheckpoint: true,
+                    checkpointPrompt: 'What value should dp[5] be after processing amount 5? (Enter a number)',
+                    checkpointAnswer: 1,
+                    checkpointHint: 'Consider all three coins: coin 1 needs dp[4]+1, coin 2 needs dp[3]+1, and coin 5 needs dp[0]+1. Which gives the smallest result? Remember dp[0]=0.',
+                },
+                { // Step 6: c=6
+                    computedUpTo: 6,
+                    currentCell: 6,
+                    title: 'Process Amount c = 6',
+                    desc: 'Try all coins. dp[6] = min(dp[5]+1=2, dp[4]+1=3, dp[1]+1=2) = 2 via coin 1 or 5.',
+                    op: 'dp[6] = dp[5] + 1 = 2 (coin 1) or dp[1]+1=2 (coin 5)',
+                    codeHighlights: [5, 6, 7, 8],
+                    teaching: 'For c = 6: coin 1 → dp[5]+1 = 2, coin 2 → dp[4]+1 = 3, coin 5 → dp[1]+1 = 2. Minimum is 2 (e.g., 5+1). Notice dp[5]=1 was just computed — the algorithm builds on fresh results.',
+                    evidence: 'Operation: Compute dp[6]. Targets: dp[6]. Dependencies: dp[5] (via coin 1), dp[4] (via coin 2), dp[1] (via coin 5). Before: dp[6] = Infinity. After: dp[6] = 2.',
+                    isCheckpoint: false,
+                    checkpointPrompt: '',
+                    checkpointAnswer: null,
+                    checkpointHint: '',
+                },
+                { // Step 7: c=10
+                    computedUpTo: 10,
+                    currentCell: 10,
+                    title: 'Process Amount c = 10',
+                    desc: 'Try all coins. dp[10] = min(dp[9]+1=4, dp[8]+1=4, dp[5]+1=2) = 2 via coin 5.',
+                    op: 'dp[10] = dp[5] + 1 = 2 (coin 5)',
+                    codeHighlights: [5, 6, 7, 8],
+                    teaching: 'Skipping ahead to c = 10 (amounts 7-9 were computed similarly). For c = 10: coin 5 → dp[5]+1 = 2 (since dp[5]=1). So dp[10] = 2 — two 5-coins make 10. This is a clean example of coin reuse: the same coin 5 is used twice, made possible by the forward iteration.',
+                    evidence: 'Operation: Compute dp[10]. Targets: dp[10]. Dependencies: dp[9] (via coin 1), dp[8] (via coin 2), dp[5] (via coin 5). Before: dp[10] = Infinity. After: dp[10] = 2. Best: two coins of 5.',
+                    isCheckpoint: false,
+                    checkpointPrompt: '',
+                    checkpointAnswer: null,
+                    checkpointHint: '',
+                },
+                { // Step 8: c=11 — FINAL CHECKPOINT
+                    computedUpTo: 11,
+                    currentCell: 11,
+                    title: 'Process Amount c = 11 ⚑',
+                    desc: 'Try all coins. dp[11] = min(dp[10]+1=3, dp[9]+1=4, dp[6]+1=3) = 3 via coin 1 or 5.',
+                    op: 'dp[11] = dp[10] + 1 = 3 (coin 1) or dp[6]+1=3 (coin 5)',
+                    codeHighlights: [5, 6, 7, 8, 13],
+                    teaching: 'Final amount! For c = 11: coin 1 → dp[10]+1 = 3, coin 2 → dp[9]+1 = 4, coin 5 → dp[6]+1 = 3. Minimum is 3 coins (e.g., 5+5+1). dp[11] is not Infinity, so the answer is 3. If dp[amount] were still Infinity, we would return -1 (impossible).',
+                    evidence: 'Operation: Compute dp[11] (final amount). Targets: dp[11]. Dependencies: dp[10] (via coin 1), dp[9] (via coin 2), dp[6] (via coin 5). Before: dp[11] = Infinity. After: dp[11] = 3. Final answer: 3 coins. The algorithm returns dp[11] = 3.',
+                    isCheckpoint: true,
+                    checkpointPrompt: 'What is the minimum number of coins needed to make amount 11? (Enter a number)',
+                    checkpointAnswer: 3,
+                    checkpointHint: 'Look at the dp table. dp[11] depends on dp[10] (coin 1), dp[9] (coin 2), and dp[6] (coin 5). dp[10]=2, dp[9]=3, dp[6]=2. Take the minimum of (2+1, 3+1, 2+1).',
+                },
+            ];
+
+            const totalSteps = steps.length; // 9 steps, indices 0..8
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            const playDelay = 2200; // ms between auto-advances
+
+            // Learning log entries
+            const logEntries = ['Session started. Ready to learn the coin change DP algorithm.'];
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $prevBtn = document.getElementById('prev');
+            const $playBtn = document.getElementById('play');
+            const $nextBtn = document.getElementById('next');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $answer = document.getElementById('answer');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $checkpointPrompt = document.getElementById('checkpoint-prompt');
+            const $checkpointInput = document.getElementById('checkpoint-input');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHint = document.getElementById('checkpoint-hint');
+            const $checkpointShow = document.getElementById('checkpoint-show');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $logEntries = document.getElementById('log-entries');
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    if (step.isCheckpoint) tick.classList.add('checkpoint-tick');
+                    if (idx === currentStepIndex) tick.classList.add('active');
+                    tick.setAttribute('aria-label', 'Step ' + (idx + 1) + ': ' + step.title);
+                    tick.innerHTML =
+                        '<span class="tick-label">' + (idx === 0 ? 'Init' : 'c=' + step.computedUpTo) +
+                        '</span><span class="tick-op">' + step.op + '</span>';
+                    tick.addEventListener('click', () => {
+                        goToStep(idx);
+                    });
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            function updateTimelineActive() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    if (i === currentStepIndex) t.classList.add('active');
+                    else t.classList.remove('active');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Build DP canvas
+            // ──────────────────────────────────────
+            function renderCanvas() {
+                const step = steps[currentStepIndex];
+                const dp = buildDpState(step.computedUpTo);
+                const currentCell = step.currentCell;
+                const deps = currentCell !== null ? getDependencies(currentCell) : [];
+                const depIndices = deps.map(d => d.depIndex);
+
+                $canvas.innerHTML = '';
+                for (let i = 0; i <= 11; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'dp-cell';
+
+                    // Determine cell class
+                    if (i === currentCell && currentStepIndex === totalSteps - 1 && i === 11) {
+                        // Final answer cell (last step, current is dp[11])
+                        cell.classList.add('cell-answer');
+                    } else if (i === currentCell) {
+                        cell.classList.add('cell-current');
+                    } else if (depIndices.includes(i) && currentCell !== null) {
+                        cell.classList.add('cell-dependent');
+                    } else if (i === 0) {
+                        cell.classList.add('cell-base');
+                    } else if (dp[i] !== INF) {
+                        cell.classList.add('cell-computed');
+                    } else {
+                        cell.classList.add('cell-unvisited');
+                    }
+
+                    // Add arrow indicator for dependencies
+                    if (depIndices.includes(i) && currentCell !== null && i !== currentCell) {
+                        const arrow = document.createElement('span');
+                        arrow.className = 'cell-arrow';
+                        const depInfo = deps.find(d => d.depIndex === i);
+                        arrow.textContent = '↑ coin ' + (depInfo ? depInfo.coin : '?');
+                        cell.appendChild(arrow);
+                    }
+
+                    const idxSpan = document.createElement('span');
+                    idxSpan.className = 'cell-idx';
+                    idxSpan.textContent = '[' + i + ']';
+
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'cell-val';
+                    valSpan.textContent = fmtVal(dp[i]);
+
+                    cell.appendChild(idxSpan);
+                    cell.appendChild(valSpan);
+                    cell.title = 'dp[' + i + '] = ' + fmtVal(dp[i]);
+                    $canvas.appendChild(cell);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Code highlighting
+            // ──────────────────────────────────────
+            function highlightCode() {
+                const step = steps[currentStepIndex];
+                const allLines = $code.querySelectorAll('.line');
+                allLines.forEach(l => l.classList.remove('highlight', 'highlight-secondary'));
+
+                if (step.codeHighlights && step.codeHighlights.length > 0) {
+                    step.codeHighlights.forEach((lineNum, idx) => {
+                        const lineEl = $code.querySelector('.line-' + lineNum);
+                        if (lineEl) {
+                            if (idx === 0) lineEl.classList.add('highlight');
+                            else lineEl.classList.add('highlight-secondary');
+                        }
+                    });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Update all displays
+            // ──────────────────────────────────────
+            function updateAllDisplays() {
+                const step = steps[currentStepIndex];
+                const dp = buildDpState(step.computedUpTo);
+
+                // Titles and descriptions
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+                $teaching.textContent = step.teaching;
+                $stepEvidence.textContent = step.evidence;
+
+                // State JSON
+                const stateObj = {
+                    step: currentStepIndex,
+                    displayStep: currentStepIndex + 1,
+                    totalSteps: totalSteps,
+                    amountBeingProcessed: step.currentCell,
+                    dpSnapshot: dp.map((v, i) => (i <= (step.computedUpTo || 0) ? (v === INF ? null : v) : null)),
+                    coinsAvailable: [1, 2, 5],
+                    currentCell: step.currentCell,
+                    isCheckpoint: step.isCheckpoint,
+                };
+                if (step.currentCell !== null && dp[step.currentCell] !== INF) {
+                    stateObj['dp[' + step.currentCell + ']'] = dp[step.currentCell];
+                }
+                $state.textContent = JSON.stringify(stateObj, null, 2);
+
+                // Counter
+                $counter.textContent = (currentStepIndex + 1) + ' / ' + totalSteps;
+
+                // Range
+                $range.value = currentStepIndex;
+                $range.max = totalSteps - 1;
+
+                // Top result and solution
+                if (currentStepIndex === totalSteps - 1) {
+                    $topResult.textContent = 'Result: 3 coins';
+                    $topSolution.textContent = 'Solution: 5 + 5 + 1 = 11';
+                } else if (step.computedUpTo >= 11) {
+                    $topResult.textContent = 'Result: 3 coins';
+                    $topSolution.textContent = 'Solution: 5 + 5 + 1 = 11';
+                } else {
+                    $topResult.textContent = 'Result: — (in progress)';
+                    $topSolution.textContent = 'Solution: —';
+                }
+
+                // Answer element
+                $answer.textContent = '3';
+
+                // Buttons
+                $prevBtn.disabled = (currentStepIndex === 0);
+                $nextBtn.disabled = (currentStepIndex === totalSteps - 1);
+
+                // Render
+                renderCanvas();
+                highlightCode();
+                updateTimelineActive();
+                updateCheckpointUI();
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint UI
+            // ──────────────────────────────────────
+            function updateCheckpointUI() {
+                const step = steps[currentStepIndex];
+                if (step.isCheckpoint) {
+                    $checkpointContainer.classList.add('visible');
+                    $checkpointPrompt.textContent = step.checkpointPrompt;
+                    $checkpointInput.value = '';
+                    $checkpointFeedback.className = 'checkpoint-feedback';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.style.display = 'none';
+                    $checkpointInput.disabled = false;
+                    $checkpointSubmit.disabled = false;
+                } else {
+                    $checkpointContainer.classList.remove('visible');
+                    $checkpointFeedback.className = 'checkpoint-feedback';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.style.display = 'none';
+                    $checkpointInput.value = '';
+                }
+            }
+
+            function submitCheckpoint() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                const rawVal = $checkpointInput.value.trim();
+                if (rawVal === '') {
+                    $checkpointFeedback.className = 'checkpoint-feedback incorrect';
+                    $checkpointFeedback.textContent = 'Please enter a number before submitting.';
+                    $checkpointFeedback.style.display = 'block';
+                    return;
+                }
+                const userAnswer = parseInt(rawVal, 10);
+                if (isNaN(userAnswer)) {
+                    $checkpointFeedback.className = 'checkpoint-feedback incorrect';
+                    $checkpointFeedback.textContent = 'Invalid input. Please enter an integer number.';
+                    $checkpointFeedback.style.display = 'block';
+                    return;
+                }
+                const correctAnswer = step.checkpointAnswer;
+                const isCorrect = (userAnswer === correctAnswer);
+                const stepLabel = 'Step ' + (currentStepIndex + 1) + ' (' + step.title.replace(' ⚑', '') + ')';
+
+                if (isCorrect) {
+                    $checkpointFeedback.className = 'checkpoint-feedback correct';
+                    $checkpointFeedback.textContent = '✅ Correct! dp[' + step.currentCell + '] = ' + correctAnswer +
+                        '. Great job understanding the DP transition.';
+                    $checkpointFeedback.style.display = 'block';
+                    $checkpointInput.disabled = true;
+                    $checkpointSubmit.disabled = true;
+                    addLogEntry(stepLabel + ': Submitted answer "' + userAnswer + '" — Correct!', true);
+                } else {
+                    $checkpointFeedback.className = 'checkpoint-feedback incorrect';
+                    $checkpointFeedback.textContent = '❌ Incorrect. You answered ' + userAnswer +
+                        ', but the correct value is ' + correctAnswer +
+                        '. Review the dependencies and try to understand why. You can use Hint or Show Answer for help.';
+                    $checkpointFeedback.style.display = 'block';
+                    addLogEntry(stepLabel + ': Submitted answer "' + userAnswer + '" — Incorrect. Correct answer is ' +
+                        correctAnswer + '.', false);
+                }
+            }
+
+            function showHint() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                $checkpointFeedback.className = 'checkpoint-feedback';
+                $checkpointFeedback.textContent = '💡 Hint: ' + step.checkpointHint;
+                $checkpointFeedback.style.display = 'block';
+                addLogEntry('Step ' + (currentStepIndex + 1) + ': Hint requested — "' + step.checkpointHint + '"');
+            }
+
+            function showAnswer() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                const correctAnswer = step.checkpointAnswer;
+                $checkpointInput.value = correctAnswer;
+                $checkpointFeedback.className = 'checkpoint-feedback correct';
+                $checkpointFeedback.textContent = '📖 The answer is ' + correctAnswer +
+                    '. Study the evidence panel to understand how this value is derived.';
+                $checkpointFeedback.style.display = 'block';
+                $checkpointInput.disabled = true;
+                $checkpointSubmit.disabled = true;
+                addLogEntry('Step ' + (currentStepIndex + 1) + ': Show Answer — answer is ' + correctAnswer + '.');
+            }
+
+            function addLogEntry(message, isCorrect) {
+                logEntries.push(message);
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry';
+                if (isCorrect === true) entryDiv.classList.add('log-correct');
+                if (isCorrect === false) entryDiv.classList.add('log-incorrect');
+                entryDiv.textContent = message;
+                $logEntries.appendChild(entryDiv);
+                // Scroll to bottom
+                const logContainer = document.getElementById('learning-log');
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(idx) {
+                if (idx < 0 || idx >= totalSteps) return;
+                currentStepIndex = idx;
+                updateAllDisplays();
+                // If playing and we hit the end, stop
+                if (currentStepIndex === totalSteps - 1 && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function goNext() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                } else if (isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function goPrev() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function startPlay() {
+                isPlaying = true;
+                $playBtn.textContent = '⏸ Pause';
+                $playBtn.classList.add('playing');
+                if (currentStepIndex >= totalSteps - 1) {
+                    // If at the end, restart from beginning
+                    goToStep(0);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goNext();
+                    } else {
+                        stopPlay();
+                    }
+                }, playDelay);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            $prevBtn.addEventListener('click', goPrev);
+            $nextBtn.addEventListener('click', goNext);
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', function() {
+                const idx = parseInt(this.value, 10);
+                if (!isNaN(idx)) {
+                    if (isPlaying) stopPlay();
+                    goToStep(idx);
+                }
+            });
+            $checkpointSubmit.addEventListener('click', submitCheckpoint);
+            $checkpointHint.addEventListener('click', showHint);
+            $checkpointShow.addEventListener('click', showAnswer);
+            $checkpointInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    submitCheckpoint();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'checkpoint-input') return;
+                if (e.key === 'ArrowRight') goNext();
+                if (e.key === 'ArrowLeft') goPrev();
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initial render
+            // ──────────────────────────────────────
+            function init() {
+                buildTimeline();
+                updateAllDisplays();
+                $answer.textContent = '3';
+                $range.max = totalSteps - 1;
+                $range.value = 0;
+                $prevBtn.disabled = true;
+                $nextBtn.disabled = false;
+                $checkpointContainer.classList.remove('visible');
+                $checkpointFeedback.style.display = 'none';
+            }
+
+            init();
+
+            // Expose for debugging (optional, harmless)
+            window._algoTutor = {
+                steps,
+                currentStepIndex,
+                goToStep,
+                goNext,
+                goPrev,
+                togglePlay,
+                totalSteps,
+            };
+        })();
+    </script>
+</body>
+</html>

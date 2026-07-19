@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kth Largest Element in an Array - Min-Heap Algorithm</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dee2e6;
+            --text: #212529;
+            --text-secondary: #495057;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --green: #16a34a;
+            --green-light: #dcfce7;
+            --red: #dc2626;
+            --red-light: #fef2f2;
+            --orange: #ea580c;
+            --orange-light: #fff7ed;
+            --yellow: #ca8a04;
+            --yellow-light: #fefce8;
+            --gray: #6b7280;
+            --gray-light: #f3f4f6;
+            --purple: #7c3aed;
+            --purple-light: #f5f3ff;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
+            --font-mono: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--accent);
+        }
+        #title {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 4px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .result-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #top-result {
+            background: var(--green-light);
+            color: #15803d;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: 1px solid #bbf7d0;
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        #answer {
+            display: none;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+        }
+        .card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--gray);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        /* Code */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.7;
+            margin: 0;
+            position: relative;
+        }
+        #code .line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.25s;
+            cursor: default;
+        }
+        #code .line.active-line {
+            background: rgba(250, 204, 21, 0.22);
+            border-left: 3px solid #facc15;
+            padding-left: 5px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            background: #fafbfc;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px dashed var(--border);
+            position: relative;
+            transition: all 0.3s;
+        }
+        .canvas-nums {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .canvas-num {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .canvas-num.processed {
+            background: #e5e7eb;
+            color: #6b7280;
+            border-color: #d1d5db;
+        }
+        .canvas-num.current-num {
+            background: #fff7ed;
+            color: #c2410c;
+            border-color: #fdba74;
+            box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.2);
+            animation: pulse-num 1.2s ease-in-out infinite;
+            font-size: 1.1rem;
+        }
+        .canvas-num.pending {
+            background: #fff;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+        }
+        @keyframes pulse-num {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(251, 146, 60, 0.05);
+            }
+        }
+        .heap-visual {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 8px 14px;
+            background: #f0fdf4;
+            border-radius: 10px;
+            border: 2px solid #bbf7d0;
+            position: relative;
+            min-width: 60px;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .heap-visual.empty-heap {
+            background: #f9fafb;
+            border-color: #e5e7eb;
+            color: #9ca3af;
+            font-style: italic;
+            min-height: 46px;
+        }
+        .heap-visual.has-elements {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+        .heap-slot {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            transition: all 0.35s;
+            position: relative;
+        }
+        .heap-slot.top-slot {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+        }
+        .heap-slot.normal-slot {
+            background: #dbeafe;
+            border: 2px solid #93c5fd;
+            color: #1e40af;
+        }
+        .heap-slot.entering {
+            animation: pop-in 0.4s ease-out;
+        }
+        .heap-slot.removing {
+            animation: fade-out 0.35s ease-in;
+            background: #fecaca;
+            border-color: #f87171;
+            color: #991b1b;
+        }
+        @keyframes pop-in {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            70% {
+                transform: scale(1.15);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes fade-out {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0.25;
+                transform: scale(0.7);
+            }
+        }
+        .heap-label {
+            font-size: 0.7rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+        .arrow-indicator {
+            font-size: 1.6rem;
+            color: #6b7280;
+            animation: bounce-arrow 0.8s ease-in-out infinite;
+        }
+        @keyframes bounce-arrow {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(8px);
+            }
+        }
+        .ignored-badge {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 4px 12px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border: 1px solid #fecaca;
+            animation: pop-in 0.3s ease-out;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.88rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #374151;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        .btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        .btn:active {
+            transform: scale(0.96);
+            background: #e5e7eb;
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.accent:hover {
+            background: #1d4ed8;
+        }
+        .btn.green {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+        }
+        .btn.green:hover {
+            background: #15803d;
+        }
+        .btn.red {
+            background: #fff;
+            color: var(--red);
+            border-color: #fecaca;
+        }
+        .btn.red:hover {
+            background: #fef2f2;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: var(--font-mono);
+            color: #374151;
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #op {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            padding: 6px 0;
+            align-items: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #f9fafb;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            min-width: 50px;
+            text-align: center;
+            user-select: none;
+        }
+        .tick:hover {
+            background: #e5e7eb;
+            border-color: #cbd5e1;
+        }
+        .tick.active-tick {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            font-weight: 700;
+        }
+        .tick.completed-tick {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+        .tick-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #374151;
+            font-family: var(--font-mono);
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 500;
+        }
+        .tick.active-tick .tick-label {
+            color: #1d4ed8;
+        }
+        .tick.active-tick .tick-op {
+            color: #2563eb;
+        }
+
+        /* Info panels */
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
+        @media (max-width: 800px) {
+            .info-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            font-size: 0.85rem;
+        }
+        .info-card h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #f8fafc;
+            padding: 8px 10px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            max-height: 140px;
+            overflow-y: auto;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+        #teaching {
+            color: #374151;
+            line-height: 1.5;
+            font-size: 0.85rem;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #4b5563;
+            line-height: 1.5;
+            font-family: var(--font-mono);
+            background: #fffbeb;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #fde68a;
+            white-space: pre-wrap;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #fffbeb;
+            border: 2px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-top: 8px;
+            box-shadow: var(--shadow);
+            animation: highlight-border 2s ease-in-out infinite;
+        }
+        @keyframes highlight-border {
+            0%,
+            100% {
+                border-color: #fcd34d;
+            }
+            50% {
+                border-color: #f59e0b;
+            }
+        }
+        .checkpoint-card h4 {
+            color: #92400e;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .checkpoint-card .cp-prompt {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #78350f;
+            font-size: 0.9rem;
+        }
+        .cp-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .cp-input-row input {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 2px solid #d1d5db;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            flex: 1;
+            min-width: 120px;
+            transition: border 0.2s;
+        }
+        .cp-input-row input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            animation: pop-in 0.3s ease-out;
+        }
+        .cp-feedback.correct {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .cp-feedback.incorrect {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .cp-feedback.revealed {
+            background: #fefce8;
+            color: #854d0e;
+            border: 1px solid #fde68a;
+        }
+
+        /* Learning log */
+        #learning-log-section {
+            margin-top: 8px;
+        }
+        #learning-log-list {
+            list-style: none;
+            padding: 0;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            padding: 8px 10px;
+        }
+        #learning-log-list li {
+            padding: 4px 0;
+            border-bottom: 1px solid #f3f4f6;
+            color: #4b5563;
+        }
+        #learning-log-list li:last-child {
+            border-bottom: none;
+        }
+        .log-correct {
+            color: #166534;
+        }
+        .log-incorrect {
+            color: #991b1b;
+        }
+        .log-hint {
+            color: #854d0e;
+        }
+        .log-reveal {
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-card">
+            <h1 id="title">Kth Largest Element in an Array</h1>
+            <p id="subtitle">Min-Heap Streaming Algorithm — Process ratings one by one, maintain a heap of capacity k</p>
+            <div class="result-row">
+                <span id="top-result">K-th largest: —</span>
+                <span id="top-solution">Strategy: Maintain a min-heap of size k; its top is the k-th largest element seen so far.</span>
+                <span id="answer">5</span>
+            </div>
+        </div>
+
+        <!-- Main grid: Code + Canvas -->
+        <div class="main-grid">
+            <div class="card">
+                <h3>Algorithm Code</h3>
+                <pre id="code"><span class="line" data-line="0">def findKthLargest(nums, k):</span><span class="line" data-line="1">    heap = []            # min-heap of capacity k</span><span class="line" data-line="2">    for num in nums:</span><span class="line" data-line="3">        if len(heap) &lt; k:</span><span class="line" data-line="4">            heap.push(num)   # heap not full, add directly</span><span class="line" data-line="5">        elif num &gt; heap[0]:</span><span class="line" data-line="6">            heap.pop()        # remove current k-th largest</span><span class="line" data-line="7">            heap.push(num)    # insert larger element</span><span class="line" data-line="8">        # else: num is too small, ignore it</span><span class="line" data-line="9">    return heap[0]        # top of min-heap is k-th largest</span></pre>
+            </div>
+            <div class="card">
+                <h3>Visualization</h3>
+                <div id="canvas">
+                    <div class="canvas-nums" id="canvas-nums-container"></div>
+                    <div id="canvas-arrow" style="font-size:1.6rem;color:#6b7280;">→</div>
+                    <div class="heap-visual empty-heap" id="heap-visual">
+                        <span id="heap-empty-text">Empty heap (capacity k=2)</span>
+                        <div id="heap-slots" style="display:flex;gap:6px;"></div>
+                    </div>
+                    <div id="ignored-indicator" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step info -->
+        <div class="card">
+            <div id="step-title">Initialize</div>
+            <div id="step-desc">Setting up the algorithm with an empty min-heap of capacity k=2.</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                <span id="op">init</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="controls-row">
+                <button id="prev" class="btn" aria-label="Previous step" title="Previous step">◀ Prev</button>
+                <button id="play" class="btn accent" aria-label="Play auto-advance" title="Auto-play steps">▶ Play</button>
+                <button id="next" class="btn" aria-label="Next step" title="Next step">Next ▶</button>
+                <span id="counter">1 / 8</span>
+                <input type="range" id="range" min="1" max="8" value="1" step="1" aria-label="Step slider" title="Drag to navigate steps">
+            </div>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Info row: State, Teaching, Evidence -->
+        <div class="info-row">
+            <div class="info-card">
+                <h4>Current State (JSON)</h4>
+                <div id="state">{"heap": [], "k": 2, "currentNum": null, "action": "initialize", "kthLargest": null}</div>
+            </div>
+            <div class="info-card">
+                <h4>Teaching Explanation</h4>
+                <div id="teaching">The min-heap of capacity k maintains the k largest elements seen so far. The smallest element in this heap (the top) is the k-th largest overall. Initially, the heap is empty.</div>
+            </div>
+            <div class="info-card">
+                <h4>Step Evidence</h4>
+                <div id="step-evidence">Operation: initialize | Target: none | Dependency: none | Before: no heap | After: empty heap with capacity 2</div>
+            </div>
+        </div>
+
+        <!-- Checkpoint area -->
+        <div id="checkpoint-container"></div>
+
+        <!-- Learning Log -->
+        <div class="card" id="learning-log-section">
+            <h3>Learning Log</h3>
+            <ul id="learning-log-list">
+                <li style="color:#9ca3af;">No interactions yet. Navigate to a checkpoint step to test your understanding.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // STEP DATA
+            // ──────────────────────────────────────
+            const stepData = [{
+                index: 0,
+                title: 'Initialize',
+                desc: 'Set up an empty min-heap with capacity k=2. The heap will store up to k of the largest elements seen.',
+                heap: [],
+                currentNum: null,
+                numIndex: -1,
+                action: 'init',
+                kthLargest: null,
+                codeLine: 1,
+                teaching: 'The min-heap of capacity k maintains the k largest elements seen so far. The smallest element in this heap (the top) is the k-th largest overall. Initially, the heap is empty and no k-th largest can be determined.',
+                evidence: 'Operation: initialize\nTarget: none\nDependency: none\nBefore: no heap exists\nAfter: empty heap with capacity k=2',
+                stateJSON: '{"heap": [], "k": 2, "currentNum": null, "action": "initialize", "kthLargest": null}',
+                opLabel: 'init'
+            }, {
+                index: 1,
+                title: 'Process First Element (3)',
+                desc: 'Heap size 0 < k=2, so we push 3 directly into the heap.',
+                heap: [3],
+                currentNum: 3,
+                numIndex: 0,
+                action: 'push',
+                kthLargest: null,
+                codeLine: 4,
+                teaching: 'When the heap has fewer than k elements, we simply add the new element. The heap is not yet full, so we cannot determine the k-th largest yet. The heap currently holds [3].',
+                evidence: 'Operation: push\nTarget: num=3\nDependency: len(heap)=0 < k=2, so add directly\nBefore: heap=[]\nAfter: heap=[3]',
+                stateJSON: '{"heap": [3], "k": 2, "currentNum": 3, "action": "push", "kthLargest": null}',
+                opLabel: 'push'
+            }, {
+                index: 2,
+                title: 'Process Second Element (2)',
+                desc: 'Heap size 1 < k=2, so we push 2. Heap becomes [2, 3] with top=2. Now the heap is full, so the top (2) is the current k-th largest.',
+                heap: [2, 3],
+                currentNum: 2,
+                numIndex: 1,
+                action: 'push',
+                kthLargest: 2,
+                codeLine: 4,
+                teaching: 'The heap is now full (size = k = 2). The min-heap property ensures the smallest element sits at the top. Since the heap holds the k largest elements seen so far, the top is the k-th largest — currently 2.',
+                evidence: 'Operation: push\nTarget: num=2\nDependency: len(heap)=1 < k=2, so add directly\nBefore: heap=[3]\nAfter: heap=[2, 3] (min-heap, top=2)\nNow k-th largest = 2',
+                stateJSON: '{"heap": [2, 3], "k": 2, "currentNum": 2, "action": "push", "kthLargest": 2}',
+                opLabel: 'push'
+            }, {
+                index: 3,
+                title: 'Process Third Element (1)',
+                desc: '1 is compared with heap top (2). Since 1 < 2, it is too small and is ignored.',
+                heap: [2, 3],
+                currentNum: 1,
+                numIndex: 2,
+                action: 'ignore',
+                kthLargest: 2,
+                codeLine: 5,
+                teaching: 'When the heap is full and the incoming number is not larger than the heap top, we ignore it. The number 1 is smaller than the current k-th largest (2), so it cannot be among the top k elements.',
+                evidence: 'Operation: ignore\nTarget: num=1\nDependency: 1 <= heap[0]=2, so condition "num > heap[0]" is FALSE\nBefore: heap=[2, 3], top=2\nAfter: heap unchanged [2, 3], k-th largest remains 2',
+                stateJSON: '{"heap": [2, 3], "k": 2, "currentNum": 1, "action": "ignore", "kthLargest": 2}',
+                opLabel: 'ignore'
+            }, {
+                index: 4,
+                title: 'Process Fourth Element (5)',
+                desc: '5 > heap top (2), so we pop 2 and push 5. Heap becomes [3, 5] with new top=3.',
+                heap: [3, 5],
+                currentNum: 5,
+                numIndex: 3,
+                action: 'replace',
+                kthLargest: 3,
+                codeLine: 6,
+                teaching: 'Since 5 is larger than the current heap top (2), the old top is removed and 5 enters the heap. The heap now contains [3, 5] and the new k-th largest is 3. This is a key transition — the k-th largest increased.',
+                evidence: 'Operation: pop-and-push (replace)\nTarget: num=5\nDependency: 5 > heap[0]=2, so pop 2 then push 5\nBefore: heap=[2, 3], top=2\nAfter: heap=[3, 5], top=3, new k-th largest=3',
+                stateJSON: '{"heap": [3, 5], "k": 2, "currentNum": 5, "action": "replace", "kthLargest": 3}',
+                opLabel: 'replace'
+            }, {
+                index: 5,
+                title: 'Process Fifth Element (6)',
+                desc: '6 > heap top (3), so we pop 3 and push 6. Heap becomes [5, 6] with new top=5.',
+                heap: [5, 6],
+                currentNum: 6,
+                numIndex: 4,
+                action: 'replace',
+                kthLargest: 5,
+                codeLine: 6,
+                teaching: 'Again, the incoming number 6 exceeds the heap top (3). We replace the top, and the heap updates to [5, 6]. The k-th largest is now 5. Notice how the k-th largest value climbs as larger numbers arrive.',
+                evidence: 'Operation: pop-and-push (replace)\nTarget: num=6\nDependency: 6 > heap[0]=3, so pop 3 then push 6\nBefore: heap=[3, 5], top=3\nAfter: heap=[5, 6], top=5, new k-th largest=5',
+                stateJSON: '{"heap": [5, 6], "k": 2, "currentNum": 6, "action": "replace", "kthLargest": 5}',
+                opLabel: 'replace'
+            }, {
+                index: 6,
+                title: 'Process Sixth Element (4)',
+                desc: '4 is compared with heap top (5). Since 4 < 5, it is ignored.',
+                heap: [5, 6],
+                currentNum: 4,
+                numIndex: 5,
+                action: 'ignore',
+                kthLargest: 5,
+                codeLine: 5,
+                teaching: 'The number 4 is smaller than the heap top (5), so it is ignored. The heap remains [5, 6] and the k-th largest stays at 5. Only elements larger than the current k-th largest can change the answer.',
+                evidence: 'Operation: ignore\nTarget: num=4\nDependency: 4 <= heap[0]=5, so condition "num > heap[0]" is FALSE\nBefore: heap=[5, 6], top=5\nAfter: heap unchanged [5, 6], k-th largest remains 5',
+                stateJSON: '{"heap": [5, 6], "k": 2, "currentNum": 4, "action": "ignore", "kthLargest": 5}',
+                opLabel: 'ignore'
+            }, {
+                index: 7,
+                title: 'Final Result',
+                desc: 'All elements processed. Return heap top (5) as the final k-th largest element.',
+                heap: [5, 6],
+                currentNum: null,
+                numIndex: 6,
+                action: 'return',
+                kthLargest: 5,
+                codeLine: 9,
+                teaching: 'After processing all elements in the array, the top of the min-heap is the final answer. The heap [5, 6] has top=5, which is the 2nd largest element in [3, 2, 1, 5, 6, 4].',
+                evidence: 'Operation: return\nTarget: heap[0]=5\nDependency: all 6 elements processed\nBefore: processed all nums\nAfter: final answer = 5 (top of min-heap)',
+                stateJSON: '{"heap": [5, 6], "k": 2, "currentNum": null, "action": "return", "kthLargest": 5}',
+                opLabel: 'return'
+            }];
+
+            const totalSteps = stepData.length; // 8
+            const numsArray = [3, 2, 1, 5, 6, 4];
+            const kValue = 2;
+
+            // ──────────────────────────────────────
+            // CHECKPOINT DEFINITIONS
+            // ──────────────────────────────────────
+            const checkpointDefs = {
+                2: {
+                    question: 'What is the current k-th largest element after processing the number 2?',
+                    answer: '2',
+                    hint: 'Look at the top of the min-heap. The heap is now full with [2, 3]. The smallest element in the heap is the k-th largest.',
+                    normalize: (s) => s.trim(),
+                    validate: (input, answer) => input === answer || input === '2'
+                },
+                4: {
+                    question: 'After processing the number 5 (which replaced the heap top), what does the heap contain? (Enter as comma-separated values, e.g., "3,5")',
+                    answer: '[3,5]',
+                    hint: 'The old top was 2. Since 5 > 2, we removed 2 and added 5. The heap had [2, 3]; after popping 2 and pushing 5, what remains?',
+                    normalize: (s) => {
+                        let cleaned = s.trim().replace(/[\[\]\s]/g, '');
+                        let parts = cleaned.split(',').map(p => p.trim()).filter(p => p !== '');
+                        parts.sort((a, b) => parseInt(a) - parseInt(b));
+                        return '[' + parts.join(',') + ']';
+                    },
+                    validate: (input, answer) => {
+                        let norm = checkpointDefs[4].normalize(input);
+                        return norm === '[3,5]' || norm === '[3, 5]' || input.trim().replace(/\s/g, '') ===
+                            '[3,5]';
+                    }
+                },
+                7: {
+                    question: 'What is the final k-th largest element after processing all numbers?',
+                    answer: '5',
+                    hint: 'Look at the top of the heap after all elements have been processed. The heap is [5, 6]; the smallest element is the answer.',
+                    normalize: (s) => s.trim(),
+                    validate: (input, answer) => input === answer || input === '5'
+                }
+            };
+
+            // ──────────────────────────────────────
+            // STATE
+            // ──────────────────────────────────────
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let learningLog = [];
+            // Track checkpoint interactions: { stepIndex: { status: 'unanswered'|'correct'|'incorrect'|'revealed', lastAnswer: string } }
+            let checkpointState = {};
+
+            // ──────────────────────────────────────
+            // DOM REFERENCES
+            // ──────────────────────────────────────
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $learningLogList = document.getElementById('learning-log-list');
+            const $canvasNumsContainer = document.getElementById('canvas-nums-container');
+            const $heapVisual = document.getElementById('heap-visual');
+            const $heapSlots = document.getElementById('heap-slots');
+            const $heapEmptyText = document.getElementById('heap-empty-text');
+            const $ignoredIndicator = document.getElementById('ignored-indicator');
+            const $canvasArrow = document.getElementById('canvas-arrow');
+
+            // ──────────────────────────────────────
+            // BUILD TIMELINE
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                const tickLabels = ['1', '2', '3', '4', '5', '6', '7', '8'];
+                const tickOps = ['init', 'push', 'push', 'ignore', 'replace', 'replace', 'ignore', 'return'];
+                for (let i = 0; i < totalSteps; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('type', 'button');
+                    tick.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + tickOps[i]);
+                    tick.dataset.stepIndex = i;
+                    tick.innerHTML = '<span class="tick-label">' + tickLabels[i] + '</span><span class="tick-op">' +
+                        tickOps[i] + '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(parseInt(this.dataset.stepIndex));
+                        pausePlay();
+                    });
+                    $timeline.appendChild(tick);
+                }
+            }
+
+            function updateTimelineActive() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.remove('active-tick', 'completed-tick');
+                    if (i === currentStepIndex) {
+                        t.classList.add('active-tick');
+                    } else if (i < currentStepIndex) {
+                        t.classList.add('completed-tick');
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // RENDER CODE HIGHLIGHT
+            // ──────────────────────────────────────
+            function updateCodeHighlight() {
+                const step = stepData[currentStepIndex];
+                const lines = $code.querySelectorAll('.line');
+                lines.forEach(line => line.classList.remove('active-line'));
+                if (step.codeLine !== null && step.codeLine >= 0 && step.codeLine < lines.length) {
+                    lines[step.codeLine].classList.add('active-line');
+                }
+            }
+
+            // ──────────────────────────────────────
+            // RENDER CANVAS
+            // ──────────────────────────────────────
+            function renderCanvas() {
+                const step = stepData[currentStepIndex];
+                // Render nums array
+                $canvasNumsContainer.innerHTML = '';
+                for (let i = 0; i < numsArray.length; i++) {
+                    const numDiv = document.createElement('div');
+                    numDiv.className = 'canvas-num';
+                    numDiv.textContent = numsArray[i];
+                    if (i < step.numIndex) {
+                        numDiv.classList.add('processed');
+                    } else if (i === step.numIndex) {
+                        numDiv.classList.add('current-num');
+                    } else if (i > step.numIndex && step.numIndex >= 0) {
+                        numDiv.classList.add('pending');
+                    } else if (step.numIndex < 0) {
+                        // All pending (init state)
+                        numDiv.classList.add('pending');
+                    }
+                    $canvasNumsContainer.appendChild(numDiv);
+                }
+
+                // Render heap
+                $heapSlots.innerHTML = '';
+                $heapEmptyText.style.display = 'none';
+                $ignoredIndicator.style.display = 'none';
+                $canvasArrow.style.display = 'block';
+
+                if (step.heap.length === 0) {
+                    $heapVisual.className = 'heap-visual empty-heap';
+                    $heapEmptyText.style.display = 'block';
+                    $heapEmptyText.textContent = 'Empty heap (capacity k=' + kValue + ')';
+                    $canvasArrow.style.display = 'none';
+                } else {
+                    $heapVisual.className = 'heap-visual has-elements';
+                    $heapEmptyText.style.display = 'none';
+                    // Add heap label
+                    let existingLabel = $heapVisual.querySelector('.heap-label');
+                    if (!existingLabel) {
+                        const label = document.createElement('span');
+                        label.className = 'heap-label';
+                        label.textContent = 'Min-Heap (top→)';
+                        $heapVisual.appendChild(label);
+                    }
+                    for (let i = 0; i < step.heap.length; i++) {
+                        const slot = document.createElement('div');
+                        slot.className = 'heap-slot';
+                        slot.textContent = step.heap[i];
+                        if (i === 0) {
+                            slot.classList.add('top-slot');
+                            slot.setAttribute('title', 'Heap top — current k-th largest');
+                        } else {
+                            slot.classList.add('normal-slot');
+                        }
+                        // Animation for entering element
+                        if (step.action === 'push' || step.action === 'replace') {
+                            if (i === step.heap.length - 1 && step.currentNum === step.heap[i]) {
+                                slot.classList.add('entering');
+                            }
+                            if (step.action === 'replace' && i === 0 && step.heap[0] === step.currentNum) {
+                                slot.classList.add('entering');
+                            }
+                        }
+                        $heapSlots.appendChild(slot);
+                    }
+                }
+
+                // Ignored indicator
+                if (step.action === 'ignore' && step.currentNum !== null) {
+                    $ignoredIndicator.style.display = 'block';
+                    $ignoredIndicator.className = 'ignored-badge';
+                    $ignoredIndicator.textContent = '✗ ' + step.currentNum + ' ignored (too small)';
+                    $canvasArrow.style.display = 'block';
+                }
+
+                // Arrow direction indicator
+                if (step.action === 'ignore') {
+                    $canvasArrow.textContent = '→✗';
+                    $canvasArrow.style.color = '#dc2626';
+                } else if (step.action === 'replace') {
+                    $canvasArrow.textContent = '→♻';
+                    $canvasArrow.style.color = '#ea580c';
+                } else if (step.action === 'push') {
+                    $canvasArrow.textContent = '→+';
+                    $canvasArrow.style.color = '#16a34a';
+                } else if (step.action === 'return') {
+                    $canvasArrow.textContent = '✓';
+                    $canvasArrow.style.color = '#2563eb';
+                } else {
+                    $canvasArrow.textContent = '→';
+                    $canvasArrow.style.color = '#6b7280';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // RENDER CHECKPOINT
+            // ──────────────────────────────────────
+            function renderCheckpoint() {
+                $checkpointContainer.innerHTML = '';
+                const cpDef = checkpointDefs[currentStepIndex];
+                if (!cpDef) return;
+
+                const cpState = checkpointState[currentStepIndex] || { status: 'unanswered', lastAnswer: '' };
+                const card = document.createElement('div');
+                card.className = 'checkpoint-card';
+                card.innerHTML = '<h4>🔍 Checkpoint — Test Your Understanding</h4>';
+                const prompt = document.createElement('div');
+                prompt.className = 'cp-prompt';
+                prompt.textContent = cpDef.question;
+                card.appendChild(prompt);
+
+                if (cpState.status === 'unanswered') {
+                    const inputRow = document.createElement('div');
+                    inputRow.className = 'cp-input-row';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = 'Type your answer...';
+                    input.setAttribute('aria-label', 'Your answer');
+                    input.id = 'cp-input';
+                    inputRow.appendChild(input);
+
+                    const submitBtn = document.createElement('button');
+                    submitBtn.className = 'btn green';
+                    submitBtn.textContent = 'Submit';
+                    submitBtn.addEventListener('click', () => handleCheckpointSubmit(cpDef, input.value));
+                    inputRow.appendChild(submitBtn);
+
+                    const hintBtn = document.createElement('button');
+                    hintBtn.className = 'btn';
+                    hintBtn.textContent = '💡 Hint';
+                    hintBtn.addEventListener('click', () => handleCheckpointHint(cpDef));
+                    inputRow.appendChild(hintBtn);
+
+                    const showBtn = document.createElement('button');
+                    showBtn.className = 'btn red';
+                    showBtn.textContent = 'Show Answer';
+                    showBtn.addEventListener('click', () => handleCheckpointReveal(cpDef));
+                    inputRow.appendChild(showBtn);
+
+                    card.appendChild(inputRow);
+                    // Allow Enter key to submit
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') handleCheckpointSubmit(cpDef, input.value);
+                    });
+                    // Focus the input
+                    setTimeout(() => input.focus(), 150);
+                } else {
+                    // Show resolved state
+                    const feedbackDiv = document.createElement('div');
+                    if (cpState.status === 'correct') {
+                        feedbackDiv.className = 'cp-feedback correct';
+                        feedbackDiv.textContent = '✅ Correct! Your answer "' + cpState.lastAnswer +
+                            '" matches the expected value.';
+                    } else if (cpState.status === 'incorrect') {
+                        feedbackDiv.className = 'cp-feedback incorrect';
+                        feedbackDiv.textContent = '❌ Incorrect. You answered "' + cpState.lastAnswer +
+                            '". The correct answer is "' + cpDef.answer + '".';
+                    } else if (cpState.status === 'revealed') {
+                        feedbackDiv.className = 'cp-feedback revealed';
+                        feedbackDiv.textContent = '📖 Answer revealed: "' + cpDef.answer +
+                            '". Review the explanation above to understand why.';
+                    }
+                    card.appendChild(feedbackDiv);
+
+                    const retryBtn = document.createElement('button');
+                    retryBtn.className = 'btn';
+                    retryBtn.textContent = '🔄 Try Again';
+                    retryBtn.style.marginTop = '8px';
+                    retryBtn.addEventListener('click', () => {
+                        checkpointState[currentStepIndex] = { status: 'unanswered', lastAnswer: '' };
+                        renderCheckpoint();
+                    });
+                    card.appendChild(retryBtn);
+                }
+
+                $checkpointContainer.appendChild(card);
+            }
+
+            function handleCheckpointSubmit(cpDef, rawInput) {
+                const normalized = cpDef.normalize(rawInput);
+                const isCorrect = cpDef.validate(normalized, cpDef.answer);
+                const status = isCorrect ? 'correct' : 'incorrect';
+                checkpointState[currentStepIndex] = { status: status, lastAnswer: rawInput.trim() };
+
+                // Add to learning log
+                const stepLabel = currentStepIndex + 1;
+                const logEntry = {
+                    type: isCorrect ? 'correct' : 'incorrect',
+                    message: isCorrect ?
+                        'Step ' + stepLabel + ' checkpoint: Submitted "' + rawInput.trim() +
+                        '" — Correct! The answer is ' + cpDef.answer + '.' :
+                        'Step ' + stepLabel + ' checkpoint: Submitted "' + rawInput.trim() +
+                        '" — Incorrect. Expected "' + cpDef.answer + '".',
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                learningLog.push(logEntry);
+                renderLearningLog();
+                renderCheckpoint();
+                // Resume play if paused at checkpoint
+                if (isPlaying && isCorrect) {
+                    resumePlayAfterCheckpoint();
+                }
+            }
+
+            function handleCheckpointHint(cpDef) {
+                const logEntry = {
+                    type: 'hint',
+                    message: 'Step ' + (currentStepIndex + 1) + ' checkpoint: Requested hint — "' + cpDef.hint +
+                        '"',
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                learningLog.push(logEntry);
+                renderLearningLog();
+                // Show hint temporarily
+                const existingFeedback = $checkpointContainer.querySelector('.cp-feedback');
+                if (!existingFeedback) {
+                    const card = $checkpointContainer.querySelector('.checkpoint-card');
+                    if (card) {
+                        const hintDiv = document.createElement('div');
+                        hintDiv.className = 'cp-feedback revealed';
+                        hintDiv.textContent = '💡 Hint: ' + cpDef.hint;
+                        hintDiv.id = 'temp-hint';
+                        card.appendChild(hintDiv);
+                        setTimeout(() => {
+                            const th = document.getElementById('temp-hint');
+                            if (th) th.remove();
+                        }, 4000);
+                    }
+                }
+            }
+
+            function handleCheckpointReveal(cpDef) {
+                checkpointState[currentStepIndex] = { status: 'revealed', lastAnswer: cpDef.answer };
+                const logEntry = {
+                    type: 'reveal',
+                    message: 'Step ' + (currentStepIndex + 1) + ' checkpoint: Revealed answer — "' + cpDef
+                        .answer + '"',
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                learningLog.push(logEntry);
+                renderLearningLog();
+                renderCheckpoint();
+                if (isPlaying) {
+                    resumePlayAfterCheckpoint();
+                }
+            }
+
+            function resumePlayAfterCheckpoint() {
+                // Continue playing after a short delay
+                if (isPlaying) {
+                    clearInterval(playInterval);
+                    playInterval = setInterval(() => {
+                        if (currentStepIndex < totalSteps - 1) {
+                            goToStep(currentStepIndex + 1);
+                            // Check if new step has an unresolved checkpoint
+                            const cpDef = checkpointDefs[currentStepIndex];
+                            const cpState = checkpointState[currentStepIndex] || { status: 'unanswered' };
+                            if (cpDef && cpState.status === 'unanswered') {
+                                pausePlay();
+                            }
+                        } else {
+                            pausePlay();
+                        }
+                    }, 1800);
+                }
+            }
+
+            function renderLearningLog() {
+                $learningLogList.innerHTML = '';
+                if (learningLog.length === 0) {
+                    const li = document.createElement('li');
+                    li.style.color = '#9ca3af';
+                    li.textContent = 'No interactions yet. Navigate to a checkpoint step to test your understanding.';
+                    $learningLogList.appendChild(li);
+                } else {
+                    // Show last 20 entries
+                    const recent = learningLog.slice(-20);
+                    recent.forEach(entry => {
+                        const li = document.createElement('li');
+                        let cssClass = '';
+                        if (entry.type === 'correct') cssClass = 'log-correct';
+                        else if (entry.type === 'incorrect') cssClass = 'log-incorrect';
+                        else if (entry.type === 'hint') cssClass = 'log-hint';
+                        else if (entry.type === 'reveal') cssClass = 'log-reveal';
+                        li.className = cssClass;
+                        li.textContent = '[' + entry.timestamp + '] ' + entry.message;
+                        $learningLogList.appendChild(li);
+                    });
+                    // Scroll to bottom
+                    $learningLogList.scrollTop = $learningLogList.scrollHeight;
+                }
+            }
+
+            // ──────────────────────────────────────
+            // GO TO STEP
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                const step = stepData[currentStepIndex];
+
+                // Update UI
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.opLabel;
+                $teaching.textContent = step.teaching;
+                $state.textContent = step.stateJSON;
+                $stepEvidence.textContent = step.evidence;
+                $counter.textContent = (currentStepIndex + 1) + ' / ' + totalSteps;
+                $range.value = currentStepIndex + 1;
+
+                // Update top result
+                if (step.kthLargest !== null) {
+                    $topResult.textContent = 'K-th largest: ' + step.kthLargest;
+                    $topResult.style.background = 'var(--green-light)';
+                    $topResult.style.color = '#15803d';
+                    $topResult.style.borderColor = '#bbf7d0';
+                } else {
+                    $topResult.textContent = 'K-th largest: — (heap not full)';
+                    $topResult.style.background = '#fefce8';
+                    $topResult.style.color = '#854d0e';
+                    $topResult.style.borderColor = '#fde68a';
+                }
+
+                // Update code highlight
+                updateCodeHighlight();
+
+                // Update canvas
+                renderCanvas();
+
+                // Update timeline
+                updateTimelineActive();
+
+                // Update checkpoint
+                renderCheckpoint();
+
+                // Update answer (always keep bare final result)
+                $answer.textContent = '5';
+
+                // Scroll active tick into view
+                const activeTick = $timeline.querySelector('.tick.active-tick');
+                if (activeTick) {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // PLAY / PAUSE
+            // ──────────────────────────────────────
+            function startPlay() {
+                isPlaying = true;
+                $play.textContent = '⏸ Pause';
+                $play.classList.add('btn');
+                $play.classList.remove('accent');
+                $play.style.background = '#fef3c7';
+                $play.style.color = '#92400e';
+                $play.style.borderColor = '#f59e0b';
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                        // Pause at unresolved checkpoints
+                        const cpDef = checkpointDefs[currentStepIndex];
+                        const cpState = checkpointState[currentStepIndex] || { status: 'unanswered' };
+                        if (cpDef && cpState.status === 'unanswered') {
+                            pausePlay();
+                        }
+                    } else {
+                        pausePlay();
+                    }
+                }, 1800);
+            }
+
+            function pausePlay() {
+                isPlaying = false;
+                $play.textContent = '▶ Play';
+                $play.classList.add('accent');
+                $play.style.background = 'var(--accent)';
+                $play.style.color = '#fff';
+                $play.style.borderColor = 'var(--accent)';
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    pausePlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // EVENT LISTENERS
+            // ──────────────────────────────────────
+            $prev.addEventListener('click', () => {
+                pausePlay();
+                goToStep(currentStepIndex - 1);
+            });
+            $next.addEventListener('click', () => {
+                pausePlay();
+                goToStep(currentStepIndex + 1);
+            });
+            $play.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                pausePlay();
+                const val = parseInt($range.value);
+                goToStep(val - 1);
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    pausePlay();
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    pausePlay();
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // INITIALIZATION
+            // ──────────────────────────────────────
+            function init() {
+                $answer.textContent = '5';
+                $range.min = 1;
+                $range.max = totalSteps;
+                $range.value = 1;
+                buildTimeline();
+                goToStep(0);
+                renderLearningLog();
+                // Ensure #canvas is a DOM container (it already is a div)
+                console.log('AlgoLab tutoring page initialized. Total steps: ' + totalSteps);
+                console.log('Navigate using Prev/Next buttons, timeline ticks, slider, or arrow keys.');
+                console.log('Press Space to toggle auto-play. Checkpoints appear at key steps.');
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

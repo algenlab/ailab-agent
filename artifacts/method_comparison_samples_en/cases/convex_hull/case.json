@@ -1,0 +1,165 @@
+{
+  "id": "convex_hull",
+  "algorithm_id": "convex_hull",
+  "title": "Convex Hull",
+  "family": "Geometry / Scanline",
+  "family_id": "geometry_sweep",
+  "subfamily_id": "convex_hull",
+  "gate_layer": "family_core",
+  "support_level": "medium_plus",
+  "process_profile": "geometry",
+  "difficulty": "medium",
+  "problem": "In express delivery, you are given a list of delivery points 'points', each represented by a 2D coordinate (x, y). You need to compute the vertices of the smallest convex polygon that encloses all delivery points, and return the coordinate list of these vertices in the output order of the Andrew monotone chain algorithm. The returned vertices should be arranged counterclockwise and not include collinear intermediate points.",
+  "strategy": "Sort the point set by coordinates, maintain upper and lower convex hulls separately, and use orientation/cross product to determine turns.",
+  "input_contract": "Input is a 2D array of points.",
+  "variant_name": "Andrew's Monotone Chain",
+  "time_complexity": "O(n log n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "Understand how Andrew's monotone chain achieves convex hull detection through alternating construction of upper and lower hulls.",
+    "Be able to predict the next operation based on the position of the current point in the trace and the lower/upper hull states.",
+    "Identify invariants during convex hull construction, such as turn judgment cross <= 0 indicating a need to backtrack."
+  ],
+  "required_views": [
+    "geometry"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! cross > 0 indicates a left turn, so convexity is maintained, add directly.",
+      "feedback_wrong": "Please observe the sign of the cross value. cross > 0 means left turn, the current three points do not form a right turn, so no need to pop. Check the cross of the current lower[-2], lower[-1], current in the trace.",
+      "id": "task_1",
+      "oracle": "If the student answers add the point because cross((0,0),(1,0),(1,2)) > 0, it is correct; if answer pop, it is wrong.",
+      "prompt": "When the scanline reaches point (1,2), the lower convex hull 'lower' is currently [(0,0), (1,0)]. Based on the cross calculation result, predict whether the next lower state will add this point or pop the last point and then add. Why?",
+      "stage2_affordance": "In Stage2, you can drag the scanline to this point and observe the turn hint animation.",
+      "trace_anchor": [
+        "state.lower",
+        "state.current"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Very good! Turn judgment is the core invariant of convex hull algorithm.",
+      "feedback_wrong": "Recall that when three consecutive points form a right turn or are collinear, the middle point needs to be removed. The turn is determined by the cross value.",
+      "id": "task_2",
+      "oracle": "If the student points out that cross(lower[-2], lower[-1], current) > 0 maintains convexity, or that when cross <= 0, backtrack until the condition is met, it is correct.",
+      "prompt": "During the construction of the lower convex hull, what condition ensures that each added point does not break convexity? Please describe using relevant variables from the state.",
+      "stage2_affordance": "In Stage2, point pairs that do not meet the condition will be highlighted, and the cross calculation process will be shown.",
+      "trace_anchor": [
+        "state.phase",
+        "cross function"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct prediction! This point becomes a new convex hull vertex.",
+      "feedback_wrong": "Please re-run the algorithm or observe the geometric view. Point (1,3) is outside the current convex hull and will change the hull shape.",
+      "id": "task_3",
+      "oracle": "Recalculate the correct expected via the verifier and compare with the student's prediction.",
+      "prompt": "If one point in 'points' changes from (1,1) to (1,3), how would the convex hull vertex list 'expected' change? Please try to modify and predict the new 'expected'.",
+      "stage2_affordance": "In Stage2, you can directly drag a point and see the convex hull update in real time.",
+      "trace_anchor": [
+        "points",
+        "expected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Accurate explanation! This is the convex hull backtracking mechanism.",
+      "feedback_wrong": "Check the cross calculation: the cross product of vector (1,0)->(2,1) and (2,1)->(2,0). If non-positive, a pop is needed. Please examine the turn animation in the geometric view.",
+      "id": "task_4",
+      "oracle": "If the student explains that because cross((1,0),(2,1),(2,0)) <= 0, so (2,1) is popped, and then rechecked until the condition is satisfied, it is correct.",
+      "prompt": "From step 5 to step 6, the trace shows 'lower' changing from [(0,0),(1,0),(2,1)] to [(0,0),(2,1)]. Please explain why this step occurs and relate it to the cross value of the current point (2,0).",
+      "stage2_affordance": "In Stage2, a slow-motion animation of this step is played, showing the popped point and the turn angle.",
+      "trace_anchor": [
+        "state.lower",
+        "state.current",
+        "trace.step"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "index": 0,
+      "input_data": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "expected": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "index": 1,
+      "input_data": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    }
+  ]
+}

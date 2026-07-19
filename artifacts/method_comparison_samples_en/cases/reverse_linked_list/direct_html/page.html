@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverse Linked List - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dee2e6;
+            --text: #212529;
+            --text-secondary: #495057;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --node-default: #e2e8f0;
+            --node-current: #fef08a;
+            --node-prev: #bbf7d0;
+            --node-next: #bfdbfe;
+            --node-border: #94a3b8;
+            --arrow-color: #64748b;
+            --highlight-line: #fef9c3;
+            --timeline-active: #2563eb;
+            --timeline-done: #16a34a;
+            --timeline-pending: #cbd5e1;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: var(--font-sans);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 4px 0;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .top-info {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #top-result,
+        #top-solution {
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            display: inline-block;
+            white-space: nowrap;
+        }
+        #top-result strong,
+        #top-solution strong {
+            color: var(--accent);
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+        }
+        .card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #6b7280;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* Code block */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.7;
+            min-height: 180px;
+            border: 1px solid #334155;
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.25s;
+        }
+        #code .code-line.highlight {
+            background: #fef9c3;
+            color: #1e293b;
+            font-weight: 600;
+            box-shadow: 0 0 0 2px #f59e0b55;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            background: #fafbfc;
+            border-radius: var(--radius);
+            border: 1px dashed #cbd5e1;
+            position: relative;
+            overflow-x: auto;
+        }
+        .pointer-row {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+        .pointer-tag {
+            padding: 4px 10px;
+            border-radius: 14px;
+            border: 2px solid transparent;
+            background: #fff;
+            white-space: nowrap;
+            transition: all 0.3s;
+            font-size: 0.8rem;
+        }
+        .pointer-tag.prev-ptr {
+            border-color: #16a34a;
+            color: #15803d;
+            background: #dcfce7;
+        }
+        .pointer-tag.curr-ptr {
+            border-color: #eab308;
+            color: #a16207;
+            background: #fefce8;
+        }
+        .pointer-tag.next-ptr {
+            border-color: #3b82f6;
+            color: #1d4ed8;
+            background: #dbeafe;
+        }
+        .node-row {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex-wrap: nowrap;
+            font-family: var(--font-mono);
+        }
+        .node-box {
+            width: 52px;
+            height: 52px;
+            border-radius: 10px;
+            border: 3px solid var(--node-border);
+            background: var(--node-default);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .node-box.state-current {
+            border-color: #eab308;
+            background: #fef08a;
+            box-shadow: 0 0 0 5px #fef08a55;
+            z-index: 2;
+        }
+        .node-box.state-prev {
+            border-color: #16a34a;
+            background: #bbf7d0;
+        }
+        .node-box.state-next-highlight {
+            border-color: #3b82f6;
+            background: #bfdbfe;
+        }
+        .node-box.state-default {
+            border-color: #94a3b8;
+            background: #e2e8f0;
+        }
+        .link-arrow {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--arrow-color);
+            padding: 0 4px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            user-select: none;
+        }
+        .link-arrow.reversed {
+            color: #16a34a;
+        }
+        .null-marker {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 0 4px;
+            flex-shrink: 0;
+            font-family: var(--font-mono);
+        }
+
+        /* State JSON */
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 40px;
+            color: #334155;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Teaching & Evidence */
+        #teaching {
+            font-size: 0.9rem;
+            color: #374151;
+            line-height: 1.55;
+            min-height: 50px;
+        }
+        #step-evidence {
+            font-size: 0.84rem;
+            color: #4b5563;
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 10px 14px;
+            border-radius: 0 6px 6px 0;
+            min-height: 40px;
+            line-height: 1.5;
+        }
+
+        /* Step title & desc */
+        #step-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #1e293b;
+        }
+        #step-desc {
+            font-size: 0.88rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        #op {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+        .btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.primary:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+        .btn.success {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+        .btn.danger {
+            background: #fff;
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        .btn.hint-btn {
+            background: #fffbeb;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        .btn.show-answer-btn {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            color: #374151;
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 6px 0;
+        }
+        .tick {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 2px solid var(--timeline-pending);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            transition: all 0.25s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+            min-width: 60px;
+            text-align: center;
+        }
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: #dbeafe;
+            box-shadow: 0 0 0 3px #3b82f644;
+        }
+        .tick.done {
+            border-color: var(--timeline-done);
+            background: #dcfce7;
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #374151;
+        }
+        .tick-op {
+            font-size: 0.7rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        /* Checkpoint */
+        .checkpoint-panel {
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        .checkpoint-panel.resolved {
+            border-color: #16a34a;
+            background: #dcfce7;
+        }
+        .checkpoint-panel .cp-question {
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: #78350f;
+        }
+        .checkpoint-panel input[type="text"] {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 2px solid #d1d5db;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            width: 100%;
+            max-width: 300px;
+            transition: border-color 0.2s;
+        }
+        .checkpoint-panel input[type="text"]:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px #f59e0b33;
+        }
+        .cp-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .cp-feedback {
+            font-weight: 600;
+            font-size: 0.88rem;
+            min-height: 22px;
+            padding: 4px 0;
+        }
+        .cp-feedback.correct {
+            color: #15803d;
+        }
+        .cp-feedback.incorrect {
+            color: #dc2626;
+        }
+
+        /* Learning log */
+        #teaching .learning-log {
+            margin-top: 10px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            margin: 3px 0;
+            border-radius: 4px;
+            background: #f9fafb;
+            border-left: 3px solid #d1d5db;
+            font-family: var(--font-sans);
+            line-height: 1.4;
+        }
+        .log-entry.correct-entry {
+            border-left-color: #16a34a;
+            background: #f0fdf4;
+        }
+        .log-entry.incorrect-entry {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        .log-entry.show-answer-entry {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .log-entry.hint-entry {
+            border-left-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+            color: #16a34a;
+            padding: 10px 16px;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border: 2px solid #16a34a;
+            text-align: center;
+            letter-spacing: 0.02em;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+
+        <!-- Header Card -->
+        <div class="header-card">
+            <h1 id="title">Reverse Linked List</h1>
+            <p id="subtitle">Browser backward history: reverse the visit order so the user can go back from the current page to the earliest visited page.</p>
+            <div class="top-info">
+                <span id="top-result"><strong>Expected Output:</strong> [3, 2, 1]</span>
+                <span id="top-solution"><strong>Strategy:</strong> Maintain prev/current/next pointers and reverse links one by one.</span>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left Column -->
+            <div>
+                <div class="card">
+                    <div class="section-label">Algorithm Code</div>
+                    <div id="code"></div>
+                </div>
+                <div class="card" style="margin-top:14px;">
+                    <div class="section-label">Linked List Visualization</div>
+                    <div id="canvas"></div>
+                </div>
+            </div>
+            <!-- Right Column -->
+            <div>
+                <div class="card">
+                    <div class="section-label">Step Details</div>
+                    <div id="op"></div>
+                    <div id="step-title"></div>
+                    <div id="step-desc"></div>
+                    <hr>
+                    <div class="section-label">Current State (JSON)</div>
+                    <div id="state"></div>
+                    <hr>
+                    <div class="section-label">Teaching</div>
+                    <div id="teaching"></div>
+                    <hr>
+                    <div class="section-label">Step Evidence</div>
+                    <div id="step-evidence"></div>
+                </div>
+                <div class="card" style="margin-top:14px;">
+                    <div class="section-label">Final Answer</div>
+                    <div id="answer">[3, 2, 1]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="card">
+            <div class="controls-row">
+                <button class="btn" id="prev" aria-label="Previous step">◀ Prev</button>
+                <button class="btn primary" id="play" aria-label="Auto-play steps">▶ Play</button>
+                <button class="btn" id="next" aria-label="Next step">Next ▶</button>
+                <input type="range" id="range" min="1" max="5" value="1" step="1" aria-label="Step slider">
+                <span id="counter">1 / 5</span>
+            </div>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Checkpoint Panel (conditionally rendered inside a card) -->
+        <div class="card" id="checkpoint-card" style="display:none;">
+            <div class="section-label">🧠 Checkpoint</div>
+            <div class="checkpoint-panel" id="checkpoint-panel">
+                <span class="cp-question" id="cp-question"></span>
+                <input type="text" id="cp-input" placeholder="Type your answer here..." aria-label="Checkpoint answer input">
+                <div class="cp-buttons">
+                    <button class="btn primary" id="cp-submit">Submit</button>
+                    <button class="btn hint-btn" id="cp-hint">Hint</button>
+                    <button class="btn show-answer-btn" id="cp-show-answer">Show Answer</button>
+                </div>
+                <div class="cp-feedback" id="cp-feedback"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // DOM References
+            // ──────────────────────────────────────
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $prevBtn = document.getElementById('prev');
+            const $playBtn = document.getElementById('play');
+            const $nextBtn = document.getElementById('next');
+            const $answer = document.getElementById('answer');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $checkpointCard = document.getElementById('checkpoint-card');
+            const $cpQuestion = document.getElementById('cp-question');
+            const $cpInput = document.getElementById('cp-input');
+            const $cpSubmit = document.getElementById('cp-submit');
+            const $cpHint = document.getElementById('cp-hint');
+            const $cpShowAnswer = document.getElementById('cp-show-answer');
+            const $cpFeedback = document.getElementById('cp-feedback');
+            const $cpPanel = document.getElementById('checkpoint-panel');
+
+            // ──────────────────────────────────────
+            // Constants
+            // ──────────────────────────────────────
+            const TOTAL_STEPS = 5;
+            const CODE_LINES = [
+                'function reverseList(head):',
+                '    prev = null',
+                '    current = head',
+                '    while current is not null:',
+                '        next = current.next',
+                '        current.next = prev',
+                '        prev = current',
+                '        current = next',
+                '    return prev'
+            ];
+
+            // Which code line(s) to highlight per step (0-based line indices)
+            const STEP_CODE_HIGHLIGHT = [
+                [1, 2], // Step 1: init
+                [4, 5, 6, 7], // Step 2: process node 1
+                [4, 5, 6, 7], // Step 3: process node 2
+                [4, 5, 6, 7], // Step 4: process node 3
+                [8] // Step 5: return
+            ];
+
+            // ──────────────────────────────────────
+            // Step Data
+            // ──────────────────────────────────────
+            const steps = [{
+                id: 1,
+                tickLabel: 'Init',
+                tickOp: 'Setup pointers',
+                op: 'INITIALIZE',
+                title: 'Set up the pointers',
+                desc: 'We start with prev = null and current pointing to the head of the list (node with value 1).',
+                prevVal: null,
+                currVal: 1,
+                nextVal: 2,
+                reversedIndices: [], // which node indices (0-based) have been reversed
+                currentIndex: 0,
+                nextIndex: 1,
+                stateJSON: '{"prev": null, "current": 1, "next": 2, "list": [1, 2, 3], "reversed_portion": []}',
+                teaching: 'We initialize two pointers: <strong>prev</strong> (which will track the reversed portion) starts as null, and <strong>current</strong> starts at the head. This is the standard setup for iterative linked list reversal.',
+                evidence: '<strong>Operation:</strong> Initialize pointers.<br><strong>Targets:</strong> prev variable, current variable.<br><strong>Before:</strong> No pointers set.<br><strong>After:</strong> prev = null, current = Node(1).<br><strong>Invariant:</strong> prev always points to the head of the already-reversed sublist.',
+                checkpoint: null
+            }, {
+                id: 2,
+                tickLabel: 'Node 1',
+                tickOp: 'Reverse link',
+                op: 'PROCESS NODE',
+                title: 'Process the first node (value 1)',
+                desc: 'Save next (node 2), point current.next to prev (null), then advance prev to current (node 1) and current to next (node 2).',
+                prevVal: 1,
+                currVal: 2,
+                nextVal: 3,
+                reversedIndices: [0],
+                currentIndex: 1,
+                nextIndex: 2,
+                stateJSON: '{"prev": 1, "current": 2, "next": 3, "list": [1, 2, 3], "reversed_portion": [1]}',
+                teaching: 'We save <strong>next</strong> so we do not lose the rest of the list. Then we flip current.next to point to <strong>prev</strong> (which is null for the first node). This detaches node 1 from node 2 and makes it point backward. Then we advance both pointers.',
+                evidence: '<strong>Operation:</strong> Reverse current.next pointer.<br><strong>Target:</strong> Node(1).next<br><strong>Dependencies:</strong> prev=null, current=Node(1), next=Node(2)<br><strong>Before:</strong> Node(1).next → Node(2)<br><strong>After:</strong> Node(1).next → null; prev=Node(1); current=Node(2)<br><strong>Common error:</strong> Forgetting to save next before overwriting current.next.',
+                checkpoint: {
+                    question: 'After processing the first node (value 1), what does <code>current.next</code> point to?',
+                    answer: 'null',
+                    hint: 'Think about what prev is at this moment. current.next is set to prev.',
+                    answerDisplay: 'null (because prev was null)'
+                }
+            }, {
+                id: 3,
+                tickLabel: 'Node 2',
+                tickOp: 'Reverse link',
+                op: 'PROCESS NODE',
+                title: 'Process the second node (value 2)',
+                desc: 'Save next (node 3), point current.next to prev (node 1), then advance prev to current (node 2) and current to next (node 3).',
+                prevVal: 2,
+                currVal: 3,
+                nextVal: null,
+                reversedIndices: [0, 1],
+                currentIndex: 2,
+                nextIndex: null,
+                stateJSON: '{"prev": 2, "current": 3, "next": null, "list": [1, 2, 3], "reversed_portion": [2, 1]}',
+                teaching: 'Now current is at node 2. We save next (node 3), then point node 2\'s next pointer to prev (node 1). The reversed portion now contains [2 → 1] and prev moves to node 2.',
+                evidence: '<strong>Operation:</strong> Reverse current.next pointer.<br><strong>Target:</strong> Node(2).next<br><strong>Dependencies:</strong> prev=Node(1), current=Node(2), next=Node(3)<br><strong>Before:</strong> Node(2).next → Node(3)<br><strong>After:</strong> Node(2).next → Node(1); prev=Node(2); current=Node(3)<br><strong>Invariant:</strong> The reversed portion is always a valid reversed linked list ending at null.',
+                checkpoint: {
+                    question: 'After this step, what is the value stored in <code>prev</code>?',
+                    answer: '2',
+                    hint: 'prev is set to current before current advances. What is current at this step?',
+                    answerDisplay: '2 (prev becomes the node with value 2)'
+                }
+            }, {
+                id: 4,
+                tickLabel: 'Node 3',
+                tickOp: 'Reverse link',
+                op: 'PROCESS NODE',
+                title: 'Process the third node (value 3)',
+                desc: 'Save next (null), point current.next to prev (node 2), then advance prev to current (node 3) and current to next (null). The loop ends.',
+                prevVal: 3,
+                currVal: null,
+                nextVal: null,
+                reversedIndices: [0, 1, 2],
+                currentIndex: null,
+                nextIndex: null,
+                stateJSON: '{"prev": 3, "current": null, "next": null, "list": [1, 2, 3], "reversed_portion": [3, 2, 1]}',
+                teaching: 'The last node (value 3) is processed. Its next pointer is redirected to node 2. After advancing, current becomes null, which terminates the while loop. The reversed portion is now [3 → 2 → 1].',
+                evidence: '<strong>Operation:</strong> Reverse current.next pointer.<br><strong>Target:</strong> Node(3).next<br><strong>Dependencies:</strong> prev=Node(2), current=Node(3), next=null<br><strong>Before:</strong> Node(3).next → null<br><strong>After:</strong> Node(3).next → Node(2); prev=Node(3); current=null<br><strong>Loop ends:</strong> current is null, exit while loop.',
+                checkpoint: {
+                    question: 'After processing the last node (value 3), what does <code>current</code> become?',
+                    answer: 'null',
+                    hint: 'current advances to next. What is next when processing the last node?',
+                    answerDisplay: 'null (because next was null, so current becomes null and the loop ends)'
+                }
+            }, {
+                id: 5,
+                tickLabel: 'Return',
+                tickOp: 'Final result',
+                op: 'RETURN',
+                title: 'Return the reversed list',
+                desc: 'The loop has ended. prev now points to node 3, which is the head of the fully reversed list: 3 → 2 → 1.',
+                prevVal: 3,
+                currVal: null,
+                nextVal: null,
+                reversedIndices: [0, 1, 2],
+                currentIndex: null,
+                nextIndex: null,
+                stateJSON: '{"prev": 3, "current": null, "list": [1, 2, 3], "reversed_list": [3, 2, 1], "return": 3}',
+                teaching: 'The algorithm returns <strong>prev</strong>, which now points to the head of the reversed list (node 3). The original list [1 → 2 → 3] has been reversed to [3 → 2 → 1]. This matches the expected output.',
+                evidence: '<strong>Operation:</strong> Return prev as the new head.<br><strong>Result:</strong> Reversed list is [3, 2, 1].<br><strong>Verification:</strong> Walking from new head (3): 3 → 2 → 1 → null. The backward history path is ready.',
+                checkpoint: null
+            }];
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            let currentStep = 0; // 0-based index
+            let checkpointResolved = {}; // track which step checkpoints are resolved
+            let learningLogEntries = [];
+            let autoPlayInterval = null;
+
+            // Initialize checkpoint tracking
+            steps.forEach((s, i) => {
+                if (s.checkpoint) {
+                    checkpointResolved[i] = false;
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Build Code Display
+            // ──────────────────────────────────────
+            function buildCodeDisplay() {
+                $code.innerHTML = '';
+                CODE_LINES.forEach((line, idx) => {
+                    const lineEl = document.createElement('span');
+                    lineEl.className = 'code-line';
+                    lineEl.textContent = line;
+                    lineEl.dataset.lineIndex = idx;
+                    $code.appendChild(lineEl);
+                });
+            }
+
+            function highlightCodeLines(lineIndices) {
+                const allLines = $code.querySelectorAll('.code-line');
+                allLines.forEach(el => el.classList.remove('highlight'));
+                lineIndices.forEach(idx => {
+                    const el = $code.querySelector(`.code-line[data-line-index="${idx}"]`);
+                    if (el) el.classList.add('highlight');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Build Timeline
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                steps.forEach((s, i) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.dataset.stepIndex = i;
+                    tick.setAttribute('aria-label', 'Go to step ' + (i + 1) + ': ' + s.tickLabel);
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'tick-label';
+                    labelSpan.textContent = s.tickLabel;
+                    const opSpan = document.createElement('span');
+                    opSpan.className = 'tick-op';
+                    opSpan.textContent = s.tickOp;
+                    tick.appendChild(labelSpan);
+                    tick.appendChild(opSpan);
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                        stopAutoPlay();
+                    });
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            function updateTimelineActive() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((tick, i) => {
+                    tick.classList.remove('active', 'done');
+                    if (i < currentStep) tick.classList.add('done');
+                    if (i === currentStep) tick.classList.add('active');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Build Canvas (Linked List Visualization)
+            // ──────────────────────────────────────
+            function renderCanvas(stepData) {
+                $canvas.innerHTML = '';
+
+                // Pointer row
+                const pointerRow = document.createElement('div');
+                pointerRow.className = 'pointer-row';
+
+                const prevTag = document.createElement('span');
+                prevTag.className = 'pointer-tag prev-ptr';
+                prevTag.textContent = 'prev: ' + (stepData.prevVal === null ? 'null' : stepData.prevVal);
+                pointerRow.appendChild(prevTag);
+
+                const currTag = document.createElement('span');
+                currTag.className = 'pointer-tag curr-ptr';
+                currTag.textContent = 'current: ' + (stepData.currVal === null ? 'null' : stepData.currVal);
+                pointerRow.appendChild(currTag);
+
+                const nextTag = document.createElement('span');
+                nextTag.className = 'pointer-tag next-ptr';
+                nextTag.textContent = 'next: ' + (stepData.nextVal === null ? 'null' : stepData.nextVal);
+                pointerRow.appendChild(nextTag);
+
+                $canvas.appendChild(pointerRow);
+
+                // Node row
+                const nodeRow = document.createElement('div');
+                nodeRow.className = 'node-row';
+
+                const values = [1, 2, 3];
+                const reversedSet = new Set(stepData.reversedIndices);
+
+                values.forEach((val, idx) => {
+                    // Determine node state
+                    let stateClass = 'state-default';
+                    if (idx === stepData.currentIndex) {
+                        stateClass = 'state-current';
+                    } else if (reversedSet.has(idx) && stepData.currentIndex !== null && idx < stepData.currentIndex) {
+                        stateClass = 'state-prev';
+                    } else if (idx === stepData.nextIndex && stepData.nextIndex !== null) {
+                        stateClass = 'state-next-highlight';
+                    } else if (reversedSet.has(idx) && stepData.currentIndex === null) {
+                        stateClass = 'state-prev';
+                    }
+
+                    const nodeBox = document.createElement('div');
+                    nodeBox.className = 'node-box ' + stateClass;
+                    nodeBox.textContent = val;
+                    nodeRow.appendChild(nodeBox);
+
+                    // Add arrow between nodes (except after the last)
+                    if (idx < values.length - 1) {
+                        const arrow = document.createElement('span');
+                        arrow.className = 'link-arrow';
+                        // If both current and next are in reversed set, arrow points left
+                        if (reversedSet.has(idx) && reversedSet.has(idx + 1)) {
+                            arrow.textContent = '←';
+                            arrow.classList.add('reversed');
+                        } else if (reversedSet.has(idx) && !reversedSet.has(idx + 1)) {
+                            // Boundary: idx is reversed, idx+1 is not — show the flip
+                            arrow.textContent = '←';
+                            arrow.classList.add('reversed');
+                        } else {
+                            arrow.textContent = '→';
+                        }
+                        nodeRow.appendChild(arrow);
+                    }
+                });
+
+                // Null marker at end
+                const nullMarker = document.createElement('span');
+                nullMarker.className = 'null-marker';
+                nullMarker.textContent = 'null';
+                nodeRow.appendChild(nullMarker);
+
+                $canvas.appendChild(nodeRow);
+
+                // Additional reversed list indicator for final step
+                if (stepData.id === 5) {
+                    const resultRow = document.createElement('div');
+                    resultRow.className = 'pointer-row';
+                    resultRow.style.marginTop = '8px';
+                    const resultTag = document.createElement('span');
+                    resultTag.className = 'pointer-tag prev-ptr';
+                    resultTag.textContent = 'Return prev → head of [3 → 2 → 1 → null]';
+                    resultTag.style.borderColor = '#16a34a';
+                    resultTag.style.background = '#dcfce7';
+                    resultTag.style.color = '#15803d';
+                    resultRow.appendChild(resultTag);
+                    $canvas.appendChild(resultRow);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Render Step
+            // ──────────────────────────────────────
+            function renderStep(stepIndex) {
+                const stepData = steps[stepIndex];
+                if (!stepData) return;
+
+                // Update basic info
+                $op.textContent = stepData.op;
+                $stepTitle.textContent = 'Step ' + stepData.id + ': ' + stepData.title;
+                $stepDesc.textContent = stepData.desc;
+                $state.textContent = stepData.stateJSON;
+                $teaching.innerHTML = '<p>' + stepData.teaching + '</p>';
+                $stepEvidence.innerHTML = stepData.evidence;
+                $counter.textContent = (stepIndex + 1) + ' / ' + TOTAL_STEPS;
+                $range.value = stepIndex + 1;
+
+                // Highlight code
+                highlightCodeLines(STEP_CODE_HIGHLIGHT[stepIndex] || []);
+
+                // Render canvas
+                renderCanvas(stepData);
+
+                // Update timeline
+                updateTimelineActive();
+
+                // Handle checkpoint
+                renderCheckpoint(stepIndex);
+
+                // Update answer visibility
+                if (stepData.id === TOTAL_STEPS) {
+                    $answer.style.display = 'block';
+                    $answer.textContent = '[3, 2, 1]';
+                    $topResult.innerHTML = '<strong>Expected Output:</strong> [3, 2, 1] ✓';
+                    $topResult.style.borderColor = '#16a34a';
+                    $topResult.style.background = '#f0fdf4';
+                } else {
+                    $answer.style.display = 'block';
+                    $answer.textContent = '[3, 2, 1]';
+                    $topResult.innerHTML = '<strong>Expected Output:</strong> [3, 2, 1]';
+                    $topResult.style.borderColor = '#dee2e6';
+                    $topResult.style.background = '#f1f5f9';
+                }
+
+                // Update button states
+                $prevBtn.disabled = (stepIndex === 0);
+                $nextBtn.disabled = (stepIndex === TOTAL_STEPS - 1);
+                if (stepIndex === 0) {
+                    $prevBtn.style.opacity = '0.5';
+                } else {
+                    $prevBtn.style.opacity = '1';
+                }
+                if (stepIndex === TOTAL_STEPS - 1) {
+                    $nextBtn.style.opacity = '0.5';
+                } else {
+                    $nextBtn.style.opacity = '1';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint Logic
+            // ──────────────────────────────────────
+            function renderCheckpoint(stepIndex) {
+                const stepData = steps[stepIndex];
+                if (!stepData.checkpoint) {
+                    $checkpointCard.style.display = 'none';
+                    return;
+                }
+                $checkpointCard.style.display = 'block';
+                $cpQuestion.innerHTML = stepData.checkpoint.question;
+                $cpInput.value = '';
+                $cpFeedback.textContent = '';
+                $cpFeedback.className = 'cp-feedback';
+                $cpPanel.classList.remove('resolved');
+                $cpInput.disabled = false;
+                $cpSubmit.disabled = false;
+                $cpHint.disabled = false;
+                $cpShowAnswer.disabled = false;
+
+                if (checkpointResolved[stepIndex]) {
+                    $cpPanel.classList.add('resolved');
+                    $cpFeedback.textContent = '✓ This checkpoint has been resolved.';
+                    $cpFeedback.className = 'cp-feedback correct';
+                    $cpInput.disabled = true;
+                    $cpSubmit.disabled = true;
+                    $cpHint.disabled = true;
+                    $cpShowAnswer.disabled = true;
+                    $cpInput.value = stepData.checkpoint.answer;
+                }
+            }
+
+            function submitCheckpoint() {
+                const stepData = steps[currentStep];
+                if (!stepData.checkpoint) return;
+                const userAnswer = $cpInput.value.trim();
+                const correctAnswer = stepData.checkpoint.answer;
+
+                if (userAnswer === '') {
+                    $cpFeedback.textContent = 'Please type an answer before submitting.';
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                    return;
+                }
+
+                const isCorrect = (userAnswer.toLowerCase() === correctAnswer.toLowerCase());
+                const logEntry = {
+                    step: stepData.id,
+                    question: stepData.checkpoint.question.replace(/<[^>]+>/g, ''),
+                    userAnswer: userAnswer,
+                    correctAnswer: correctAnswer,
+                    isCorrect: isCorrect,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                learningLogEntries.push(logEntry);
+
+                if (isCorrect) {
+                    $cpFeedback.textContent = '✓ Correct! ' + stepData.checkpoint.answerDisplay;
+                    $cpFeedback.className = 'cp-feedback correct';
+                    $cpPanel.classList.add('resolved');
+                    checkpointResolved[currentStep] = true;
+                    $cpInput.disabled = true;
+                    $cpSubmit.disabled = true;
+                    $cpHint.disabled = true;
+                    $cpShowAnswer.disabled = true;
+                } else {
+                    $cpFeedback.textContent = '✗ Incorrect. "' + userAnswer + '" is not right. Review the step and try again.';
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                }
+                updateLearningLog();
+            }
+
+            function showHint() {
+                const stepData = steps[currentStep];
+                if (!stepData.checkpoint) return;
+                $cpFeedback.textContent = '💡 Hint: ' + stepData.checkpoint.hint;
+                $cpFeedback.className = 'cp-feedback';
+                const logEntry = {
+                    step: stepData.id,
+                    question: stepData.checkpoint.question.replace(/<[^>]+>/g, ''),
+                    userAnswer: '[Hint requested]',
+                    correctAnswer: stepData.checkpoint.answer,
+                    isCorrect: null,
+                    timestamp: new Date().toLocaleTimeString(),
+                    isHint: true
+                };
+                learningLogEntries.push(logEntry);
+                updateLearningLog();
+            }
+
+            function showAnswer() {
+                const stepData = steps[currentStep];
+                if (!stepData.checkpoint) return;
+                $cpInput.value = stepData.checkpoint.answer;
+                $cpFeedback.textContent = '📖 Answer revealed: ' + stepData.checkpoint.answerDisplay;
+                $cpFeedback.className = 'cp-feedback';
+                $cpPanel.classList.add('resolved');
+                checkpointResolved[currentStep] = true;
+                $cpInput.disabled = true;
+                $cpSubmit.disabled = true;
+                $cpHint.disabled = true;
+                $cpShowAnswer.disabled = true;
+                const logEntry = {
+                    step: stepData.id,
+                    question: stepData.checkpoint.question.replace(/<[^>]+>/g, ''),
+                    userAnswer: '[Show Answer used]',
+                    correctAnswer: stepData.checkpoint.answer,
+                    isCorrect: null,
+                    timestamp: new Date().toLocaleTimeString(),
+                    isShowAnswer: true
+                };
+                learningLogEntries.push(logEntry);
+                updateLearningLog();
+            }
+
+            function updateLearningLog() {
+                // Build log HTML inside #teaching
+                let logHtml = '<div class="learning-log"><strong>📝 Learning Log</strong>';
+                if (learningLogEntries.length === 0) {
+                    logHtml += '<p style="color:#9ca3af;font-size:0.8rem;">No entries yet. Submit a checkpoint answer to see it here.</p>';
+                } else {
+                    learningLogEntries.forEach((entry, i) => {
+                        let entryClass = 'log-entry';
+                        let icon = '';
+                        if (entry.isCorrect === true) {
+                            entryClass += ' correct-entry';
+                            icon = '✅';
+                        } else if (entry.isCorrect === false) {
+                            entryClass += ' incorrect-entry';
+                            icon = '❌';
+                        } else if (entry.isShowAnswer) {
+                            entryClass += ' show-answer-entry';
+                            icon = '📖';
+                        } else if (entry.isHint) {
+                            entryClass += ' hint-entry';
+                            icon = '💡';
+                        }
+                        logHtml += '<div class="' + entryClass + '">' + icon + ' <strong>Step ' +
+                            entry.step +
+                            ':</strong> Q: "' + entry.question + '" | Your answer: "' + entry
+                            .userAnswer + '" | Correct: "' + entry.correctAnswer + '" | <em>' + entry
+                            .timestamp + '</em></div>';
+                    });
+                }
+                logHtml += '</div>';
+                // Append log to teaching content
+                const stepData = steps[currentStep];
+                $teaching.innerHTML = '<p>' + stepData.teaching + '</p>' + logHtml;
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(stepIndex) {
+                if (stepIndex < 0 || stepIndex >= TOTAL_STEPS) return;
+                currentStep = stepIndex;
+                renderStep(currentStep);
+                updateLearningLog();
+            }
+
+            function nextStep() {
+                if (currentStep < TOTAL_STEPS - 1) {
+                    goToStep(currentStep + 1);
+                }
+            }
+
+            function prevStep() {
+                if (currentStep > 0) {
+                    goToStep(currentStep - 1);
+                }
+            }
+
+            function startAutoPlay() {
+                if (autoPlayInterval) return;
+                $playBtn.textContent = '⏸ Pause';
+                $playBtn.classList.add('danger');
+                autoPlayInterval = setInterval(() => {
+                    if (currentStep < TOTAL_STEPS - 1) {
+                        nextStep();
+                    } else {
+                        stopAutoPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopAutoPlay() {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('danger');
+            }
+
+            function toggleAutoPlay() {
+                if (autoPlayInterval) {
+                    stopAutoPlay();
+                } else {
+                    startAutoPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Event Listeners
+            // ──────────────────────────────────────
+            $prevBtn.addEventListener('click', () => {
+                prevStep();
+                stopAutoPlay();
+            });
+            $nextBtn.addEventListener('click', () => {
+                nextStep();
+                stopAutoPlay();
+            });
+            $playBtn.addEventListener('click', toggleAutoPlay);
+            $range.addEventListener('input', () => {
+                const val = parseInt($range.value, 10);
+                if (val >= 1 && val <= TOTAL_STEPS) {
+                    goToStep(val - 1);
+                    stopAutoPlay();
+                }
+            });
+            $cpSubmit.addEventListener('click', submitCheckpoint);
+            $cpHint.addEventListener('click', showHint);
+            $cpShowAnswer.addEventListener('click', showAnswer);
+            $cpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    submitCheckpoint();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    nextStep();
+                    stopAutoPlay();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevStep();
+                    stopAutoPlay();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    toggleAutoPlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialization
+            // ──────────────────────────────────────
+            function init() {
+                buildCodeDisplay();
+                buildTimeline();
+                $answer.textContent = '[3, 2, 1]';
+                $topResult.innerHTML = '<strong>Expected Output:</strong> [3, 2, 1]';
+                $topSolution.innerHTML =
+                    '<strong>Strategy:</strong> Maintain prev/current/next pointers and reverse links one by one.';
+                $range.min = 1;
+                $range.max = TOTAL_STEPS;
+                $range.value = 1;
+                $counter.textContent = '1 / ' + TOTAL_STEPS;
+                currentStep = 0;
+                checkpointResolved = {};
+                learningLogEntries = [];
+                steps.forEach((s, i) => {
+                    if (s.checkpoint) checkpointResolved[i] = false;
+                });
+                renderStep(0);
+                updateLearningLog();
+                $prevBtn.disabled = true;
+                $prevBtn.style.opacity = '0.5';
+                $nextBtn.disabled = false;
+                $nextBtn.style.opacity = '1';
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('danger');
+                $checkpointCard.style.display = 'none';
+            }
+
+            init();
+
+            console.log('Reverse Linked List tutoring page initialized. All systems ready.');
+        })();
+    </script>
+</body>
+</html>

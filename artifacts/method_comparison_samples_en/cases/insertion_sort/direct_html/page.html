@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insertion Sort - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --card-bg: #ffffff;
+            --border: #e0e3e7;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --accent: #4a6cf7;
+            --accent-light: #eef1ff;
+            --sorted: #4caf84;
+            --sorted-bg: #e8f5ee;
+            --key-color: #ff9800;
+            --key-bg: #fff3e0;
+            --compare: #f44336;
+            --compare-bg: #ffebee;
+            --unsorted: #b0b7c3;
+            --unsorted-bg: #f0f1f3;
+            --success: #2e7d32;
+            --error: #c62828;
+            --warning: #e65100;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            --radius: 10px;
+            --transition: 0.25s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        #title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            letter-spacing: -0.3px;
+            margin: 0;
+            line-height: 1.2;
+        }
+        #subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 400;
+        }
+
+        /* Top result and solution */
+        .top-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        #top-result,
+        #top-solution {
+            flex: 1;
+            min-width: 200px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            box-shadow: var(--shadow);
+        }
+        #top-result {
+            border-left: 4px solid var(--accent);
+        }
+        #top-solution {
+            border-left: 4px solid var(--sorted);
+        }
+        #top-result .label,
+        #top-solution .label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        /* Code display */
+        #code {
+            background: #1e1e2e;
+            color: #e0e0e0;
+            border-radius: var(--radius);
+            padding: 16px 10px 16px 16px;
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            box-shadow: var(--shadow);
+            white-space: pre;
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 4px;
+            transition: background var(--transition), color var(--transition);
+            border-left: 3px solid transparent;
+        }
+        #code .code-line.highlight {
+            background: #2a2a40;
+            border-left-color: #ffcc66;
+            color: #fff;
+            font-weight: 500;
+        }
+        #code .code-line.highlight-strong {
+            background: #3a3040;
+            border-left-color: #ff9800;
+            color: #ffe0b2;
+            font-weight: 600;
+        }
+
+        /* Step info */
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #step-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin: 0;
+            flex: 1;
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+        #step-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 4px 0 0;
+            line-height: 1.5;
+        }
+
+        /* Canvas */
+        #canvas {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 16px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow-x: auto;
+        }
+        .array-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 56px;
+            transition: all var(--transition);
+        }
+        .array-cell .cell-box {
+            width: 54px;
+            height: 54px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #1a1a2e;
+            border: 2px solid transparent;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .array-cell .cell-index {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .cell-box.sorted {
+            background: var(--sorted-bg);
+            border-color: var(--sorted);
+            color: #1b5e20;
+        }
+        .cell-box.key {
+            background: var(--key-bg);
+            border-color: var(--key-color);
+            color: #e65100;
+            box-shadow: 0 0 0 4px rgba(255, 152, 0, 0.18);
+            animation: pulse-key 1s ease-in-out infinite;
+        }
+        .cell-box.comparing {
+            background: var(--compare-bg);
+            border-color: var(--compare);
+            color: #b71c1c;
+        }
+        .cell-box.unsorted {
+            background: var(--unsorted-bg);
+            border-color: var(--unsorted);
+            color: #555;
+        }
+        @keyframes pulse-key {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(255, 152, 0, 0.18);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(255, 152, 0, 0.05);
+            }
+        }
+        .canvas-legend {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .legend-dot.sorted {
+            background: var(--sorted);
+        }
+        .legend-dot.key {
+            background: var(--key-color);
+        }
+        .legend-dot.comparing {
+            background: var(--compare);
+        }
+        .legend-dot.unsorted {
+            background: var(--unsorted);
+        }
+
+        /* Controls */
+        #controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+        }
+        #controls button {
+            padding: 8px 18px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all var(--transition);
+            color: var(--text);
+            white-space: nowrap;
+        }
+        #controls button:hover {
+            background: #f5f6f8;
+            border-color: #c0c5cc;
+        }
+        #controls button:active {
+            background: #e8eaef;
+        }
+        #prev,
+        #next {
+            min-width: 60px;
+        }
+        #play {
+            min-width: 70px;
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        #play:hover {
+            background: #3b5de7;
+            border-color: #3b5de7;
+        }
+        #play.paused {
+            background: #fff;
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        #range {
+            flex: 1;
+            min-width: 120px;
+            height: 6px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text);
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 0;
+            flex-wrap: nowrap;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+        }
+        .tick {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 8px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all var(--transition);
+            border: 2px solid transparent;
+            background: transparent;
+            font-family: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            color: var(--text);
+        }
+        .tick:hover {
+            background: #f5f6f8;
+            border-color: #d0d5dc;
+        }
+        .tick.active {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .tick .tick-op {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.2px;
+        }
+        .tick.active .tick-op {
+            color: var(--accent);
+        }
+
+        /* Teaching, State, Evidence */
+        .info-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 700px) {
+            .info-panels {
+                grid-template-columns: 1fr;
+            }
+            .top-row {
+                flex-direction: column;
+            }
+            #timeline {
+                flex-wrap: wrap;
+            }
+            .tick {
+                min-width: 60px;
+                flex: 0 0 auto;
+            }
+        }
+        #teaching,
+        #state,
+        #step-evidence {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            font-size: 0.9rem;
+        }
+        #teaching {
+            border-left: 4px solid #7c4dff;
+        }
+        #state {
+            border-left: 4px solid #00bcd4;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.82rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #step-evidence {
+            border-left: 4px solid #ff6d00;
+            grid-column: 1 / -1;
+        }
+        #teaching h4,
+        #state h4,
+        #step-evidence h4 {
+            margin: 0 0 8px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        /* Checkpoint area */
+        #checkpoint-area {
+            background: #fffdf7;
+            border: 2px solid #ffe082;
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            display: none;
+            transition: all var(--transition);
+        }
+        #checkpoint-area.visible {
+            display: block;
+        }
+        #checkpoint-area h3 {
+            margin: 0 0 6px;
+            font-size: 1.05rem;
+            color: #e65100;
+        }
+        #checkpoint-area .checkpoint-prompt {
+            margin: 0 0 10px;
+            font-weight: 500;
+            color: #555;
+        }
+        #checkpoint-area .checkpoint-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #checkpoint-area input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 9px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            transition: border-color var(--transition);
+        }
+        #checkpoint-area input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+        }
+        #checkpoint-area button {
+            padding: 9px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        #checkpoint-submit {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        #checkpoint-submit:hover {
+            background: #3b5de7;
+        }
+        #checkpoint-hint {
+            background: #fff8e1;
+            color: #e65100;
+            border-color: #ffcc80;
+        }
+        #checkpoint-hint:hover {
+            background: #fff3d6;
+        }
+        #checkpoint-show {
+            background: #fce4ec;
+            color: #b71c1c;
+            border-color: #ef9a9a;
+        }
+        #checkpoint-show:hover {
+            background: #fcd4dc;
+        }
+        #checkpoint-feedback {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: none;
+        }
+        #checkpoint-feedback.correct {
+            display: block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        #checkpoint-feedback.incorrect {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        #checkpoint-feedback.info {
+            display: block;
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #90caf9;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        #learning-log h4 {
+            margin: 0 0 10px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+        .log-entry {
+            padding: 8px 10px;
+            border-radius: 5px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            border-left: 3px solid #ccc;
+            background: #fafafa;
+        }
+        .log-entry.correct {
+            border-left-color: var(--sorted);
+            background: #f1f8f4;
+        }
+        .log-entry.incorrect {
+            border-left-color: var(--compare);
+            background: #fef5f5;
+        }
+        .log-entry .log-time {
+            font-size: 0.7rem;
+            color: #999;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* Answer */
+        #answer {
+            background: #f9fafb;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        #answer::before {
+            content: 'Final Answer: ';
+            font-weight: 400;
+            color: #888;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        /* Utility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Title and subtitle -->
+        <h1 id="title">Insertion Sort</h1>
+        <p id="subtitle">In a music player application, you are given a list of song favorability scores. Use the insertion sort method to sort them in ascending order, so that songs can be played from lowest to highest score.</p>
+
+        <!-- Top row: result and solution -->
+        <div class="top-row">
+            <div id="top-result">
+                <div class="label">Current Result</div>
+                <span id="top-result-text">Sorting in progress...</span>
+            </div>
+            <div id="top-solution">
+                <div class="label">Expected Output</div>
+                <span id="top-solution-text">[1, 2, 3, 5]</span>
+            </div>
+        </div>
+
+        <!-- Code display -->
+        <div id="code" aria-label="Insertion sort JavaScript implementation">
+            <span class="code-line" data-line="0">function insertionSort(nums) {</span>
+            <span class="code-line" data-line="1">  for (let i = 1; i &lt; nums.length; i++) {</span>
+            <span class="code-line" data-line="2">    let key = nums[i];</span>
+            <span class="code-line" data-line="3">    let j = i - 1;</span>
+            <span class="code-line" data-line="4">    while (j &gt;= 0 &amp;&amp; nums[j] &gt; key) {</span>
+            <span class="code-line" data-line="5">      nums[j + 1] = nums[j];</span>
+            <span class="code-line" data-line="6">      j--;</span>
+            <span class="code-line" data-line="7">    }</span>
+            <span class="code-line" data-line="8">    nums[j + 1] = key;</span>
+            <span class="code-line" data-line="9">  }</span>
+            <span class="code-line" data-line="10">  return nums;</span>
+            <span class="code-line" data-line="11">}</span>
+        </div>
+
+        <!-- Step info -->
+        <div class="step-header">
+            <h2 id="step-title">Initial State</h2>
+            <span id="op">Initialize</span>
+        </div>
+        <p id="step-desc">The array contains [5, 2, 3, 1]. The first element (5) forms the initial sorted prefix. We begin with index i = 1.</p>
+
+        <!-- Canvas for visualization -->
+        <div id="canvas" aria-label="Array visualization">
+            <!-- Dynamically populated -->
+        </div>
+        <div class="canvas-legend" aria-label="Color legend">
+            <span><span class="legend-dot sorted"></span> Sorted prefix</span>
+            <span><span class="legend-dot key"></span> Current key</span>
+            <span><span class="legend-dot comparing"></span> Being compared / shifted</span>
+            <span><span class="legend-dot unsorted"></span> Unsorted</span>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls">
+            <button id="prev" aria-label="Previous step">◀ Prev</button>
+            <button id="play" aria-label="Play auto-advance">▶ Play</button>
+            <button id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="0" max="4" value="0" step="1" aria-label="Step slider">
+            <span id="counter" aria-label="Step counter">1 / 5</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline" aria-label="Step timeline">
+            <!-- Dynamically populated -->
+        </div>
+
+        <!-- Info panels -->
+        <div class="info-panels">
+            <div id="teaching">
+                <h4>Teaching Notes</h4>
+                <p id="teaching-text">Insertion sort works by maintaining a sorted prefix. Initially, the first element is trivially sorted. We then take each subsequent element and insert it into its correct position within the sorted prefix. A common error is forgetting to shift elements before inserting, which can overwrite values.</p>
+            </div>
+            <div id="state">
+                <h4>Current State (JSON)</h4>
+                <span id="state-json">{"nums": [5, 2, 3, 1], "i": 1, "sorted_prefix": [5], "phase": "initialization"}</span>
+            </div>
+            <div id="step-evidence">
+                <h4>Step Evidence</h4>
+                <p id="step-evidence-text"><strong>Operation:</strong> Initialize the algorithm. <strong>Targets:</strong> The entire array [5, 2, 3, 1]. <strong>Dependencies:</strong> None yet. <strong>Before:</strong> N/A (starting state). <strong>After:</strong> Sorted prefix is [5] at index 0. Next key to insert is at index 1 with value 2.</p>
+            </div>
+        </div>
+
+        <!-- Checkpoint area -->
+        <div id="checkpoint-area" aria-label="Learner checkpoint">
+            <h3>🧠 Checkpoint: Test Your Understanding</h3>
+            <p class="checkpoint-prompt" id="checkpoint-prompt">What is the array after completing this insertion step?</p>
+            <div class="checkpoint-controls">
+                <input type="text" id="checkpoint-input" placeholder="Enter array, e.g. [2, 5, 3, 1]" aria-label="Your answer">
+                <button id="checkpoint-submit" aria-label="Submit answer">Submit</button>
+                <button id="checkpoint-hint" aria-label="Get a hint">💡 Hint</button>
+                <button id="checkpoint-show" aria-label="Show the answer">👁 Show Answer</button>
+            </div>
+            <div id="checkpoint-feedback" aria-live="polite"></div>
+        </div>
+
+        <!-- Learning log -->
+        <div id="learning-log" aria-label="Learning log">
+            <h4>📝 Learning Log</h4>
+            <div id="log-entries">
+                <p style="color:#999;font-size:0.85rem;">No submissions yet. Interact with the checkpoints to log your answers here.</p>
+            </div>
+        </div>
+
+        <!-- Answer -->
+        <div id="answer" aria-label="Final answer">[1, 2, 3, 5]</div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step data for Insertion Sort
+            // ──────────────────────────────────────
+            const totalSteps = 5; // steps 0..4
+            const stepsData = [{
+                // Step 0: Initialization
+                title: 'Initial State',
+                desc: 'The array contains [5, 2, 3, 1]. The first element (5) forms the initial sorted prefix. We begin with index i = 1.',
+                op: 'Initialize',
+                stateJSON: '{"nums": [5, 2, 3, 1], "i": 1, "sorted_prefix": [5], "phase": "initialization"}',
+                teaching: 'Insertion sort works by maintaining a sorted prefix. Initially, the first element is trivially sorted. We then take each subsequent element and insert it into its correct position within the sorted prefix. A common error is forgetting to shift elements before inserting, which can overwrite values.',
+                evidence: '<strong>Operation:</strong> Initialize the algorithm. <strong>Targets:</strong> The entire array [5, 2, 3, 1]. <strong>Dependencies:</strong> None yet. <strong>Before:</strong> N/A (starting state). <strong>After:</strong> Sorted prefix is [5] at index 0. Next key to insert is at index 1 with value 2.',
+                highlightLines: [0, 1],
+                arrayState: [
+                    { val: 5, status: 'sorted' },
+                    { val: 2, status: 'unsorted' },
+                    { val: 3, status: 'unsorted' },
+                    { val: 1, status: 'unsorted' }
+                ],
+                checkpoint: null,
+                tickLabel: 'Init',
+                tickOp: 'Initialize'
+            }, {
+                // Step 1: Insert key = 2
+                title: 'Insert key = 2',
+                desc: 'Take key = 2 from index 1. Compare with 5 (the element at index 0). Since 2 < 5, shift 5 to the right. Insert 2 at index 0. Array becomes [2, 5, 3, 1].',
+                op: 'Compare & Shift',
+                stateJSON: '{"nums": [2, 5, 3, 1], "key": 2, "comparisons": [{"with": 5, "result": "shift"}], "inserted_at": 0, "sorted_prefix": [2, 5]}',
+                teaching: 'The key 2 is compared with each element in the sorted prefix from right to left. When we find an element larger than the key, we shift it right. Once we find an element smaller than the key (or reach the beginning), we insert the key. Here, 2 < 5 so 5 shifts right, and 2 is placed at index 0.',
+                evidence: '<strong>Operation:</strong> Insert key=2 into the sorted prefix [5]. <strong>Targets:</strong> key=2 at index 1, element 5 at index 0. <strong>Dependencies:</strong> Compare 2 with 5; since 2 < 5, shift 5 right. <strong>Before:</strong> [5, 2, 3, 1] with sorted prefix [5]. <strong>After:</strong> [2, 5, 3, 1] with sorted prefix [2, 5]. One comparison, one shift, one insertion.',
+                highlightLines: [2, 3, 4, 5, 6, 7, 8],
+                arrayState: [
+                    { val: 2, status: 'sorted' },
+                    { val: 5, status: 'sorted' },
+                    { val: 3, status: 'unsorted' },
+                    { val: 1, status: 'unsorted' }
+                ],
+                checkpoint: {
+                    prompt: 'After inserting key=2 into the sorted prefix [5], what is the resulting array?',
+                    correctAnswer: '[2, 5, 3, 1]',
+                    hint: 'Compare the key (2) with each element in the sorted prefix from right to left. Shift larger elements right, then insert the key. Only one element (5) needs to shift.',
+                    answerLabel: 'The array after inserting 2 is [2, 5, 3, 1].'
+                },
+                tickLabel: 'Insert 2',
+                tickOp: 'Compare & Shift'
+            }, {
+                // Step 2: Insert key = 3
+                title: 'Insert key = 3',
+                desc: 'Take key = 3 from index 2. Compare with 5: shift 5 right. Compare with 2: 3 > 2, so stop. Insert 3 at index 1. Array becomes [2, 3, 5, 1].',
+                op: 'Compare & Insert',
+                stateJSON: '{"nums": [2, 3, 5, 1], "key": 3, "comparisons": [{"with": 5, "result": "shift"}, {"with": 2, "result": "stop"}], "inserted_at": 1, "sorted_prefix": [2, 3, 5]}',
+                teaching: 'The key 3 is compared with 5 (shift), then with 2 (stop since 3 > 2). It is inserted between 2 and 5. Notice how the sorted prefix grows: now [2, 3, 5] covers indices 0-2. The invariant is that after each iteration i, the first i+1 elements are sorted.',
+                evidence: '<strong>Operation:</strong> Insert key=3 into the sorted prefix [2, 5]. <strong>Targets:</strong> key=3 at index 2, elements 5 and 2 in the sorted prefix. <strong>Dependencies:</strong> Compare 3 with 5 → shift; compare 3 with 2 → stop. <strong>Before:</strong> [2, 5, 3, 1] with sorted prefix [2, 5]. <strong>After:</strong> [2, 3, 5, 1] with sorted prefix [2, 3, 5]. Two comparisons, one shift, one insertion.',
+                highlightLines: [2, 3, 4, 5, 6, 7, 8],
+                arrayState: [
+                    { val: 2, status: 'sorted' },
+                    { val: 3, status: 'sorted' },
+                    { val: 5, status: 'sorted' },
+                    { val: 1, status: 'unsorted' }
+                ],
+                checkpoint: null,
+                tickLabel: 'Insert 3',
+                tickOp: 'Compare & Insert'
+            }, {
+                // Step 3: Insert key = 1
+                title: 'Insert key = 1',
+                desc: 'Take key = 1 from index 3. Compare with 5: shift. Compare with 3: shift. Compare with 2: shift. No more elements. Insert 1 at index 0. Array becomes [1, 2, 3, 5].',
+                op: 'Shift All & Insert',
+                stateJSON: '{"nums": [1, 2, 3, 5], "key": 1, "comparisons": [{"with": 5, "result": "shift"}, {"with": 3, "result": "shift"}, {"with": 2, "result": "shift"}], "inserted_at": 0, "sorted_prefix": [1, 2, 3, 5]}',
+                teaching: 'The key 1 is smaller than all elements in the sorted prefix [2, 3, 5], so all three elements shift right and 1 is inserted at the beginning. This is the worst-case scenario for insertion sort: the new element must travel all the way to the front. The sorted prefix now covers the entire array.',
+                evidence: '<strong>Operation:</strong> Insert key=1 into the sorted prefix [2, 3, 5]. <strong>Targets:</strong> key=1 at index 3, elements 5, 3, and 2 in the sorted prefix. <strong>Dependencies:</strong> Compare 1 with 5 → shift; compare 1 with 3 → shift; compare 1 with 2 → shift. <strong>Before:</strong> [2, 3, 5, 1] with sorted prefix [2, 3, 5]. <strong>After:</strong> [1, 2, 3, 5] with sorted prefix [1, 2, 3, 5]. Three comparisons, three shifts, one insertion.',
+                highlightLines: [2, 3, 4, 5, 6, 7, 8],
+                arrayState: [
+                    { val: 1, status: 'sorted' },
+                    { val: 2, status: 'sorted' },
+                    { val: 3, status: 'sorted' },
+                    { val: 5, status: 'sorted' }
+                ],
+                checkpoint: {
+                    prompt: 'After inserting key=1 into the sorted prefix [2, 3, 5], what is the resulting array?',
+                    correctAnswer: '[1, 2, 3, 5]',
+                    hint: 'The key is 1 and the sorted prefix is [2, 3, 5]. Compare 1 with each element from right to left. Since 1 is smaller than all of them, every element shifts right, and 1 lands at index 0.',
+                    answerLabel: 'The array after inserting 1 is [1, 2, 3, 5] — the fully sorted array.'
+                },
+                tickLabel: 'Insert 1',
+                tickOp: 'Shift All & Insert'
+            }, {
+                // Step 4: Final / Done
+                title: 'Sorting Complete',
+                desc: 'All elements have been processed. The array is now sorted in ascending order: [1, 2, 3, 5]. The algorithm returns the sorted list, so songs play from lowest to highest score.',
+                op: 'Done',
+                stateJSON: '{"nums": [1, 2, 3, 5], "sorted": true, "total_insertions": 3, "phase": "complete"}',
+                teaching: 'Insertion sort has successfully sorted the array. The algorithm processes each element once, inserting it into its correct position in the growing sorted prefix. In the worst case (reverse-sorted input), insertion sort runs in O(n²) time. In the best case (already sorted), it runs in O(n) time since no shifts are needed. This makes it efficient for small or partially sorted datasets.',
+                evidence: '<strong>Operation:</strong> Return the sorted array. <strong>Targets:</strong> The final sorted array [1, 2, 3, 5]. <strong>Dependencies:</strong> All insertions complete. <strong>Before:</strong> Processing all elements. <strong>After:</strong> Final sorted array [1, 2, 3, 5]. Total of 3 insertions performed across indices 1, 2, and 3.',
+                highlightLines: [10],
+                arrayState: [
+                    { val: 1, status: 'sorted' },
+                    { val: 2, status: 'sorted' },
+                    { val: 3, status: 'sorted' },
+                    { val: 5, status: 'sorted' }
+                ],
+                checkpoint: null,
+                tickLabel: 'Done',
+                tickOp: 'Return Result'
+            }];
+
+            let currentStep = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            const playDelay = 2000; // ms between auto-advance steps
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $teachingText = document.getElementById('teaching-text');
+            const $stateJson = document.getElementById('state-json');
+            const $stepEvidenceText = document.getElementById('step-evidence-text');
+            const $topResultText = document.getElementById('top-result-text');
+            const $codeContainer = document.getElementById('code');
+            const $playBtn = document.getElementById('play');
+            const $checkpointArea = document.getElementById('checkpoint-area');
+            const $checkpointPrompt = document.getElementById('checkpoint-prompt');
+            const $checkpointInput = document.getElementById('checkpoint-input');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $logEntries = document.getElementById('log-entries');
+            const $prevBtn = document.getElementById('prev');
+            const $nextBtn = document.getElementById('next');
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                stepsData.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('aria-label', 'Step ' + (idx + 1) + ': ' + step.tickLabel);
+                    tick.innerHTML =
+                        '<span class="tick-label">' + step.tickLabel + '</span>' +
+                        '<span class="tick-op">' + step.tickOp + '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(idx);
+                        stopPlay();
+                    });
+                    if (idx === currentStep) {
+                        tick.classList.add('active');
+                    }
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            function updateTimelineActive() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, idx) => {
+                    if (idx === currentStep) {
+                        t.classList.add('active');
+                    } else {
+                        t.classList.remove('active');
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Render canvas (array visualization)
+            // ──────────────────────────────────────
+            function renderCanvas() {
+                const step = stepsData[currentStep];
+                const arrState = step.arrayState;
+                $canvas.innerHTML = '';
+                arrState.forEach((cell, idx) => {
+                    const cellDiv = document.createElement('div');
+                    cellDiv.className = 'array-cell';
+                    const box = document.createElement('div');
+                    box.className = 'cell-box ' + cell.status;
+                    box.textContent = cell.val;
+                    const indexLabel = document.createElement('span');
+                    indexLabel.className = 'cell-index';
+                    indexLabel.textContent = 'idx ' + idx;
+                    cellDiv.appendChild(box);
+                    cellDiv.appendChild(indexLabel);
+                    $canvas.appendChild(cellDiv);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Highlight code lines
+            // ──────────────────────────────────────
+            function updateCodeHighlight() {
+                const step = stepsData[currentStep];
+                const allLines = $codeContainer.querySelectorAll('.code-line');
+                allLines.forEach(line => {
+                    line.classList.remove('highlight', 'highlight-strong');
+                });
+                const highlightSet = new Set(step.highlightLines);
+                allLines.forEach(line => {
+                    const lineNum = parseInt(line.getAttribute('data-line'), 10);
+                    if (highlightSet.has(lineNum)) {
+                        // Use stronger highlight for the main action lines
+                        if (lineNum >= 2 && lineNum <= 8) {
+                            line.classList.add('highlight-strong');
+                        } else {
+                            line.classList.add('highlight');
+                        }
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Update checkpoint area
+            // ──────────────────────────────────────
+            function updateCheckpointArea() {
+                const step = stepsData[currentStep];
+                const cp = step.checkpoint;
+                if (cp) {
+                    $checkpointArea.classList.add('visible');
+                    $checkpointPrompt.textContent = cp.prompt;
+                    $checkpointInput.value = '';
+                    $checkpointFeedback.className = '';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.style.display = 'none';
+                    // Store checkpoint data for the submit handler
+                    $checkpointArea.setAttribute('data-correct', cp.correctAnswer);
+                    $checkpointArea.setAttribute('data-hint', cp.hint);
+                    $checkpointArea.setAttribute('data-answer-label', cp.answerLabel);
+                    $checkpointArea.setAttribute('data-step-label', step.tickLabel);
+                } else {
+                    $checkpointArea.classList.remove('visible');
+                    $checkpointFeedback.style.display = 'none';
+                    $checkpointFeedback.className = '';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointInput.value = '';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Update all UI for the current step
+            // ──────────────────────────────────────
+            function updateUI() {
+                const step = stepsData[currentStep];
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+                $teachingText.textContent = step.teaching;
+                $stateJson.textContent = step.stateJSON;
+                $stepEvidenceText.innerHTML = step.evidence;
+                $counter.textContent = (currentStep + 1) + ' / ' + totalSteps;
+                $range.value = currentStep;
+                if (currentStep === totalSteps - 1) {
+                    $topResultText.textContent = 'Sorted: [1, 2, 3, 5]';
+                } else if (currentStep === 0) {
+                    $topResultText.textContent = 'Sorting in progress...';
+                } else {
+                    const arr = step.arrayState.map(c => c.val);
+                    $topResultText.textContent = 'Current: [' + arr.join(', ') + ']';
+                }
+                renderCanvas();
+                updateCodeHighlight();
+                updateTimelineActive();
+                updateCheckpointArea();
+            }
+
+            // ──────────────────────────────────────
+            // Navigate to a step
+            // ──────────────────────────────────────
+            function goToStep(idx) {
+                if (idx < 0) idx = 0;
+                if (idx >= totalSteps) idx = totalSteps - 1;
+                if (idx === currentStep) return;
+                currentStep = idx;
+                updateUI();
+            }
+
+            function nextStep() {
+                if (currentStep < totalSteps - 1) {
+                    goToStep(currentStep + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                goToStep(currentStep - 1);
+            }
+
+            // ──────────────────────────────────────
+            // Play / pause auto-advance
+            // ──────────────────────────────────────
+            function startPlay() {
+                if (playInterval) return;
+                isPlaying = true;
+                $playBtn.textContent = '⏸ Pause';
+                $playBtn.classList.add('paused');
+                playInterval = setInterval(function() {
+                    if (currentStep < totalSteps - 1) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, playDelay);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('paused');
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStep >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint: Submit handler
+            // ──────────────────────────────────────
+            function handleCheckpointSubmit() {
+                const correctAnswer = $checkpointArea.getAttribute('data-correct');
+                const hintText = $checkpointArea.getAttribute('data-hint');
+                const answerLabel = $checkpointArea.getAttribute('data-answer-label');
+                const stepLabel = $checkpointArea.getAttribute('data-step-label');
+                const userInput = $checkpointInput.value.trim();
+
+                if (!userInput) {
+                    showCheckpointFeedback('info', 'Please enter an array in the format [a, b, c, d] before submitting.');
+                    return;
+                }
+
+                // Parse both arrays for comparison
+                let userArray, correctArray;
+                try {
+                    userArray = JSON.parse(userInput);
+                    correctArray = JSON.parse(correctAnswer);
+                } catch (e) {
+                    showCheckpointFeedback('info',
+                        'Could not parse your input. Please use valid JSON array format, e.g. [2, 5, 3, 1].');
+                    appendLogEntry(stepLabel, userInput, false,
+                        'Invalid format. Could not parse. Expected: ' + correctAnswer);
+                    return;
+                }
+
+                if (!Array.isArray(userArray)) {
+                    showCheckpointFeedback('info',
+                        'Your input must be an array. Please use brackets, e.g. [2, 5, 3, 1].');
+                    appendLogEntry(stepLabel, userInput, false,
+                        'Not an array. Expected: ' + correctAnswer);
+                    return;
+                }
+
+                // Compare arrays
+                let isCorrect = true;
+                if (userArray.length !== correctArray.length) {
+                    isCorrect = false;
+                } else {
+                    for (let i = 0; i < userArray.length; i++) {
+                        if (userArray[i] !== correctArray[i]) {
+                            isCorrect = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (isCorrect) {
+                    showCheckpointFeedback('correct',
+                        '✓ Correct! The array is indeed ' + correctAnswer + '. ' + answerLabel);
+                    appendLogEntry(stepLabel, userInput, true, 'Correct! Matches expected: ' + correctAnswer);
+                } else {
+                    showCheckpointFeedback('incorrect',
+                        '✗ Not quite. Your answer ' + JSON.stringify(userArray) +
+                        ' is incorrect. The correct array is ' + correctAnswer +
+                        '. Try again or use the hint/show-answer buttons.');
+                    appendLogEntry(stepLabel, userInput, false, 'Incorrect. Expected: ' + correctAnswer);
+                }
+            }
+
+            function showCheckpointFeedback(type, message) {
+                $checkpointFeedback.className = type;
+                $checkpointFeedback.textContent = message;
+                $checkpointFeedback.style.display = 'block';
+            }
+
+            function handleCheckpointHint() {
+                const hintText = $checkpointArea.getAttribute('data-hint');
+                showCheckpointFeedback('info', '💡 Hint: ' + hintText);
+            }
+
+            function handleCheckpointShow() {
+                const correctAnswer = $checkpointArea.getAttribute('data-correct');
+                const answerLabel = $checkpointArea.getAttribute('data-answer-label');
+                $checkpointInput.value = correctAnswer;
+                showCheckpointFeedback('info', '🔍 The answer is ' + correctAnswer + '. ' + answerLabel);
+            }
+
+            // ──────────────────────────────────────
+            // Learning log
+            // ──────────────────────────────────────
+            function appendLogEntry(stepLabel, submitted, isCorrect, detail) {
+                // Remove placeholder if present
+                const placeholder = $logEntries.querySelector('p[style]');
+                if (placeholder && $logEntries.children.length === 1 &&
+                    placeholder.textContent.includes('No submissions yet')) {
+                    $logEntries.innerHTML = '';
+                }
+
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + (isCorrect ? 'correct' : 'incorrect');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const icon = isCorrect ? '✓' : '✗';
+                entry.innerHTML = '<span class="log-time">' + timeStr + ' | Step: ' + stepLabel + '</span>' +
+                    '<strong>' + icon + ' Submitted:</strong> ' + escapeHTML(String(submitted)) +
+                    ' — ' + escapeHTML(detail);
+                $logEntries.appendChild(entry);
+                // Scroll to bottom
+                $logEntries.parentElement.scrollTop = $logEntries.parentElement.scrollHeight;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            $prevBtn.addEventListener('click', function() {
+                prevStep();
+                stopPlay();
+            });
+            $nextBtn.addEventListener('click', function() {
+                nextStep();
+                stopPlay();
+            });
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', function() {
+                const val = parseInt($range.value, 10);
+                goToStep(val);
+                stopPlay();
+            });
+
+            document.getElementById('checkpoint-submit').addEventListener('click', handleCheckpointSubmit);
+            document.getElementById('checkpoint-hint').addEventListener('click', handleCheckpointHint);
+            document.getElementById('checkpoint-show').addEventListener('click', handleCheckpointShow);
+
+            // Allow Enter key in checkpoint input to submit
+            $checkpointInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    handleCheckpointSubmit();
+                }
+            });
+
+            // Keyboard navigation for steps
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'checkpoint-input') return;
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    nextStep();
+                    stopPlay();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevStep();
+                    stopPlay();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initial setup
+            // ──────────────────────────────────────
+            buildTimeline();
+            updateUI();
+            // Ensure range is synced
+            $range.value = 0;
+            $range.setAttribute('max', totalSteps - 1);
+
+            console.log('Insertion Sort tutoring page initialized. Total steps: ' + totalSteps);
+            console.log('Use arrow keys to navigate, space to play/pause, or interact with the controls.');
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+{
+  "id": "provinces",
+  "algorithm_id": "provinces",
+  "title": "Number of Provinces",
+  "family": "Union Find",
+  "family_id": "union_find",
+  "subfamily_id": "connected_components",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "union_find",
+  "difficulty": "medium",
+  "problem": "In a large enterprise network, the physical connections between computers are represented by a symmetric matrix isConnected, where isConnected[i][j] = 1 indicates that computers i and j are directly connected, and 0 indicates they are not; diagonal elements are all 1 (each computer is connected to itself). If two computers can communicate through a series of direct connections, they belong to the same network area (called a \"province\"). Please calculate the total number of distinct provinces in the entire network.",
+  "strategy": "Perform union for connected cities, and finally count the number of root nodes.",
+  "input_contract": "Input the isConnected matrix.",
+  "variant_name": "Union Find Merge",
+  "time_complexity": "O(n^2 α(n))",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "Be able to track the state changes of the parent array during the union-find merge process.",
+    "Identify the optimization effect of path compression on the find operation in union-find.",
+    "Predict the decreasing trend of the number of provinces by observing merge operations."
+  ],
+  "required_views": [
+    "matrix",
+    "union_find"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! You accurately predicted the effect of the merge operation. Continue observing other pairs.",
+      "feedback_wrong": "Think again: If the roots of two sets are different, merging usually makes the parent pointer of one root point to the other root. Hint: Check the values of find(0) and find(1) in the current state.",
+      "id": "task_1",
+      "oracle": "Check the student's predicted parent array; parent[0] should become 1 (or parent[1] become 0, depending on implementation) and other elements remain unchanged. Compare with the parent dictionary in the next step of the trace.",
+      "prompt": "Current state: processing i=0, j=1, isConnected[0][1]=1, and find(0)=0, find(1)=1. Please predict how the parent array will change after executing union.",
+      "stage2_affordance": "In Stage2, drag city nodes to manually merge and verify the prediction.",
+      "trace_anchor": [
+        "state.union_find.parent",
+        "state.i",
+        "state.j"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "That's right, this is the fundamental invariant of union-find.",
+      "feedback_wrong": "No, observe again: parent does not form cycles; you can eventually reach a self-referencing node.",
+      "id": "task_2",
+      "oracle": "The correct option should be: \"For each i, after several find(i) operations, one can always reach a root node where parent[root]==root\". Indirectly verify this property using verifier results.",
+      "prompt": "Throughout the algorithm, the parent array maintains a key invariant. Please select the correct description from the following:",
+      "stage2_affordance": "Click on a node to trace to the root, visualizing the invariant.",
+      "trace_anchor": [
+        "state.union_find.parent"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct modification, you understood the effect of connectivity on the number of provinces.",
+      "feedback_wrong": "Note: a new connection may merge two originally separate provinces; you can verify by simulating union-find.",
+      "id": "task_3",
+      "oracle": "Use verifier to calculate the expected number of provinces for the new matrix and compare with the student's answer. If the modification creates a connection, the number of provinces should decrease by 1.",
+      "prompt": "In the given isConnected matrix, change a 0 to 1 (but do not form multiple connected regions), and predict how the number of provinces will change. Provide the modified matrix and expected answer.",
+      "stage2_affordance": "In Stage2, click an empty cell to add a connection and observe the province change.",
+      "trace_anchor": [
+        "state.isConnected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Your explanation captures the core action of union-find.",
+      "feedback_wrong": "Review the code line's condition: union is performed when isConnected[i][j]==1 and find(i)!=find(j).",
+      "id": "task_4",
+      "oracle": "According to the trace values of i and j and isConnected[i][j]==1, union is performed when they are not currently in the same set. The explanation should mention set merging and root node changes. Evaluation can use keyword matching.",
+      "prompt": "During tracing, step step=3 executed a union operation. Please explain why union is needed at this time and how it affects the province structure.",
+      "stage2_affordance": "In Stage2, drag the timeline to that step to highlight the two merged nodes.",
+      "trace_anchor": [
+        "state.i",
+        "state.j",
+        "state.union_find.parent"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 2,
+      "index": 0,
+      "input_data": {
+        "isConnected": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "expected": 3,
+      "index": 1,
+      "input_data": {
+        "isConnected": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

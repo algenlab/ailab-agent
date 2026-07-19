@@ -1,0 +1,112 @@
+{
+  "id": "kmp",
+  "algorithm_id": "kmp",
+  "title": "KMP String Matching",
+  "family": "Advanced String Algorithm",
+  "family_id": "string_advanced",
+  "subfamily_id": "kmp",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "string",
+  "difficulty": "medium",
+  "problem": "A genetic researcher is aligning a long DNA strand text and needs to quickly find the first occurrence position of the target gene probe pattern. Return -1 if not found, or 0 if pattern is an empty string. You can build a prefix table by analyzing the repetitive structure of the pattern itself, achieving smart jumps during matching and avoiding character-by-character matching from the beginning.",
+  "strategy": "Use the KMP prefix table; the trace only records key steps such as initialization, one prefix table update, one mismatch backtracking, and one successful match, without unrolling the entire loop character by character.",
+  "input_contract": "Input text and pattern.",
+  "variant_name": "Prefix Table Matching",
+  "time_complexity": "O(n+m)",
+  "space_complexity": "O(m)",
+  "learning_objectives": [
+    "Master the construction process of the prefix table pi in the KMP algorithm and its role in backtracking the j pointer upon mismatch",
+    "Understand the pointer state changes of text and pattern during matching, and be able to predict the next operation based on the current state",
+    "Be able to identify invariants in the matching process, such as the length of the matched prefix always equal to j"
+  ],
+  "required_views": [
+    "string"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! j backtracks to 0, then the next comparison is made.",
+      "feedback_wrong": "Observe the value of pi[j-1]; upon mismatch, j should backtrack to the position of pi[j-1].",
+      "id": "task_1",
+      "oracle": "According to the move event of this step in the trace, check whether j becomes pi[1]=0, and in the next frame i remains 3 and j is 0.",
+      "prompt": "When text=\"ababc\", pattern=\"abc\", currently i=3, j=2 and pattern[2]='c' mismatches with text[3]='b', and pi[1]=0, what is the next state? (Hint: how will the j pointer change?)",
+      "stage2_affordance": "Drag the j pointer slider to visualize the backtracking process.",
+      "trace_anchor": [
+        "state.text",
+        "state.pattern",
+        "state.i",
+        "state.j",
+        "state.pi"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Correct! This is the invariant of the partial match.",
+      "feedback_wrong": "Check whether the substring in text from i-j to i-1 equals the first j characters of pattern.",
+      "id": "task_2",
+      "oracle": "The answer should be B, which can be verified by checking whether the slice of text in the current state matches the first j characters of pattern.",
+      "prompt": "At any moment in the KMP matching process, what invariant relationship exists between the matched prefix length j and the index i? Please select: A) i always equals j; B) text[i-j...i-1] is equal to pattern[0...j-1]; C) pattern[0...i] equals text.",
+      "stage2_affordance": "Highlight the comparison between the substring text[i-j:i] and pattern[0:j].",
+      "trace_anchor": [
+        "state.i",
+        "state.j",
+        "state.text"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Good! You modified the pattern so that the prefix and suffix overlap.",
+      "feedback_wrong": "Think about the condition for the pattern's own prefix and suffix to be equal.",
+      "id": "task_3",
+      "oracle": "The student should change pattern to \"aba\" or any string such that pattern[0]==pattern[2], and need to modify input_data and regenerate the trace, checking whether pi[2] is 1.",
+      "prompt": "Modify pattern=\"aba\" so that the value of its prefix table pi[2] becomes 1 instead of 0, and observe the changes in the matching process. How would you modify pattern?",
+      "stage2_affordance": "Provide a text box to directly modify pattern and update the prefix table and matching animation in real time.",
+      "trace_anchor": [
+        "input.pattern",
+        "state.pi"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Explanation correct! This indicates that the longest equal prefix and suffix of pattern[0...4] have length 3.",
+      "feedback_wrong": "Consider what j represents, and the extension of the pattern prefix after matching.",
+      "id": "task_4",
+      "oracle": "Check whether the student's explanation mentions the increase in the length of the longest equal prefix and suffix, and that j records the new matching length. This can be compared with the value of pi[4] in the trace.",
+      "prompt": "When building the prefix table, when i=4, j=2, pattern[4]='a' matches pattern[2]='a', why does j become 3? Please explain the meaning behind this state transition.",
+      "stage2_affordance": "Click the step button to observe the changes of i and j and the update of the pi array frame by frame.",
+      "trace_anchor": [
+        "state.i",
+        "state.j",
+        "state.pattern",
+        "state.pi"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 2,
+      "index": 0,
+      "input_data": {
+        "pattern": "abc",
+        "text": "ababc"
+      }
+    },
+    {
+      "expected": -1,
+      "index": 1,
+      "input_data": {
+        "pattern": "bba",
+        "text": "aaaaa"
+      }
+    },
+    {
+      "expected": 0,
+      "index": 2,
+      "input_data": {
+        "pattern": "",
+        "text": "abc"
+      }
+    }
+  ]
+}

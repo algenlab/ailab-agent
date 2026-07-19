@@ -1,0 +1,259 @@
+.visualizer {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.visualizer::after {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+.vis-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--color-text);
+}
+
+.vis-subtitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.vis-array-section {
+  margin-bottom: 20px;
+}
+
+.vis-array {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vis-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #f8fafc;
+  transition: all 0.3s ease;
+}
+
+.vis-cell-index {
+  font-size: 0.65rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.vis-cell-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.vis-cell-current {
+  border-color: var(--color-primary);
+  background: #eef2ff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+  transform: scale(1.05);
+}
+
+.vis-cell-visited {
+  border-color: #94a3b8;
+  background: #e2e8f0;
+  opacity: 0.8;
+}
+
+.vis-cell-found {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+  animation: pulse-green 0.6s ease;
+}
+
+@keyframes pulse-green {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.vis-current-info {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.vis-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: #eef2ff;
+  color: var(--color-primary);
+  border-radius: 20px;
+  line-height: 1.5;
+}
+
+.vis-badge-need {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.vis-seen-section {
+  margin-bottom: 20px;
+}
+
+.vis-seen-table {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 42px;
+  align-items: center;
+}
+
+.vis-seen-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.vis-seen-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.vis-seen-key {
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.vis-seen-arrow {
+  color: var(--color-text-secondary);
+}
+
+.vis-seen-value {
+  color: var(--color-text);
+}
+
+.vis-description {
+  margin-bottom: 20px;
+}
+
+.vis-desc-text {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid var(--color-primary);
+}
+
+.vis-desc-text code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.vis-desc-success {
+  border-left-color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.vis-desc-fail {
+  border-left-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.vis-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.vis-step-counter {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  min-width: 100px;
+  text-align: center;
+}
+
+.vis-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.vis-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.vis-dot-past {
+  background: #a5b4fc;
+}
+
+.vis-dot-active {
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  transform: scale(1.3);
+}
+
+@media (max-width: 600px) {
+  .visualizer {
+    padding: 16px;
+  }
+
+  .vis-cell {
+    width: 56px;
+    height: 56px;
+  }
+
+  .vis-cell-value {
+    font-size: 1rem;
+  }
+
+  .vis-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

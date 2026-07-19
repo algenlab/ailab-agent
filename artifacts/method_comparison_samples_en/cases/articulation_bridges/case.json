@@ -1,0 +1,160 @@
+{
+  "id": "articulation_bridges",
+  "algorithm_id": "articulation_bridges",
+  "title": "Articulation Points and Bridges",
+  "family": "Advanced Graph",
+  "family_id": "advanced_graph",
+  "subfamily_id": "articulation_bridges",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "advanced_graph",
+  "difficulty": "medium",
+  "problem": "In a city's communication network, each exchange station corresponds to a node, and each fiber connection corresponds to an undirected edge. Given a graph represented by an adjacency list, you need to find all articulation points (critical exchange stations) and bridges (unique fibers), and output an object containing articulation (list of articulation points) and bridges (list of edges as bridges).",
+  "strategy": "DFS maintains dfn/low/parent; low[child] > dfn[u] determines a bridge, low[child] >= dfn[u] determines an articulation point.",
+  "input_contract": "Input undirected graph adjacency list graph.",
+  "variant_name": "Tarjan Articulation Points and Bridges",
+  "time_complexity": "O(V+E)",
+  "space_complexity": "O(V)",
+  "learning_objectives": [
+    "Master the update rules of dfn and low arrays during backtracking",
+    "Predict the next node to be explored by DFS based on current dfn/low states",
+    "Understand the difference between low[child] > dfn[u] and low[child] >= dfn[u]"
+  ],
+  "required_views": [
+    "graph",
+    "map",
+    "dfn_table",
+    "low_table"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! DFS prioritizes visiting unexplored neighbors.",
+      "feedback_wrong": "Observe which neighbor's dfn is not yet defined; that will be the next step.",
+      "id": "task_1",
+      "oracle": "Check if the student's answer is an unvisited neighbor and if the next step in the trace is indeed the line of code that visits that neighbor.",
+      "prompt": "Currently DFS visits node B, with dfn[B]=2, low[B]=2, and neighbors C and D. Which node will be visited next? Why?",
+      "stage2_affordance": "Click a node to view its dfn state and highlight unvisited neighbors.",
+      "trace_anchor": [
+        "state.dfn",
+        "state.graph"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Good, low never exceeds dfn, because it records the earliest ancestor reachable via descendant edges.",
+      "feedback_wrong": "Check the low[u] value at any time; it is always less than or equal to dfn[u].",
+      "id": "task_2",
+      "oracle": "The oracle checks if the answer includes low[u] <= dfn[u] and gives a specific example.",
+      "prompt": "During DFS execution, what invariant relationship exists between dfn[u] and low[u]? Please give an example.",
+      "stage2_affordance": "Double-click the table to highlight the numeric relationship between dfn and low.",
+      "trace_anchor": [
+        "state.low",
+        "state.dfn"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct! The new edge gives E another path, so it is no longer a bridge.",
+      "feedback_wrong": "Try adding the edge in the graph and observe how low[E] changes.",
+      "id": "task_3",
+      "oracle": "After adding the edge, re-run the verifier and check whether bridges still contain [D,E].",
+      "prompt": "If you add an edge (C,E) to the original graph, will the original bridge (D,E) still be a bridge? Modify and observe.",
+      "stage2_affordance": "Drag to add a new edge, and the view will update the bridge list in real time.",
+      "trace_anchor": [
+        "graph",
+        "state.bridges"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Exactly! Child node A's low[1] is 1, so low[B] takes the minimum value.",
+      "feedback_wrong": "Check which child node backtracked to B in the previous step and compare their low values.",
+      "id": "task_4",
+      "oracle": "Checks if the student points out that due to a smaller low value from child node A (or some specific node), the backtracking update occurs.",
+      "prompt": "When backtracking to node B, low[B] is updated from 2 to 1. Which child node caused this update? Explain the reason.",
+      "stage2_affordance": "Highlight the low-value propagation path during backtracking steps.",
+      "trace_anchor": [
+        "state.trace",
+        "state.low"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": {
+        "articulation": [
+          "B",
+          "D"
+        ],
+        "bridges": [
+          [
+            "D",
+            "E"
+          ],
+          [
+            "A",
+            "B"
+          ]
+        ]
+      },
+      "index": 0,
+      "input_data": {
+        "graph": {
+          "A": [
+            "B"
+          ],
+          "B": [
+            "A",
+            "C",
+            "D"
+          ],
+          "C": [
+            "B",
+            "D"
+          ],
+          "D": [
+            "B",
+            "C",
+            "E"
+          ],
+          "E": [
+            "D"
+          ]
+        }
+      }
+    },
+    {
+      "expected": {
+        "articulation": [
+          "2"
+        ],
+        "bridges": [
+          [
+            "2",
+            "3"
+          ],
+          [
+            "1",
+            "2"
+          ]
+        ]
+      },
+      "index": 1,
+      "input_data": {
+        "graph": {
+          "1": [
+            "2"
+          ],
+          "2": [
+            "1",
+            "3"
+          ],
+          "3": [
+            "2"
+          ]
+        }
+      }
+    }
+  ]
+}
