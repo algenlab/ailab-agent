@@ -22,7 +22,7 @@ if str(ROOT) not in sys.path:
 from scripts.build_evaluation_manifest import build_manifest
 
 
-PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
+PYTHON = "python3"
 QUALITY_CHECKS = f"{PYTHON} scripts/run_quality_checks.py"
 BROWSER_SMOKE_CONTAINER = "bash scripts/run_browser_smoke_container.sh"
 
@@ -44,13 +44,13 @@ def build_reproducibility_package() -> dict[str, Any]:
 def environment_block() -> dict[str, Any]:
     return {
         "python": PYTHON,
-        "project_root": str(ROOT),
+        "project_root": ".",
         "platform": platform.platform(),
         "quality_check_entrypoint": "scripts/run_quality_checks.py",
         "browser_smoke_entrypoint": "scripts/run_browser_smoke_container.sh",
         "notes": [
             "Run commands from the project root.",
-            "Use the pinned Python interpreter shown here for every Python command.",
+            "Run all commands with a Python 3 interpreter from the project root.",
             "Run lightweight local quality checks on the host; use the Playwright container only for explicit browser evidence.",
             "Deterministic checks do not require network or LLM credentials.",
         ],
