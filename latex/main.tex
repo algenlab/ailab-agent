@@ -59,7 +59,7 @@
 \maketitle
 
 \begin{abstract}
-LLM-generated algorithm tutors can display a correct answer while encoding an incorrect trace, unreachable controls, broken feedback, or teaching actions that mutate algorithm state. We call this coupling of heterogeneous obligations in one unconstrained HTML output \emph{constraint entanglement}. \system{} applies contract-guided semantic factorization: an executable specification yields a validated trace and scene, deterministic compilation supplies the runtime, and a separate overlay handles teaching. We characterize two conditional properties, compositional semantic preservation and pedagogical noninterference, and distinguish them from finite implementation evidence. On 200 tasks from 23 algorithm families, \system{} achieves 198/200 complete \machineok{} pages versus 98/200 for Direct HTML, although both display the expected answer on 200/200 pages. Across 294 artifacts, all 55,108 evaluated Trace--SceneGraph--Runtime frames preserve canonical semantic projections. The contracts reject 2,198/2,198 tested semantic violations and accept 392/392 semantics-preserving transformations. A browser stress suite executes 1,561,298 actions over 240 pages without finding a pedagogical noninterference counterexample. \localresume{} nevertheless shows no significant advantage over \globalrestart{} because repair redoes materialization and teaching. Thus semantic and verification decoupling are realized, while full computational recovery decoupling remains open. We make no claim about student learning outcomes.
+LLM-generated algorithm tutors can display a correct answer while encoding an incorrect trace, unreachable controls, broken feedback, or teaching actions that mutate algorithm state. We call this coupling of heterogeneous obligations in one unconstrained HTML output \emph{constraint entanglement}. \system{} applies contract-guided semantic factorization: an executable specification yields a validated trace and scene, deterministic compilation supplies the runtime, and a separate overlay handles teaching. We characterize two conditional properties, compositional semantic preservation and pedagogical noninterference, and distinguish them from finite implementation evidence. On 200 tasks from 23 algorithm families, \system{} achieves 198/200 complete \machineok{} pages versus 98/200 for Direct HTML, although both display the expected answer on 200/200 pages. Across 294 artifacts, all 55,108 evaluated Trace--SceneGraph--Runtime frames preserve canonical semantic projections. The contracts reject 2,198/2,198 tested semantic violations and accept 392/392 semantics-preserving transformations. A browser stress suite executes 1,561,298 actions over 240 pages without finding a pedagogical noninterference counterexample. \localresume{} nevertheless shows no significant advantage over \globalrestart{} because repair redoes materialization and teaching. Thus semantic and verification decoupling are realized, while full computational recovery decoupling remains open. We make no claim about student learning outcomes. Project page: \url{https://algenlab.github.io/AlgoTutorGen/}.
 \end{abstract}
 
 \section{Introduction}
@@ -91,11 +91,11 @@ This section defines the synthesized artifact and the obligations that distingui
 
 \subsection{Inputs, Artifacts, and Contracts}
 
-An input is $x=(q,i,e,c)$: algorithmic problem $q$, concrete instance $i$, optional oracle $e$, and optional reference code or strategy $c$. The artifact is $W=(S,T,G,P,R)$, comprising executable specification $S$, \traceir{} $T$, \scenegraph{} sequence $G$, pedagogical overlay $P$, and browser runtime $R$.
+An input is $x=(q,i,e,c)$: algorithmic problem $q$, concrete instance $i$, optional oracle $e$, and optional reference code or strategy $c$. The internal synthesis bundle is $A=(S,T,G,P,R)$, comprising executable specification $S$, \traceir{} $T$, \scenegraph{} sequence $G$, pedagogical overlay $P$, and browser runtime $R$. Deterministic export turns $A$ into the released webpage $W$.
 
 We require the conjunction
 \begin{align}
-\Phi(W,x)={}&\Phi_{\mathrm{result}}\land\Phi_{\mathrm{trace}}
+\Phi(A,W,x)={}&\Phi_{\mathrm{result}}\land\Phi_{\mathrm{trace}}
 \land\Phi_{\mathrm{scene}}\land\Phi_{\mathrm{runtime}}\nonumber\\
 &\land\Phi_{\mathrm{feedback}}
 \land\Phi_{\mathrm{noninterference}}.
@@ -109,11 +109,14 @@ Direct HTML asks a model to construct a point in an open space $\Omega_{\mathrm{
 
 \system{} instead constructs a refinement chain
 \[
-S \xRightarrow{C_S} T
+\begin{aligned}
+S &\xRightarrow{C_S} T
 \xRightarrow{C_T} G
-\xRightarrow{C_G} R,
-\qquad
-(R,P)\xRightarrow{C_B} W,
+\xRightarrow{C_G} R,\\
+G &\xrightarrow{\text{teaching}} P
+\xRightarrow{C_P} \bar P,\\
+(R,\bar P)&\xRightarrow{C_B} W,
+\end{aligned}
 \]
 where each $C$ is an executable contract at a representation boundary. This notation does not claim that writing the output space as a Cartesian product automatically reduces search complexity. The benefit comes from four operational choices: contracts reject invalid candidates before release; verified semantic data are reused rather than regenerated; deterministic stages remove open-ended choices from downstream code; and failures are attributed to a narrower boundary. Modularization without these properties would merely rearrange the same entanglement.
 
@@ -163,10 +166,10 @@ This section explains how \system{} assigns one semantic responsibility to each 
 \draw[flow] (bc) -- (page);
 
 \node[ped, below=13mm of runtime] (teach) {LLM teaching enrichment\\mutable pedagogical state};
-\node[gate, left=5mm of teach] (pc) {$C_P$};
-\draw[pflow] (scene.south) |- node[note, near start, below left=-1mm] {sanitized read-only facts} (pc.west);
-\draw[pflow] (pc) -- (teach);
-\draw[pflow] (teach.east) -| (page.south);
+\node[gate, right=5mm of teach] (pc) {$C_P$};
+\draw[pflow] (scene.south) |- node[note, near start, below left=-1mm] {sanitized read-only facts} (teach.west);
+\draw[pflow] (teach) -- (pc);
+\draw[pflow] (pc.east) -| (bc.south);
 
 \node[note, below=29mm of scene, anchor=west] (legend) {Legend: rounded = generated;\quad rectangle = deterministic;\quad diamond = contract;\quad solid = algorithmic;\quad dashed = pedagogical.};
 
@@ -179,7 +182,7 @@ This section explains how \system{} assigns one semantic responsibility to each 
 
 The open-ended stage emits an executable solution specification that solves the instance and records events through \texttt{TraceSession}. A sandbox restricts imports, time, serialization, and communication. Materialization produces typed snapshots containing stable identifiers, values, marks, pointers, graph edges, containers, steps, and final answers, but no CSS or event handlers. Result and trace validators check oracle agreement, schema, and internal consistency. The process validator checks generic DSL causality and continuity; it is not a proved operational semantics for all 23 families, so stronger source-trace claims still require family or human audit.
 
-A deterministic compiler binds trace objects to scene cells, nodes, edges, pointers, highlights, queues, stacks, and annotations. Scene validation checks references, dimensions, endpoints, targets, and projected-state agreement. The shared \runtime{} supplies layout, navigation, variants, and rendering in a self-contained page. Teaching enrichment receives sanitized verified facts and may change objectives, explanations, predictions, hints, answer reveals, and logs, but fields redefining algorithm state are removed or rejected. The browser release audit checks the nine \machineok{} conditions. On failure, \localresume{} retains the specification but reruns materialization and teaching; it is not five-stage checkpoint recovery (Section~\ref{sec:recovery}).
+A deterministic compiler binds trace objects to scene cells, nodes, edges, pointers, highlights, queues, stacks, and annotations. The online scene validator checks schema, nonempty frames, object-ID uniqueness, visible objects, and the integrity of mark, parent, source, and target references. Canonical Trace--SceneGraph--Runtime projection agreement is measured separately by the offline preservation audit; it is not part of this structural scene gate. The shared \runtime{} supplies layout, navigation, variants, and rendering in a self-contained page. Teaching enrichment receives sanitized verified facts and may change objectives, explanations, predictions, hints, answer reveals, and logs, but fields redefining algorithm state are removed or rejected. The browser release audit checks the nine \machineok{} conditions. On failure, \localresume{} retains the specification but reruns materialization and teaching; it is not five-stage checkpoint recovery (Section~\ref{sec:recovery}).
 
 \section{Theoretical Analysis}
 \label{sec:theory}
@@ -291,7 +294,7 @@ This section defines the evaluation protocol and the meaning of each reported me
 
 \subsection{Tasks and Generation Conditions}
 
-The benchmark contains 200 tasks from 23 algorithm families and 646 concrete samples. The paired main comparison uses sample index 0 for each task, avoiding overweighting tasks that have more stored samples. The original main \system{} condition uses DeepSeek-V4-Pro. A uniform fixed-budget study repeats the comparison with DeepSeek-V4-Flash, GLM-5.2, and Kimi-K2.5. A frozen held-out set contains 40 new cases from 15 families.
+The benchmark contains 200 tasks from 23 algorithm families and 646 concrete samples. The paired main comparison uses sample index 0 for each task, avoiding overweighting tasks that have more stored samples. The original main \system{} condition uses DeepSeek-V4-Pro. Cross-model final-quality experiments use DeepSeek-V4-Flash, GLM-5.2, and Kimi-K2.5. They begin with two candidates and two repair rounds; failed tasks may receive a recorded final-quality retry of at most three candidates and three rounds. The reported cross-model table uses the resulting frozen pages and is therefore not a uniform-call or token-matched comparison. A frozen held-out set contains 40 new cases from 15 families.
 
 The Direct HTML prompt receives the problem, concrete input, and expected answer, and explicitly requests a complete self-contained teaching page with timeline, correct and incorrect feedback, hint, answer reveal, and learning log. Thus it is not denied the oracle or teaching requirements. Both approaches may use their specified repair policy. The main table uses selected-final artifacts after allowed retries: \system{} initially generated 195/200 primary pages and filled five missing artifacts with recorded targeted retries. Direct generated all selected pages within its allowed calls. This boundary prevents interpreting 200 available pages as first-pass generation success.
 
@@ -299,7 +302,7 @@ WebGen-Agent and strict Direct-plus-HTMLCure are external code paths adapted to 
 
 \subsection{Metrics and Statistical Tests}
 
-\machineok{} conjoins page load, visible-answer match, reachable interaction, correct feedback, wrong feedback, hint, answer reveal, learning log, and mutation-free teaching actions. We report exact counts; paired binary differences use exact two-sided McNemar tests, percentage-point differences use paired bootstrap CIs, and test families use Holm correction. Secondary paired scores use Wilcoxon tests where applicable. None measures student learning.
+\machineok{} conjoins page load, visible-answer match, reachable interaction, correct feedback, wrong feedback, hint, answer reveal, learning log, and a lightweight answer-protection check. The ninth check compares the protected visible-answer summary before and after the audited teaching actions; the stronger algorithm-state, step, and artifact-hash comparison is reported separately in the noninterference stress test. We report exact counts; paired binary differences use exact two-sided McNemar tests, percentage-point differences use paired bootstrap CIs, and test families use Holm correction. Secondary paired scores use Wilcoxon tests where applicable. None measures student learning.
 
 \subsection{Theory-Aligned Audits}
 
@@ -316,7 +319,7 @@ We organize the results by the obligation being tested: complete executable reli
 
 \begin{table*}[t]
 \centering
-\caption{Main 200-task browser reliability. Every entry is a count out of 200. \machineok{} is the conjunction of nine checks, including the five displayed component columns and hint, answer reveal, learning log, and mutation-free behavior.}
+\caption{Main 200-task browser reliability. Every entry is a count out of 200. \machineok{} is the conjunction of nine checks, including the five displayed component columns and hint, answer reveal, learning log, and protected-answer stability.}
 \label{tab:main-reliability}
 \small
 \begin{tabular}{lrrrrrr}
@@ -368,7 +371,7 @@ The external paths obtain 45/200 and 40/200 under the same strict conjunction. T
 \addlegendentry{Direct HTML}
 \end{axis}
 \end{tikzpicture}
-\caption{Nested contract survival on the main benchmark. C1: answer; C2: load; C3: reachable interaction; C4: bidirectional feedback; C5: hint, answer reveal, and log; C6: noninterference. Values are cumulative, not independent per-contract accuracies.}
+\caption{Nested contract survival on the main benchmark. C1: answer; C2: load; C3: reachable interaction; C4: bidirectional feedback; C5: hint, answer reveal, and log; C6: protected-answer stability. Values are cumulative, not independent per-contract accuracies; full-state noninterference is audited separately.}
 \label{fig:survival}
 \end{figure}
 
@@ -438,16 +441,16 @@ The suite executes 24,000 random sequences and 1,561,298 actions on 240 pages: 4
 
 \begin{table*}[t]
 \centering
-\caption{Uniform fixed-budget cross-model and frozen held-out \machineok{} results. Cross-model rows use 200 paired tasks and the same two-candidate, two-repair budget. The held-out row uses 40 new cases.}
+\caption{Cross-model final-quality and frozen held-out \machineok{} results. Cross-model rows use 200 paired tasks; \system{} starts from a two-candidate, two-repair budget and applies recorded final-quality retries to failed tasks, so calls and tokens are not matched to Direct. The held-out row uses 40 new cases.}
 \label{tab:cross-model}
 \small
 \begin{tabular}{lrrrrr}
 \toprule
 Model or set & \system{} & Direct & Difference & 95\% paired-bootstrap CI & Exact McNemar $p$ \\
 \midrule
-DeepSeek-V4-Flash & 196/200 (98.0\%) & 118/200 (59.0\%) & +39.0 pp & [32.0, 46.0] & $1.02\times10^{-20}$ \\
-GLM-5.2 & 170/200 (85.0\%) & 35/200 (17.5\%) & +67.5 pp & [60.0, 74.5] & $1.48\times10^{-34}$ \\
-Kimi-K2.5 & 160/200 (80.0\%) & 87/200 (43.5\%) & +36.5 pp & [27.5, 45.0] & $1.87\times10^{-13}$ \\
+DeepSeek-V4-Flash & 200/200 (100.0\%) & 118/200 (59.0\%) & +41.0 pp & [34.5, 48.0] & $4.14\times10^{-25}$ \\
+GLM-5.2 & 196/200 (98.0\%) & 35/200 (17.5\%) & +80.5 pp & [75.0, 86.0] & $2.81\times10^{-47}$ \\
+Kimi-K2.5 & 194/200 (97.0\%) & 87/200 (43.5\%) & +53.5 pp & [46.0, 60.5] & $4.79\times10^{-30}$ \\
 Held-out, 15 families & 39/40 (97.5\%) & 18/40 (45.0\%) & +52.5 pp & [37.5, 67.5] & $9.54\times10^{-7}$ \\
 \bottomrule
 \end{tabular}
@@ -455,7 +458,7 @@ Held-out, 15 families & 39/40 (97.5\%) & 18/40 (45.0\%) & +52.5 pp & [37.5, 67.5
 
 % Conflict resolution: the original held-out generation result is 39/40.
 % A later targeted retry supplied the 40th artifact only for semantic audits.
-Table~\ref{tab:cross-model} shows positive paired differences for each model and the held-out set; varying absolute success reflects strict gate rejection, not model invariance. On held-out tasks, Direct generates 40/40 self-contained pages but only 18 pass, whereas \system{} produces 39 valid pages and all pass. A later targeted completion supplies audit coverage only and does not change the original 39/40 result.
+Table~\ref{tab:cross-model} shows positive paired differences for each model and the held-out set; varying absolute success reflects strict gate rejection, model variation, and the recorded final-quality retry policy, not model invariance or equal compute. On held-out tasks, Direct generates 40/40 self-contained pages but only 18 pass, whereas \system{} produces 39 valid pages and all pass. A later targeted completion supplies audit coverage only and does not change the original 39/40 result.
 
 \subsection{Ablation Summary}
 

@@ -14,6 +14,7 @@
 \usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{multirow}
+\usepackage{placeins}
 
 \pdfinfo{
 /TemplateVersion (2027.1)
@@ -21,6 +22,9 @@
 
 \newcommand{\system}{\textsc{AlgoTutorGen}}
 \newcommand{\machineok}{\textsc{Machine OK}}
+\newcommand{\traceir}{\textsc{SemanticTrace}}
+\newcommand{\scenegraph}{\textsc{SceneGraph}}
+\newcommand{\runtime}{\textsc{Web Runtime}}
 \newcommand{\localresume}{\textsc{Local Resume}}
 \newcommand{\globalrestart}{\textsc{Global Restart}}
 \newenvironment{coltable}
@@ -44,23 +48,137 @@ This supplement documents protocols, secondary results, artifact provenance, and
 
 \section{Supplement Scope and Reading Guide}
 
-The main paper contains every result required to evaluate the contribution within the seven-page technical-content limit. This document expands the measurement protocol, reports secondary tables, records artifact provenance, and presents the real generated interface. Review of this supplement is not necessary to interpret the primary claims. Where an audit set contains a targeted retry, we identify it explicitly rather than converting it into an original generation success.
+The main paper contains every result required to evaluate the contribution within the seven-page technical-content limit. This document expands the measurement protocol, reports secondary tables, records artifact provenance, and presents frozen English case studies. Review of this supplement is not necessary to interpret the primary claims. Where an audit set contains a targeted retry, we identify it explicitly rather than converting it into an original generation success.
 
 \section{Machine OK Protocol and Artifact Provenance}
 
 \subsection{Decision Rule}
 
-For each page, the browser harness records nine booleans: page load, visible-answer match, reachable interaction, correct feedback, wrong feedback, hint behavior, answer-reveal behavior, learning-log behavior, and mutation-free teaching behavior. A page is \machineok{} only if all nine are true. Correct and wrong feedback are tested using distinct submitted values. Hint and answer-reveal controls must change their associated pedagogical state, and the learning log must record the tested event. Pure teaching actions must preserve the canonical algorithm state, current step, and artifact hash. Navigation may change the step only to a verified target frame. External requests are blocked during the release audit.
+For each page, the browser harness records nine booleans: page load, visible-answer match, reachable interaction, correct feedback, wrong feedback, hint behavior, answer-reveal behavior, learning-log behavior, and protected-answer stability. A page is \machineok{} only if all nine are true. Correct and wrong feedback are tested using distinct submitted values. Hint and answer-reveal controls must change their associated pedagogical state, and the learning log must record the tested event. The ninth release check compares the protected visible-answer summary before and after the audited teaching actions. It is deliberately lighter than the independent noninterference stress suite, which compares algorithm-state, current-step, and artifact hashes after each action in 100 random sequences per page. Navigation in that stronger suite may change the step only to a verified target frame. External requests are blocked during both audits.
 
 \subsection{Generation and Statistical Boundaries}
 
-The main comparison uses sample index 0 for each of 200 tasks, preventing tasks with more stored inputs from receiving greater weight. The full benchmark contains 646 samples. The original \system{} condition uses DeepSeek-V4-Pro; the uniform fixed-budget study uses DeepSeek-V4-Flash, GLM-5.2, and Kimi-K2.5. Direct HTML receives the concrete input and expected answer and is explicitly asked to generate the complete interaction suite. The main selected-final \system{} set contains 195 primary successes plus five recorded targeted retries; it must not be described as 200 first-pass successes.
+The main comparison uses sample index 0 for each of 200 tasks, preventing tasks with more stored inputs from receiving greater weight. The full benchmark contains 646 samples. The original \system{} condition uses DeepSeek-V4-Pro. Cross-model final-quality runs use DeepSeek-V4-Flash, GLM-5.2, and Kimi-K2.5: each starts from two candidates and two repair rounds, and failed tasks may receive a recorded retry with at most three candidates and three rounds. Consequently, the final cross-model table is not a uniform-call or token-matched comparison. Direct HTML receives the concrete input and expected answer and is explicitly asked to generate the complete interaction suite. The main selected-final \system{} set contains 195 primary successes plus five recorded targeted retries; it must not be described as 200 first-pass successes.
 
 McNemar tests use paired task-level binary outcomes. Paired bootstrap confidence intervals resample tasks, not frames, actions, or individual metric checks. Holm correction applies to test families, and paired ordinal or continuous secondary scores use Wilcoxon signed-rank tests where appropriate. Frame and action totals describe implementation coverage and are not treated as independent inferential samples. A nonsignificant result is not evidence of equivalence.
 
+\section{Executable Stage Interfaces and Configuration}
+
+Table~\ref{tab:stage-interfaces} states the implementation boundary of every stage. The optional correctness-contract drafter is available in the codebase, but the main Full-200 experiment is not described as uniformly passing through it. The principal path begins with the executable solution/trace specification.
+
+\begin{table*}[t]
+\centering
+\caption{Executable stage interfaces. ``Generated'' denotes an open-ended model output; ``deterministic'' denotes project code operating on validated data.}
+\label{tab:stage-interfaces}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{0.14\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.13\textwidth}p{0.27\textwidth}@{}}
+\toprule
+Stage & Input & Output & Construction & Blocking boundary and failure handling \\
+\midrule
+Solution/trace generation & Problem, concrete input, optional expected result, requested variants & \texttt{solve} plus \texttt{trace} JSON & Generated & Strict schema and function signatures; malformed JSON is retried, then candidate-level generation/repair proceeds \\
+Materialization & Solution specification & Typed \traceir{} and solver result & Sandboxed execution & Result agreement, trace schema/references, process continuity, demo readiness, and multi-variant consistency \\
+Scene compilation & Validated \traceir{} & \scenegraph{} frames & Deterministic & One event maps to one frame; structural scene gate checks nonempty/visible objects and references \\
+Teaching enrichment & Selected digest of compiled, verified frames & Teaching/interaction overlay applied to the scene & Generated & Strict overlay schema and sanitization; primary 30-frame context retries with three frames; failure remains a warning \\
+Creative Stage2 & Artifact/frame context & Scoped stage CSS/template/renderer & Generated & Prompt restricts output to presentation; the sanitizer checks required scripts and stable IDs, but the supplied context is not a deep-frozen security boundary \\
+Export and runtime & Artifact, scene, sanitized teaching & Self-contained HTML and sidecar JSON & Deterministic & Release gate, external-resource policy, and browser audit \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Recorded generation and execution configuration. Counts are maximum policy budgets, not a claim that every task consumed the maximum.}
+\label{tab:generation-config}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{0.17\textwidth}p{0.14\textwidth}p{0.17\textwidth}p{0.15\textwidth}p{0.25\textwidth}@{}}
+\toprule
+Condition & Model & Candidate/repair policy & Runtime limits & Important boundary \\
+\midrule
+\system{} main & DeepSeek-V4-Pro & 2 solution variants; 2 candidates; 2 repair rounds per candidate & 32,768 output tokens; 900 s API timeout; 3,000 s task timeout; concurrency 8 & Strict warnings; teaching enabled; sample index 0 \\
+Direct HTML main & DeepSeek-V4-Pro & 1 candidate; at most 2 repairs & 32,768 output tokens; 2,400 s task timeout; concurrency 8 & Expected result visible; no browser-feedback repair; self-contained HTML requested \\
+Cross-model \system{} & Flash, GLM, Kimi & Initial $2\times2$; failed tasks eligible for final-quality retry up to $3\times3$ & Browser audit sharded 16 ways & Final frozen pages reported; calls/tokens differ from Direct \\
+Held-out \system{} & DeepSeek-V4-Pro & 2 candidates; 2 repair rounds & 900 s API timeout; 2,400 s task timeout; concurrency 8 & Forty new tasks from 15 families \\
+WebGen-Agent & DeepSeek-V4-Pro & At most 5 agent iterations & Same final browser audit & Task-adapted external code path; not a reproduction of its original benchmark \\
+HTMLCure strict & DeepSeek repair; Gemini evaluator & 1 repair iteration & External requests blocked in final audit & Operates on frozen Direct pages; self-containment is part of strict failure \\
+Direct-BrowserRepair & DeepSeek-V4-Pro & Separate 1/2/3/5-call budgets & 12,000 repair tokens; 80k target per task & The 1-call condition has not yet consumed browser feedback \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+JSON generation uses temperature 0.2 and text generation uses 0.3, except Kimi models, for which the provider-required value is 1.0. The API client allows four JSON-parse retries and two transport retries by default; these calls are included in logged model-call metadata when present. Remote model versions can drift.
+
+\subsection{Sandbox and Threat Model}
+
+Generated \texttt{solve}, \texttt{trace}, and optional verifier functions are parsed with an AST check, executed in a separate Python child process, and receive a restricted builtin namespace plus allowlisted standard-library modules. Each function has a 30-second execution timeout, and a trace event whose serialized state exceeds 20,000 characters is rejected. The DSL guard also rejects undocumented object methods before trace execution. This boundary is intended to contain accidental model-generated code and enforce the artifact contract; it is not an operating-system or container security claim against a determined adversary.
+
+\section{Prompt Engineering}
+
+Table~\ref{tab:prompt-modules} follows the module-first presentation used in the reference paper: it exposes each prompt's context, output, immutable boundary, and retry trigger before showing representative instructions. Token-exact production sources are the listed files. Some production prompts are Chinese; the English text below and in \path{artifacts/paper_case_studies_en/PROMPT_TEMPLATES_EN.md} is a faithful structural rendering, not a byte-identical transcript.
+
+\begin{table*}[t]
+\centering
+\caption{Prompt modules and hard boundaries.}
+\label{tab:prompt-modules}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{0.15\textwidth}p{0.17\textwidth}p{0.16\textwidth}p{0.25\textwidth}p{0.17\textwidth}@{}}
+\toprule
+Module & Context & Required output & Hard boundary & Retry trigger \\
+\midrule
+Executable spec & Problem, input, optional expected, requested variants & Strict solution/trace JSON & Fixed fields; exact signatures; documented \texttt{TraceSession} DSL; no HTML/rendering & JSON parse, schema, sandbox, result, process, or release failure \\
+Optional correctness contract & Problem, input, optional expected & \path{correctness-contract-v1} JSON & Expected has priority; oracle returns answer and is not a proof & Schema/oracle failure \\
+Spec repair & Previous complete JSON plus structured diagnostics & Complete replacement solution/trace JSON & Minimal targeted change; preserve signatures and DSL; no invented methods & Bounded round while candidate remains \\
+Teaching overlay & Digest of verified frames & \texttt{step}, \texttt{teaching}, \texttt{interaction} only & Read-only algorithm facts; checkpoint answer must follow from supplied frame & Parse/schema failure; retry with three frames \\
+Creative Stage2 & Verified artifact and current frame context & Scoped style/template/render function & Prompt-level presentation-only constraint; sanitizer checks required scripts and stable IDs & Layout overlap/clipping report \\
+Direct HTML baseline & Same task/input/expected and teaching requirements & Complete self-contained HTML & No private contract claim; all page behavior generated together & Whole-page structured repair \\
+Screenshot judge & Screenshot and rubric & Strict score JSON & Visible evidence only; no correctness or release decision & Parse retry only \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Representative English Prompt Skeletons}
+
+\noindent\textbf{Executable specification.}
+\begin{quote}\scriptsize\ttfamily
+ROLE: Generate executable solve(input\_data) and trace(input\_data).\\
+RETURN: one JSON object with problem\_title, input\_contract, verifier\_code, variants.\\
+TRACE: use only documented TraceSession DSL methods; return sess.to\_trace().\\
+CHECK: solve/trace answers agree; events point to real solve code lines; JSON is complete.\\
+FORBID: HTML, CSS, JavaScript, rendering fields, undocumented methods, or extra keys.
+\end{quote}
+
+\noindent\textbf{Teaching overlay.}
+\begin{quote}\scriptsize\ttfamily
+SOURCE OF TRUTH: the validated SemanticTrace digest.\\
+RETURN: frames[step, teaching, interaction] only.\\
+TEACHING: what, why, formula, invariant, common\_mistake, hint.\\
+INTERACTION: at most one grounded prediction per selected frame.\\
+FORBID: changing op, targets, deps, state, result, or code\_line.
+\end{quote}
+
+\noindent\textbf{Creative Stage2.}
+\begin{quote}\scriptsize\ttfamily
+DRAW: only the problem-specific main stage inside the fixed shell.\\
+READ: ctx.frame, ctx.state, ctx.evidence, ctx.input, ctx.result.\\
+RETURN: scoped style, optional template, renderCreativeStage(ctx).\\
+PROTOCOL: return no full page or duplicate controls; do not use network/storage, recompute answers, or intentionally mutate facts.\\
+ENFORCEMENT: sanitizer checks required scripts and stable IDs; nested context values are not deep-frozen.
+\end{quote}
+
+\noindent\textbf{Direct HTML baseline.}
+\begin{quote}\scriptsize\ttfamily
+RETURN: one complete offline HTML tutor.\\
+INCLUDE: code, current state, timeline, navigation, checkpoint, distinct feedback, hint, show answer, learning log, and final answer.\\
+INPUT: the same concrete task, input, expected result, and teaching requirements.\\
+REPAIR: replace the whole HTML document after structured failure; no trace/scene checkpoint is available.
+\end{quote}
+\FloatBarrier
+
 \section{Nested Contract Survival}
 
-The nested levels are: C1 visible-answer match; C2 C1 plus page load; C3 C2 plus reachable interaction; C4 C3 plus correct and wrong feedback; C5 C4 plus hint, answer reveal, and learning log; and C6 C5 plus mutation-free teaching behavior. Values in Table~\ref{tab:nested-survival} are cumulative. Conditional survival at level $i$ is the cumulative C$i$ count divided by the cumulative C$(i-1)$ count; no independence assumption is made.
+The nested levels are: C1 visible-answer match; C2 C1 plus page load; C3 C2 plus reachable interaction; C4 C3 plus correct and wrong feedback; C5 C4 plus hint, answer reveal, and learning log; and C6 C5 plus protected-answer stability. Values in Table~\ref{tab:nested-survival} are cumulative. Conditional survival at level $i$ is the cumulative C$i$ count divided by the cumulative C$(i-1)$ count; no independence assumption is made. C6 is not the stronger full-state noninterference stress test.
 
 The repeated pattern is not that all contracts are independent. Rather, monolithic pages continue to lose surviving artifacts at load, interaction, and feedback boundaries, while factored pages that pass semantic validation retain most downstream mass.
 
@@ -90,7 +208,7 @@ Noninterference & 240 pages & 24,000 sequences & Browser state isolation & Main 
 
 \begin{table*}[t]
 \centering
-\caption{Cumulative nested-contract survival (percent). Cross-model \system{} rows use final-quality artifacts, whereas the fixed-budget primary comparison in the main paper reports the uniform generation budget.}
+\caption{Cumulative nested-contract survival (percent). Cross-model \system{} rows use final-quality artifacts with recorded retries. The main paired comparison uses one frozen selected-final page per task and is not claimed to be call- or token-matched to Direct HTML.}
 \label{tab:nested-survival}
 \small
 \begin{tabular}{@{}lrrrrrr@{}}
@@ -303,12 +421,32 @@ Calls & \machineok{} & Avg. tokens & Avg. time \\
 
 All 1,000 repair attempts are self-contained after correcting the resource parser. More calls do not monotonically improve this evaluated whole-page rewrite policy; the result does not imply that every browser-repair method fails.
 
+\section{Qualitative Results and Case Studies}
+
+The figures in this section use a separate 23-case English qualitative package with five frozen methods per case. It is not substituted for the Full-200 main experiment. Figure~\ref{fig:knapsack-walkthrough} follows one verified dynamic-programming artifact from task contract to terminal result; Figure~\ref{fig:dijkstra-comparison} aligns four methods on the same graph task; and Figure~\ref{fig:cross-family-gallery} samples four algorithm families. Every colored check label is copied from that artifact's nine-field \path{audit.json}; screenshots document visible layout only and are not treated as proof of hidden interaction behavior.
+
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/system-ui.png}
-\caption{A real selected-final binary-search tutor captured with Playwright at an intermediate frame after opening a hint. The interface exposes objectives, algorithm state, pointers, timeline, explanation, prediction feedback, learning log, and validation indicators through the fixed runtime. This bitmap documents the implemented interface; correctness evidence comes from contracts and executable audits, not visual appearance.}
-\label{fig:system-ui}
+\includegraphics[width=\textwidth]{figures/complete_knapsack_walkthrough.pdf}
+\caption{Executable walkthrough for complete-knapsack coin change. The concrete input is coins $[1,2,5]$ and amount $11$; the expected minimum is three coins. The selected \system{} page exposes the task-specific coin view, a 12-state DP array, navigation over 68 trace-backed frames (indexed 0--67), and the verified answer $3$. Its qualitative-package artifact passes all nine recorded browser checks. The figure crops one frozen screenshot into readable regions; it does not reconstruct or edit the underlying algorithm state.}
+\label{fig:knapsack-walkthrough}
 \end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/qualitative_dijkstra_comparison.pdf}
+\caption{Aligned qualitative comparison on one Dijkstra task. All four pages receive the same directed graph, start node, and expected distances. \system{} passes 9/9 recorded checks. Direct HTML and WebGen-Agent each pass only load and visible-answer checks; their interaction, both feedback directions, hint, answer reveal, log, and protected-answer checks fail. The one-call Direct-BrowserRepair page passes 7/9 and fails correct feedback and answer reveal. The static panels show that visually plausible output is not equivalent to executable tutoring reliability; the colored strips report browser outcomes rather than pixel judgments. HTMLCure is omitted because its Dijkstra HTML and screenshot are byte-identical to the Direct HTML output.}
+\label{fig:dijkstra-comparison}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/cross_family_gallery.pdf}
+\caption{Cross-family gallery of selected \system{} artifacts from dynamic programming, shortest paths, backtracking, and union-find. Each frozen page passes the qualitative package's nine browser checks. The views use different problem-specific structures---coin/DP states, a weighted road graph with distances and heap, a permutation search state, and connected components with union-find state---rather than a single repeated visualization template.}
+\label{fig:cross-family-gallery}
+\end{figure*}
+
+\FloatBarrier
 
 \section{Original Main-Run Generation Cost}
 
@@ -350,6 +488,42 @@ Large & 1,636.7 & 160.42 MB & 8,354 ms & 101.3 ms & 185.6 MB \\
 
 The large KMP page contains 3,063 frames and 581 MB of HTML. The large sliding-window-unique page contains 5,533 frames and 1.08 GB of HTML. Both exceed the 60-second load budget. These results motivate event deltas, frame virtualization, lazy loading, or state compression when scaling beyond the evaluated regime.
 
+\section{Failure Analysis}
+
+\subsection{Selected-Final Browser Failures}
+
+The main \system{} condition generates valid artifacts for all 200 tasks, but two pages fail the final conjunction. \path{stack_valid_parentheses_full_core} fails wrong-answer feedback; \path{string_longest_common_prefix_full_core} fails both correct- and wrong-answer feedback. Both pages pass load, visible answer, reachable interaction, hint, answer reveal, learning log, and protected-answer stability. The first failing boundary is therefore the teaching-feedback contract, not solver materialization or scene compilation.
+
+The final cross-model failures separate missing artifacts from generated pages with incomplete feedback. Flash has no final failure. GLM fails to generate valid artifacts for two tasks and has two generated pages with bidirectional-feedback failure. Kimi fails to generate five artifacts and has one generated page with bidirectional-feedback failure. The held-out failure is a materialization/generation failure; its missing page consequently fails all downstream browser checks. These categories are not merged into one generic ``page failure.''
+
+\subsection{Cross-Input Replay}
+
+Frozen sample-0 solvers and trackers pass 626/646 stored inputs. Table~\ref{tab:replay-failure-taxonomy} groups the 20 failures by the first structural boundary. The full task/sample list is retained in the detailed result ledger.
+
+\begin{coltable}
+\captionof{table}{Cross-input replay failure taxonomy. Counts are mutually exclusive.}
+\label{tab:replay-failure-taxonomy}
+\scriptsize
+\begin{tabular}{@{}p{0.34\columnwidth}rp{0.45\columnwidth}@{}}
+\toprule
+First structural boundary & Count & Representative mechanism \\
+\midrule
+Algorithm/edge-input implementation & 12 & Empty arrays or trees, long pattern, duplicate-word counting, unsupported DSL call \\
+Equivalence normalization & 2 & Different valid topological order or permutation-set order \\
+Schema or target reference & 4 & Missing slice target; tree node/ID assumptions \\
+Unreachable-value representation & 2 & Extra or inconsistent infinity entries for disconnected nodes \\
+\midrule
+Total & 20 & 426/446 additional inputs pass \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+The replay result is a direct limitation of instance-conditioned generation: passing one concrete input does not prove that the frozen code generalizes to every edge input of the same task. Some failures require stronger family-aware equivalence and schema normalization; others require fixing the generated algorithm or tracker itself.
+
+\subsection{Baseline Failure Mechanisms}
+
+Direct HTML has 12 load failures caused by JavaScript syntax, duplicate declarations, invalid escapes, or null-DOM operations. Among accepted HTMLCure rewrites, 125 introduce a Google Fonts request and therefore fail the strict self-contained condition when external requests are blocked. WebGen-Agent has one rendering timeout. These are protocol-specific mechanisms, not evidence that the underlying systems always fail. The Dijkstra case in Figure~\ref{fig:dijkstra-comparison} was selected because every page loads and shows the answer, localizing the contrast to interaction and teaching behavior rather than a trivial parse failure.
+
 \section{Secondary Visual Evaluation}
 
 \begin{coltable}
@@ -374,22 +548,17 @@ The result does not support visual superiority on every dimension. Direct is num
 \section{Reproducibility Boundaries}
 
 {\raggedright
-The evaluation package freezes benchmark manifests, prompts, selected artifact paths, result JSON files, paired statistics, semantic-projection reports, mutation reports, retry reports, and browser-stress reports. The principal machine-readable files are under
-\path{output/experiments/theory_aligned_20260714/}:
+The repository snapshot accompanying this draft contains the implementation, benchmark definitions, prompt sources, detailed result ledger, and a selected English qualitative package. The most useful included entry points are:
 \begin{itemize}
-  \item \path{semantic_preservation_report.json};
-  \item \path{nested_contract_survival_report.json};
-  \item \path{semantic_mutation_report.json};
-  \item \path{cross_model_overlay_report.json};
-  \item \path{noninterference_stress_report.json};
-  \item \path{retry_flash/local_vs_global_retry_report.json}; and
-  \item \path{retry_glm/local_vs_global_retry_report.json}.
+  \item \path{docs/EXPERIMENT_RESULTS_DETAILED.md}, which records the final reporting hierarchy, configurations, totals, and source-report paths;
+  \item \path{algolab/generation/prompts/} and the dynamic prompt builders in \path{algolab/generation/};
+  \item \path{artifacts/method_comparison_samples_en/manifest.json}, covering 23 cases, five methods, 115 screenshots, and their audit records; and
+  \item \path{artifacts/paper_case_studies_en/figure_manifest.json} plus \path{artifacts/paper_case_studies_en/PROMPT_TEMPLATES_EN.md}, which freeze the qualitative-figure hashes and English prompt renderings.
 \end{itemize}
+The large raw experiment directories referenced by the detailed ledger are not duplicated in this lightweight source snapshot. Therefore this snapshot alone reproduces the code path, released qualitative artifacts, and paper figures, but not every aggregate number from raw logs. A complete archival release must include the referenced JSON reports and their SHA-256 manifest; until then, the aggregate tables should be interpreted as results from the frozen evaluation archive rather than independently rerunnable from this checkout alone.
 \par}
 
-\newpage
-
-Browser evaluation blocks external resources. The screenshot in Figure~\ref{fig:system-ui} is produced by a scripted viewport, timeline selection, and hint interaction. Remote model versions can drift, and self-contained artifacts cannot reproduce a retired remote service exactly. Selected-final reporting preserves retry provenance rather than treating every page as a first-pass generation.
+Browser evaluation uses a 1365$\times$900 viewport, waits 500 ms after DOM content load, searches at most 80 timeline steps for a checkpoint, and blocks external HTTP requests in strict conditions. Paired bootstrap uses seed 20260713 with 10,000 draws; noninterference sequences use seed 20260714. The recorded browser build is Playwright Chromium 1223. Remote model versions can drift, and self-contained artifacts cannot reproduce a retired remote service exactly. Selected-final reporting preserves retry provenance rather than treating every page as a first-pass generation.
 
 \subsection{Prepared but Unlabeled Human Protocols}
 

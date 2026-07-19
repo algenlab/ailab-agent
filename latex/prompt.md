@@ -645,7 +645,7 @@ wrong feedback
 hint
 show answer
 learning log
-mutation-free
+protected-answer stability
 ```
 
 强调它评价的是可执行行为完整性，不是学生学习效果。

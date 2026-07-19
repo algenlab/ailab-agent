@@ -23,7 +23,7 @@ This ledger freezes the numerical facts allowed in `main.tex` and `supplement.te
 | Correct feedback | 199/200 | 120/200 | 74/200 | 52/200 | same |
 | Wrong feedback | 198/200 | 125/200 | 89/200 | 51/200 | same |
 
-Machine OK is the conjunction of page load, visible answer match, interaction reachable, correct feedback, wrong feedback, hint, show answer, learning log, and mutation-free behavior. It measures executable behavior completeness, not student learning.
+Machine OK is the conjunction of page load, visible answer match, interaction reachable, correct feedback, wrong feedback, hint, show answer, learning log, and protected-answer stability. The ninth check compares the protected visible-answer summary, not the full algorithm state; full-state noninterference is evaluated separately. Machine OK measures executable behavior completeness, not student learning.
 
 AlgoTutorGen versus Direct HTML:
 
@@ -46,7 +46,7 @@ Contract levels:
 - C3: interaction reachable;
 - C4: correct and wrong feedback;
 - C5: hint, show answer, and learning log;
-- C6: mutation-free behavior.
+- C6: protected-answer stability.
 
 | Method | C1 | C2 | C3 | C4 | C5 | C6 |
 |---|---:|---:|---:|---:|---:|---:|
