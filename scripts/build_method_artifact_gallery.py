@@ -372,13 +372,13 @@ def _root_readme(manifest: dict[str, Any]) -> str:
             "源实验目录存在时，在仓库根目录运行：",
             "",
             "```bash",
-            "TMPDIR=/ssd1/liaokunpeng/.tmp /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_method_artifact_gallery.py",
+            "TMPDIR=.tmp python3 scripts/build_method_artifact_gallery.py",
             "```",
             "",
             "只验证已提交目录：",
             "",
             "```bash",
-            "TMPDIR=/ssd1/liaokunpeng/.tmp /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_method_artifact_gallery.py --validate-only",
+            "TMPDIR=.tmp python3 scripts/build_method_artifact_gallery.py --validate-only",
             "```",
         ]
     )
