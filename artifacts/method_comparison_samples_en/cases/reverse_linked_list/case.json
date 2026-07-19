@@ -1,0 +1,116 @@
+{
+  "id": "reverse_linked_list",
+  "algorithm_id": "reverse_linked_list",
+  "title": "Reverse Linked List",
+  "family": "Linked List and Cache",
+  "family_id": "linked_list_cache",
+  "subfamily_id": "reverse_linked_list",
+  "gate_layer": "family_core",
+  "support_level": "medium",
+  "process_profile": "linked_list",
+  "difficulty": "medium",
+  "problem": "Suppose you are developing a browser where a user visits a series of web pages, and a list `values` records the visited URL IDs. The browser needs to generate a backward history path, i.e., reverse the visit order so that the user can gradually go back from the current page to the earliest visited page. Given the list `values` representing the visited page IDs in order, please implement an algorithm that returns the reversed list, i.e., the backward order.",
+  "strategy": "Maintain prev/current/next, and point current.next to prev one by one.",
+  "input_contract": "Input `values` array, representing the linked list node values in order.",
+  "variant_name": "Iterative Three-Pointer Reversal",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "Understand the state changes of the three pointers prev, curr, and next in iterative reversal of a singly linked list.",
+    "Predict the next pointer direction based on the trace and explain the reason.",
+    "Identify invariants of linked list node connections during the reversal process, and use them for debugging."
+  ],
+  "required_views": [
+    "tree"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! curr.next always points to prev to complete the reversal.",
+      "feedback_wrong": "Observe the roles of curr, prev, and next in the reversal step again; typically curr.next points to the previous node.",
+      "id": "task_1",
+      "oracle": "According to the algorithm logic, next step curr.next should point to prev, which has value 1.",
+      "prompt": "In the current trace, curr points to the node with value 2, prev points to the node with value 1, next points to the node with value 3. Predict which value curr.next will point to in the next step.",
+      "stage2_affordance": "The user can click the arrow on the curr node to manually change the pointer.",
+      "trace_anchor": [
+        "state.curr",
+        "state.prev",
+        "state.next"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Yes, prev and curr maintain the linked list structure in segments.",
+      "feedback_wrong": "See how prev and curr move between adjacent steps; they always maintain the correct order.",
+      "id": "task_2",
+      "oracle": "prev is always the head node of the reversed part, and curr is always the first node of the unreversed part.",
+      "prompt": "During the iterative reversal of the linked list, which statement remains true at every step? Please identify an invariant from the trace.",
+      "stage2_affordance": "Highlight the reversed part (the chain starting with prev) and the unreversed part (the chain starting with curr).",
+      "trace_anchor": [
+        "state.prev",
+        "state.curr"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct! After deleting the node, the reversed list changes accordingly.",
+      "feedback_wrong": "Hint: After deleting the middle node, the linked list still maintains the original order; reversal is just the reverse order.",
+      "id": "task_3",
+      "oracle": "Delete node 2, new values become [1,3]; after reversal it should be [3,1].",
+      "prompt": "Original values are [1,2,3], reversed is [3,2,1]. In the Stage2 sandbox, delete the middle node 2 and observe the changes in the new linked list. What is the reversal result after deletion?",
+      "stage2_affordance": "In Stage2 you can directly edit the values array and observe the linked list and reversal result in real time.",
+      "trace_anchor": [
+        "values"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Well explained! curr.next pointing to prev is the key.",
+      "feedback_wrong": "Review the core operation of reversing a linked list: changing the next pointer of each node one by one, so the current node points to the previous node.",
+      "id": "task_4",
+      "oracle": "The purpose is to point the current node's next pointer to the node before it, achieving local reversal.",
+      "prompt": "At step 2, the trace shows the operation 'curr.next = prev'. Please explain the purpose of this step.",
+      "stage2_affordance": "Play animation, step by step showing pointer changes.",
+      "trace_anchor": [
+        "state.curr",
+        "state.prev",
+        "state.next"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": [
+        3,
+        2,
+        1
+      ],
+      "index": 0,
+      "input_data": {
+        "values": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "expected": [
+        5
+      ],
+      "index": 1,
+      "input_data": {
+        "values": [
+          5
+        ]
+      }
+    },
+    {
+      "expected": [],
+      "index": 2,
+      "input_data": {
+        "values": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topological Sort - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --blue: #3b82f6;
+            --blue-light: #dbeafe;
+            --green: #10b981;
+            --green-light: #d1fae5;
+            --amber: #f59e0b;
+            --amber-light: #fef3c7;
+            --purple: #8b5cf6;
+            --purple-light: #ede9fe;
+            --gray: #9ca3af;
+            --gray-light: #e2e8f0;
+            --red: #ef4444;
+            --red-light: #fee2e2;
+            --border: #e2e8f0;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Liberation Mono', monospace;
+            --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        header {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+        #top-result {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--muted);
+            font-family: var(--font-mono);
+            background: #f8fafc;
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        #top-solution {
+            margin-top: 4px;
+            font-size: 0.85rem;
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 900px) {
+            .main-layout {
+                flex-direction: column;
+            }
+        }
+
+        .canvas-panel {
+            flex: 1 1 58%;
+            min-width: 480px;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        #canvas {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #fafbfc;
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+            overflow: hidden;
+        }
+        #canvas .node-dot {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            z-index: 3;
+            transition: all 0.35s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: default;
+            user-select: none;
+            border: 3px solid transparent;
+        }
+        #canvas .node-dot.processed {
+            background: #d1fae5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+        #canvas .node-dot.current {
+            background: #ede9fe;
+            border-color: #8b5cf6;
+            color: #5b21b6;
+            box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.15);
+            animation: pulse-current 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.15);
+            }
+            50% {
+                box-shadow: 0 0 0 16px rgba(139, 92, 246, 0.04);
+            }
+        }
+        #canvas .node-dot.inqueue {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        #canvas .node-dot.waiting {
+            background: #e2e8f0;
+            border-color: #9ca3af;
+            color: #475569;
+        }
+        #canvas .indegree-badge {
+            position: absolute;
+            font-size: 0.7rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 2px 8px;
+            z-index: 4;
+            pointer-events: none;
+            transition: all 0.35s ease;
+            white-space: nowrap;
+        }
+        #canvas svg.edge-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        #canvas .queue-zone {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+        #canvas .queue-zone .qlabel {
+            font-weight: 700;
+            color: #92400e;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: #fef3c7;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        #canvas .queue-zone .qitem {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #92400e;
+        }
+        #canvas .result-zone {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        #canvas .result-zone .rlabel {
+            font-weight: 700;
+            color: #065f46;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: #d1fae5;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        #canvas .result-zone .ritem {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #065f46;
+        }
+
+        .info-panel {
+            flex: 1 1 38%;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .info-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .info-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            white-space: pre-wrap;
+            background: #f8fafc;
+            padding: 8px 10px;
+            border-radius: 6px;
+            max-height: 140px;
+            overflow-y: auto;
+            color: #334155;
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: #334155;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #475569;
+            line-height: 1.5;
+            background: #fffbeb;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border-left: 3px solid #f59e0b;
+        }
+        #step-evidence strong {
+            color: #92400e;
+        }
+        .checkpoint-area {
+            margin-top: 8px;
+            padding: 10px 12px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            border: 2px solid #3b82f6;
+            display: none;
+        }
+        .checkpoint-area.active {
+            display: block;
+        }
+        .checkpoint-area .cp-prompt {
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 6px;
+            font-size: 0.88rem;
+        }
+        .checkpoint-area input[type="text"] {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #93c5fd;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .checkpoint-area input[type="text"]:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .checkpoint-area .cp-btns {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-area button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            background: #fff;
+        }
+        .checkpoint-area button.cp-submit {
+            background: #3b82f6;
+            color: #fff;
+            border-color: #3b82f6;
+        }
+        .checkpoint-area button.cp-submit:hover {
+            background: #2563eb;
+        }
+        .checkpoint-area button.cp-hint {
+            background: #fff;
+            color: #d97706;
+            border-color: #f59e0b;
+        }
+        .checkpoint-area button.cp-hint:hover {
+            background: #fffbeb;
+        }
+        .checkpoint-area button.cp-show {
+            background: #fff;
+            color: #6b7280;
+            border-color: #9ca3af;
+        }
+        .checkpoint-area button.cp-show:hover {
+            background: #f3f4f6;
+        }
+        .checkpoint-area .cp-feedback {
+            margin-top: 6px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            min-height: 20px;
+        }
+        .cp-feedback.correct {
+            color: #059669;
+        }
+        .cp-feedback.incorrect {
+            color: #dc2626;
+        }
+
+        #code-container {
+            background: #1e293b;
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow-md);
+            overflow-x: auto;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            color: #e2e8f0;
+            white-space: pre;
+            margin: 0;
+        }
+        #code .cline {
+            display: block;
+            padding: 1px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.3s;
+        }
+        #code .cline.highlight {
+            background: rgba(251, 191, 36, 0.22);
+            border-left: 3px solid #fbbf24;
+            padding-left: 5px;
+        }
+        #code .keyword {
+            color: #c084fc;
+        }
+        #code .string {
+            color: #86efac;
+        }
+        #code .comment {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        #code .number {
+            color: #fca5a5;
+        }
+
+        nav.step-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        nav.step-nav button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            background: #fff;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        nav.step-nav button:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        nav.step-nav button:active {
+            background: #e2e8f0;
+        }
+        #play {
+            background: #3b82f6;
+            color: #fff;
+            border-color: #3b82f6;
+            min-width: 60px;
+        }
+        #play:hover {
+            background: #2563eb;
+        }
+        #play.paused {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: #fff;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: #3b82f6;
+            height: 6px;
+        }
+        #counter {
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: #1e293b;
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+        }
+        #op {
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            background: #ede9fe;
+            color: #5b21b6;
+            padding: 4px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        #step-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+        #step-desc {
+            font-size: 0.8rem;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #f8fafc;
+            transition: all 0.25s;
+            min-width: 56px;
+            flex-shrink: 0;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+        .tick.active {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+        }
+        .tick .tick-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #1e293b;
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .tick.active .tick-op {
+            color: #1e40af;
+        }
+
+        #learning-log-container {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #learning-log-container h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        #learning-log {
+            list-style: none;
+            font-size: 0.8rem;
+        }
+        #learning-log li {
+            padding: 5px 0;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+        #learning-log li .log-step {
+            font-weight: 700;
+            color: #3b82f6;
+            min-width: 28px;
+        }
+        #learning-log li .log-result {
+            font-weight: 600;
+        }
+        #learning-log li .log-result.correct {
+            color: #059669;
+        }
+        #learning-log li .log-result.incorrect {
+            color: #dc2626;
+        }
+        #learning-log li .log-detail {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+
+        #answer {
+            display: none;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <header>
+            <h1 id="title">Topological Sort &mdash; Course Dependency Resolution</h1>
+            <p id="subtitle">Kahn's Algorithm (BFS-based) &bull; Indegree Table + Queue</p>
+            <div id="top-result">Expected Output: ["A", "B", "C", "D"]</div>
+            <div id="top-solution">Strategy: Maintain indegree table and queue of zero-indegree nodes; each time a node is popped, delete its outgoing edges.</div>
+        </header>
+
+        <div class="main-layout">
+            <div class="canvas-panel">
+                <div id="canvas">
+                    <svg class="edge-layer" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                            </marker>
+                            <marker id="arrowhead-active" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6" />
+                            </marker>
+                        </defs>
+                        <line x1="232" y1="84" x2="154" y2="174" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)" data-edge="A-B" />
+                        <line x1="268" y1="84" x2="346" y2="174" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)" data-edge="A-C" />
+                        <line x1="158" y1="226" x2="228" y2="304" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)" data-edge="B-D" />
+                        <line x1="342" y1="226" x2="272" y2="304" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowhead)" data-edge="C-D" />
+                    </svg>
+                    <div class="node-dot waiting" id="node-A" style="top:56px;left:222px;">A</div>
+                    <div class="node-dot waiting" id="node-B" style="top:172px;left:102px;">B</div>
+                    <div class="node-dot waiting" id="node-C" style="top:172px;left:342px;">C</div>
+                    <div class="node-dot waiting" id="node-D" style="top:300px;left:222px;">D</div>
+                    <div class="indegree-badge" id="badge-A" style="top:36px;left:258px;">in:0</div>
+                    <div class="indegree-badge" id="badge-B" style="top:150px;left:138px;">in:1</div>
+                    <div class="indegree-badge" id="badge-C" style="top:150px;left:378px;">in:1</div>
+                    <div class="indegree-badge" id="badge-D" style="top:340px;left:258px;">in:2</div>
+                    <div class="queue-zone" id="queue-zone">
+                        <span class="qlabel">Queue</span>
+                    </div>
+                    <div class="result-zone" id="result-zone">
+                        <span class="rlabel">Result</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <div class="info-card">
+                    <h3>Current State (JSON)</h3>
+                    <div id="state">Loading...</div>
+                </div>
+                <div class="info-card">
+                    <h3>Teaching Note</h3>
+                    <div id="teaching">Initializing the algorithm...</div>
+                </div>
+                <div class="info-card" id="step-evidence-card">
+                    <h3>Step Evidence</h3>
+                    <div id="step-evidence"><strong>Operation:</strong> INIT<br><strong>Target:</strong> all nodes<br><strong>Before:</strong> empty<br><strong>After:</strong> indegree map created</div>
+                </div>
+                <div class="checkpoint-area" id="checkpoint-area">
+                    <div class="cp-prompt" id="cp-prompt"></div>
+                    <input type="text" id="cp-input" placeholder="Type your answer here..." aria-label="Checkpoint answer input">
+                    <div class="cp-btns">
+                        <button class="cp-submit" id="cp-submit">Submit</button>
+                        <button class="cp-hint" id="cp-hint">Hint</button>
+                        <button class="cp-show" id="cp-show">Show Answer</button>
+                    </div>
+                    <div class="cp-feedback" id="cp-feedback"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="code-container">
+            <pre id="code"><code><span class="cline" data-line="1"><span class="keyword">function</span> <span class="keyword">topologicalSort</span>(graph) {</span>
+                <span class="cline" data-line="2">  <span class="keyword">const</span> indegree = {};</span>
+                <span class="cline" data-line="3">  <span class="keyword">const</span> queue = [];</span>
+                <span class="cline" data-line="4">  <span class="keyword">const</span> result = [];</span>
+                <span class="cline" data-line="5">  <span class="comment">// Compute indegree for each node</span></span>
+                <span class="cline" data-line="6">  <span class="keyword">for</span> (<span class="keyword">let</span> node <span class="keyword">in</span> graph) indegree[node] = <span class="number">0</span>;</span>
+                <span class="cline" data-line="7">  <span class="keyword">for</span> (<span class="keyword">let</span> node <span class="keyword">in</span> graph) {</span>
+                <span class="cline" data-line="8">    <span class="keyword">for</span> (<span class="keyword">let</span> neighbor <span class="keyword">of</span> graph[node]) {</span>
+                <span class="cline" data-line="9">      indegree[neighbor]++;</span>
+                <span class="cline" data-line="10">    }</span>
+                <span class="cline" data-line="11">  }</span>
+                <span class="cline" data-line="12">  <span class="comment">// Seed queue with zero-indegree nodes</span></span>
+                <span class="cline" data-line="13">  <span class="keyword">for</span> (<span class="keyword">let</span> node <span class="keyword">in</span> indegree) {</span>
+                <span class="cline" data-line="14">    <span class="keyword">if</span> (indegree[node] === <span class="number">0</span>) queue.push(node);</span>
+                <span class="cline" data-line="15">  }</span>
+                <span class="cline" data-line="16">  <span class="comment">// Process nodes in queue order</span></span>
+                <span class="cline" data-line="17">  <span class="keyword">while</span> (queue.length &gt; <span class="number">0</span>) {</span>
+                <span class="cline" data-line="18">    <span class="keyword">const</span> current = queue.shift();</span>
+                <span class="cline" data-line="19">    result.push(current);</span>
+                <span class="cline" data-line="20">    <span class="keyword">for</span> (<span class="keyword">let</span> neighbor <span class="keyword">of</span> graph[current]) {</span>
+                <span class="cline" data-line="21">      indegree[neighbor]--;</span>
+                <span class="cline" data-line="22">      <span class="keyword">if</span> (indegree[neighbor] === <span class="number">0</span>) queue.push(neighbor);</span>
+                <span class="cline" data-line="23">    }</span>
+                <span class="cline" data-line="24">  }</span>
+                <span class="cline" data-line="25">  <span class="keyword">return</span> result;</span>
+                <span class="cline" data-line="26">}</span></code></pre>
+        </div>
+
+        <nav class="step-nav">
+            <button id="prev" aria-label="Previous step">&larr; Prev</button>
+            <button id="play" aria-label="Play auto-advance">&#9654; Play</button>
+            <button id="next" aria-label="Next step">Next &rarr;</button>
+            <input type="range" id="range" min="1" max="6" value="1" aria-label="Step slider">
+            <span id="counter">1 / 6</span>
+            <span id="op">INIT</span>
+            <span id="step-title">Initialize Indegree Table</span>
+            <span id="step-desc">Compute indegree for all nodes and seed the queue</span>
+        </nav>
+
+        <div id="timeline" role="tablist" aria-label="Step timeline">
+            <button class="tick active" data-step="1" role="tab" aria-selected="true"><span class="tick-label">Step 1</span><span class="tick-op">INIT</span></button>
+            <button class="tick" data-step="2" role="tab" aria-selected="false"><span class="tick-label">Step 2</span><span class="tick-op">DEQUEUE A</span></button>
+            <button class="tick" data-step="3" role="tab" aria-selected="false"><span class="tick-label">Step 3</span><span class="tick-op">DEQUEUE B</span></button>
+            <button class="tick" data-step="4" role="tab" aria-selected="false"><span class="tick-label">Step 4</span><span class="tick-op">DEQUEUE C</span></button>
+            <button class="tick" data-step="5" role="tab" aria-selected="false"><span class="tick-label">Step 5</span><span class="tick-op">DEQUEUE D</span></button>
+            <button class="tick" data-step="6" role="tab" aria-selected="false"><span class="tick-label">Step 6</span><span class="tick-op">RETURN</span></button>
+        </div>
+
+        <div id="learning-log-container">
+            <h3>Learning Log</h3>
+            <ul id="learning-log">
+                <li><span class="log-step">---</span><span class="log-detail">Your checkpoint interactions will appear here.</span></li>
+            </ul>
+        </div>
+
+        <div id="answer">["A", "B", "C", "D"]</div>
+    </div>
+
+    <script>
+        (function() {
+            const graph = { "A": ["B", "C"], "B": ["D"], "C": ["D"], "D": [] };
+            const allNodes = ["A", "B", "C", "D"];
+            const totalSteps = 6;
+
+            const stepData = [{
+                id: 1,
+                title: "Initialize Indegree Table",
+                desc: "Compute indegree for all nodes and seed the queue",
+                op: "INIT",
+                activeLines: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                indegree: { A: 0, B: 1, C: 1, D: 2 },
+                queue: ["A"],
+                result: [],
+                currentNode: null,
+                processedNodes: [],
+                inQueueNodes: ["A"],
+                teaching: "We start by computing the <strong>indegree</strong> (number of incoming edges) for each node. Nodes with indegree 0 have no prerequisites and can be taken immediately. We place them in the queue. Here, only <strong>A</strong> has indegree 0.",
+                evidenceBefore: "indegree: {} , queue: [] , result: []",
+                evidenceAfter: "indegree: {A:0, B:1, C:1, D:2} , queue: [A] , result: []",
+                evidenceOp: "INIT",
+                evidenceTarget: "all nodes",
+                checkpoint: null,
+            }, {
+                id: 2,
+                title: "Dequeue and Process Node A",
+                desc: "Remove A from queue, add to result, update B and C indegrees",
+                op: "DEQUEUE A",
+                activeLines: [16, 17, 18, 19, 20, 21, 22, 23],
+                indegree: { A: 0, B: 0, C: 0, D: 2 },
+                queue: ["B", "C"],
+                result: ["A"],
+                currentNode: "A",
+                processedNodes: ["A"],
+                inQueueNodes: ["B", "C"],
+                teaching: "We dequeue <strong>A</strong> and add it to the result. Then we visit each neighbor of A (<strong>B</strong> and <strong>C</strong>), decrementing their indegree. When a neighbor's indegree reaches 0, it's ready and joins the queue. Both B and C now have indegree 0.",
+                evidenceBefore: "queue: [A], result: [], indegree(B)=1, indegree(C)=1",
+                evidenceAfter: "queue: [B, C], result: [A], indegree(B)=0, indegree(C)=0",
+                evidenceOp: "DEQUEUE + UPDATE_EDGES",
+                evidenceTarget: "A → neighbors B, C",
+                checkpoint: {
+                    prompt: "After processing A, what is B's new indegree?",
+                    answer: "0",
+                    hint: "B originally had indegree 1 (only incoming edge from A). When A is processed, that edge is removed.",
+                    feedbackCorrect: "Correct! B's indegree dropped from 1 to 0, so B is now ready and enters the queue.",
+                    feedbackIncorrect: "Not quite. B had indegree 1 from A. After removing A's outgoing edge to B, B's indegree becomes 0.",
+                },
+            }, {
+                id: 3,
+                title: "Dequeue and Process Node B",
+                desc: "Remove B from queue, add to result, update D indegree",
+                op: "DEQUEUE B",
+                activeLines: [16, 17, 18, 19, 20, 21, 22, 23],
+                indegree: { A: 0, B: 0, C: 0, D: 1 },
+                queue: ["C"],
+                result: ["A", "B"],
+                currentNode: "B",
+                processedNodes: ["A", "B"],
+                inQueueNodes: ["C"],
+                teaching: "<strong>B</strong> is next in the queue (FIFO order). We dequeue B, add it to the result, and process its only neighbor <strong>D</strong>. D's indegree drops from 2 to 1. Since it's not yet 0, D stays out of the queue for now.",
+                evidenceBefore: "queue: [B, C], result: [A], indegree(D)=2",
+                evidenceAfter: "queue: [C], result: [A, B], indegree(D)=1",
+                evidenceOp: "DEQUEUE + UPDATE_EDGE",
+                evidenceTarget: "B → neighbor D",
+                checkpoint: null,
+            }, {
+                id: 4,
+                title: "Dequeue and Process Node C",
+                desc: "Remove C from queue, add to result, update D indegree to 0",
+                op: "DEQUEUE C",
+                activeLines: [16, 17, 18, 19, 20, 21, 22, 23],
+                indegree: { A: 0, B: 0, C: 0, D: 0 },
+                queue: ["D"],
+                result: ["A", "B", "C"],
+                currentNode: "C",
+                processedNodes: ["A", "B", "C"],
+                inQueueNodes: ["D"],
+                teaching: "<strong>C</strong> is dequeued next. We add C to the result and process its neighbor <strong>D</strong>. D's indegree drops from 1 to 0, so D is now ready and enters the queue. Notice how D needed <em>both</em> B and C to be processed first.",
+                evidenceBefore: "queue: [C], result: [A, B], indegree(D)=1",
+                evidenceAfter: "queue: [D], result: [A, B, C], indegree(D)=0",
+                evidenceOp: "DEQUEUE + UPDATE_EDGE",
+                evidenceTarget: "C → neighbor D",
+                checkpoint: {
+                    prompt: "What is D's indegree after processing C?",
+                    answer: "0",
+                    hint: "D had indegree 1 after B was processed (originally 2). C is D's remaining prerequisite. When C is processed, D's indegree decreases by 1.",
+                    feedbackCorrect: "Correct! D's indegree is now 0, meaning all its prerequisites (B and C) have been satisfied. D enters the queue.",
+                    feedbackIncorrect: "Not quite. D had indegree 1 before this step. C was the last prerequisite. After decrementing, D's indegree becomes 0.",
+                },
+            }, {
+                id: 5,
+                title: "Dequeue and Process Node D",
+                desc: "Remove D from queue, add to result, no outgoing edges",
+                op: "DEQUEUE D",
+                activeLines: [16, 17, 18, 19, 24],
+                indegree: { A: 0, B: 0, C: 0, D: 0 },
+                queue: [],
+                result: ["A", "B", "C", "D"],
+                currentNode: "D",
+                processedNodes: ["A", "B", "C", "D"],
+                inQueueNodes: [],
+                teaching: "<strong>D</strong> is the last node. We dequeue it and add it to the result. D has no outgoing edges, so no indegree updates are needed. The queue is now empty, which will cause the while-loop to exit.",
+                evidenceBefore: "queue: [D], result: [A, B, C]",
+                evidenceAfter: "queue: [], result: [A, B, C, D]",
+                evidenceOp: "DEQUEUE",
+                evidenceTarget: "D (no outgoing edges)",
+                checkpoint: null,
+            }, {
+                id: 6,
+                title: "Return the Topological Order",
+                desc: "Queue is empty; return the result array",
+                op: "RETURN",
+                activeLines: [25, 26],
+                indegree: { A: 0, B: 0, C: 0, D: 0 },
+                queue: [],
+                result: ["A", "B", "C", "D"],
+                currentNode: null,
+                processedNodes: ["A", "B", "C", "D"],
+                inQueueNodes: [],
+                teaching: "The queue is empty, so the while-loop exits. We <strong>return</strong> the result array: <strong>['A', 'B', 'C', 'D']</strong>. This is a valid topological ordering — every course appears after its prerequisites. The invariant held throughout: we only enqueued nodes when their indegree reached 0.",
+                evidenceBefore: "queue: [], result: [A, B, C, D]",
+                evidenceAfter: "Returned: [\"A\", \"B\", \"C\", \"D\"]",
+                evidenceOp: "RETURN",
+                evidenceTarget: "result array",
+                checkpoint: {
+                    prompt: "What is the complete topological order returned by the algorithm? (Enter as comma-separated letters, e.g., A,B,C,D)",
+                    answer: "A,B,C,D",
+                    hint: "Look at the result array after all nodes have been processed. The order is the sequence in which nodes were added to the result.",
+                    feedbackCorrect: "Correct! The topological order is A → B → C → D. Every prerequisite appears before the courses that depend on it.",
+                    feedbackIncorrect: "Check the result array. The nodes were processed in order: A first, then B, then C, then D. The answer is A,B,C,D.",
+                },
+            }];
+
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointResolved = {}; // track which step checkpoints have been resolved
+            let learningLogEntries = [];
+
+            // DOM refs
+            const $canvas = document.getElementById('canvas');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $code = document.getElementById('code');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $op = document.getElementById('op');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $playBtn = document.getElementById('play');
+            const $prevBtn = document.getElementById('prev');
+            const $nextBtn = document.getElementById('next');
+            const $timeline = document.getElementById('timeline');
+            const $checkpointArea = document.getElementById('checkpoint-area');
+            const $cpPrompt = document.getElementById('cp-prompt');
+            const $cpInput = document.getElementById('cp-input');
+            const $cpSubmit = document.getElementById('cp-submit');
+            const $cpHint = document.getElementById('cp-hint');
+            const $cpShow = document.getElementById('cp-show');
+            const $cpFeedback = document.getElementById('cp-feedback');
+            const $learningLog = document.getElementById('learning-log');
+            const $answer = document.getElementById('answer');
+            const $nodeDots = {
+                A: document.getElementById('node-A'),
+                B: document.getElementById('node-B'),
+                C: document.getElementById('node-C'),
+                D: document.getElementById('node-D'),
+            };
+            const $badges = {
+                A: document.getElementById('badge-A'),
+                B: document.getElementById('badge-B'),
+                C: document.getElementById('badge-C'),
+                D: document.getElementById('badge-D'),
+            };
+            const $queueZone = document.getElementById('queue-zone');
+            const $resultZone = document.getElementById('result-zone');
+            const $edgeSvg = document.querySelector('#canvas svg.edge-layer');
+
+            function getStepData(step) {
+                return stepData[step - 1];
+            }
+
+            function highlightCodeLines(lines) {
+                const allClines = $code.querySelectorAll('.cline');
+                allClines.forEach(cl => cl.classList.remove('highlight'));
+                lines.forEach(ln => {
+                    const target = $code.querySelector(`.cline[data-line="${ln}"]`);
+                    if (target) target.classList.add('highlight');
+                });
+            }
+
+            function updateNodeVisuals(sd) {
+                const processed = new Set(sd.processedNodes);
+                const inQueue = new Set(sd.inQueueNodes);
+                const current = sd.currentNode;
+                allNodes.forEach(n => {
+                    const dot = $nodeDots[n];
+                    dot.className = 'node-dot';
+                    if (n === current) {
+                        dot.classList.add('current');
+                    } else if (processed.has(n)) {
+                        dot.classList.add('processed');
+                    } else if (inQueue.has(n)) {
+                        dot.classList.add('inqueue');
+                    } else {
+                        dot.classList.add('waiting');
+                    }
+                });
+            }
+
+            function updateBadges(sd) {
+                allNodes.forEach(n => {
+                    $badges[n].textContent = 'in:' + sd.indegree[n];
+                });
+            }
+
+            function updateQueueDisplay(sd) {
+                const existingItems = $queueZone.querySelectorAll('.qitem');
+                existingItems.forEach(el => el.remove());
+                sd.queue.forEach(n => {
+                    const span = document.createElement('span');
+                    span.className = 'qitem';
+                    span.textContent = n;
+                    $queueZone.appendChild(span);
+                });
+                if (sd.queue.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.style.cssText = 'font-size:0.75rem;color:#94a3b8;font-style:italic;';
+                    empty.textContent = '(empty)';
+                    $queueZone.appendChild(empty);
+                }
+            }
+
+            function updateResultDisplay(sd) {
+                const existingItems = $resultZone.querySelectorAll('.ritem');
+                existingItems.forEach(el => el.remove());
+                sd.result.forEach(n => {
+                    const span = document.createElement('span');
+                    span.className = 'ritem';
+                    span.textContent = n;
+                    $resultZone.appendChild(span);
+                });
+                if (sd.result.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.style.cssText = 'font-size:0.75rem;color:#94a3b8;font-style:italic;';
+                    empty.textContent = '(empty)';
+                    $resultZone.appendChild(empty);
+                }
+            }
+
+            function updateEdgeHighlights(sd) {
+                const lines = $edgeSvg.querySelectorAll('line');
+                const activeEdges = new Set();
+                if (sd.currentNode && graph[sd.currentNode]) {
+                    graph[sd.currentNode].forEach(neighbor => {
+                        activeEdges.add(sd.currentNode + '-' + neighbor);
+                    });
+                }
+                lines.forEach(line => {
+                    const edgeKey = line.getAttribute('data-edge');
+                    if (activeEdges.has(edgeKey)) {
+                        line.setAttribute('stroke', '#8b5cf6');
+                        line.setAttribute('stroke-width', '3');
+                        line.setAttribute('marker-end', 'url(#arrowhead-active)');
+                    } else {
+                        line.setAttribute('stroke', '#94a3b8');
+                        line.setAttribute('stroke-width', '2');
+                        line.setAttribute('marker-end', 'url(#arrowhead)');
+                    }
+                });
+            }
+
+            function updateCheckpointUI(sd) {
+                $checkpointArea.classList.remove('active');
+                $cpFeedback.textContent = '';
+                $cpFeedback.className = 'cp-feedback';
+                $cpInput.value = '';
+                if (sd.checkpoint && !checkpointResolved[sd.id]) {
+                    $checkpointArea.classList.add('active');
+                    $cpPrompt.textContent = sd.checkpoint.prompt;
+                    $cpInput.focus();
+                }
+            }
+
+            function renderStep(step) {
+                const sd = getStepData(step);
+                if (!sd) return;
+
+                $counter.textContent = step + ' / ' + totalSteps;
+                $range.value = step;
+                $op.textContent = sd.op;
+                $stepTitle.textContent = sd.title;
+                $stepDesc.textContent = sd.desc;
+                $state.textContent = JSON.stringify({
+                    indegree: sd.indegree,
+                    queue: sd.queue,
+                    result: sd.result,
+                    currentNode: sd.currentNode,
+                }, null, 2);
+                $teaching.innerHTML = sd.teaching;
+                $stepEvidence.innerHTML =
+                    '<strong>Operation:</strong> ' + sd.evidenceOp + '<br>' +
+                    '<strong>Target:</strong> ' + sd.evidenceTarget + '<br>' +
+                    '<strong>Before:</strong> ' + sd.evidenceBefore + '<br>' +
+                    '<strong>After:</strong> ' + sd.evidenceAfter;
+
+                highlightCodeLines(sd.activeLines);
+                updateNodeVisuals(sd);
+                updateBadges(sd);
+                updateQueueDisplay(sd);
+                updateResultDisplay(sd);
+                updateEdgeHighlights(sd);
+                updateCheckpointUI(sd);
+
+                // Update timeline ticks
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach(t => {
+                    const ts = parseInt(t.getAttribute('data-step'), 10);
+                    if (ts === step) {
+                        t.classList.add('active');
+                        t.setAttribute('aria-selected', 'true');
+                    } else {
+                        t.classList.remove('active');
+                        t.setAttribute('aria-selected', 'false');
+                    }
+                });
+
+                // Update #answer with final result at step 6
+                if (step === totalSteps) {
+                    $answer.textContent = JSON.stringify(sd.result);
+                }
+            }
+
+            function goToStep(step) {
+                if (step < 1 || step > totalSteps) return;
+                currentStep = step;
+                renderStep(step);
+            }
+
+            function addLearningLogEntry(stepNum, question, userAnswer, isCorrect, feedbackText) {
+                const entry = {
+                    step: stepNum,
+                    question: question,
+                    userAnswer: userAnswer,
+                    isCorrect: isCorrect,
+                    feedback: feedbackText,
+                };
+                learningLogEntries.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                $learningLog.innerHTML = '';
+                if (learningLogEntries.length === 0) {
+                    const li = document.createElement('li');
+                    li.innerHTML =
+                        '<span class="log-step">---</span><span class="log-detail">Your checkpoint interactions will appear here.</span>';
+                    $learningLog.appendChild(li);
+                    return;
+                }
+                learningLogEntries.forEach(entry => {
+                    const li = document.createElement('li');
+                    const statusClass = entry.isCorrect ? 'correct' : 'incorrect';
+                    const statusText = entry.isCorrect ? '✓ Correct' : '✗ Incorrect';
+                    li.innerHTML =
+                        '<span class="log-step">S' + entry.step + '</span>' +
+                        '<span class="log-result ' + statusClass + '">' + statusText + '</span>' +
+                        '<span class="log-detail">Q: "' + escapeHtml(entry.question) +
+                        '" | Your answer: "' + escapeHtml(entry.userAnswer) + '"</span>';
+                    $learningLog.appendChild(li);
+                });
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function handleCheckpointSubmit() {
+                const sd = getStepData(currentStep);
+                if (!sd || !sd.checkpoint) return;
+                if (checkpointResolved[sd.id]) return;
+
+                const userAnswer = $cpInput.value.trim();
+                if (!userAnswer) {
+                    $cpFeedback.textContent = 'Please type an answer before submitting.';
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                    return;
+                }
+                const correctAnswer = sd.checkpoint.answer;
+                const isCorrect = (userAnswer.toLowerCase() === correctAnswer.toLowerCase());
+                if (isCorrect) {
+                    $cpFeedback.textContent = '✓ ' + sd.checkpoint.feedbackCorrect;
+                    $cpFeedback.className = 'cp-feedback correct';
+                    checkpointResolved[sd.id] = true;
+                    $checkpointArea.classList.remove('active');
+                } else {
+                    $cpFeedback.textContent = '✗ ' + sd.checkpoint.feedbackIncorrect;
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                }
+                addLearningLogEntry(currentStep, sd.checkpoint.prompt, userAnswer, isCorrect,
+                    isCorrect ? sd.checkpoint.feedbackCorrect : sd.checkpoint.feedbackIncorrect);
+            }
+
+            function handleCheckpointHint() {
+                const sd = getStepData(currentStep);
+                if (!sd || !sd.checkpoint) return;
+                if (checkpointResolved[sd.id]) return;
+                $cpFeedback.textContent = 'Hint: ' + sd.checkpoint.hint;
+                $cpFeedback.className = 'cp-feedback';
+            }
+
+            function handleCheckpointShow() {
+                const sd = getStepData(currentStep);
+                if (!sd || !sd.checkpoint) return;
+                if (checkpointResolved[sd.id]) return;
+                $cpInput.value = sd.checkpoint.answer;
+                $cpFeedback.textContent = 'Answer revealed: ' + sd.checkpoint.answer +
+                    '. ' + sd.checkpoint.feedbackCorrect;
+                $cpFeedback.className = 'cp-feedback correct';
+                checkpointResolved[sd.id] = true;
+                addLearningLogEntry(currentStep, sd.checkpoint.prompt, '[revealed] ' + sd.checkpoint.answer,
+                    true, sd.checkpoint.feedbackCorrect);
+                setTimeout(() => {
+                    $checkpointArea.classList.remove('active');
+                }, 1800);
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            function startPlay() {
+                isPlaying = true;
+                $playBtn.textContent = '⏸ Pause';
+                $playBtn.classList.add('paused');
+                playInterval = setInterval(() => {
+                    if (currentStep < totalSteps) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('paused');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            // Event listeners
+            $prevBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStep - 1);
+            });
+            $nextBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStep + 1);
+            });
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt($range.value, 10);
+                goToStep(val);
+            });
+            $timeline.addEventListener('click', (e) => {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                stopPlay();
+                const step = parseInt(tick.getAttribute('data-step'), 10);
+                goToStep(step);
+            });
+            $cpSubmit.addEventListener('click', handleCheckpointSubmit);
+            $cpHint.addEventListener('click', handleCheckpointHint);
+            $cpShow.addEventListener('click', handleCheckpointShow);
+            $cpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleCheckpointSubmit();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    goToStep(currentStep + 1);
+                } else if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    goToStep(currentStep - 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // Initialize
+            $answer.textContent = JSON.stringify(["A", "B", "C", "D"]);
+            renderStep(1);
+            renderLearningLog();
+            $range.setAttribute('max', totalSteps);
+            $range.value = 1;
+        })();
+    </script>
+</body>
+</html>

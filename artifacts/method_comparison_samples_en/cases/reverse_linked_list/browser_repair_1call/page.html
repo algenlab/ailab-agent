@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverse Linked List - AlgoLab Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --surface: #ffffff;
+            --border: #dee2e6;
+            --text: #212529;
+            --text-secondary: #495057;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --green: #16a34a;
+            --green-bg: #dcfce7;
+            --orange: #ea580c;
+            --orange-bg: #fff7ed;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --gray: #6b7280;
+            --gray-light: #e5e7eb;
+            --node-default: #94a3b8;
+            --node-current: #3b82f6;
+            --node-reversed: #16a34a;
+            --node-nextnode: #f59e0b;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        h1#title {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 2px;
+            letter-spacing: -0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 18px;
+            font-style: italic;
+        }
+
+        .top-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        #top-result,
+        #top-solution {
+            flex: 1;
+            min-width: 200px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+        }
+        #top-result .label,
+        #top-solution .label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        #top-result .value {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        #top-solution .text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        #code {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            counter-reset: codeline;
+        }
+        #code .line {
+            display: block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            transition: background var(--transition);
+            position: relative;
+            counter-increment: codeline;
+        }
+        #code .line::before {
+            content: counter(codeline);
+            display: inline-block;
+            width: 28px;
+            text-align: right;
+            margin-right: 14px;
+            color: #64748b;
+            font-size: 0.78rem;
+            user-select: none;
+        }
+        #code .line.active {
+            background: #334155;
+            color: #f1f5f9;
+            font-weight: 600;
+            border-left: 3px solid #facc15;
+            padding-left: 7px;
+        }
+        #code .line.active::before {
+            color: #facc15;
+            font-weight: 700;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        #step-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            flex: 1;
+            min-width: 180px;
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.82rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        #canvas {
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 20px;
+            min-height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+        }
+        #canvas .node-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex-shrink: 0;
+        }
+        #canvas .node {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.15rem;
+            transition: all var(--transition);
+            position: relative;
+            z-index: 2;
+            flex-shrink: 0;
+            border: 3px solid transparent;
+            box-shadow: var(--shadow);
+            background: #e2e8f0;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+        #canvas .node.current-node {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.18);
+            z-index: 3;
+            transform: scale(1.08);
+        }
+        #canvas .node.reversed-node {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #16a34a;
+        }
+        #canvas .node.nextnode-highlight {
+            background: #fff7ed;
+            color: #c2410c;
+            border-color: #f59e0b;
+        }
+        #canvas .arrow-span {
+            display: flex;
+            align-items: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            padding: 0 6px;
+            flex-shrink: 0;
+            transition: all var(--transition);
+            user-select: none;
+            z-index: 1;
+        }
+        #canvas .arrow-span.arrow-right {
+            color: #94a3b8;
+        }
+        #canvas .arrow-span.arrow-left {
+            color: #16a34a;
+        }
+        #canvas .arrow-span.arrow-none {
+            color: #d1d5db;
+            opacity: 0.4;
+        }
+        #canvas .null-marker {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 0 4px;
+            flex-shrink: 0;
+            user-select: none;
+        }
+        #canvas .pointer-label {
+            position: absolute;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+            z-index: 5;
+            pointer-events: none;
+            transition: all var(--transition);
+        }
+        #canvas .pointer-label.label-prev {
+            color: #16a34a;
+            top: 6px;
+        }
+        #canvas .pointer-label.label-current {
+            color: #3b82f6;
+            top: 6px;
+        }
+        #canvas .pointer-label.label-nextnode {
+            color: #f59e0b;
+            bottom: 6px;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+            background: var(--surface);
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        .controls-row button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.88rem;
+            transition: all var(--transition);
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .controls-row button:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .controls-row button:active {
+            transform: scale(0.96);
+        }
+        .controls-row button.active-play {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #b45309;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--accent);
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        #timeline .tick {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 8px;
+            text-align: center;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--gray-light);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-size: 0.82rem;
+            user-select: none;
+        }
+        #timeline .tick:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        #timeline .tick.active-tick {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        #timeline .tick .tick-label {
+            display: block;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+        #timeline .tick .tick-op {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .info-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 700px) {
+            .info-panels {
+                grid-template-columns: 1fr;
+            }
+        }
+        #teaching,
+        #state,
+        #step-evidence {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            font-size: 0.88rem;
+        }
+        #teaching .panel-label,
+        #state .panel-label,
+        #step-evidence .panel-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+        #state {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.82rem;
+            white-space: pre-wrap;
+            background: #fafbfc;
+            color: #1e293b;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+        #step-evidence .evidence-row {
+            margin-bottom: 4px;
+        }
+        #step-evidence .evidence-row strong {
+            color: #1e293b;
+        }
+
+        .checkpoint-area {
+            background: #fffbeb;
+            border: 2px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+        .checkpoint-area.visible {
+            display: block;
+        }
+        .checkpoint-area .cp-question {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        .checkpoint-area .cp-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .checkpoint-area .cp-options label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #d1d5db;
+            background: #fff;
+            transition: all var(--transition);
+            user-select: none;
+        }
+        .checkpoint-area .cp-options label:hover {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+        .checkpoint-area .cp-options input[type="radio"] {
+            accent-color: #f59e0b;
+        }
+        .checkpoint-area .cp-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .checkpoint-area .cp-buttons button {
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.84rem;
+            transition: all var(--transition);
+        }
+        .checkpoint-area .cp-buttons .cp-submit {
+            background: #f59e0b;
+            color: #fff;
+            border-color: #d97706;
+        }
+        .checkpoint-area .cp-buttons .cp-submit:hover {
+            background: #d97706;
+        }
+        .checkpoint-area .cp-buttons .cp-hint {
+            background: #fff;
+            color: #6b7280;
+        }
+        .checkpoint-area .cp-buttons .cp-show {
+            background: #fff;
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+        .checkpoint-area .cp-feedback {
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            min-height: 20px;
+            transition: all var(--transition);
+        }
+        .cp-feedback.correct {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .cp-feedback.incorrect {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+        .cp-feedback.info {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #93c5fd;
+        }
+
+        #learning-log-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #learning-log-container h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        #learning-log {
+            list-style: none;
+            padding: 0;
+            font-size: 0.82rem;
+        }
+        #learning-log li {
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        #learning-log li .log-icon {
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        #learning-log li.log-correct .log-icon {
+            color: #16a34a;
+        }
+        #learning-log li.log-incorrect .log-icon {
+            color: #dc2626;
+        }
+        #learning-log li.log-reveal .log-icon {
+            color: #f59e0b;
+        }
+
+        #answer {
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #94a3b8;
+            margin-top: 20px;
+            padding-top: 12px;
+            border-top: 1px solid var(--gray-light);
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="title">Reverse Linked List</h1>
+    <p id="subtitle">Browser History Backward Navigation &mdash; Interactive Algorithm Tutoring</p>
+
+    <div class="top-bar">
+        <div id="top-result">
+            <div class="label">Expected Output</div>
+            <div class="value">[3, 2, 1]</div>
+        </div>
+        <div id="top-solution">
+            <div class="label">Strategy</div>
+            <div class="text">Use three pointers (<strong>prev</strong>, <strong>current</strong>, <strong>nextNode</strong>) to iteratively reverse each link in the singly linked list. Maintain the invariant that prev always points to the head of the already-reversed portion.</div>
+        </div>
+    </div>
+
+    <pre id="code"><span class="line" data-line="1">function reverseList(values) {</span><span class="line" data-line="2">    let head = buildLinkedList(values);</span><span class="line" data-line="3">    let prev = null;</span><span class="line" data-line="4">    let current = head;</span><span class="line" data-line="5">    while (current !== null) {</span><span class="line" data-line="6">        let nextNode = current.next;</span><span class="line" data-line="7">        current.next = prev;</span><span class="line" data-line="8">        prev = current;</span><span class="line" data-line="9">        current = nextNode;</span><span class="line" data-line="10">    }</span><span class="line" data-line="11">    let result = collectValues(prev);</span><span class="line" data-line="12">    return result;</span><span class="line" data-line="13">}</span></pre>
+
+    <div class="step-header">
+        <span id="step-title">Initialize Pointers</span>
+        <span id="op">Initialize</span>
+    </div>
+    <p id="step-desc">Build the linked list from [1, 2, 3]. Set prev to null and current to the head node (value 1).</p>
+
+    <div id="canvas">
+    </div>
+
+    <div class="controls-row">
+        <button id="prev" aria-label="Previous step">&#9664; Prev</button>
+        <button id="play" aria-label="Play or pause auto-advance">&#9654; Play</button>
+        <button id="next" aria-label="Next step">Next &#9654;</button>
+        <input type="range" id="range" min="1" max="5" value="1" step="1" aria-label="Step slider">
+        <span id="counter">1 / 5</span>
+    </div>
+
+    <div id="timeline">
+        <button class="tick active-tick" data-step="1"><span class="tick-label">Init</span><span class="tick-op">Initialize</span></button>
+        <button class="tick" data-step="2"><span class="tick-label">Rev 1</span><span class="tick-op">Reverse node 1</span></button>
+        <button class="tick" data-step="3"><span class="tick-label">Rev 2</span><span class="tick-op">Reverse node 2</span></button>
+        <button class="tick" data-step="4"><span class="tick-label">Rev 3</span><span class="tick-op">Reverse node 3</span></button>
+        <button class="tick" data-step="5"><span class="tick-label">Result</span><span class="tick-op">Return answer</span></button>
+    </div>
+
+    <div class="info-panels">
+        <div id="teaching">
+            <div class="panel-label">Teaching Note</div>
+            <span class="teaching-text">We start by building a singly linked list: 1 &#8594; 2 &#8594; 3 &#8594; null. The &#39;prev&#39; pointer tracks the already-reversed portion and starts as null. The &#39;current&#39; pointer starts at the head (node 1). The loop will process each node one by one.</span>
+        </div>
+        <div id="state">
+            <div class="panel-label">Current State (JSON)</div>
+            <span class="state-text">{
+                "values": [1, 2, 3],
+                "prev": null,
+                "current": 1,
+                "nextNode": null,
+                "reversedPortion": [],
+                "remainingPortion": [1, 2, 3]
+                }</span>
+            </div>
+        </div>
+        <div id="step-evidence">
+            <div class="panel-label">Step Evidence</div>
+            <div class="evidence-text">
+                <div class="evidence-row"><strong>Operation:</strong> Initialize pointers</div>
+                <div class="evidence-row"><strong>Targets:</strong> prev, current, head</div>
+                <div class="evidence-row"><strong>Dependencies:</strong> Input list [1, 2, 3]</div>
+                <div class="evidence-row"><strong>Before:</strong> No linked list exists yet</div>
+                <div class="evidence-row"><strong>After:</strong> Linked list: 1 &#8594; 2 &#8594; 3 &#8594; null; prev=null; current=Node(1)</div>
+            </div>
+        </div>
+
+        <div class="checkpoint-area" id="checkpoint-area">
+            <div class="cp-question" id="cp-question"></div>
+            <div class="cp-options" id="cp-options"></div>
+            <div class="cp-buttons">
+                <button class="cp-submit" id="cp-submit">Submit Answer</button>
+                <button class="cp-hint" id="cp-hint">Hint</button>
+                <button class="cp-show" id="cp-show">Show Answer</button>
+            </div>
+            <div class="cp-feedback" id="cp-feedback"></div>
+        </div>
+
+        <div id="learning-log-container">
+            <h3>&#128221; Learning Log</h3>
+            <ul id="learning-log"></ul>
+        </div>
+
+        <div id="answer">[3, 2, 1]</div>
+
+        <footer>
+            AlgoLab-style interactive tutoring page &mdash; Reverse Linked List
+        </footer>
+
+        <script>
+            (function() {
+                // ──────────────────────────────────────
+                // STEP DATA
+                // ──────────────────────────────────────
+                const stepsData = [{
+                    id: 1,
+                    title: 'Initialize Pointers',
+                    desc: 'Build the linked list from [1, 2, 3]. Set prev to null and current to the head node (value 1).',
+                    op: 'Initialize',
+                    activeCodeLines: [1, 2, 3, 4],
+                    stateJSON: `{
+                        "values": [1, 2, 3],
+                        "prev": null,
+                        "current": 1,
+                        "nextNode": null,
+                        "reversedPortion": [],
+                        "remainingPortion": [1, 2, 3]
+                        }`,
+                    teaching: 'We start by building a singly linked list: 1 \u2192 2 \u2192 3 \u2192 null. The \'prev\' pointer tracks the already-reversed portion and starts as null. The \'current\' pointer starts at the head (node 1). The loop will process each node one by one.',
+                    evidence: {
+                        operation: 'Initialize pointers',
+                        targets: 'prev, current, head',
+                        dependencies: 'Input list [1, 2, 3]',
+                        before: 'No linked list exists yet',
+                        after: 'Linked list: 1 \u2192 2 \u2192 3 \u2192 null; prev=null; current=Node(1)'
+                    },
+                    nodeStates: [
+                        { value: 1, classes: ['current-node'] },
+                        { value: 2, classes: [] },
+                        { value: 3, classes: [] }
+                    ],
+                    arrows: [
+                        { from: 1, to: 2, type: 'right' },
+                        { from: 2, to: 3, type: 'right' },
+                        { from: 3, to: null, type: 'right' }
+                    ],
+                    pointerLabels: [
+                        { text: 'prev = null', type: 'label-prev',
+                        attachTo: null },
+                        { text: 'current', type: 'label-current', attachTo: 1 },
+                        { text: '', type: 'label-nextnode', attachTo: null }
+                    ],
+                    checkpoint: null
+                }, {
+                    id: 2,
+                    title: 'Reverse Node 1',
+                    desc: 'Save nextNode (node 2), point current.next to prev (null), advance prev to current (node 1), advance current to nextNode (node 2).',
+                    op: 'Reverse link',
+                    activeCodeLines: [5, 6, 7, 8, 9],
+                    stateJSON: `{
+                        "values": [1, 2, 3],
+                        "prev": 1,
+                        "current": 2,
+                        "nextNode": 2,
+                        "reversedPortion": [1],
+                        "remainingPortion": [2, 3]
+                        }`,
+                    teaching: 'We save nextNode = current.next (node 2) so we do not lose the rest of the list. Then we flip the link: current.next = prev (which is null). Now node 1 points to null. We advance prev to current (node 1) and current to nextNode (node 2). The reversed portion is [1] and the remaining list is [2, 3].',
+                    evidence: {
+                        operation: 'Reverse link of node 1',
+                        targets: 'current.next, prev, current',
+                        dependencies: 'prev=null, current=Node(1), current.next=Node(2)',
+                        before: 'Node 1 \u2192 Node 2; prev=null; current=Node(1)',
+                        after: 'Node 1 \u2192 null; prev=Node(1); current=Node(2); nextNode=Node(2)'
+                    },
+                    nodeStates: [
+                        { value: 1, classes: ['reversed-node'] },
+                        { value: 2, classes: ['current-node'] },
+                        { value: 3, classes: [] }
+                    ],
+                    arrows: [
+                        { from: 1, to: null, type: 'right' },
+                        { from: 2, to: 3, type: 'right' },
+                        { from: 3, to: null, type: 'right' }
+                    ],
+                    pointerLabels: [
+                        { text: 'prev', type: 'label-prev', attachTo: 1 },
+                        { text: 'current', type: 'label-current', attachTo: 2 },
+                        { text: 'nextNode', type: 'label-nextnode', attachTo: 2 }
+                    ],
+                    checkpoint: {
+                        question: 'After processing node 1, what does current.next point to?',
+                        options: ['Node 2', 'null', 'Node 1', 'Node 3'],
+                        correctIndex: 1,
+                        hint: 'Node 1 was the first node, and prev was null. So current.next is set to prev, which is null. The link from node 1 now points to null.',
+                        showAnswer: 'null'
+                    }
+                }, {
+                    id: 3,
+                    title: 'Reverse Node 2',
+                    desc: 'Save nextNode (node 3), point current.next to prev (node 1), advance prev to current (node 2), advance current to nextNode (node 3).',
+                    op: 'Reverse link',
+                    activeCodeLines: [5, 6, 7, 8, 9],
+                    stateJSON: `{
+                        "values": [1, 2, 3],
+                        "prev": 2,
+                        "current": 3,
+                        "nextNode": 3,
+                        "reversedPortion": [2, 1],
+                        "remainingPortion": [3]
+                        }`,
+                    teaching: 'Now current is node 2. We save nextNode = node 3, flip current.next to prev (node 1), advance prev to node 2, and advance current to node 3. The reversed portion [2, 1] is growing, and only node 3 remains unprocessed. Invariant: prev always points to the head of the reversed sub-list.',
+                    evidence: {
+                        operation: 'Reverse link of node 2',
+                        targets: 'current.next, prev, current',
+                        dependencies: 'prev=Node(1), current=Node(2), current.next=Node(3)',
+                        before: 'Node 2 \u2192 Node 3; prev=Node(1); current=Node(2)',
+                        after: 'Node 2 \u2192 Node 1; prev=Node(2); current=Node(3); nextNode=Node(3)'
+                    },
+                    nodeStates: [
+                        { value: 1, classes: ['reversed-node'] },
+                        { value: 2, classes: ['reversed-node'] },
+                        { value: 3, classes: ['current-node'] }
+                    ],
+                    arrows: [
+                        { from: 2, to: 1, type: 'left' },
+                        { from: 1, to: null, type: 'right' },
+                        { from: 3, to: null, type: 'right' }
+                    ],
+                    pointerLabels: [
+                        { text: 'prev', type: 'label-prev', attachTo: 2 },
+                        { text: 'current', type: 'label-current', attachTo: 3 },
+                        { text: 'nextNode', type: 'label-nextnode', attachTo: 3 }
+                    ],
+                    checkpoint: {
+                        question: 'After reversing node 2, what is the reversed portion of the list?',
+                        options: ['[1]', '[2, 1]', '[2]', '[1, 2]'],
+                        correctIndex: 1,
+                        hint: 'Node 2 now points to node 1, and node 1 points to null. Reading from the current prev (node 2) forward: 2 \u2192 1 \u2192 null, so the reversed portion is [2, 1].',
+                        showAnswer: '[2, 1]'
+                    }
+                }, {
+                    id: 4,
+                    title: 'Reverse Node 3',
+                    desc: 'Save nextNode (null), point current.next to prev (node 2), advance prev to current (node 3), advance current to nextNode (null).',
+                    op: 'Reverse link',
+                    activeCodeLines: [5, 6, 7, 8, 9],
+                    stateJSON: `{
+                        "values": [1, 2, 3],
+                        "prev": 3,
+                        "current": null,
+                        "nextNode": null,
+                        "reversedPortion": [3, 2, 1],
+                        "remainingPortion": []
+                        }`,
+                    teaching: 'Current is node 3 (the last node). We save nextNode = null (end of the list), flip current.next to prev (node 2), advance prev to node 3, and advance current to null. The loop will now exit because current is null. The entire list has been reversed.',
+                    evidence: {
+                        operation: 'Reverse link of node 3',
+                        targets: 'current.next, prev, current',
+                        dependencies: 'prev=Node(2), current=Node(3), current.next=null',
+                        before: 'Node 3 \u2192 null; prev=Node(2); current=Node(3)',
+                        after: 'Node 3 \u2192 Node 2; prev=Node(3); current=null; nextNode=null'
+                    },
+                    nodeStates: [
+                        { value: 1, classes: ['reversed-node'] },
+                        { value: 2, classes: ['reversed-node'] },
+                        { value: 3, classes: ['reversed-node'] }
+                    ],
+                    arrows: [
+                        { from: 3, to: 2, type: 'left' },
+                        { from: 2, to: 1, type: 'left' },
+                        { from: 1, to: null, type: 'right' }
+                    ],
+                    pointerLabels: [
+                        { text: 'prev', type: 'label-prev', attachTo: 3 },
+                        { text: 'current = null', type: 'label-current', attachTo: null },
+                        { text: '', type: 'label-nextnode', attachTo: null }
+                    ],
+                    checkpoint: {
+                        question: 'After reversing node 3, what is the value of current?',
+                        options: ['Node 3', 'null', 'Node 1', 'Node 2'],
+                        correctIndex: 1,
+                        hint: 'Node 3 was the last node, so its original next was null. After saving nextNode (which is null) and moving current to nextNode, current becomes null. The loop condition current !== null will now be false.',
+                        showAnswer: 'null'
+                    }
+                }, {
+                    id: 5,
+                    title: 'Return Result',
+                    desc: 'The loop exits because current is null. prev now points to the new head (node 3). Collect values from prev: [3, 2, 1] and return.',
+                    op: 'Return answer',
+                    activeCodeLines: [11, 12],
+                    stateJSON: `{
+                        "values": [1, 2, 3],
+                        "prev": 3,
+                        "current": null,
+                        "nextNode": null,
+                        "reversedPortion": [3, 2, 1],
+                        "remainingPortion": [],
+                        "result": [3, 2, 1]
+                        }`,
+                    teaching: 'The while loop has finished (current is null). The prev pointer now references the new head of the fully reversed list: node 3. Traversing from prev gives us 3 \u2192 2 \u2192 1 \u2192 null. We collect these values into an array and return [3, 2, 1]. This matches the expected output.',
+                    evidence: {
+                        operation: 'Collect and return result',
+                        targets: 'result array, return value',
+                        dependencies: 'prev=Node(3), reversed list 3\u21922\u21921\u2192null',
+                        before: 'Loop just exited; prev=Node(3); current=null',
+                        after: 'Return [3, 2, 1]'
+                    },
+                    nodeStates: [
+                        { value: 1, classes: ['reversed-node'] },
+                        { value: 2, classes: ['reversed-node'] },
+                        { value: 3, classes: ['reversed-node'] }
+                    ],
+                    arrows: [
+                        { from: 3, to: 2, type: 'left' },
+                        { from: 2, to: 1, type: 'left' },
+                        { from: 1, to: null, type: 'right' }
+                    ],
+                    pointerLabels: [
+                        { text: 'prev (new head)', type: 'label-prev', attachTo: 3 },
+                        { text: 'current = null', type: 'label-current', attachTo: null },
+                        { text: '', type: 'label-nextnode', attachTo: null }
+                    ],
+                    checkpoint: {
+                        question: 'What is the final reversed list returned by the algorithm?',
+                        options: ['[1, 2, 3]', '[3, 2, 1]', '[1, 3, 2]', '[2, 3, 1]'],
+                        correctIndex: 1,
+                        hint: 'Starting from the new head (node 3), follow the next pointers: 3 \u2192 2 \u2192 1 \u2192 null. Collecting these values gives [3, 2, 1].',
+                        showAnswer: '[3, 2, 1]'
+                    }
+                }];
+
+                const totalSteps = stepsData.length; // N = 5
+                let currentStepIndex = 0; // 0-based
+                let isPlaying = false;
+                let playInterval = null;
+                const learningLogEntries = [];
+
+                // ──────────────────────────────────────
+                // DOM REFERENCES
+                // ──────────────────────────────────────
+                const stepTitle = document.getElementById('step-title');
+                const stepDesc = document.getElementById('step-desc');
+                const opEl = document.getElementById('op');
+                const canvas = document.getElementById('canvas');
+                const counter = document.getElementById('counter');
+                const rangeSlider = document.getElementById('range');
+                const timeline = document.getElementById('timeline');
+                const teachingText = document.querySelector('#teaching .teaching-text');
+                const stateText = document.querySelector('#state .state-text');
+                const evidenceText = document.querySelector('#step-evidence .evidence-text');
+                const codeBlock = document.getElementById('code');
+                const prevBtn = document.getElementById('prev');
+                const playBtn = document.getElementById('play');
+                const nextBtn = document.getElementById('next');
+                const checkpointArea = document.getElementById('checkpoint-area');
+                const cpQuestion = document.getElementById('cp-question');
+                const cpOptions = document.getElementById('cp-options');
+                const cpSubmit = document.getElementById('cp-submit');
+                const cpHint = document.getElementById('cp-hint');
+                const cpShow = document.getElementById('cp-show');
+                const cpFeedback = document.getElementById('cp-feedback');
+                const learningLog = document.getElementById('learning-log');
+                const answerEl = document.getElementById('answer');
+                const allTicks = timeline.querySelectorAll('.tick');
+
+                // Ensure #answer holds the bare final JSON
+                answerEl.textContent = '[3, 2, 1]';
+
+                // ──────────────────────────────────────
+                // RENDER CANVAS (DOM container)
+                // ──────────────────────────────────────
+                function renderCanvas(stepData) {
+                    canvas.innerHTML = '';
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'node-wrapper';
+                    wrapper.style.position = 'relative';
+
+                    const nodeStates = stepData.nodeStates;
+                    const arrows = stepData.arrows;
+                    const pointerLabels = stepData.pointerLabels;
+
+                    // Build a map of which arrows exist between which nodes
+                    // We'll render nodes in order 1, 2, 3
+                    const nodeEls = {};
+                    const arrowMap = {};
+                    arrows.forEach(a => {
+                        const key = a.from + '->' + (a.to === null ? 'null' : a.to);
+                        arrowMap[key] = a;
+                    });
+
+                    // Render nodes and inter-node arrows
+                    for (let i = 0; i < nodeStates.length; i++) {
+                        const ns = nodeStates[i];
+                        const nodeDiv = document.createElement('div');
+                        nodeDiv.className = 'node';
+                        if (ns.classes && ns.classes.length > 0) {
+                            ns.classes.forEach(c => nodeDiv.classList.add(c));
+                        }
+                        nodeDiv.textContent = ns.value;
+                        nodeDiv.setAttribute('data-value', ns.value);
+                        nodeEls[ns.value] = nodeDiv;
+                        wrapper.appendChild(nodeDiv);
+
+                        // Check if there is an arrow from this node to the next node in spatial order
+                        if (i < nodeStates.length - 1) {
+                            const nextVal = nodeStates[i + 1].value;
+                            const arrowKey = ns.value + '->' + nextVal;
+                            const reverseArrowKey = nextVal + '->' + ns.value;
+                            const arrowSpan = document.createElement('span');
+                            arrowSpan.className = 'arrow-span';
+                            if (arrowMap[arrowKey] && arrowMap[arrowKey].type === 'right') {
+                                arrowSpan.classList.add('arrow-right');
+                                arrowSpan.textContent = '\u2192';
+                            } else if (arrowMap[reverseArrowKey] && arrowMap[reverseArrowKey].type === 'left') {
+                                arrowSpan.classList.add('arrow-left');
+                                arrowSpan.textContent = '\u2190';
+                            } else {
+                                arrowSpan.classList.add('arrow-none');
+                                arrowSpan.textContent = '\u00B7';
+                            }
+                            wrapper.appendChild(arrowSpan);
+                        }
+                    }
+
+                    // Add null marker after the last node
+                    const nullMarker = document.createElement('span');
+                    nullMarker.className = 'null-marker';
+                    nullMarker.textContent = 'null';
+                    wrapper.appendChild(nullMarker);
+
+                    canvas.appendChild(wrapper);
+
+                    // Position pointer labels
+                    // Remove old labels first (they're appended to canvas directly)
+                    const oldLabels = canvas.querySelectorAll('.pointer-label');
+                    oldLabels.forEach(l => l.remove());
+
+                    pointerLabels.forEach(pl => {
+                        if (!pl.text) return;
+                        const label = document.createElement('span');
+                        label.className = 'pointer-label ' + pl.type;
+                        label.textContent = pl.text;
+                        canvas.appendChild(label);
+                        // Position the label near the attached node
+                        if (pl.attachTo !== null && nodeEls[pl.attachTo]) {
+                            const targetNode = nodeEls[pl.attachTo];
+                            const nodeRect = targetNode.getBoundingClientRect();
+                            const canvasRect = canvas.getBoundingClientRect();
+                            const left = nodeRect.left - canvasRect.left + nodeRect.width / 2;
+                            const topOffset = pl.type === 'label-nextnode' ?
+                                nodeRect.bottom - canvasRect.top + 2 :
+                                nodeRect.top - canvasRect.top - 20;
+                            label.style.position = 'absolute';
+                            label.style.left = left + 'px';
+                            label.style.top = Math.max(2, topOffset) + 'px';
+                            label.style.transform = 'translateX(-50%)';
+                        } else if (pl.attachTo === null && pl.text.includes('null')) {
+                            // Position near the null marker
+                            const nullRect = nullMarker.getBoundingClientRect();
+                            const canvasRect = canvas.getBoundingClientRect();
+                            const left = nullRect.left - canvasRect.left + nullRect.width / 2;
+                            const topOffset = nullRect.top - canvasRect.top - 20;
+                            label.style.position = 'absolute';
+                            label.style.left = left + 'px';
+                            label.style.top = Math.max(2, topOffset) + 'px';
+                            label.style.transform = 'translateX(-50%)';
+                        }
+                    });
+                }
+
+                // ──────────────────────────────────────
+                // HIGHLIGHT CODE LINES
+                // ──────────────────────────────────────
+                function highlightCode(activeLines) {
+                    const allLines = codeBlock.querySelectorAll('.line');
+                    allLines.forEach(line => {
+                        line.classList.remove('active');
+                        const lineNum = parseInt(line.getAttribute('data-line'));
+                        if (activeLines.includes(lineNum)) {
+                            line.classList.add('active');
+                        }
+                    });
+                }
+
+                // ──────────────────────────────────────
+                // UPDATE TIMELINE TICKS
+                // ──────────────────────────────────────
+                function updateTimeline(stepId) {
+                    allTicks.forEach(tick => {
+                        const tickStep = parseInt(tick.getAttribute('data-step'));
+                        if (tickStep === stepId) {
+                            tick.classList.add('active-tick');
+                        } else {
+                            tick.classList.remove('active-tick');
+                        }
+                    });
+                }
+
+                // ──────────────────────────────────────
+                // RENDER CHECKPOINT
+                // ──────────────────────────────────────
+                function renderCheckpoint(stepData) {
+                    const cp = stepData.checkpoint;
+                    if (!cp) {
+                        checkpointArea.classList.remove('visible');
+                        cpFeedback.textContent = '';
+                        cpFeedback.className = 'cp-feedback';
+                        return;
+                    }
+                    checkpointArea.classList.add('visible');
+                    cpQuestion.textContent = cp.question;
+                    cpOptions.innerHTML = '';
+                    cp.options.forEach((opt, idx) => {
+                        const label = document.createElement('label');
+                        const radio = document.createElement('input');
+                        radio.type = 'radio';
+                        radio.name = 'cp-option';
+                        radio.value = idx;
+                        label.appendChild(radio);
+                        label.appendChild(document.createTextNode(' ' + opt));
+                        cpOptions.appendChild(label);
+                    });
+                    // Reset feedback
+                    cpFeedback.textContent = '';
+                    cpFeedback.className = 'cp-feedback';
+                    // Store correct index for this checkpoint
+                    checkpointArea.setAttribute('data-correct-index', cp.correctIndex);
+                    checkpointArea.setAttribute('data-question', cp.question);
+                    checkpointArea.setAttribute('data-show-answer', cp.showAnswer);
+                    checkpointArea.setAttribute('data-hint', cp.hint);
+                }
+
+                // ──────────────────────────────────────
+                // ADD LEARNING LOG ENTRY
+                // ──────────────────────────────────────
+                function addLogEntry(type, question, userAnswer, correctAnswer) {
+                    const entry = {
+                        type: type,
+                        question: question,
+                        userAnswer: userAnswer,
+                        correctAnswer: correctAnswer,
+                        timestamp: new Date()
+                    };
+                    learningLogEntries.push(entry);
+                    renderLearningLog();
+                }
+
+                function renderLearningLog() {
+                    learningLog.innerHTML = '';
+                    learningLogEntries.forEach(entry => {
+                        const li = document.createElement('li');
+                        if (entry.type === 'correct') {
+                            li.className = 'log-correct';
+                            li.innerHTML =
+                                '<span class="log-icon">\u2705</span> Correct! <em>' +
+                                escapeHTML(entry.question) + '</em> Your answer: <strong>' +
+                                escapeHTML(entry.userAnswer) + '</strong>';
+                        } else if (entry.type === 'incorrect') {
+                            li.className = 'log-incorrect';
+                            li.innerHTML =
+                                '<span class="log-icon">\u274C</span> Incorrect. <em>' +
+                                escapeHTML(entry.question) + '</em> Your answer: <strong>' +
+                                escapeHTML(entry.userAnswer) +
+                                '</strong>. Correct answer: <strong>' +
+                                escapeHTML(entry.correctAnswer) + '</strong>';
+                        } else if (entry.type === 'reveal') {
+                            li.className = 'log-reveal';
+                            li.innerHTML =
+                                '<span class="log-icon">\uD83D\uDC41</span> Revealed. <em>' +
+                                escapeHTML(entry.question) + '</em> Answer: <strong>' +
+                                escapeHTML(entry.correctAnswer) + '</strong>';
+                        }
+                        learningLog.appendChild(li);
+                    });
+                    // Scroll to bottom
+                    const container = document.getElementById('learning-log-container');
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }
+
+                function escapeHTML(str) {
+                    const div = document.createElement('div');
+                    div.textContent = str;
+                    return div.innerHTML;
+                }
+
+                // ──────────────────────────────────────
+                // UPDATE ALL UI FOR A GIVEN STEP INDEX
+                // ──────────────────────────────────────
+                function updateUIForStep(stepIndex) {
+                    const stepData = stepsData[stepIndex];
+                    const stepId = stepData.id;
+
+                    // Update header
+                    stepTitle.textContent = stepData.title;
+                    stepDesc.textContent = stepData.desc;
+                    opEl.textContent = stepData.op;
+
+                    // Update counter
+                    counter.textContent = stepId + ' / ' + totalSteps;
+
+                    // Update range slider
+                    rangeSlider.value = stepId;
+
+                    // Update timeline
+                    updateTimeline(stepId);
+
+                    // Update canvas
+                    renderCanvas(stepData);
+
+                    // Update code highlighting
+                    highlightCode(stepData.activeCodeLines);
+
+                    // Update teaching
+                    teachingText.textContent = stepData.teaching;
+
+                    // Update state JSON
+                    stateText.textContent = stepData.stateJSON;
+
+                    // Update step evidence
+                    const ev = stepData.evidence;
+                    evidenceText.innerHTML =
+                        '<div class="evidence-row"><strong>Operation:</strong> ' + escapeHTML(ev.operation) +
+                        '</div>' +
+                        '<div class="evidence-row"><strong>Targets:</strong> ' + escapeHTML(ev.targets) +
+                        '</div>' +
+                        '<div class="evidence-row"><strong>Dependencies:</strong> ' + escapeHTML(ev
+                            .dependencies) + '</div>' +
+                        '<div class="evidence-row"><strong>Before:</strong> ' + escapeHTML(ev.before) +
+                        '</div>' +
+                        '<div class="evidence-row"><strong>After:</strong> ' + escapeHTML(ev.after) + '</div>';
+
+                    // Update checkpoint
+                    renderCheckpoint(stepData);
+
+                    // Update button states
+                    prevBtn.disabled = (stepIndex === 0);
+                    nextBtn.disabled = (stepIndex === totalSteps - 1);
+                }
+
+                // ──────────────────────────────────────
+                // NAVIGATION FUNCTIONS
+                // ──────────────────────────────────────
+                function goToStep(stepIndex) {
+                    if (stepIndex < 0 || stepIndex >= totalSteps) return;
+                    currentStepIndex = stepIndex;
+                    updateUIForStep(currentStepIndex);
+                }
+
+                function goToNext() {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }
+
+                function goToPrev() {
+                    if (currentStepIndex > 0) {
+                        goToStep(currentStepIndex - 1);
+                    }
+                }
+
+                function startPlay() {
+                    if (isPlaying) return;
+                    isPlaying = true;
+                    playBtn.textContent = '\u23F8 Pause';
+                    playBtn.classList.add('active-play');
+                    playInterval = setInterval(() => {
+                        if (currentStepIndex < totalSteps - 1) {
+                            goToStep(currentStepIndex + 1);
+                        } else {
+                            stopPlay();
+                        }
+                    }, 2000);
+                }
+
+                function stopPlay() {
+                    isPlaying = false;
+                    playBtn.textContent = '\u25B6 Play';
+                    playBtn.classList.remove('active-play');
+                    if (playInterval) {
+                        clearInterval(playInterval);
+                        playInterval = null;
+                    }
+                }
+
+                function togglePlay() {
+                    if (isPlaying) {
+                        stopPlay();
+                    } else {
+                        startPlay();
+                    }
+                }
+
+                // ──────────────────────────────────────
+                // CHECKPOINT HANDLERS
+                // ──────────────────────────────────────
+                function handleCheckpointSubmit() {
+                    const stepData = stepsData[currentStepIndex];
+                    if (!stepData.checkpoint) return;
+                    const cp = stepData.checkpoint;
+                    const selectedRadio = cpOptions.querySelector('input[name="cp-option"]:checked');
+                    if (!selectedRadio) {
+                        cpFeedback.textContent = 'Please select an answer before submitting.';
+                        cpFeedback.className = 'cp-feedback info';
+                        return;
+                    }
+                    const userIndex = parseInt(selectedRadio.value);
+                    const userAnswer = cp.options[userIndex];
+                    const correctAnswer = cp.options[cp.correctIndex];
+
+                    if (userIndex === cp.correctIndex) {
+                        cpFeedback.textContent =
+                            '\u2705 Correct! Great job. ' + userAnswer + ' is the right answer.';
+                        cpFeedback.className = 'cp-feedback correct';
+                        addLogEntry('correct', cp.question, userAnswer, correctAnswer);
+                    } else {
+                        cpFeedback.textContent =
+                            '\u274C Incorrect. You selected: ' + userAnswer +
+                            '. The correct answer is: ' + correctAnswer + '.';
+                        cpFeedback.className = 'cp-feedback incorrect';
+                        addLogEntry('incorrect', cp.question, userAnswer, correctAnswer);
+                    }
+                }
+
+                function handleCheckpointHint() {
+                    const stepData = stepsData[currentStepIndex];
+                    if (!stepData.checkpoint) return;
+                    cpFeedback.textContent = '\uD83D\uDCA1 Hint: ' + stepData.checkpoint.hint;
+                    cpFeedback.className = 'cp-feedback info';
+                }
+
+                function handleCheckpointShow() {
+                    const stepData = stepsData[currentStepIndex];
+                    if (!stepData.checkpoint) return;
+                    const correctAnswer = stepData.checkpoint.showAnswer;
+                    cpFeedback.textContent = '\uD83D\uDC41 Answer: ' + correctAnswer;
+                    cpFeedback.className = 'cp-feedback info';
+                    addLogEntry('reveal', stepData.checkpoint.question, '(revealed)', correctAnswer);
+                }
+
+                // ──────────────────────────────────────
+                // EVENT LISTENERS
+                // ──────────────────────────────────────
+                prevBtn.addEventListener('click', () => {
+                    stopPlay();
+                    goToPrev();
+                });
+                nextBtn.addEventListener('click', () => {
+                    stopPlay();
+                    goToNext();
+                });
+                playBtn.addEventListener('click', togglePlay);
+                rangeSlider.addEventListener('input', () => {
+                    stopPlay();
+                    const val = parseInt(rangeSlider.value);
+                    goToStep(val - 1);
+                });
+                rangeSlider.addEventListener('change', () => {
+                    const val = parseInt(rangeSlider.value);
+                    goToStep(val - 1);
+                });
+
+                // Timeline tick clicks
+                allTicks.forEach(tick => {
+                    tick.addEventListener('click', () => {
+                        stopPlay();
+                        const stepId = parseInt(tick.getAttribute('data-step'));
+                        goToStep(stepId - 1);
+                    });
+                });
+
+                // Checkpoint buttons
+                cpSubmit.addEventListener('click', handleCheckpointSubmit);
+                cpHint.addEventListener('click', handleCheckpointHint);
+                cpShow.addEventListener('click', handleCheckpointShow);
+
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        stopPlay();
+                        goToNext();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        stopPlay();
+                        goToPrev();
+                    } else if (e.key === ' ') {
+                        e.preventDefault();
+                        togglePlay();
+                    }
+                });
+
+                // ──────────────────────────────────────
+                // INITIAL RENDER
+                // ──────────────────────────────────────
+                rangeSlider.max = totalSteps;
+                rangeSlider.value = 1;
+                updateUIForStep(0);
+                counter.textContent = '1 / ' + totalSteps;
+
+                // Verify #answer has the bare final JSON
+                if (answerEl.textContent.trim() !== '[3, 2, 1]') {
+                    answerEl.textContent = '[3, 2, 1]';
+                }
+
+                console.log('AlgoLab tutoring page initialized. Total steps: ' + totalSteps +
+                    '. Use arrow keys, buttons, slider, or timeline to navigate.');
+            })();
+        </script>
+    </body>
+    </html>

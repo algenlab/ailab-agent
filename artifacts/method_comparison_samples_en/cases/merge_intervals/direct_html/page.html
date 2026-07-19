@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge Intervals - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --surface: #ffffff;
+            --border: #dde1e8;
+            --text: #1a1d26;
+            --text-secondary: #5a5f6e;
+            --accent: #3b6df0;
+            --accent-light: #e8edfc;
+            --success: #1d8c4e;
+            --success-bg: #e6f4ec;
+            --warning: #c27a0a;
+            --warning-bg: #fef7e6;
+            --error: #c62838;
+            --error-bg: #fce8eb;
+            --merged: #2e8b57;
+            --merged-bg: #d9f2e6;
+            --current: #e69620;
+            --current-bg: #fef3dc;
+            --pending: #8b8fa0;
+            --pending-bg: #eef0f4;
+            --highlight-line: #fff3cd;
+            --code-bg: #1e2233;
+            --code-text: #d4d8e8;
+            --code-highlight: #3a4258;
+            --timeline-active: #3b6df0;
+            --timeline-done: #2e8b57;
+            --timeline-pending: #c5c9d4;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.10);
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 16px 40px;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px 26px;
+            box-shadow: var(--shadow);
+        }
+        #title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1a1d26;
+            letter-spacing: -0.3px;
+            margin-bottom: 2px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .problem-desc {
+            font-size: 0.9rem;
+            color: #3d4252;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+        .top-info {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        #top-result,
+        #top-solution {
+            font-size: 0.85rem;
+            background: #f5f6f9;
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-family: var(--mono);
+            white-space: nowrap;
+        }
+        #top-result strong,
+        #top-solution strong {
+            color: var(--text);
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Code panel */
+        .code-panel {
+            background: var(--code-bg);
+            border-radius: var(--radius);
+            padding: 16px 14px;
+            box-shadow: var(--shadow-lg);
+            overflow-x: auto;
+            min-height: 280px;
+        }
+        #code {
+            font-family: var(--mono);
+            font-size: 0.88rem;
+            color: var(--code-text);
+            white-space: pre;
+            line-height: 1.7;
+            margin: 0;
+            user-select: text;
+        }
+        #code .line {
+            display: block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            transition: background 0.25s;
+            cursor: default;
+            border-left: 3px solid transparent;
+        }
+        #code .line.active {
+            background: var(--code-highlight);
+            border-left: 3px solid #f0c040;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* Canvas panel */
+        .canvas-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 280px;
+        }
+        #canvas {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+        }
+        .canvas-row-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .timeline-track {
+            position: relative;
+            height: 42px;
+            background: #f0f2f6;
+            border-radius: 6px;
+            overflow: visible;
+        }
+        .timeline-track .tick-mark {
+            position: absolute;
+            bottom: -18px;
+            font-size: 0.68rem;
+            color: #999;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        .interval-bar {
+            position: absolute;
+            top: 7px;
+            height: 28px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+            transition: all 0.35s ease;
+            cursor: default;
+            min-width: 36px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+            z-index: 1;
+        }
+        .interval-bar.input-processed {
+            background: #b0b8c8;
+            color: #fff;
+            z-index: 0;
+            opacity: 0.7;
+        }
+        .interval-bar.input-current {
+            background: #e69620;
+            color: #fff;
+            z-index: 2;
+            box-shadow: 0 2px 8px rgba(230, 150, 32, 0.45);
+            animation: pulse-current 1.2s ease-in-out infinite;
+        }
+        .interval-bar.input-pending {
+            background: #d5dae3;
+            color: #5a5f6e;
+            z-index: 0;
+            opacity: 0.65;
+        }
+        .interval-bar.merged-confirmed {
+            background: #2e8b57;
+            color: #fff;
+            z-index: 1;
+            box-shadow: 0 1px 4px rgba(46, 139, 87, 0.3);
+        }
+        .interval-bar.merged-extending {
+            background: #3b6df0;
+            color: #fff;
+            z-index: 3;
+            box-shadow: 0 2px 10px rgba(59, 109, 240, 0.5);
+            animation: pulse-merge 1s ease-in-out infinite;
+        }
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 2px 8px rgba(230, 150, 32, 0.45);
+            }
+            50% {
+                box-shadow: 0 4px 16px rgba(230, 150, 32, 0.7);
+            }
+        }
+        @keyframes pulse-merge {
+            0%,
+            100% {
+                box-shadow: 0 2px 10px rgba(59, 109, 240, 0.5);
+            }
+            50% {
+                box-shadow: 0 4px 18px rgba(59, 109, 240, 0.75);
+            }
+        }
+
+        /* Step info */
+        .step-info-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow);
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #1a1d26;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            flex: 1;
+            min-width: 140px;
+        }
+        #op {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            background: #f0f2f6;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #3d4252;
+            white-space: nowrap;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow);
+        }
+        .controls-row button {
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.18s;
+            color: #1a1d26;
+            white-space: nowrap;
+        }
+        .controls-row button:hover {
+            background: #f0f2f6;
+            border-color: #b0b8c8;
+        }
+        .controls-row button:active {
+            background: #e2e5ed;
+        }
+        .controls-row button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #play {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 700;
+            min-width: 70px;
+        }
+        #play:hover {
+            background: #2d5cd4;
+            border-color: #2d5cd4;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1a1d26;
+            min-width: 50px;
+            text-align: center;
+            font-family: var(--mono);
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 0;
+            align-items: stretch;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            flex-wrap: nowrap;
+        }
+        .tick {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 6px;
+            cursor: pointer;
+            border: none;
+            background: #fafbfc;
+            transition: all 0.2s;
+            font-family: var(--font);
+            border-right: 1px solid var(--border);
+            min-width: 50px;
+            position: relative;
+            text-align: center;
+        }
+        .tick:last-child {
+            border-right: none;
+        }
+        .tick:hover {
+            background: #eef1f7;
+        }
+        .tick.active {
+            background: var(--accent-light);
+            font-weight: 700;
+            box-shadow: inset 0 -3px 0 var(--accent);
+        }
+        .tick.done {
+            background: #e6f4ec;
+            box-shadow: inset 0 -3px 0 var(--success);
+        }
+        .tick-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            letter-spacing: 0.3px;
+        }
+        .tick.active .tick-label {
+            color: var(--accent);
+        }
+        .tick.done .tick-label {
+            color: var(--success);
+        }
+        .tick-op {
+            font-size: 0.73rem;
+            color: #5a5f6e;
+            font-weight: 500;
+            margin-top: 1px;
+        }
+        .tick.active .tick-op {
+            color: #1a1d26;
+            font-weight: 700;
+        }
+
+        /* Panels */
+        .panels-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 800px) {
+            .panels-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            font-size: 0.83rem;
+        }
+        .info-panel h4 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        #state {
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            white-space: pre-wrap;
+            background: #f9fafb;
+            padding: 8px 10px;
+            border-radius: 4px;
+            max-height: 180px;
+            overflow-y: auto;
+            color: #3d4252;
+        }
+        #teaching {
+            color: #3d4252;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-size: 0.78rem;
+            color: #3d4252;
+            line-height: 1.5;
+        }
+        #step-evidence .evidence-item {
+            display: block;
+            padding: 3px 0;
+            border-bottom: 1px dotted #e8eaf0;
+        }
+        #step-evidence .evidence-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Checkpoint */
+        .checkpoint-block {
+            background: #fffdf7;
+            border: 2px solid #e6c840;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            display: none;
+            gap: 10px;
+            flex-direction: column;
+        }
+        .checkpoint-block.visible {
+            display: flex;
+        }
+        .checkpoint-block h4 {
+            font-size: 0.9rem;
+            color: #8a6010;
+            margin: 0;
+        }
+        .checkpoint-prompt {
+            font-size: 0.85rem;
+            color: #4d3a10;
+            font-weight: 500;
+        }
+        .checkpoint-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkpoint-input-row input {
+            flex: 1;
+            min-width: 180px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #d5c890;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            background: #fffef9;
+        }
+        .checkpoint-input-row button {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #c5b870;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+        .btn-submit {
+            background: #3b6df0;
+            color: #fff;
+            border-color: #3b6df0;
+        }
+        .btn-submit:hover {
+            background: #2d5cd4;
+        }
+        .btn-hint {
+            background: #fff;
+            color: #5a4a20;
+        }
+        .btn-hint:hover {
+            background: #fdf5d8;
+        }
+        .btn-show-answer {
+            background: #fff;
+            color: #8a6010;
+            border-color: #d5b860;
+        }
+        .btn-show-answer:hover {
+            background: #fef3dc;
+        }
+        .checkpoint-feedback {
+            font-size: 0.84rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            display: none;
+            line-height: 1.4;
+        }
+        .checkpoint-feedback.correct {
+            display: block;
+            background: var(--success-bg);
+            color: #125a30;
+            border: 1px solid #b8dcc8;
+        }
+        .checkpoint-feedback.incorrect {
+            display: block;
+            background: var(--error-bg);
+            color: #7a1c28;
+            border: 1px solid #f0c4ca;
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .learning-log h4 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        .log-entry {
+            font-size: 0.8rem;
+            padding: 5px 8px;
+            border-bottom: 1px solid #f0f1f5;
+            color: #3d4252;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .log-entry .log-icon {
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .log-entry.correct-entry .log-icon {
+            color: var(--success);
+        }
+        .log-entry.incorrect-entry .log-icon {
+            color: var(--error);
+        }
+        .log-entry.info-entry .log-icon {
+            color: var(--accent);
+        }
+
+        /* Answer element */
+        #answer {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            background: #e6f4ec;
+            border: 1px solid #b8dcc8;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            color: #125a30;
+            font-weight: 600;
+            word-break: break-all;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        .answer-wrapper {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .answer-wrapper .answer-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1a1d26;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+
+        <!-- Header -->
+        <div class="header-block">
+            <div id="title">Merge Intervals</div>
+            <div id="subtitle">Greedy Algorithm &middot; Sort + Linear Scan</div>
+            <p class="problem-desc">
+                The conference center receives multiple venue occupancy requests. Each closed interval
+                <strong>[start time, end time]</strong> in <em>intervals</em> represents a reservation slot.
+                Since the same room cannot be used simultaneously, all overlapping or contiguous slots need to be
+                merged, returning the final list of non-overlapping occupied intervals sorted by start time.
+            </p>
+            <div class="top-info">
+                <span id="top-result"><strong>Input:</strong> [[1, 3], [2, 6], [8, 10], [15, 18]]</span>
+                <span id="top-solution"><strong>Strategy:</strong> Sort by start, maintain last merged interval, extend as needed.</span>
+            </div>
+        </div>
+
+        <!-- Main grid: code + canvas -->
+        <div class="main-grid">
+            <div class="code-panel">
+                <pre id="code"></pre>
+            </div>
+            <div class="canvas-panel">
+                <div id="canvas">
+                    <div>
+                        <div class="canvas-row-label">Input Intervals</div>
+                        <div class="timeline-track" id="input-track">
+                            <span class="tick-mark" style="left:5%;">1</span>
+                            <span class="tick-mark" style="left:15%;">3</span>
+                            <span class="tick-mark" style="left:25%;">5</span>
+                            <span class="tick-mark" style="left:40%;">8</span>
+                            <span class="tick-mark" style="left:50%;">10</span>
+                            <span class="tick-mark" style="left:75%;">15</span>
+                            <span class="tick-mark" style="left:90%;">18</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="canvas-row-label">Merged Result</div>
+                        <div class="timeline-track" id="merged-track">
+                            <span class="tick-mark" style="left:5%;">1</span>
+                            <span class="tick-mark" style="left:30%;">6</span>
+                            <span class="tick-mark" style="left:40%;">8</span>
+                            <span class="tick-mark" style="left:50%;">10</span>
+                            <span class="tick-mark" style="left:75%;">15</span>
+                            <span class="tick-mark" style="left:90%;">18</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step info bar -->
+        <div class="step-info-bar">
+            <span id="step-title">Step 1: Sort</span>
+            <span id="step-desc">Sort intervals by start time to prepare for greedy merge.</span>
+            <span id="op">sort(intervals)</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <button id="prev" title="Previous step">◀ Prev</button>
+            <button id="play" title="Auto-play steps">▶ Play</button>
+            <button id="next" title="Next step">Next ▶</button>
+            <span id="counter">1 / 6</span>
+            <input type="range" id="range" min="1" max="6" value="1" step="1" title="Jump to step">
+        </div>
+
+        <!-- Timeline ticks -->
+        <div id="timeline"></div>
+
+        <!-- Checkpoint block -->
+        <div class="checkpoint-block" id="checkpoint-block">
+            <h4>🧠 Checkpoint</h4>
+            <p class="checkpoint-prompt" id="checkpoint-prompt"></p>
+            <div class="checkpoint-input-row">
+                <input type="text" id="checkpoint-input" placeholder="Type your answer, e.g. [[1,6]]" aria-label="Your prediction">
+                <button class="btn-submit" id="checkpoint-submit">Submit</button>
+                <button class="btn-hint" id="checkpoint-hint">💡 Hint</button>
+                <button class="btn-show-answer" id="checkpoint-show">👁 Show Answer</button>
+            </div>
+            <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+        </div>
+
+        <!-- Panels: state, teaching, evidence -->
+        <div class="panels-grid">
+            <div class="info-panel">
+                <h4>📊 Current State</h4>
+                <div id="state"></div>
+            </div>
+            <div class="info-panel">
+                <h4>📖 Teaching</h4>
+                <div id="teaching"></div>
+            </div>
+            <div class="info-panel">
+                <h4>🔍 Step Evidence</h4>
+                <div id="step-evidence"></div>
+            </div>
+        </div>
+
+        <!-- Learning log -->
+        <div class="learning-log" id="learning-log-container">
+            <h4>📝 Learning Log</h4>
+            <div id="learning-log-entries"></div>
+        </div>
+
+        <!-- Answer -->
+        <div class="answer-wrapper">
+            <span class="answer-label">✅ Final Answer:</span>
+            <span id="answer">[[1, 6], [8, 10], [15, 18]]</span>
+        </div>
+
+    </div>
+
+    <script>
+        (function() {
+            // --- Constants ---
+            const TOTAL_STEPS = 6;
+            const inputIntervals = [
+                [1, 3],
+                [2, 6],
+                [8, 10],
+                [15, 18]
+            ];
+            const finalAnswer = [
+                [1, 6],
+                [8, 10],
+                [15, 18]
+            ];
+            const finalAnswerJSON = JSON.stringify(finalAnswer);
+
+            // Checkpoint steps (1-indexed)
+            const CHECKPOINT_STEPS = {
+                3: {
+                    prompt: 'After processing interval [2,6] which overlaps with [1,3], what does the merged list contain? Enter your answer as a JSON array of intervals.',
+                    correctAnswer: JSON.stringify([
+                        [1, 6]
+                    ]),
+                    hint: 'The current merged last interval is [1,3]. Since 2 ≤ 3, the intervals overlap. Take the max end: max(3,6) = 6. So the merged interval becomes [1,6]. The merged list should be [[1,6]].'
+                },
+                6: {
+                    prompt: 'What is the final merged list of non-overlapping intervals? Enter your answer as a JSON array.',
+                    correctAnswer: finalAnswerJSON,
+                    hint: 'After processing all intervals: [1,3] and [2,6] merged into [1,6]; [8,10] had no overlap so it was appended; [15,18] also had no overlap and was appended. The final result is [[1,6],[8,10],[15,18]].'
+                }
+            };
+
+            // --- Step definitions ---
+            const stepData = [{
+                title: 'Step 1: Sort Intervals',
+                desc: 'Ensure intervals are sorted by start time so the greedy approach works correctly.',
+                op: 'sort(intervals)',
+                stateJSON: JSON.stringify({ intervals: inputIntervals, sorted: true, merged: null, currentIndex: null },
+                    null, 2),
+                teaching: 'Sorting by start time guarantees that when we process intervals left-to-right, any overlap will only involve the last interval in our merged result. This is the key greedy-choice property: we never need to look back at earlier merged intervals.',
+                evidence: '<span class="evidence-item"><strong>Operation:</strong> Sort intervals by start time.</span><span class="evidence-item"><strong>Before:</strong> Input order may be arbitrary.</span><span class="evidence-item"><strong>After:</strong> [[1,3],[2,6],[8,10],[15,18]] — already sorted.</span><span class="evidence-item"><strong>Dependency:</strong> Correctness of all subsequent merge decisions depends on this sort.</span>',
+                codeLine: 1,
+                mergedIntervals: [],
+                currentInputIdx: -1,
+                processingIdx: null,
+            }, {
+                title: 'Step 2: Initialize Merged List',
+                desc: 'Seed the merged result with the first interval — it will serve as the initial reference.',
+                op: 'merged = [intervals[0]]',
+                stateJSON: JSON.stringify({ intervals: inputIntervals, merged: [
+                        [1, 3]
+                    ], currentIndex: 0, lastMerged: [1, 3] }, null, 2),
+                teaching: 'We always start with the first interval in the merged list. This is safe because no interval before the first one exists, so there is nothing to merge with. Think of it as establishing the initial "anchor" for comparisons.',
+                evidence: '<span class="evidence-item"><strong>Operation:</strong> Initialize merged with intervals[0] = [1,3].</span><span class="evidence-item"><strong>Target:</strong> merged list.</span><span class="evidence-item"><strong>Before:</strong> merged = [].</span><span class="evidence-item"><strong>After:</strong> merged = [[1,3]].</span>',
+                codeLine: 2,
+                mergedIntervals: [
+                    [1, 3]
+                ],
+                currentInputIdx: 0,
+                processingIdx: null,
+            }, {
+                title: 'Step 3: Process [2,6] — Overlap Detected',
+                desc: 'Compare current interval [2,6] with last merged [1,3]. Since 2 ≤ 3, they overlap — extend the last merged interval.',
+                op: 'last[1] = max(3, 6) → [1,6]',
+                stateJSON: JSON.stringify({ intervals: inputIntervals, merged: [
+                        [1, 6]
+                    ], currentIndex: 1, lastMerged: [1, 6], overlap: true }, null, 2),
+                teaching: 'Overlap condition: current[0] ≤ last[1] → 2 ≤ 3 is true. So we merge by setting last[1] = max(last[1], current[1]) = max(3,6) = 6. Common error: forgetting to take the max and simply using current[1], which would fail if the last interval already extended further.',
+                evidence: '<span class="evidence-item"><strong>Operation:</strong> Check overlap: 2 ≤ 3 → true. Extend last[1] to max(3,6)=6.</span><span class="evidence-item"><strong>Target:</strong> merged[0] = [1,3].</span><span class="evidence-item"><strong>Before:</strong> merged = [[1,3]], current = [2,6].</span><span class="evidence-item"><strong>After:</strong> merged = [[1,6]].</span>',
+                codeLine: 3,
+                mergedIntervals: [
+                    [1, 6]
+                ],
+                currentInputIdx: 1,
+                processingIdx: 1,
+                isCheckpoint: true,
+            }, {
+                title: 'Step 4: Process [8,10] — No Overlap',
+                desc: 'Compare [8,10] with last merged [1,6]. Since 8 > 6, there is no overlap — append [8,10] to merged.',
+                op: 'merged.append([8,10])',
+                stateJSON: JSON.stringify({ intervals: inputIntervals, merged: [
+                        [1, 6],
+                        [8, 10]
+                    ], currentIndex: 2, lastMerged: [8, 10], overlap: false }, null, 2),
+                teaching: 'No overlap because current[0] = 8 > last[1] = 6. When there is a gap, we simply append the current interval as a new independent block. The invariant is: all intervals in merged are non-overlapping and sorted by start time.',
+                evidence: '<span class="evidence-item"><strong>Operation:</strong> Check overlap: 8 ≤ 6 → false. Append [8,10] to merged.</span><span class="evidence-item"><strong>Target:</strong> merged list.</span><span class="evidence-item"><strong>Before:</strong> merged = [[1,6]], current = [8,10].</span><span class="evidence-item"><strong>After:</strong> merged = [[1,6],[8,10]].</span>',
+                codeLine: 5,
+                mergedIntervals: [
+                    [1, 6],
+                    [8, 10]
+                ],
+                currentInputIdx: 2,
+                processingIdx: 2,
+            }, {
+                title: 'Step 5: Process [15,18] — No Overlap',
+                desc: 'Compare [15,18] with last merged [8,10]. Since 15 > 10, no overlap — append [15,18].',
+                op: 'merged.append([15,18])',
+                stateJSON: JSON.stringify({ intervals: inputIntervals, merged: [
+                        [1, 6],
+                        [8, 10],
+                        [15, 18]
+                    ], currentIndex: 3, lastMerged: [15, 18], overlap: false }, null, 2),
+                teaching: 'Again, 15 > 10 means these intervals are far apart. The greedy algorithm correctly keeps them separate. Notice how the merged list is building up incrementally — each step either extends the last interval or appends a new one.',
+                evidence: '<span class="evidence-item"><strong>Operation:</strong> Check overlap: 15 ≤ 10 → false. Append [15,18] to merged.</span><span class="evidence-item"><strong>Target:</strong> merged list.</span><span class="evidence-item"><strong>Before:</strong> merged = [[1,6],[8,10]], current = [15,18].</span><span class="evidence-item"><strong>After:</strong> merged = [[1,6],[8,10],[15,18]].</span>',
+                codeLine: 5,
+                mergedIntervals: [
+                    [1, 6],
+                    [8, 10],
+                    [15, 18]
+                ],
+                currentInputIdx: 3,
+                processingIdx: 3,
+            }, {
+                title: 'Step 6: Final Result',
+                desc: 'All intervals have been processed. Return the merged list as the final answer.',
+                op: 'return merged',
+                stateJSON: JSON.stringify({ intervals: inputIntervals, merged: finalAnswer, complete: true },
+                    null, 2),
+                teaching: 'The algorithm completes after a single linear scan (O(n log n) due to sorting, O(n) for the scan). The final merged list contains three non-overlapping intervals that cover all the original reservation slots without conflicts.',
+                evidence: '<span class="evidence-item"><strong>Operation:</strong> Return merged.</span><span class="evidence-item"><strong>Final merged list:</strong> [[1,6],[8,10],[15,18]].</span><span class="evidence-item"><strong>Verification:</strong> All original intervals are covered; no overlaps remain; sorted by start time.</span>',
+                codeLine: 6,
+                mergedIntervals: finalAnswer,
+                currentInputIdx: 3,
+                processingIdx: null,
+                isCheckpoint: true,
+            }];
+
+            // --- Code lines ---
+            const codeLines = [
+                'function merge(intervals):',
+                '    sort intervals by start time',
+                '    merged = [intervals[0]]',
+                '    for i = 1 to len(intervals)-1:',
+                '        last = merged[merged.length-1]',
+                '        current = intervals[i]',
+                '        if current[0] <= last[1]:',
+                '            last[1] = max(last[1], current[1])',
+                '        else:',
+                '            merged.append(current)',
+                '    return merged',
+            ];
+
+            // --- DOM references ---
+            const $ = (sel) => document.querySelector(sel);
+            const codeEl = $('#code');
+            const canvasEl = $('#canvas');
+            const inputTrack = $('#input-track');
+            const mergedTrack = $('#merged-track');
+            const stepTitleEl = $('#step-title');
+            const stepDescEl = $('#step-desc');
+            const opEl = $('#op');
+            const counterEl = $('#counter');
+            const rangeEl = $('#range');
+            const timelineEl = $('#timeline');
+            const prevBtn = $('#prev');
+            const playBtn = $('#play');
+            const nextBtn = $('#next');
+            const stateEl = $('#state');
+            const teachingEl = $('#teaching');
+            const evidenceEl = $('#step-evidence');
+            const answerEl = $('#answer');
+            const checkpointBlock = $('#checkpoint-block');
+            const checkpointPrompt = $('#checkpoint-prompt');
+            const checkpointInput = $('#checkpoint-input');
+            const checkpointSubmit = $('#checkpoint-submit');
+            const checkpointHint = $('#checkpoint-hint');
+            const checkpointShow = $('#checkpoint-show');
+            const checkpointFeedback = $('#checkpoint-feedback');
+            const learningLogEntries = $('#learning-log-entries');
+
+            // --- State ---
+            let currentStep = 1; // 1-indexed
+            let isPlaying = false;
+            let playTimer = null;
+            let checkpointAnsweredForStep = {}; // track which checkpoint steps have been answered
+            let checkpointRevealedForStep = {}; // track show-answer usage
+
+            // --- Build code display ---
+            function buildCodeDisplay() {
+                codeEl.innerHTML = '';
+                codeLines.forEach((line, idx) => {
+                    const span = document.createElement('span');
+                    span.className = 'line';
+                    span.textContent = line;
+                    span.dataset.lineIndex = idx;
+                    codeEl.appendChild(span);
+                });
+            }
+
+            // --- Build timeline ticks ---
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                for (let i = 1; i <= TOTAL_STEPS; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.dataset.step = i;
+                    tick.setAttribute('type', 'button');
+                    tick.setAttribute('aria-label', 'Go to step ' + i);
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'tick-label';
+                    labelSpan.textContent = String(i);
+                    const opSpan = document.createElement('span');
+                    opSpan.className = 'tick-op';
+                    opSpan.textContent = stepData[i - 1].op.length > 18 ?
+                        stepData[i - 1].op.substring(0, 16) + '...' :
+                        stepData[i - 1].op;
+                    tick.appendChild(labelSpan);
+                    tick.appendChild(opSpan);
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                    });
+                    timelineEl.appendChild(tick);
+                }
+            }
+
+            // --- Render interval bars on tracks ---
+            function clearBars(trackEl) {
+                const bars = trackEl.querySelectorAll('.interval-bar');
+                bars.forEach(b => b.remove());
+            }
+
+            function createBar(trackEl, interval, className, label) {
+                const bar = document.createElement('div');
+                bar.className = 'interval-bar ' + className;
+                // Map time range 0-20 to 0%-100% (with 5% per unit)
+                const leftPct = (interval[0] / 20) * 100;
+                const widthPct = ((interval[1] - interval[0]) / 20) * 100;
+                bar.style.left = leftPct + '%';
+                bar.style.width = Math.max(widthPct, 4) + '%';
+                bar.textContent = label || ('[' + interval[0] + ',' + interval[1] + ']');
+                bar.title = '[' + interval[0] + ', ' + interval[1] + ']';
+                trackEl.appendChild(bar);
+                return bar;
+            }
+
+            function renderCanvas(stepIdx) {
+                const data = stepData[stepIdx];
+                clearBars(inputTrack);
+                clearBars(mergedTrack);
+
+                // Input intervals
+                for (let i = 0; i < inputIntervals.length; i++) {
+                    let cls = 'input-pending';
+                    if (i < data.currentInputIdx) {
+                        cls = 'input-processed';
+                    } else if (i === data.processingIdx) {
+                        cls = 'input-current';
+                    } else if (i === data.currentInputIdx && data.processingIdx === null && i > 0) {
+                        // About to be processed next but not yet
+                        cls = 'input-pending';
+                    }
+                    if (i === 0 && data.currentInputIdx === 0 && data.processingIdx === null && stepIdx === 1) {
+                        // Step 2: first interval is the seed
+                        cls = 'input-processed';
+                    }
+                    if (stepIdx === 0) {
+                        // Sort step: all are pending/neutral
+                        cls = 'input-pending';
+                    }
+                    createBar(inputTrack, inputIntervals[i], cls,
+                        '[' + inputIntervals[i][0] + ',' + inputIntervals[i][1] + ']');
+                }
+
+                // Highlight the processing interval more distinctly
+                if (data.processingIdx !== null && data.processingIdx >= 0 && data.processingIdx < inputIntervals
+                    .length) {
+                    // Recreate with current class (already done above)
+                }
+
+                // Merged intervals
+                const merged = data.mergedIntervals;
+                for (let i = 0; i < merged.length; i++) {
+                    let cls = 'merged-confirmed';
+                    // If this is the last merged interval and we're in a merge step (step 3), highlight as extending
+                    if (i === merged.length - 1 && stepIdx === 2) {
+                        cls = 'merged-extending';
+                    }
+                    createBar(mergedTrack, merged[i], cls,
+                        '[' + merged[i][0] + ',' + merged[i][1] + ']');
+                }
+
+                // If no merged intervals yet (step 1), show empty track
+                if (merged.length === 0 && stepIdx === 0) {
+                    // Track is empty — that's fine
+                }
+            }
+
+            // --- Update all UI for a given step ---
+            function updateUIForStep(step) {
+                const idx = step - 1;
+                const data = stepData[idx];
+
+                stepTitleEl.textContent = data.title;
+                stepDescEl.textContent = data.desc;
+                opEl.textContent = data.op;
+                counterEl.textContent = step + ' / ' + TOTAL_STEPS;
+                rangeEl.value = step;
+                stateEl.textContent = data.stateJSON;
+                teachingEl.textContent = data.teaching;
+                evidenceEl.innerHTML = data.evidence;
+                answerEl.textContent = finalAnswerJSON;
+
+                // Highlight code line
+                const allLines = codeEl.querySelectorAll('.line');
+                allLines.forEach(l => l.classList.remove('active'));
+                if (data.codeLine !== undefined && data.codeLine >= 0 && data.codeLine < allLines.length) {
+                    // codeLine maps to line index; step 3 highlights lines 5-8 (indices 5,6,7)
+                    if (step === 3) {
+                        // Highlight overlap branch
+                        for (let li = 4; li <= 7; li++) {
+                            if (allLines[li]) allLines[li].classList.add('active');
+                        }
+                    } else if (step === 4 || step === 5) {
+                        // Highlight the else branch for append
+                        for (let li = 4; li <= 5; li++) {
+                            if (allLines[li]) allLines[li].classList.add('active');
+                        }
+                        if (allLines[8]) allLines[8].classList.add('active');
+                        if (allLines[9]) allLines[9].classList.add('active');
+                    } else {
+                        const targetLine = data.codeLine;
+                        if (allLines[targetLine]) allLines[targetLine].classList.add('active');
+                        // For step 2, also highlight line 3 (merged = [intervals[0]])
+                        if (step === 2 && allLines[2]) allLines[2].classList.add('active');
+                        // For step 6, highlight the return line
+                        if (step === 6 && allLines[10]) allLines[10].classList.add('active');
+                    }
+                }
+
+                // Update timeline ticks
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach(t => {
+                    const tStep = parseInt(t.dataset.step);
+                    t.classList.remove('active', 'done');
+                    if (tStep === step) {
+                        t.classList.add('active');
+                    } else if (tStep < step) {
+                        t.classList.add('done');
+                    }
+                });
+
+                // Render canvas
+                renderCanvas(idx);
+
+                // Update checkpoint block
+                updateCheckpointBlock(step);
+
+                // Enable/disable buttons
+                prevBtn.disabled = (step <= 1);
+                nextBtn.disabled = (step >= TOTAL_STEPS);
+            }
+
+            // --- Checkpoint logic ---
+            function updateCheckpointBlock(step) {
+                const cpData = CHECKPOINT_STEPS[step];
+                if (cpData) {
+                    checkpointBlock.classList.add('visible');
+                    checkpointPrompt.textContent = cpData.prompt;
+                    checkpointFeedback.className = 'checkpoint-feedback';
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.style.display = 'none';
+                    // If already answered or revealed, pre-fill and show feedback
+                    if (checkpointRevealedForStep[step]) {
+                        checkpointInput.value = cpData.correctAnswer;
+                        checkpointFeedback.className = 'checkpoint-feedback correct';
+                        checkpointFeedback.textContent =
+                            '✅ The answer has been revealed: ' + cpData.correctAnswer +
+                            '. You may continue to the next step.';
+                        checkpointFeedback.style.display = 'block';
+                    } else if (checkpointAnsweredForStep[step]) {
+                        checkpointInput.value = checkpointAnsweredForStep[step].submitted;
+                        const wasCorrect = checkpointAnsweredForStep[step].correct;
+                        checkpointFeedback.className = 'checkpoint-feedback ' + (wasCorrect ? 'correct' :
+                            'incorrect');
+                        checkpointFeedback.textContent = checkpointAnsweredForStep[step].feedbackMsg;
+                        checkpointFeedback.style.display = 'block';
+                    } else {
+                        checkpointInput.value = '';
+                    }
+                } else {
+                    checkpointBlock.classList.remove('visible');
+                    checkpointFeedback.className = 'checkpoint-feedback';
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.style.display = 'none';
+                    checkpointInput.value = '';
+                }
+            }
+
+            function handleCheckpointSubmit() {
+                const step = currentStep;
+                const cpData = CHECKPOINT_STEPS[step];
+                if (!cpData) return;
+
+                const userAnswer = checkpointInput.value.trim();
+                if (!userAnswer) {
+                    checkpointFeedback.className = 'checkpoint-feedback incorrect';
+                    checkpointFeedback.textContent = '⚠ Please enter an answer before submitting.';
+                    checkpointFeedback.style.display = 'block';
+                    return;
+                }
+
+                let parsedUser;
+                try {
+                    parsedUser = JSON.parse(userAnswer);
+                } catch (e) {
+                    checkpointFeedback.className = 'checkpoint-feedback incorrect';
+                    checkpointFeedback.textContent =
+                        '⚠ Invalid JSON format. Please enter a valid JSON array like [[1,6]].';
+                    checkpointFeedback.style.display = 'block';
+                    appendLogEntry('incorrect', 'Step ' + step + ': Submitted invalid JSON — "' + userAnswer +
+                        '". Could not parse.');
+                    return;
+                }
+
+                const correctParsed = JSON.parse(cpData.correctAnswer);
+                const isCorrect = JSON.stringify(parsedUser) === JSON.stringify(correctParsed);
+
+                let feedbackMsg;
+                if (isCorrect) {
+                    feedbackMsg = '✅ Correct! The merged list is indeed ' + cpData.correctAnswer +
+                        '. Great job understanding the merge logic.';
+                    checkpointFeedback.className = 'checkpoint-feedback correct';
+                    appendLogEntry('correct', 'Step ' + step + ': Submitted "' + userAnswer +
+                        '" — Correct! Matches expected ' + cpData.correctAnswer + '.');
+                } else {
+                    feedbackMsg = '❌ Not quite. You submitted ' + userAnswer + ', but the correct answer is ' + cpData
+                        .correctAnswer + '. Review the overlap condition and try again, or use Hint / Show Answer.';
+                    checkpointFeedback.className = 'checkpoint-feedback incorrect';
+                    appendLogEntry('incorrect', 'Step ' + step + ': Submitted "' + userAnswer +
+                        '" — Incorrect. Expected ' + cpData.correctAnswer + '.');
+                }
+                checkpointFeedback.textContent = feedbackMsg;
+                checkpointFeedback.style.display = 'block';
+
+                checkpointAnsweredForStep[step] = {
+                    submitted: userAnswer,
+                    correct: isCorrect,
+                    feedbackMsg: feedbackMsg,
+                };
+            }
+
+            function handleCheckpointHint() {
+                const step = currentStep;
+                const cpData = CHECKPOINT_STEPS[step];
+                if (!cpData) return;
+                checkpointFeedback.className = 'checkpoint-feedback correct';
+                checkpointFeedback.textContent = '💡 Hint: ' + cpData.hint;
+                checkpointFeedback.style.display = 'block';
+                appendLogEntry('info', 'Step ' + step + ': Requested hint.');
+            }
+
+            function handleCheckpointShow() {
+                const step = currentStep;
+                const cpData = CHECKPOINT_STEPS[step];
+                if (!cpData) return;
+                checkpointInput.value = cpData.correctAnswer;
+                checkpointFeedback.className = 'checkpoint-feedback correct';
+                checkpointFeedback.textContent = '✅ The answer has been revealed: ' + cpData.correctAnswer +
+                    '. Study this carefully before moving on.';
+                checkpointFeedback.style.display = 'block';
+                checkpointRevealedForStep[step] = true;
+                checkpointAnsweredForStep[step] = {
+                    submitted: cpData.correctAnswer,
+                    correct: true,
+                    feedbackMsg: 'Answer revealed: ' + cpData.correctAnswer + '.',
+                };
+                appendLogEntry('info', 'Step ' + step + ': Used Show Answer — revealed ' + cpData.correctAnswer + '.');
+            }
+
+            function appendLogEntry(type, message) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + type + '-entry';
+                const icon = document.createElement('span');
+                icon.className = 'log-icon';
+                if (type === 'correct') icon.textContent = '✔';
+                else if (type === 'incorrect') icon.textContent = '✘';
+                else icon.textContent = 'ℹ';
+                const msgSpan = document.createElement('span');
+                msgSpan.textContent = message;
+                entry.appendChild(icon);
+                entry.appendChild(msgSpan);
+                learningLogEntries.appendChild(entry);
+                // Scroll to bottom
+                const container = $('#learning-log-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            }
+
+            // --- Navigation ---
+            function goToStep(step) {
+                if (step < 1 || step > TOTAL_STEPS) return;
+                currentStep = step;
+                updateUIForStep(step);
+            }
+
+            function nextStep() {
+                if (currentStep < TOTAL_STEPS) {
+                    goToStep(currentStep + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStep > 1) {
+                    goToStep(currentStep - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸ Pause';
+                playTimer = setInterval(() => {
+                    if (currentStep < TOTAL_STEPS) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                if (playTimer) {
+                    clearInterval(playTimer);
+                    playTimer = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // If at last step, restart from step 1
+                    if (currentStep >= TOTAL_STEPS) {
+                        goToStep(1);
+                    }
+                    startPlay();
+                }
+            }
+
+            // --- Event listeners ---
+            prevBtn.addEventListener('click', () => {
+                stopPlay();
+                prevStep();
+            });
+            nextBtn.addEventListener('click', () => {
+                stopPlay();
+                nextStep();
+            });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                if (!isNaN(val)) goToStep(val);
+            });
+            checkpointSubmit.addEventListener('click', handleCheckpointSubmit);
+            checkpointHint.addEventListener('click', handleCheckpointHint);
+            checkpointShow.addEventListener('click', handleCheckpointShow);
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    nextStep();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    prevStep();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // --- Initialize ---
+            function init() {
+                buildCodeDisplay();
+                buildTimeline();
+                goToStep(1);
+                // Ensure answer element always has the correct final answer
+                answerEl.textContent = finalAnswerJSON;
+                // Add initial log entry
+                appendLogEntry('info',
+                    'Page loaded. Ready to learn the Merge Intervals algorithm. Navigate through the steps using the buttons, timeline ticks, slider, or arrow keys.'
+                    );
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

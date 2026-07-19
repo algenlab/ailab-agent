@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Sum - Hash Table Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --card-bg: #ffffff;
+            --border: #dde1e6;
+            --text: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --accent: #3b6df0;
+            --accent-light: #e8effd;
+            --gold: #f0a030;
+            --gold-bg: #fef9f0;
+            --green: #2eaa6e;
+            --green-bg: #eaf7f0;
+            --red: #d94a4a;
+            --red-bg: #fdf0f0;
+            --gray: #8b95a1;
+            --gray-bg: #f1f3f5;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --highlight-line: #334155;
+            --active-line: #fef3c7;
+            --active-line-border: #f0a030;
+            --timeline-active: #3b6df0;
+            --timeline-done: #2eaa6e;
+            --timeline-pending: #cbd5e1;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+        }
+        #title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin: 0 0 2px 0;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0 0 10px 0;
+        }
+        .top-info-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            margin-top: 6px;
+        }
+        #top-result {
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            background: var(--green-bg);
+            color: #1a6b3c;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: var(--gray-bg);
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .answer-badge {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            background: #1a1a2e;
+            color: #f0e68c;
+            padding: 5px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+        }
+        .card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a1a2e;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        /* Code block */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.7;
+            border: 1px solid #1e293b;
+            min-height: 200px;
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.3s, border-left 0.3s;
+            border-left: 3px solid transparent;
+        }
+        #code .code-line.active {
+            background: var(--active-line);
+            color: #1a1a2e;
+            border-left: 3px solid var(--active-line-border);
+            font-weight: 600;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 8px 0;
+        }
+        .viz-array {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .viz-cell {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+            cursor: default;
+            font-family: var(--font-mono);
+        }
+        .viz-cell .cell-idx {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: #666;
+            margin-top: -2px;
+        }
+        .viz-cell.cell-pending {
+            background: #f1f3f5;
+            border-color: #dde1e6;
+            color: #8b95a1;
+        }
+        .viz-cell.cell-current {
+            background: #fef9f0;
+            border-color: #f0a030;
+            color: #8b5e14;
+            box-shadow: 0 0 0 4px rgba(240, 160, 48, 0.18);
+            transform: scale(1.06);
+            z-index: 2;
+        }
+        .viz-cell.cell-processed {
+            background: #eaf7f0;
+            border-color: #2eaa6e;
+            color: #1a6b3c;
+        }
+        .viz-cell.cell-answer {
+            background: #fdf0f0;
+            border-color: #d94a4a;
+            color: #8b1a1a;
+            box-shadow: 0 0 0 4px rgba(217, 74, 74, 0.18);
+            animation: pulse-answer 0.8s ease-in-out 2;
+        }
+        @keyframes pulse-answer {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(217, 74, 74, 0.18);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(217, 74, 74, 0.05);
+            }
+        }
+        .viz-pointer {
+            font-size: 0.7rem;
+            color: #f0a030;
+            font-weight: 700;
+            text-align: center;
+            margin-top: -6px;
+            animation: bounce 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(-6px);
+            }
+        }
+        .viz-map {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .viz-map-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-right: 4px;
+        }
+        .viz-map-entry {
+            background: #e8effd;
+            border: 1px solid #b8cdf8;
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #1e3a6e;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+        .viz-map-entry.new-entry {
+            background: #fef9f0;
+            border-color: #f0a030;
+            animation: pop-in 0.4s ease-out;
+        }
+        @keyframes pop-in {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.08);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .viz-complement {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #fff8e1;
+            border: 1px dashed #f0a030;
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            display: inline-block;
+            color: #8b5e14;
+        }
+        .viz-complement.found {
+            background: #eaf7f0;
+            border-color: #2eaa6e;
+            color: #1a6b3c;
+            border-style: solid;
+            font-weight: 600;
+        }
+
+        /* Step info */
+        .step-info-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1a1a2e;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: #f1f3f5;
+            padding: 3px 10px;
+            border-radius: 14px;
+            color: #5a6c7d;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        /* Teaching and evidence */
+        #teaching {
+            font-size: 0.88rem;
+            color: #3c4a5c;
+            background: #f8fafc;
+            border-left: 4px solid var(--accent);
+            padding: 10px 14px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            white-space: pre-wrap;
+            color: #3c3c3c;
+            max-height: 140px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-size: 0.85rem;
+            color: #4a5568;
+            background: #fefefe;
+            border: 1px solid #e8ecf0;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            line-height: 1.5;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text);
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        .btn:hover {
+            background: #f5f6f8;
+            border-color: #b0b8c1;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .btn.primary:hover {
+            background: #2c5cd4;
+            border-color: #2c5cd4;
+        }
+        .btn.accent-green {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+            font-weight: 600;
+        }
+        .btn.accent-green:hover {
+            background: #258a58;
+            border-color: #258a58;
+        }
+        .btn.accent-amber {
+            background: #f0a030;
+            color: #fff;
+            border-color: #f0a030;
+            font-weight: 600;
+        }
+        .btn.accent-amber:hover {
+            background: #d48a1c;
+            border-color: #d48a1c;
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--timeline-pending);
+            background: #fafbfc;
+            cursor: pointer;
+            transition: all 0.25s;
+            min-width: 70px;
+            text-align: center;
+            font-family: var(--font-sans);
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #9aa8b8;
+            background: #f0f2f5;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: #e8effd;
+            box-shadow: 0 0 0 3px rgba(59, 109, 240, 0.1);
+            font-weight: 600;
+        }
+        .tick.done {
+            border-color: var(--timeline-done);
+            background: #eaf7f0;
+            color: #1a6b3c;
+        }
+        .tick-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: block;
+        }
+        .tick-op {
+            font-size: 0.68rem;
+            color: #6b7d8e;
+            display: block;
+            margin-top: 2px;
+        }
+        .tick.done .tick-op {
+            color: #3d7a5c;
+        }
+        .tick.active .tick-op {
+            color: #3b6df0;
+        }
+
+        /* Checkpoint */
+        #checkpoint-area {
+            background: #fffdf7;
+            border: 2px solid #f0d078;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin: 12px 0;
+            display: none;
+        }
+        #checkpoint-area.visible {
+            display: block;
+        }
+        #checkpoint-prompt {
+            font-weight: 600;
+            color: #6b4c10;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .checkpoint-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #checkpoint-input {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 2px solid #dde1e6;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 150px;
+            max-width: 280px;
+            transition: border 0.2s;
+        }
+        #checkpoint-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 109, 240, 0.08);
+        }
+        #checkpoint-feedback {
+            margin-top: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-height: 24px;
+            line-height: 1.4;
+        }
+        #checkpoint-feedback.correct {
+            color: #1a6b3c;
+        }
+        #checkpoint-feedback.incorrect {
+            color: #b53030;
+        }
+
+        /* Learning log */
+        #learning-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            border: 1px solid #e8ecf0;
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            background: #fdfdfd;
+            line-height: 1.5;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px dotted #eee;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-time {
+            color: #999;
+            font-size: 0.7rem;
+            margin-right: 6px;
+        }
+        .log-correct {
+            color: #1a6b3c;
+            font-weight: 600;
+        }
+        .log-incorrect {
+            color: #b53030;
+            font-weight: 600;
+        }
+        .log-reveal {
+            color: #8b5e14;
+            font-weight: 600;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        @media (max-width: 800px) {
+            .full-width {
+                grid-column: 1;
+            }
+        }
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #1a1a2e;
+            background: #fafafa;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            letter-spacing: 0.5px;
+            border: 1px solid #dde1e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-card">
+            <h1 id="title">Two Sum</h1>
+            <p id="subtitle">Order Fulfillment System &mdash; Hash Table / Map Strategy</p>
+            <div class="top-info-row">
+                <span id="top-result">Expected output: <strong>[0, 1]</strong></span>
+                <span id="top-solution">Strategy: Hash table lookup for complement</span>
+            </div>
+            <p style="margin-top:8px; font-size:0.88rem; color:#5a6c7d;">
+                <strong>Problem:</strong> In an order fulfillment system, <code>nums[i]</code> represents the quantity of goods that can be directly picked from the <em>i</em>-th slot, and the order still lacks <code>target</code> units of the same goods. Find two different slots such that the sum of their quantities equals exactly <code>target</code>, and return their 0-based indices; if no such slots exist, return an empty array.
+            </p>
+            <p style="margin-top:4px; font-size:0.85rem; color:#5a6c7d;">
+                <strong>Input:</strong> <code>nums = [2, 7, 11, 15], target = 9</code> &nbsp;|&nbsp;
+                <strong>Final answer:</strong> <span id="answer">[0, 1]</span>
+            </p>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left column: Code + Canvas -->
+            <div class="card">
+                <h3>Algorithm Code</h3>
+                <div id="code">
+                    <span class="code-line" data-line="0">function twoSum(nums, target) {</span>
+                    <span class="code-line" data-line="1">  const map = new Map();</span>
+                    <span class="code-line" data-line="2">  for (let i = 0; i &lt; nums.length; i++) {</span>
+                    <span class="code-line" data-line="3">    const complement = target - nums[i];</span>
+                    <span class="code-line" data-line="4">    if (map.has(complement)) {</span>
+                    <span class="code-line" data-line="5">      return [map.get(complement), i];</span>
+                    <span class="code-line" data-line="6">    }</span>
+                    <span class="code-line" data-line="7">    map.set(nums[i], i);</span>
+                    <span class="code-line" data-line="8">  }</span>
+                    <span class="code-line" data-line="9">  return [];</span>
+                    <span class="code-line" data-line="10">}</span>
+                </div>
+            </div>
+
+            <!-- Right column: Visualization -->
+            <div class="card">
+                <h3>Visualization</h3>
+                <div id="canvas">
+                    <div class="viz-array" id="viz-array-container"></div>
+                    <div class="viz-map" id="viz-map-container"></div>
+                    <div id="viz-complement-container"></div>
+                </div>
+                <div style="margin-top:8px;">
+                    <strong style="font-size:0.8rem;color:#5a6c7d;">Current State (JSON):</strong>
+                    <div id="state">{"map": {}, "i": 0, "step": "initializing"}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step details card -->
+        <div class="card full-width">
+            <div class="step-info-row">
+                <span id="step-title">Initialize</span>
+                <span id="op">create empty map</span>
+            </div>
+            <p id="step-desc">We begin by creating an empty hash map to store values we have seen, mapping each value to its index. Then we start traversing the array from index 0.</p>
+            <div id="teaching">
+                <strong>Why this works:</strong> A hash map provides O(1) lookup. For each element, we compute its complement (target - current value) and check if we have already seen that complement. If we have, we found our pair. This turns the naive O(n²) approach into O(n) time.
+            </div>
+            <div id="step-evidence">
+                <strong>Operation:</strong> Initialize empty hash map. <strong>Before:</strong> no data stored. <strong>After:</strong> map = {}, ready to traverse.
+            </div>
+
+            <!-- Checkpoint area -->
+            <div id="checkpoint-area">
+                <p id="checkpoint-prompt">Checkpoint: What will the algorithm return at this step?</p>
+                <div class="checkpoint-controls">
+                    <input type="text" id="checkpoint-input" placeholder="Type your answer, e.g. [0, 1]" aria-label="Checkpoint answer input">
+                    <button class="btn primary" id="checkpoint-submit">Submit</button>
+                    <button class="btn accent-amber" id="checkpoint-hint">Hint</button>
+                    <button class="btn" id="checkpoint-show-answer">Show Answer</button>
+                </div>
+                <div id="checkpoint-feedback"></div>
+            </div>
+        </div>
+
+        <!-- Controls & Timeline -->
+        <div class="card full-width">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="Previous step">◀ Prev</button>
+                <button class="btn primary" id="play" title="Auto-play steps">▶ Play</button>
+                <button class="btn" id="next" title="Next step">Next ▶</button>
+                <input type="range" id="range" min="1" max="4" value="1" step="1" title="Step slider">
+                <span id="counter">1 / 4</span>
+            </div>
+            <div id="timeline">
+                <button class="tick active" data-step="0">
+                    <span class="tick-label">Initialize</span><span class="tick-op">Create empty map</span>
+                </button>
+                <button class="tick" data-step="1">
+                    <span class="tick-label">Index 0</span><span class="tick-op">Check value 2</span>
+                </button>
+                <button class="tick" data-step="2">
+                    <span class="tick-label">Index 1</span><span class="tick-op">Check value 7 → Found!</span>
+                </button>
+                <button class="tick" data-step="3">
+                    <span class="tick-label">Result</span><span class="tick-op">Return [0, 1]</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="card full-width">
+            <h3>Learning Log</h3>
+            <div id="learning-log">
+                <p style="color:#999; font-style:italic;">No submissions yet. Interact with the checkpoint to see your learning log entries here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $checkpointArea = document.getElementById('checkpoint-area');
+            const $checkpointPrompt = document.getElementById('checkpoint-prompt');
+            const $checkpointInput = document.getElementById('checkpoint-input');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHint = document.getElementById('checkpoint-hint');
+            const $checkpointShowAnswer = document.getElementById('checkpoint-show-answer');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $learningLog = document.getElementById('learning-log');
+            const $vizArrayContainer = document.getElementById('viz-array-container');
+            const $vizMapContainer = document.getElementById('viz-map-container');
+            const $vizComplementContainer = document.getElementById('viz-complement-container');
+            const $codeLines = $code.querySelectorAll('.code-line');
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            const totalSteps = 4;
+            let currentStep = 0; // 0-indexed: 0=Init, 1=Index0, 2=Index1, 3=Result
+            let checkpointSubmitted = false;
+            let checkpointCorrect = false;
+            let checkpointRevealed = false;
+            let autoPlayInterval = null;
+            let learningLogEntries = [];
+
+            // ──────────────────────────────────────
+            // Step definitions
+            // ──────────────────────────────────────
+            const stepData = [{
+                title: 'Initialize',
+                op: 'create empty map',
+                desc: 'We begin by creating an empty hash map to store values we have seen, mapping each value to its index. Then we start traversing the array from index 0.',
+                teaching: '<strong>Why this works:</strong> A hash map provides O(1) lookup. For each element, we compute its complement (target - current value) and check if we have already seen that complement. If we have, we found our pair. This turns the naive O(n²) approach into O(n) time.',
+                evidence: '<strong>Operation:</strong> Initialize empty hash map. <strong>Before:</strong> no data stored. <strong>After:</strong> map = {}, ready to traverse index 0.',
+                stateJSON: '{"map": {}, "i": "about to start", "step": "initializing"}',
+                activeCodeLine: 1,
+                arrayCells: [
+                    { value: 2, status: 'pending' },
+                    { value: 7, status: 'pending' },
+                    { value: 11, status: 'pending' },
+                    { value: 15, status: 'pending' }
+                ],
+                mapEntries: [],
+                complementInfo: null,
+                checkpointActive: false,
+                checkpointPrompt: '',
+                checkpointExpected: '',
+                checkpointHintText: ''
+            }, {
+                title: 'Index 0 – Check Value 2',
+                op: 'complement = 9 - 2 = 7',
+                desc: 'At index 0, nums[0] = 2. We compute complement = target - 2 = 7. The hash map is empty, so 7 is not found. We add the pair (2 → 0) to the map and move to the next index.',
+                teaching: '<strong>Invariant:</strong> After processing index i, the map contains all values from nums[0..i] mapped to their indices. <strong>Common error:</strong> Forgetting to add the current value to the map after checking the complement can cause missed matches later.',
+                evidence: '<strong>Operation:</strong> Check complement=7 in map → not found. <strong>Before:</strong> map={}. <strong>After:</strong> map={2:0}, i advances to 1.',
+                stateJSON: '{"map": {"2": 0}, "i": 0, "nums[i]": 2, "complement": 7, "found": false}',
+                activeCodeLine: 7,
+                arrayCells: [
+                    { value: 2, status: 'processed' },
+                    { value: 7, status: 'pending' },
+                    { value: 11, status: 'pending' },
+                    { value: 15, status: 'pending' }
+                ],
+                mapEntries: [{ key: 2, value: 0, isNew: true }],
+                complementInfo: { value: 7, found: false },
+                checkpointActive: false,
+                checkpointPrompt: '',
+                checkpointExpected: '',
+                checkpointHintText: ''
+            }, {
+                title: 'Index 1 – Check Value 7',
+                op: 'complement = 9 - 7 = 2 → Found!',
+                desc: 'At index 1, nums[1] = 7. We compute complement = target - 7 = 2. The hash map contains 2 at index 0! So we found our pair: indices 0 and 1.',
+                teaching: '<strong>Key moment:</strong> The complement 2 exists in the map because we stored it at the previous step. This is the exact O(1) lookup that makes the hash table approach efficient. <strong>Invariant check:</strong> map.has(complement) is true, meaning we have seen the needed value before.',
+                evidence: '<strong>Operation:</strong> Check complement=2 in map → FOUND at index 0. <strong>Before:</strong> map={2:0}, i=1, nums[1]=7. <strong>After:</strong> Return [map.get(2), 1] = [0, 1].',
+                stateJSON: '{"map": {"2": 0}, "i": 1, "nums[i]": 7, "complement": 2, "found": true, "result": [0, 1]}',
+                activeCodeLine: 5,
+                arrayCells: [
+                    { value: 2, status: 'answer' },
+                    { value: 7, status: 'answer' },
+                    { value: 11, status: 'pending' },
+                    { value: 15, status: 'pending' }
+                ],
+                mapEntries: [{ key: 2, value: 0, isNew: false }],
+                complementInfo: { value: 2, found: true, foundAtIndex: 0 },
+                checkpointActive: true,
+                checkpointPrompt: 'Checkpoint: The complement of nums[1]=7 is 2, and 2 is in the hash map at index 0. What will the algorithm return?',
+                checkpointExpected: '[0,1]',
+                checkpointHintText: 'The function returns an array with two indices: the index of the complement from the map, followed by the current index i.'
+            }, {
+                title: 'Result – Return [0, 1]',
+                op: 'return [map.get(2), 1]',
+                desc: 'We have confirmed that nums[0] + nums[1] = 2 + 7 = 9 = target. The algorithm returns [0, 1] as the two slot indices. The order fulfillment system can now use these two slots to complete the order.',
+                teaching: '<strong>Final check:</strong> 2 + 7 = 9 = target. The returned indices [0, 1] are correct and distinct. <strong>Note:</strong> If no pair had been found after scanning all elements, the algorithm would return an empty array [].',
+                evidence: '<strong>Operation:</strong> Return the result. <strong>Final state:</strong> map={2:0}, returned [0, 1]. <strong>Verification:</strong> nums[0]=2, nums[1]=7, sum=9=target.',
+                stateJSON: '{"result": [0, 1], "verification": "2 + 7 = 9 = target", "status": "complete"}',
+                activeCodeLine: 5,
+                arrayCells: [
+                    { value: 2, status: 'answer' },
+                    { value: 7, status: 'answer' },
+                    { value: 11, status: 'pending' },
+                    { value: 15, status: 'pending' }
+                ],
+                mapEntries: [{ key: 2, value: 0, isNew: false }],
+                complementInfo: { value: 2, found: true, foundAtIndex: 0 },
+                checkpointActive: false,
+                checkpointPrompt: '',
+                checkpointExpected: '',
+                checkpointHintText: ''
+            }];
+
+            // ──────────────────────────────────────
+            // Render functions
+            // ──────────────────────────────────────
+            function renderAll() {
+                const sd = stepData[currentStep];
+                // Step info
+                $stepTitle.textContent = sd.title;
+                $op.textContent = sd.op;
+                $stepDesc.textContent = sd.desc;
+                $teaching.innerHTML = sd.teaching;
+                $stepEvidence.innerHTML = sd.evidence;
+                $state.textContent = sd.stateJSON;
+
+                // Counter & range
+                $counter.textContent = (currentStep + 1) + ' / ' + totalSteps;
+                $range.value = currentStep + 1;
+
+                // Buttons
+                $prev.disabled = (currentStep === 0);
+                $next.disabled = (currentStep === totalSteps - 1);
+
+                // Code highlighting
+                $codeLines.forEach(line => {
+                    const lineNum = parseInt(line.getAttribute('data-line'), 10);
+                    if (lineNum === sd.activeCodeLine) {
+                        line.classList.add('active');
+                    } else {
+                        line.classList.remove('active');
+                    }
+                });
+
+                // Timeline ticks
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((tick, idx) => {
+                    tick.classList.remove('active', 'done');
+                    if (idx < currentStep) tick.classList.add('done');
+                    if (idx === currentStep) tick.classList.add('active');
+                });
+
+                // Canvas: array visualization
+                renderArrayViz(sd.arrayCells);
+                renderMapViz(sd.mapEntries);
+                renderComplementViz(sd.complementInfo);
+
+                // Checkpoint
+                if (sd.checkpointActive && !checkpointRevealed && !checkpointCorrect) {
+                    $checkpointArea.classList.add('visible');
+                    $checkpointPrompt.textContent = sd.checkpointPrompt;
+                    if (checkpointSubmitted && !checkpointCorrect) {
+                        // keep visible for retry
+                    }
+                    if (!checkpointSubmitted) {
+                        $checkpointInput.value = '';
+                        $checkpointFeedback.textContent = '';
+                        $checkpointFeedback.className = '';
+                    }
+                } else if (sd.checkpointActive && (checkpointRevealed || checkpointCorrect)) {
+                    $checkpointArea.classList.add('visible');
+                    $checkpointPrompt.textContent = sd.checkpointPrompt;
+                    if (checkpointCorrect) {
+                        $checkpointFeedback.textContent = '✓ Correct! The algorithm returns [0, 1]. Great job predicting the output.';
+                        $checkpointFeedback.className = 'correct';
+                    } else if (checkpointRevealed) {
+                        $checkpointFeedback.textContent = 'The answer is [0, 1]. The map has 2 at index 0, and the current index is 1, so we return [0, 1].';
+                        $checkpointFeedback.className = '';
+                    }
+                    $checkpointInput.disabled = true;
+                    $checkpointSubmit.disabled = true;
+                } else {
+                    $checkpointArea.classList.remove('visible');
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = '';
+                    $checkpointInput.disabled = false;
+                    $checkpointSubmit.disabled = false;
+                    checkpointSubmitted = false;
+                    checkpointCorrect = false;
+                    checkpointRevealed = false;
+                }
+
+                // Answer element stays constant
+                $answer.textContent = '[0, 1]';
+            }
+
+            function renderArrayViz(cells) {
+                $vizArrayContainer.innerHTML = '';
+                cells.forEach((cell, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'viz-cell cell-' + cell.status;
+                    div.innerHTML = '<span>' + cell.value + '</span><span class="cell-idx">idx ' + idx +
+                        '</span>';
+                    div.title = 'Slot ' + idx + ': quantity = ' + cell.value;
+                    $vizArrayContainer.appendChild(div);
+                    if (cell.status === 'current') {
+                        const pointer = document.createElement('div');
+                        pointer.className = 'viz-pointer';
+                        pointer.textContent = '▲ i';
+                        pointer.style.gridColumn = (idx + 1);
+                        $vizArrayContainer.appendChild(pointer);
+                    }
+                });
+                // Add pointer for current cell if applicable
+                const currentIdx = cells.findIndex(c => c.status === 'current');
+                if (currentIdx >= 0) {
+                    const pointerWrap = document.createElement('div');
+                    pointerWrap.className = 'viz-pointer';
+                    pointerWrap.textContent = '▲ current';
+                    pointerWrap.style.width = '50px';
+                    pointerWrap.style.textAlign = 'center';
+                    pointerWrap.style.marginLeft = (currentIdx * 56) + 'px';
+                    $vizArrayContainer.appendChild(pointerWrap);
+                }
+            }
+
+            function renderMapViz(entries) {
+                $vizMapContainer.innerHTML = '';
+                if (entries.length === 0) {
+                    const label = document.createElement('span');
+                    label.className = 'viz-map-label';
+                    label.textContent = 'Hash Map: (empty)';
+                    $vizMapContainer.appendChild(label);
+                    return;
+                }
+                const label = document.createElement('span');
+                label.className = 'viz-map-label';
+                label.textContent = 'Hash Map:';
+                $vizMapContainer.appendChild(label);
+                entries.forEach(entry => {
+                    const span = document.createElement('span');
+                    span.className = 'viz-map-entry';
+                    if (entry.isNew) span.classList.add('new-entry');
+                    span.textContent = entry.key + ' → idx ' + entry.value;
+                    span.title = 'Key: ' + entry.key + ', Value (index): ' + entry.value;
+                    $vizMapContainer.appendChild(span);
+                });
+            }
+
+            function renderComplementViz(info) {
+                $vizComplementContainer.innerHTML = '';
+                if (!info) return;
+                const div = document.createElement('div');
+                div.className = 'viz-complement';
+                if (info.found) div.classList.add('found');
+                if (info.found && info.foundAtIndex !== undefined) {
+                    div.textContent = 'Complement: ' + info.value + ' → FOUND in map at index ' + info
+                        .foundAtIndex + ' ✓';
+                } else if (info.found) {
+                    div.textContent = 'Complement: ' + info.value + ' → FOUND ✓';
+                } else {
+                    div.textContent = 'Complement: ' + info.value + ' → not in map yet';
+                }
+                $vizComplementContainer.appendChild(div);
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(stepIndex) {
+                if (stepIndex < 0 || stepIndex >= totalSteps) return;
+                // Reset checkpoint state when moving to a different step
+                if (stepIndex !== currentStep) {
+                    checkpointSubmitted = false;
+                    checkpointCorrect = false;
+                    checkpointRevealed = false;
+                    $checkpointInput.disabled = false;
+                    $checkpointSubmit.disabled = false;
+                }
+                currentStep = stepIndex;
+                renderAll();
+                stopAutoPlay();
+            }
+
+            $prev.addEventListener('click', () => {
+                if (currentStep > 0) goToStep(currentStep - 1);
+            });
+            $next.addEventListener('click', () => {
+                if (currentStep < totalSteps - 1) goToStep(currentStep + 1);
+            });
+            $range.addEventListener('input', () => {
+                const val = parseInt($range.value, 10);
+                goToStep(val - 1);
+            });
+
+            // Timeline clicks
+            $timeline.addEventListener('click', (e) => {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                const stepVal = parseInt(tick.getAttribute('data-step'), 10);
+                if (!isNaN(stepVal)) goToStep(stepVal);
+            });
+
+            // Play button
+            $play.addEventListener('click', () => {
+                if (autoPlayInterval) {
+                    stopAutoPlay();
+                    $play.textContent = '▶ Play';
+                    return;
+                }
+                $play.textContent = '⏸ Pause';
+                autoPlayInterval = setInterval(() => {
+                    if (currentStep < totalSteps - 1) {
+                        // If checkpoint is active and not resolved, pause
+                        const sd = stepData[currentStep];
+                        if (sd.checkpointActive && !checkpointCorrect && !checkpointRevealed) {
+                            stopAutoPlay();
+                            $play.textContent = '▶ Play';
+                            return;
+                        }
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopAutoPlay();
+                        $play.textContent = '▶ Play';
+                    }
+                }, 2200);
+            });
+
+            function stopAutoPlay() {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+                $play.textContent = '▶ Play';
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint logic
+            // ──────────────────────────────────────
+            function normalizeAnswer(raw) {
+                // Remove whitespace and normalize brackets
+                let s = raw.trim().replace(/\s+/g, '');
+                // Accept formats like [0,1], [0, 1], 0,1, "0,1"
+                return s.replace(/^\[|\]$/g, '');
+            }
+
+            function addLogEntry(message, cssClass) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+                learningLogEntries.push({ time: timeStr, message, cssClass });
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    $learningLog.innerHTML =
+                        '<p style="color:#999; font-style:italic;">No submissions yet. Interact with the checkpoint to see your learning log entries here.</p>';
+                    return;
+                }
+                $learningLog.innerHTML = learningLogEntries.map(entry => {
+                    return '<div class="log-entry"><span class="log-time">[' + entry.time +
+                        ']</span> <span class="' + entry.cssClass + '">' + entry.message + '</span></div>';
+                }).join('');
+            }
+
+            $checkpointSubmit.addEventListener('click', () => {
+                const sd = stepData[currentStep];
+                if (!sd.checkpointActive) return;
+                const rawAnswer = $checkpointInput.value.trim();
+                if (!rawAnswer) {
+                    $checkpointFeedback.textContent = 'Please type your answer before submitting.';
+                    $checkpointFeedback.className = 'incorrect';
+                    return;
+                }
+                const normalized = normalizeAnswer(rawAnswer);
+                const expectedNorm = normalizeAnswer(sd.checkpointExpected);
+                checkpointSubmitted = true;
+
+                if (normalized === expectedNorm) {
+                    checkpointCorrect = true;
+                    checkpointRevealed = false;
+                    $checkpointFeedback.textContent =
+                        '✓ Correct! The algorithm returns [0, 1]. The complement 2 was found at index 0, and the current index is 1. Great job!';
+                    $checkpointFeedback.className = 'correct';
+                    $checkpointInput.disabled = true;
+                    $checkpointSubmit.disabled = true;
+                    addLogEntry('Submitted: "' + rawAnswer + '" — Correct! The algorithm returns [0, 1].',
+                        'log-correct');
+                } else {
+                    checkpointCorrect = false;
+                    checkpointRevealed = false;
+                    $checkpointFeedback.textContent =
+                        '✗ Not quite. "' + rawAnswer +
+                        '" is incorrect. Try again, use the Hint button, or click Show Answer.';
+                    $checkpointFeedback.className = 'incorrect';
+                    addLogEntry('Submitted: "' + rawAnswer +
+                        '" — Incorrect. The expected answer is [0, 1]. Try again or use a hint.',
+                        'log-incorrect');
+                }
+                renderAll();
+            });
+
+            $checkpointHint.addEventListener('click', () => {
+                const sd = stepData[currentStep];
+                if (!sd.checkpointActive) return;
+                $checkpointFeedback.textContent = '💡 Hint: ' + sd.checkpointHintText;
+                $checkpointFeedback.className = '';
+                addLogEntry('Hint requested: ' + sd.checkpointHintText, 'log-reveal');
+            });
+
+            $checkpointShowAnswer.addEventListener('click', () => {
+                const sd = stepData[currentStep];
+                if (!sd.checkpointActive) return;
+                checkpointRevealed = true;
+                checkpointCorrect = false;
+                checkpointSubmitted = true;
+                $checkpointInput.value = sd.checkpointExpected;
+                $checkpointInput.disabled = true;
+                $checkpointSubmit.disabled = true;
+                $checkpointFeedback.textContent =
+                    'The answer is ' + sd.checkpointExpected +
+                    '. The map has 2 at index 0, and the current index is 1, so we return [map.get(2), 1] = [0, 1].';
+                $checkpointFeedback.className = '';
+                addLogEntry('Answer revealed: ' + sd.checkpointExpected +
+                    '. The complement 2 was found at index 0, current index is 1, so the result is [0, 1].',
+                    'log-reveal');
+                renderAll();
+            });
+
+            // Allow Enter key to submit checkpoint
+            $checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    $checkpointSubmit.click();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initial render
+            // ──────────────────────────────────────
+            renderAll();
+            $answer.textContent = '[0, 1]';
+
+            console.log('Two Sum tutoring page initialized. Total steps: ' + totalSteps +
+                '. Final answer: [0, 1].');
+        })();
+    </script>
+</body>
+</html>

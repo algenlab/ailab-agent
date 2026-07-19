@@ -1,0 +1,111 @@
+{
+  "id": "unique_paths",
+  "algorithm_id": "unique_paths",
+  "title": "Unique Paths",
+  "family": "2D DP",
+  "family_id": "dp_2d",
+  "subfamily_id": "unique_paths",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "dp",
+  "difficulty": "medium",
+  "problem": "In a smart warehouse with m rows and n columns, an inspection robot starts from the top-left charging point (0,0). Each move can only be one step right or down. Given the number of rows m and columns n, compute the total number of distinct paths for the robot to reach the bottom-right packaging station (m-1, n-1). Input variables m and n represent the grid's row count and column count, output an integer representing the total number of paths.",
+  "strategy": "The number of paths for each cell comes from above and from the left.",
+  "input_contract": "Input m and n.",
+  "variant_name": "2D DP Table",
+  "time_complexity": "O(mn)",
+  "space_complexity": "O(mn)",
+  "learning_objectives": [
+    "Understand the state definition in a 2D DP table where dp[i][j] represents the number of paths from the start to (i,j).",
+    "Be able to predict, based on the current cell's i and j in the trace, how the dependent dp[i-1][j] and dp[i][j-1] combine to produce dp[i][j].",
+    "Master how to use the combination formula to verify DP results, and understand the correspondence between state transitions and movement rules."
+  ],
+  "required_views": [
+    "matrix",
+    "code"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! You understood the transition equation: the number of paths at the current position is the sum of above and left.",
+      "feedback_wrong": "Please check the path counts of the cells above and to the left, and add them together.",
+      "id": "task_1",
+      "oracle": "Compare whether the student's input equals the value of the set at that step in the trace.",
+      "prompt": "Currently computing dp[2][3]; above it dp[1][3]=3, to its left dp[2][2]=2. Predict what the value of dp[2][3] should be.",
+      "stage2_affordance": "Click on cell (2,3) in the matrix view; it will highlight its dependencies (1,3) and (2,2).",
+      "trace_anchor": [
+        "state.dp[1][3]",
+        "state.dp[2][2]",
+        "state.i=2",
+        "state.j=3"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "That's right, because the robot can only move in one direction (right or down), so the edge cells have only one path.",
+      "feedback_wrong": "Review the robot's movement rules: it can only move right or down. Therefore, to reach any cell in the first row, the last step can only come from the left, and similarly for the first column.",
+      "id": "task_2",
+      "oracle": "Check whether the student's answer includes the idea that since movement is only right or down, edge cells have only one possible source (from the start).",
+      "prompt": "Observe the DP table; the values of the first row dp[0][j] and first column dp[i][0] are always 1. Explain why they do not change.",
+      "stage2_affordance": "Highlight the first row and first column, and display arrows from the start point, emphasizing uniqueness.",
+      "trace_anchor": [
+        "state.dp[0][j]",
+        "state.dp[i][0]"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Great, you've grasped how parameter changes affect the result.",
+      "feedback_wrong": "Try recalculating using the combination formula C(m+n-2, m-1), where m=4, n=7.",
+      "id": "task_3",
+      "oracle": "Calculate the expected value using the combination formula C(new m + new n - 2, new m - 1), and compare with the student's input.",
+      "prompt": "If the grid is changed from m=3, n=7 to m=4, n=7 (adding one more row), what will be the new total number of paths? Please reason based on combination numbers or the DP table.",
+      "stage2_affordance": "Drag the slider to modify m or n; the DP table will recalculate in real time and display the new result.",
+      "trace_anchor": [
+        "input.m",
+        "input.n",
+        "state.dp[m-1][n-1]"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Yes, because the last step to reach (2,3) has only these two possibilities, so the path counts are added.",
+      "feedback_wrong": "Think: to reach (2,3), where could the previous step be? Could it come diagonally?",
+      "id": "task_4",
+      "oracle": "Detect if the answer mentions both 'coming down from the cell above (1,3)' and 'moving right from the left cell (2,2)'.",
+      "prompt": "Explain why dp[2][3] equals the sum of dp[1][3] and dp[2][2]. Use the robot's movement rules in your explanation.",
+      "stage2_affordance": "Click on the dp[2][3] cell; arrows will appear showing the paths from above and from the left.",
+      "trace_anchor": [
+        "state.dp[2][3]",
+        "state.dp[1][3]",
+        "state.dp[2][2]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 28,
+      "index": 0,
+      "input_data": {
+        "m": 3,
+        "n": 7
+      }
+    },
+    {
+      "expected": 3,
+      "index": 1,
+      "input_data": {
+        "m": 3,
+        "n": 2
+      }
+    },
+    {
+      "expected": 1,
+      "index": 2,
+      "input_data": {
+        "m": 1,
+        "n": 5
+      }
+    }
+  ]
+}

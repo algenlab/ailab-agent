@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Power Modulo - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --card-bg: #ffffff;
+            --border: #dde1e6;
+            --text: #1a1d23;
+            --text-secondary: #5a5f6b;
+            --accent: #2b6cb0;
+            --accent-light: #e8f0fb;
+            --gold: #c4820e;
+            --gold-light: #fef9ee;
+            --green: #1a7a3a;
+            --green-light: #eaf7ef;
+            --red: #c53030;
+            --red-light: #fef5f5;
+            --purple: #6b3fa0;
+            --purple-light: #f6f2fb;
+            --orange: #c05621;
+            --orange-light: #fef8f4;
+            --timeline-active: #2b6cb0;
+            --timeline-inactive: #c5cad3;
+            --code-bg: #1e1e2e;
+            --code-text: #d4d4d4;
+            --code-highlight: #3a3a52;
+            --code-line-active: #4a5568;
+            --radius: 8px;
+            --radius-sm: 5px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.09), 0 1px 3px rgba(0, 0, 0, 0.06);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .main-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto auto;
+            gap: 14px;
+            grid-template-areas:
+                "header header"
+                "code canvas"
+                "teaching evidence"
+                "timeline timeline"
+                "controls controls"
+                "checkpoint checkpoint"
+                "log log";
+        }
+
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "header"
+                    "code"
+                    "canvas"
+                    "teaching"
+                    "evidence"
+                    "timeline"
+                    "controls"
+                    "checkpoint"
+                    "log";
+            }
+        }
+
+        .header-section {
+            grid-area: header;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .header-left h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            font-weight: 700;
+            font-size: 1.35rem;
+            color: var(--accent);
+            background: var(--accent-light);
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            max-width: 220px;
+            text-align: right;
+        }
+        #answer {
+            display: none;
+        }
+
+        .code-section {
+            grid-area: code;
+            background: var(--code-bg);
+            border-radius: var(--radius);
+            padding: 0;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            position: relative;
+        }
+        .code-section .code-header {
+            background: #2a2a3a;
+            color: #aaa;
+            padding: 8px 16px;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #3a3a4a;
+        }
+        #code {
+            padding: 12px 0;
+            overflow-x: auto;
+            white-space: pre;
+            color: var(--code-text);
+            line-height: 1.7;
+            counter-reset: line;
+            user-select: text;
+        }
+        #code .cline {
+            display: block;
+            padding: 2px 16px 2px 52px;
+            position: relative;
+            border-left: 3px solid transparent;
+            transition: background 0.25s, border-color 0.25s;
+            cursor: default;
+        }
+        #code .cline::before {
+            counter-increment: line;
+            content: counter(line);
+            position: absolute;
+            left: 8px;
+            width: 32px;
+            text-align: right;
+            color: #6a6a7a;
+            font-size: 0.78rem;
+            user-select: none;
+        }
+        #code .cline.active {
+            background: var(--code-highlight);
+            border-left-color: #f0c040;
+            color: #f8f8f8;
+            font-weight: 500;
+        }
+        #code .cline.active::before {
+            color: #f0c040;
+            font-weight: 700;
+        }
+        #code .comment {
+            color: #6a9955;
+            font-style: italic;
+        }
+
+        .canvas-section {
+            grid-area: canvas;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            min-height: 200px;
+        }
+        .canvas-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+        #canvas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 140px;
+        }
+        .var-card {
+            background: #f9fafb;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            text-align: center;
+            min-width: 90px;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .var-card.result-card {
+            border-color: #e2c97e;
+            background: var(--gold-light);
+        }
+        .var-card.base-card {
+            border-color: #9bb5d4;
+            background: #eef4fa;
+        }
+        .var-card.exp-card {
+            border-color: #c4a882;
+            background: var(--orange-light);
+        }
+        .var-card.active-var {
+            box-shadow: 0 0 0 3px rgba(240, 180, 40, 0.5);
+            border-color: #e0a020;
+            transform: translateY(-3px);
+        }
+        .var-card .var-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .var-card .var-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text);
+        }
+        .var-card .var-extra {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-family: var(--font-mono);
+        }
+        .bit-display {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 6px;
+        }
+        .bit-display .bit {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            background: #e8ecf0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text);
+            transition: all 0.25s;
+            border: 2px solid transparent;
+        }
+        .bit-display .bit.current-bit {
+            background: #fef3cd;
+            border-color: #e0a020;
+            color: #8b5e00;
+            box-shadow: 0 0 6px rgba(224, 160, 32, 0.5);
+            transform: scale(1.12);
+        }
+        .bit-display .bit.processed-bit {
+            background: #d4e6d4;
+            color: #3a6b3a;
+            border-color: #8cb88c;
+        }
+        .op-indicator {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            letter-spacing: 0.3px;
+            background: #e8f0fb;
+            color: var(--accent);
+            text-align: center;
+            margin-top: 8px;
+        }
+        .op-indicator.skip {
+            background: #f0f0f0;
+            color: #777;
+        }
+        .op-indicator.multiply {
+            background: #fef9ee;
+            color: #c4820e;
+        }
+
+        .teaching-section {
+            grid-area: teaching;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        .teaching-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.55;
+        }
+        #teaching .invariant {
+            display: block;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #f6f2fb;
+            border-left: 3px solid var(--purple);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 0.83rem;
+            color: #4a2d7a;
+        }
+        #teaching .common-error {
+            display: block;
+            margin-top: 6px;
+            padding: 8px 12px;
+            background: #fef5f5;
+            border-left: 3px solid var(--red);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 0.83rem;
+            color: #8b2020;
+        }
+
+        .evidence-section {
+            grid-area: evidence;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        .evidence-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+        #step-evidence {
+            font-size: 0.84rem;
+            color: var(--text);
+            line-height: 1.5;
+            font-family: var(--font-mono);
+            white-space: pre-wrap;
+            background: #fafbfc;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #eef0f3;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        #state {
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            background: #f5f6f8;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+            white-space: pre-wrap;
+            border: 1px solid #eef0f3;
+        }
+
+        .timeline-section {
+            grid-area: timeline;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        #timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+        .tick {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 2px solid var(--timeline-inactive);
+            background: #fafbfc;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            font-size: 0.82rem;
+            user-select: none;
+            min-width: 70px;
+            text-align: center;
+        }
+        .tick:hover {
+            border-color: #9ab;
+            background: #f0f3f6;
+        }
+        .tick.active-tick {
+            border-color: var(--timeline-active);
+            background: var(--accent-light);
+            box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
+            font-weight: 600;
+        }
+        .tick.completed-tick {
+            border-color: #8cb88c;
+            background: #eaf7ef;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: var(--text);
+        }
+        .tick .tick-op {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .tick.active-tick .tick-label {
+            color: var(--accent);
+        }
+        .tick.active-tick .tick-op {
+            color: var(--accent);
+        }
+
+        .controls-section {
+            grid-area: controls;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f0f3f6;
+            border-color: #bcc3cd;
+        }
+        .btn:active {
+            background: #e4e8ed;
+            transform: scale(0.97);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .btn.primary:hover {
+            background: #1f5a9e;
+            border-color: #1f5a9e;
+        }
+        .btn.hint-btn {
+            background: #fef9ee;
+            border-color: #e0c070;
+            color: #8b5e00;
+        }
+        .btn.show-answer-btn {
+            background: #fef5f5;
+            border-color: #e0a0a0;
+            color: #8b2020;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #counter {
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            color: var(--text);
+            min-width: 60px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 250px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 140px;
+            text-align: center;
+        }
+        #step-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 120px;
+            text-align: center;
+        }
+        #op {
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: var(--accent);
+            background: var(--accent-light);
+            padding: 5px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .checkpoint-section {
+            grid-area: checkpoint;
+            background: var(--card-bg);
+            border: 2px solid #e0d5b0;
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-md);
+            display: none;
+        }
+        .checkpoint-section.visible {
+            display: block;
+        }
+        .checkpoint-section h3 {
+            font-size: 0.9rem;
+            color: #8b5e00;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkpoint-section .checkpoint-prompt {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+        .checkpoint-section .checkpoint-input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .checkpoint-section input[type="text"] {
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            width: 120px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .checkpoint-section input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
+        }
+        .checkpoint-feedback {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.88rem;
+            display: none;
+        }
+        .checkpoint-feedback.correct {
+            display: block;
+            background: var(--green-light);
+            border: 1px solid #8cb88c;
+            color: #1a5a2a;
+        }
+        .checkpoint-feedback.incorrect {
+            display: block;
+            background: var(--red-light);
+            border: 1px solid #e0a0a0;
+            color: #8b2020;
+        }
+        .checkpoint-feedback.show-answer-reveal {
+            display: block;
+            background: #fef9ee;
+            border: 1px solid #e0c070;
+            color: #8b5e00;
+        }
+
+        .log-section {
+            grid-area: log;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .log-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+        #learning-log {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #learning-log li {
+            padding: 7px 10px;
+            margin-bottom: 4px;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            border-left: 3px solid #ccc;
+            background: #fafbfc;
+        }
+        #learning-log li.log-correct {
+            border-left-color: #4caf50;
+            background: #eaf7ef;
+        }
+        #learning-log li.log-incorrect {
+            border-left-color: #e57373;
+            background: #fef5f5;
+        }
+        #learning-log li.log-show-answer {
+            border-left-color: #f0c040;
+            background: #fef9ee;
+        }
+        #learning-log li.log-info {
+            border-left-color: #90a4ae;
+            background: #f5f7f9;
+        }
+        .log-timestamp {
+            font-size: 0.7rem;
+            color: #999;
+            margin-right: 8px;
+            font-family: var(--font-mono);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <div class="header-left">
+                <h1 id="title">Fast Power Modulo</h1>
+                <div id="subtitle">Mathematics and Bitwise Operations — Compute base<sup>exponent</sup> mod modulus efficiently</div>
+            </div>
+            <div class="header-right">
+                <span id="top-result">?</span>
+                <span id="top-solution">Break exponent into binary, square base, multiply on 1-bits</span>
+            </div>
+            <span id="answer">9</span>
+        </div>
+
+        <!-- Code Section -->
+        <div class="code-section">
+            <div class="code-header">Algorithm Implementation (JavaScript)</div>
+            <div id="code">
+                <span class="cline" data-line="1"><span class="kw">function</span> <span class="fn">fastPower</span>(base, exponent, mod) {</span>
+                <span class="cline" data-line="2">    <span class="kw">let</span> result = <span class="num">1</span>;</span>
+                <span class="cline" data-line="3">    base = base % mod;  <span class="comment">// reduce base modulo mod</span></span>
+                <span class="cline" data-line="4">    <span class="kw">while</span> (exponent &gt; <span class="num">0</span>) {</span>
+                <span class="cline" data-line="5">        <span class="kw">if</span> (exponent &amp; <span class="num">1</span>) {  <span class="comment">// check LSB</span></span>
+                <span class="cline" data-line="6">            result = (result * base) % mod;</span>
+                <span class="cline" data-line="7">        }</span>
+                <span class="cline" data-line="8">        base = (base * base) % mod;  <span class="comment">// square the base</span></span>
+                <span class="cline" data-line="9">        exponent = exponent &gt;&gt; <span class="num">1</span>;  <span class="comment">// right shift</span></span>
+                <span class="cline" data-line="10">    }</span>
+                <span class="cline" data-line="11">    <span class="kw">return</span> result;</span>
+                <span class="cline" data-line="12">}</span>
+            </div>
+        </div>
+
+        <!-- Canvas Section -->
+        <div class="canvas-section">
+            <h3>Algorithm Visualization</h3>
+            <div id="canvas">
+                <div class="var-card result-card" id="var-result">
+                    <div class="var-label">Result</div>
+                    <div class="var-value" id="val-result">1</div>
+                    <div class="var-extra">accumulator</div>
+                </div>
+                <div class="var-card base-card" id="var-base">
+                    <div class="var-label">Base (squaring)</div>
+                    <div class="var-value" id="val-base">3</div>
+                    <div class="var-extra">mod 13</div>
+                </div>
+                <div class="var-card exp-card" id="var-exp">
+                    <div class="var-label">Exponent</div>
+                    <div class="var-value" id="val-exp">5</div>
+                    <div class="var-extra">binary: <span id="binary-display" style="font-family:var(--font-mono);font-weight:600;">101</span></div>
+                    <div class="bit-display" id="bit-cards"></div>
+                </div>
+                <div class="op-indicator" id="op-indicator-ui">Initialize</div>
+            </div>
+        </div>
+
+        <!-- Teaching Section -->
+        <div class="teaching-section">
+            <h3>Teaching Notes</h3>
+            <div id="teaching">
+                <p>We start by setting <strong>result = 1</strong> and reducing <strong>base</strong> modulo <strong>mod</strong>. The exponent <strong>5</strong> in binary is <strong>101</strong>. For each bit (from least significant to most), we square the base and multiply the result when the bit is 1.</p>
+                <span class="invariant">Invariant: At every iteration, result * base<sup>exponent</sup> ≡ original base<sup>original_exponent</sup> (mod mod).</span>
+            </div>
+        </div>
+
+        <!-- Evidence Section -->
+        <div class="evidence-section">
+            <h3>Step Evidence</h3>
+            <div id="step-evidence">Operation: Initialize variables
+                Targets: result, base, exponent
+                Dependencies: Input (base=3, exponent=5, mod=13)
+                Before: (none)
+                After: result=1, base=3, exponent=5</div>
+            <div id="state">{"result": 1, "base": 3, "exponent": 5, "step": "initialization"}</div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-section">
+            <div id="timeline">
+                <button class="tick active-tick" data-step="0" aria-label="Step 1: Initialize">
+                    <span class="tick-label">Step 1</span><span class="tick-op">Initialize</span>
+                </button>
+                <button class="tick" data-step="1" aria-label="Step 2: Process LSB">
+                    <span class="tick-label">Step 2</span><span class="tick-op">Mul &amp; Square</span>
+                </button>
+                <button class="tick" data-step="2" aria-label="Step 3: Process middle bit">
+                    <span class="tick-label">Step 3</span><span class="tick-op">Square Only</span>
+                </button>
+                <button class="tick" data-step="3" aria-label="Step 4: Process MSB">
+                    <span class="tick-label">Step 4</span><span class="tick-op">Mul &amp; Square</span>
+                </button>
+                <button class="tick" data-step="4" aria-label="Step 5: Return result">
+                    <span class="tick-label">Step 5</span><span class="tick-op">Return</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-section">
+            <button id="prev" class="btn" aria-label="Previous step">◀ Prev</button>
+            <button id="play" class="btn primary" aria-label="Play auto-advance">▶ Play</button>
+            <button id="next" class="btn" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="5" value="1" step="1" aria-label="Step slider">
+            <span id="counter">1 / 5</span>
+            <span id="step-title">Step 1: Initialization</span>
+            <span id="step-desc">Set up variables and reduce base</span>
+            <span id="op">Initialize</span>
+        </div>
+
+        <!-- Checkpoint Section -->
+        <div class="checkpoint-section" id="checkpoint-section">
+            <h3>🧠 Learner Checkpoint</h3>
+            <p class="checkpoint-prompt" id="checkpoint-prompt">What is the value of result after this step?</p>
+            <div class="checkpoint-input-row">
+                <input type="text" id="checkpoint-input" placeholder="Enter number" aria-label="Your answer">
+                <button id="checkpoint-submit" class="btn primary">Submit</button>
+                <button id="checkpoint-hint" class="btn hint-btn">Hint</button>
+                <button id="checkpoint-show-answer" class="btn show-answer-btn">Show Answer</button>
+            </div>
+            <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="log-section">
+            <h3>Learning Log</h3>
+            <ul id="learning-log">
+                <li class="log-info"><span class="log-timestamp">[Start]</span> Page loaded. Ready to explore the Fast Power Modulo algorithm.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // STEP DATA
+            // ──────────────────────────────────────
+            const totalSteps = 5;
+            const stepData = [{
+                index: 0,
+                title: 'Step 1: Initialization',
+                desc: 'Set up variables and reduce base modulo mod.',
+                op: 'Initialize',
+                result: 1,
+                base: 3,
+                exponent: 5,
+                binary: '101',
+                currentBitIndex: null,
+                activeLines: [2, 3],
+                activeVar: 'base',
+                opClass: '',
+                teaching: '<p>We initialize <strong>result = 1</strong> (the multiplicative identity) and reduce <strong>base = 3 % 13 = 3</strong>. The exponent is <strong>5</strong>, which in binary is <strong>101</strong> (bits from LSB: 1, 0, 1).</p><span class="invariant">Invariant: At every iteration, result * base<sup>exponent</sup> ≡ 3<sup>5</sup> (mod 13). Currently: 1 * 3<sup>5</sup> = 243 ≡ 9 (mod 13).</span><span class="common-error">Common error: Forgetting to reduce base modulo mod first. Always compute base = base % mod before the loop.</span>',
+                evidence: 'Operation: Initialize variables\nTargets: result, base, exponent\nDependencies: Input parameters (base=3, exponent=5, mod=13)\nBefore: (none — algorithm entry)\nAfter: result=1, base=3%13=3, exponent=5',
+                stateJSON: '{"result": 1, "base": 3, "exponent": 5, "step": "initialization"}',
+                checkpoint: null,
+                checkpointAnswer: null,
+                checkpointHint: null,
+            }, {
+                index: 1,
+                title: 'Step 2: Process LSB (Bit 0)',
+                desc: 'Check LSB of exponent 5. It is 1, so multiply result by base.',
+                op: 'Multiply & Square',
+                result: 3,
+                base: 9,
+                exponent: 2,
+                binary: '10',
+                currentBitIndex: 0,
+                activeLines: [5, 6, 8, 9],
+                activeVar: 'result',
+                opClass: 'multiply',
+                teaching: '<p>Exponent <strong>5</strong> (binary <strong>101</strong>) has LSB = <strong>1</strong>. Since the bit is 1, we perform: <strong>result = (1 × 3) % 13 = 3</strong>. Then we square the base: <strong>base = (3 × 3) % 13 = 9</strong>. Finally, we right-shift the exponent: <strong>5 >> 1 = 2</strong> (binary <strong>10</strong>).</p><span class="invariant">After update: result=3, base=9, exponent=2. Check: 3 × 9<sup>2</sup> = 3 × 81 = 243 ≡ 9 (mod 13). ✓</span><span class="common-error">Common error: Forgetting to apply modulo after multiplication. Always compute (result * base) % mod.</span>',
+                evidence: 'Operation: Check bit & multiply (LSB=1)\nTargets: result, base, exponent\nDependencies: exponent&1 = 1 (true), result=1, base=3\nBefore: result=1, base=3, exponent=5 (binary 101)\nAction: result = (1*3)%13 = 3\nAction: base = (3*3)%13 = 9\nAction: exponent = 5>>1 = 2 (binary 10)\nAfter: result=3, base=9, exponent=2',
+                stateJSON: '{"result": 3, "base": 9, "exponent": 2, "bitChecked": "LSB=1", "action": "multiplied"}',
+                checkpoint: 'After processing the first bit (LSB=1), what is the new value of <strong>result</strong>?',
+                checkpointAnswer: '3',
+                checkpointHint: 'Multiply the current result (1) by the current base (3), then apply modulo 13: (1 × 3) % 13 = ?',
+            }, {
+                index: 2,
+                title: 'Step 3: Process Middle Bit (Bit 1)',
+                desc: 'Check LSB of exponent 2. It is 0, so skip multiplication.',
+                op: 'Square Only',
+                result: 3,
+                base: 3,
+                exponent: 1,
+                binary: '1',
+                currentBitIndex: 0,
+                activeLines: [5, 8, 9],
+                activeVar: 'base',
+                opClass: 'skip',
+                teaching: '<p>Exponent <strong>2</strong> (binary <strong>10</strong>) has LSB = <strong>0</strong>. Since the bit is 0, we <strong>skip</strong> the multiplication. We still square the base: <strong>base = (9 × 9) % 13 = 81 % 13 = 3</strong>. Then right-shift: <strong>2 >> 1 = 1</strong> (binary <strong>1</strong>).</p><span class="invariant">After update: result=3, base=3, exponent=1. Check: 3 × 3<sup>1</sup> = 9 ≡ 9 (mod 13). ✓</span><span class="common-error">Common error: Skipping the base squaring step when the bit is 0. The base must be squared in <em>every</em> iteration, regardless of the bit value.</span>',
+                evidence: 'Operation: Check bit (LSB=0, skip multiply)\nTargets: base, exponent (result unchanged)\nDependencies: exponent&1 = 0 (false), base=9\nBefore: result=3, base=9, exponent=2 (binary 10)\nAction: result unchanged (skip multiplication)\nAction: base = (9*9)%13 = 81%13 = 3\nAction: exponent = 2>>1 = 1 (binary 1)\nAfter: result=3, base=3, exponent=1',
+                stateJSON: '{"result": 3, "base": 3, "exponent": 1, "bitChecked": "LSB=0", "action": "skipped multiplication"}',
+                checkpoint: null,
+                checkpointAnswer: null,
+                checkpointHint: null,
+            }, {
+                index: 3,
+                title: 'Step 4: Process MSB (Bit 2)',
+                desc: 'Check LSB of exponent 1. It is 1, so multiply result by base.',
+                op: 'Multiply & Square',
+                result: 9,
+                base: 9,
+                exponent: 0,
+                binary: '0',
+                currentBitIndex: 0,
+                activeLines: [5, 6, 8, 9],
+                activeVar: 'result',
+                opClass: 'multiply',
+                teaching: '<p>Exponent <strong>1</strong> (binary <strong>1</strong>) has LSB = <strong>1</strong>. We multiply: <strong>result = (3 × 3) % 13 = 9</strong>. Square the base: <strong>base = (3 × 3) % 13 = 9</strong>. Right-shift: <strong>1 >> 1 = 0</strong>. The loop will now exit since exponent = 0.</p><span class="invariant">After update: result=9, base=9, exponent=0. Since exponent=0, result holds the final answer. Check: 9 × 9<sup>0</sup> = 9 ≡ 9 (mod 13). ✓</span><span class="common-error">Common error: Confusing which bit is being checked. Always check the LSB (exponent & 1), which corresponds to the rightmost bit of the current exponent value.</span>',
+                evidence: 'Operation: Check bit & multiply (LSB=1)\nTargets: result, base, exponent\nDependencies: exponent&1 = 1 (true), result=3, base=3\nBefore: result=3, base=3, exponent=1 (binary 1)\nAction: result = (3*3)%13 = 9\nAction: base = (3*3)%13 = 9\nAction: exponent = 1>>1 = 0 (binary 0)\nAfter: result=9, base=9, exponent=0',
+                stateJSON: '{"result": 9, "base": 9, "exponent": 0, "bitChecked": "LSB=1", "action": "multiplied, loop exit"}',
+                checkpoint: 'After processing the final 1-bit (MSB), what is the new value of <strong>result</strong>?',
+                checkpointAnswer: '9',
+                checkpointHint: 'Multiply the current result (3) by the current base (3), then apply modulo 13: (3 × 3) % 13 = ?',
+            }, {
+                index: 4,
+                title: 'Step 5: Return Result',
+                desc: 'Exponent is 0, exit loop and return the final answer.',
+                op: 'Return',
+                result: 9,
+                base: 9,
+                exponent: 0,
+                binary: '0',
+                currentBitIndex: null,
+                activeLines: [11],
+                activeVar: 'result',
+                opClass: '',
+                teaching: '<p>The exponent is now <strong>0</strong>, so the while loop exits. We return <strong>result = 9</strong>. This is the final answer: <strong>3<sup>5</sup> mod 13 = 9</strong>.</p><span class="invariant">Final verification: 3<sup>5</sup> = 243, and 243 ÷ 13 = 18 remainder 9. The fast power algorithm correctly computed 9 using only O(log exponent) operations.</span><span class="common-error">Common error: Returning base instead of result. The accumulated answer is in <strong>result</strong>, not base.</span>',
+                evidence: 'Operation: Return final result\nTargets: return value\nDependencies: result=9, exponent=0 (loop exit condition met)\nBefore: result=9, base=9, exponent=0\nAction: Exit while loop (exponent=0)\nAction: Return result = 9\nFinal answer: 9',
+                stateJSON: '{"result": 9, "base": 9, "exponent": 0, "step": "return", "finalAnswer": 9}',
+                checkpoint: 'What is the <strong>final returned value</strong> of fastPower(3, 5, 13)?',
+                checkpointAnswer: '9',
+                checkpointHint: 'The result variable at the end of the algorithm holds the answer. Look at the current value of result.',
+            }];
+
+            // ──────────────────────────────────────
+            // DOM REFERENCES
+            // ──────────────────────────────────────
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $topResult = document.getElementById('top-result');
+            const $answer = document.getElementById('answer');
+            const $prevBtn = document.getElementById('prev');
+            const $playBtn = document.getElementById('play');
+            const $nextBtn = document.getElementById('next');
+            const $learningLog = document.getElementById('learning-log');
+            const $checkpointSection = document.getElementById('checkpoint-section');
+            const $checkpointPrompt = document.getElementById('checkpoint-prompt');
+            const $checkpointInput = document.getElementById('checkpoint-input');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHint = document.getElementById('checkpoint-hint');
+            const $checkpointShowAnswer = document.getElementById('checkpoint-show-answer');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $valResult = document.getElementById('val-result');
+            const $valBase = document.getElementById('val-base');
+            const $valExp = document.getElementById('val-exp');
+            const $binaryDisplay = document.getElementById('binary-display');
+            const $bitCards = document.getElementById('bit-cards');
+            const $opIndicatorUI = document.getElementById('op-indicator-ui');
+            const $varResult = document.getElementById('var-result');
+            const $varBase = document.getElementById('var-base');
+            const $varExp = document.getElementById('var-exp');
+            const $topSolution = document.getElementById('top-solution');
+
+            let currentStepIndex = 0;
+            let playInterval = null;
+            let checkpointAnsweredForStep = {}; // track which steps have had checkpoints answered
+            let checkpointRevealedForStep = {}; // track show-answer usage per step
+
+            // ──────────────────────────────────────
+            // RENDER STEP
+            // ──────────────────────────────────────
+            function renderStep(index) {
+                const data = stepData[index];
+                if (!data) return;
+
+                // Update text elements
+                $stepTitle.textContent = data.title;
+                $stepDesc.textContent = data.desc;
+                $op.textContent = data.op;
+                $counter.textContent = (index + 1) + ' / ' + totalSteps;
+                $range.value = index + 1;
+
+                // Update teaching
+                $teaching.innerHTML = data.teaching;
+
+                // Update evidence and state
+                $stepEvidence.textContent = data.evidence;
+                $state.textContent = data.stateJSON;
+
+                // Update canvas variables
+                $valResult.textContent = data.result;
+                $valBase.textContent = data.base;
+                $valExp.textContent = data.exponent;
+                $binaryDisplay.textContent = data.binary;
+
+                // Update binary bit cards
+                let bitHTML = '';
+                const binaryStr = data.binary;
+                for (let i = 0; i < binaryStr.length; i++) {
+                    const bitVal = binaryStr[i];
+                    const isLSB = (i === binaryStr.length - 1); // rightmost = LSB position in display
+                    let bitClass = 'bit';
+                    if (data.currentBitIndex !== null && isLSB && data.exponent > 0) {
+                        bitClass += ' current-bit';
+                    } else if (data.exponent === 0 && index === totalSteps - 1) {
+                        bitClass += ' processed-bit';
+                    } else if (i < binaryStr.length - 1 && data.exponent >= 0) {
+                        if (index >= 1 && i < binaryStr.length - 1) bitClass += ' processed-bit';
+                    }
+                    bitHTML += '<span class="' + bitClass + '">' + bitVal + '</span>';
+                }
+                $bitCards.innerHTML = bitHTML;
+
+                // Update op indicator
+                $opIndicatorUI.textContent = data.op;
+                $opIndicatorUI.className = 'op-indicator';
+                if (data.opClass === 'multiply') $opIndicatorUI.classList.add('multiply');
+                if (data.opClass === 'skip') $opIndicatorUI.classList.add('skip');
+
+                // Update active var highlighting
+                $varResult.classList.remove('active-var');
+                $varBase.classList.remove('active-var');
+                $varExp.classList.remove('active-var');
+                if (data.activeVar === 'result') $varResult.classList.add('active-var');
+                if (data.activeVar === 'base') $varBase.classList.add('active-var');
+                if (data.activeVar === 'exp') $varExp.classList.add('active-var');
+
+                // Update code highlighting
+                const allLines = $code.querySelectorAll('.cline');
+                allLines.forEach(line => line.classList.remove('active'));
+                if (data.activeLines) {
+                    data.activeLines.forEach(ln => {
+                        const targetLine = $code.querySelector('.cline[data-line="' + ln + '"]');
+                        if (targetLine) targetLine.classList.add('active');
+                    });
+                }
+
+                // Update timeline ticks
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((tick, i) => {
+                    tick.classList.remove('active-tick', 'completed-tick');
+                    if (i === index) tick.classList.add('active-tick');
+                    else if (i < index) tick.classList.add('completed-tick');
+                });
+
+                // Update top result
+                if (index === totalSteps - 1) {
+                    $topResult.textContent = '9';
+                    $topResult.style.color = '#1a7a3a';
+                    $topResult.style.background = '#eaf7ef';
+                } else if (index >= 1) {
+                    $topResult.textContent = '? (partial: result=' + data.result + ')';
+                    $topResult.style.color = '#c4820e';
+                    $topResult.style.background = '#fef9ee';
+                } else {
+                    $topResult.textContent = '?';
+                    $topResult.style.color = '#2b6cb0';
+                    $topResult.style.background = '#e8f0fb';
+                }
+
+                // Update button states
+                $prevBtn.disabled = (index === 0);
+                $nextBtn.disabled = (index === totalSteps - 1);
+
+                // Handle checkpoint visibility
+                updateCheckpointUI(index);
+
+                // Scroll code active line into view if needed
+                const activeCodeLine = $code.querySelector('.cline.active');
+                if (activeCodeLine && $code.scrollHeight > $code.clientHeight) {
+                    activeCodeLine.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // CHECKPOINT UI
+            // ──────────────────────────────────────
+            function updateCheckpointUI(index) {
+                const data = stepData[index];
+                if (data.checkpoint && !checkpointAnsweredForStep[index] && !checkpointRevealedForStep[index]) {
+                    $checkpointSection.classList.add('visible');
+                    $checkpointPrompt.innerHTML = data.checkpoint;
+                    $checkpointInput.value = '';
+                    $checkpointFeedback.className = 'checkpoint-feedback';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.style.display = 'none';
+                    $checkpointInput.disabled = false;
+                    $checkpointSubmit.disabled = false;
+                    $checkpointHint.disabled = false;
+                    $checkpointShowAnswer.disabled = false;
+                } else if (data.checkpoint && (checkpointAnsweredForStep[index] || checkpointRevealedForStep[index])) {
+                    $checkpointSection.classList.add('visible');
+                    $checkpointPrompt.innerHTML = data.checkpoint;
+                    $checkpointInput.disabled = true;
+                    $checkpointSubmit.disabled = true;
+                    $checkpointHint.disabled = true;
+                    $checkpointShowAnswer.disabled = true;
+                    if (checkpointRevealedForStep[index] && !checkpointAnsweredForStep[index]) {
+                        $checkpointFeedback.className = 'checkpoint-feedback show-answer-reveal';
+                        $checkpointFeedback.textContent = '📖 Answer revealed: ' + data.checkpointAnswer + '. This step\'s checkpoint has been shown.';
+                        $checkpointFeedback.style.display = 'block';
+                    }
+                    if (checkpointAnsweredForStep[index]) {
+                        $checkpointFeedback.className = 'checkpoint-feedback correct';
+                        $checkpointFeedback.textContent = '✅ Correct! The answer is ' + data.checkpointAnswer + '. Great work!';
+                        $checkpointFeedback.style.display = 'block';
+                        $checkpointInput.value = data.checkpointAnswer;
+                    }
+                } else {
+                    $checkpointSection.classList.remove('visible');
+                    $checkpointFeedback.className = 'checkpoint-feedback';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.style.display = 'none';
+                }
+            }
+
+            function submitCheckpoint() {
+                const index = currentStepIndex;
+                const data = stepData[index];
+                if (!data.checkpoint) return;
+                if (checkpointAnsweredForStep[index] || checkpointRevealedForStep[index]) return;
+
+                const userAnswer = $checkpointInput.value.trim();
+                const correctAnswer = data.checkpointAnswer;
+                const timestamp = new Date().toLocaleTimeString();
+
+                if (userAnswer === correctAnswer) {
+                    checkpointAnsweredForStep[index] = true;
+                    $checkpointFeedback.className = 'checkpoint-feedback correct';
+                    $checkpointFeedback.textContent = '✅ Correct! The answer is ' + correctAnswer + '. Well done!';
+                    $checkpointFeedback.style.display = 'block';
+                    $checkpointInput.disabled = true;
+                    $checkpointSubmit.disabled = true;
+                    $checkpointHint.disabled = true;
+                    $checkpointShowAnswer.disabled = true;
+                    appendLog('log-correct', 'Checkpoint at ' + data.title + ': Answered "' + userAnswer + '" — Correct!');
+                } else {
+                    $checkpointFeedback.className = 'checkpoint-feedback incorrect';
+                    $checkpointFeedback.textContent = '❌ Incorrect. "' + userAnswer + '" is not right. Try again or use Hint / Show Answer.';
+                    $checkpointFeedback.style.display = 'block';
+                    appendLog('log-incorrect', 'Checkpoint at ' + data.title + ': Answered "' + userAnswer + '" — Incorrect. Expected ' +
+                        correctAnswer + '.');
+                    $checkpointInput.focus();
+                    $checkpointInput.select();
+                }
+            }
+
+            function showHint() {
+                const index = currentStepIndex;
+                const data = stepData[index];
+                if (!data.checkpoint || !data.checkpointHint) return;
+                if (checkpointAnsweredForStep[index] || checkpointRevealedForStep[index]) return;
+                $checkpointFeedback.className = 'checkpoint-feedback show-answer-reveal';
+                $checkpointFeedback.textContent = '💡 Hint: ' + data.checkpointHint;
+                $checkpointFeedback.style.display = 'block';
+                appendLog('log-info', 'Hint requested at ' + data.title + ': ' + data.checkpointHint);
+            }
+
+            function showAnswer() {
+                const index = currentStepIndex;
+                const data = stepData[index];
+                if (!data.checkpoint) return;
+                if (checkpointAnsweredForStep[index]) return;
+                checkpointRevealedForStep[index] = true;
+                $checkpointInput.value = data.checkpointAnswer;
+                $checkpointInput.disabled = true;
+                $checkpointSubmit.disabled = true;
+                $checkpointHint.disabled = true;
+                $checkpointShowAnswer.disabled = true;
+                $checkpointFeedback.className = 'checkpoint-feedback show-answer-reveal';
+                $checkpointFeedback.textContent = '📖 Answer revealed: ' + data.checkpointAnswer +
+                    '. The correct value has been shown.';
+                $checkpointFeedback.style.display = 'block';
+                appendLog('log-show-answer', 'Show Answer used at ' + data.title + ': Answer is ' + data.checkpointAnswer +
+                    '.');
+            }
+
+            function appendLog(className, message) {
+                const li = document.createElement('li');
+                li.className = className;
+                const ts = document.createElement('span');
+                ts.className = 'log-timestamp';
+                ts.textContent = '[' + new Date().toLocaleTimeString() + ']';
+                li.appendChild(ts);
+                li.appendChild(document.createTextNode(' ' + message));
+                $learningLog.appendChild(li);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // NAVIGATION
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                const prevIndex = currentStepIndex;
+                currentStepIndex = index;
+                renderStep(currentStepIndex);
+                if (prevIndex !== currentStepIndex) {
+                    appendLog('log-info', 'Navigated to ' + stepData[currentStepIndex].title + '.');
+                }
+                // If we jumped to a step beyond any unanswered checkpoint, mark earlier unanswered ones as skipped in log
+                for (let i = 0; i < currentStepIndex; i++) {
+                    if (stepData[i].checkpoint && !checkpointAnsweredForStep[i] && !checkpointRevealedForStep[i]) {
+                        // Don't auto-reveal, just note in log that user moved past
+                    }
+                }
+            }
+
+            function nextStep() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                }
+            }
+
+            function prevStep() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function togglePlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                    $playBtn.textContent = '▶ Play';
+                    $playBtn.classList.add('primary');
+                    appendLog('log-info', 'Auto-play stopped.');
+                } else {
+                    $playBtn.textContent = '⏸ Pause';
+                    $playBtn.classList.remove('primary');
+                    appendLog('log-info', 'Auto-play started (2-second intervals).');
+                    playInterval = setInterval(() => {
+                        if (currentStepIndex < totalSteps - 1) {
+                            nextStep();
+                        } else {
+                            clearInterval(playInterval);
+                            playInterval = null;
+                            $playBtn.textContent = '▶ Play';
+                            $playBtn.classList.add('primary');
+                            appendLog('log-info', 'Auto-play finished — reached the final step.');
+                        }
+                    }, 2000);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // EVENT LISTENERS
+            // ──────────────────────────────────────
+            $prevBtn.addEventListener('click', () => {
+                if (playInterval) togglePlay();
+                prevStep();
+            });
+            $nextBtn.addEventListener('click', () => {
+                if (playInterval) togglePlay();
+                nextStep();
+            });
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                const val = parseInt($range.value, 10);
+                if (val >= 1 && val <= totalSteps) {
+                    if (playInterval) togglePlay();
+                    goToStep(val - 1);
+                }
+            });
+
+            // Timeline tick clicks
+            $timeline.addEventListener('click', (e) => {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                const stepVal = parseInt(tick.getAttribute('data-step'), 10);
+                if (!isNaN(stepVal) && stepVal >= 0 && stepVal < totalSteps) {
+                    if (playInterval) togglePlay();
+                    goToStep(stepVal);
+                }
+            });
+
+            // Checkpoint buttons
+            $checkpointSubmit.addEventListener('click', submitCheckpoint);
+            $checkpointHint.addEventListener('click', showHint);
+            $checkpointShowAnswer.addEventListener('click', showAnswer);
+            $checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitCheckpoint();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // KEYBOARD NAVIGATION
+            // ──────────────────────────────────────
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'checkpoint-input') return;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (playInterval) togglePlay();
+                    nextStep();
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (playInterval) togglePlay();
+                    prevStep();
+                } else if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // INITIAL RENDER
+            // ──────────────────────────────────────
+            $answer.textContent = '9';
+            $topResult.textContent = '?';
+            $topSolution.textContent = 'Break exponent into binary, square base, multiply on 1-bits';
+            goToStep(0);
+            $range.setAttribute('max', totalSteps);
+            $range.value = 1;
+
+            console.log('Fast Power Modulo tutoring page ready.');
+            console.log('Input: base=3, exponent=5, mod=13');
+            console.log('Expected output: 9');
+            console.log('All user-facing strings are in English.');
+        })();
+    </script>
+</body>
+</html>

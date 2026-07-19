@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Robber - Algorithm Tutor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface2: #f8fafc;
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #eef2ff 0%, #f1f5f9 30%, #f8fafc 60%, #eef2ff 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 20px 40px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 32px 24px 24px;
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), #7c3aed, var(--primary-light), #a78bfa);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+        .header .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            color: var(--primary-dark);
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border: 1px solid #c7d2fe;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            margin: 0 0 6px;
+        }
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            transition: box-shadow var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .card h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card h2 .icon {
+            font-size: 1.3rem;
+        }
+
+        /* Problem card */
+        .problem-card .array-display {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 12px 0;
+        }
+        .problem-card .house-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            transition: all var(--transition);
+        }
+        .problem-card .house-chip .house-emoji {
+            font-size: 1.3rem;
+        }
+        .problem-card .house-chip .idx {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Canvas container */
+        .canvas-container {
+            position: relative;
+            background: var(--surface2);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 2px solid var(--border);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color var(--transition);
+        }
+        .canvas-container:focus-within {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        .canvas-container canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+        }
+
+        /* Timeline controls */
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            user-select: none;
+            outline: none;
+        }
+        .btn:focus-visible {
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn-outline {
+            background: var(--surface);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: #eef2ff;
+            transform: translateY(-1px);
+        }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 2px solid transparent;
+        }
+        .btn-ghost:hover {
+            background: var(--surface2);
+            border-color: var(--border);
+            color: var(--text);
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+        }
+        .btn-xs {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            border-radius: 5px;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+            transform: none !important;
+        }
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn-warning {
+            background: var(--warning);
+            color: #1e293b;
+        }
+        .btn-warning:hover {
+            background: #d97706;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Slider */
+        .step-slider {
+            flex: 1;
+            min-width: 120px;
+            max-width: 300px;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #c7d2fe 0%, var(--primary) var(--fill), #e2e8f0 var(--fill));
+            outline: none;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .step-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--primary);
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition);
+        }
+        .step-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-dark);
+        }
+        .step-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Feedback */
+        .feedback-area {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all var(--transition);
+            margin-top: 8px;
+        }
+        .feedback-correct {
+            background: var(--success-light);
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .feedback-incorrect {
+            background: var(--danger-light);
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .feedback-neutral {
+            background: #f8fafc;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        /* Learning log */
+        .learning-log {
+            list-style: none;
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 4px 0;
+            scroll-behavior: smooth;
+        }
+        .learning-log li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            animation: slideIn 0.3s ease-out;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .learning-log li.log-correct {
+            border-left: 4px solid var(--success);
+            background: #f0fdf4;
+        }
+        .learning-log li.log-incorrect {
+            border-left: 4px solid var(--danger);
+            background: #fef2f2;
+        }
+        .learning-log li.log-reveal {
+            border-left: 4px solid var(--warning);
+            background: #fffbeb;
+        }
+        .learning-log li.log-hint {
+            border-left: 4px solid var(--primary-light);
+            background: #eef2ff;
+        }
+        .log-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .log-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Final answer */
+        .final-answer-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            border-radius: var(--radius);
+            border: 2px solid #c7d2fe;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary-dark);
+            margin-top: 8px;
+        }
+        .final-answer-display .answer-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            background: #fff;
+            padding: 4px 16px;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.02em;
+        }
+        .final-answer-display .answer-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Hint display */
+        .hint-display {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            margin-top: 8px;
+            color: #92400e;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all var(--transition);
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Utility */
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .mt-2 {
+            margin-top: 8px;
+        }
+        .mt-3 {
+            margin-top: 12px;
+        }
+        .mb-2 {
+            margin-bottom: 8px;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-muted {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        .gap-2 {
+            gap: 8px;
+        }
+
+        /* Input */
+        .prediction-input {
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            width: 140px;
+            text-align: center;
+            transition: all var(--transition);
+            outline: none;
+            background: var(--surface2);
+            color: var(--text);
+        }
+        .prediction-input:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            background: #fff;
+        }
+        .prediction-input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px 10px 24px;
+            }
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            .card {
+                padding: 16px;
+            }
+            .timeline-controls {
+                gap: 8px;
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+            .step-slider {
+                max-width: 180px;
+            }
+            .final-answer-display {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            .final-answer-display .answer-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Keyboard hint */
+        .kbd {
+            display: inline-block;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+        }
+
+        /* empty log state */
+        .log-empty {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 20px;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        /* pulse for the final answer */
+        @keyframes subtlePulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(79, 70, 229, 0);
+            }
+        }
+        .pulse-ring {
+            animation: subtlePulse 2.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <span class="badge">1D Dynamic Programming</span>
+            <h1>🏠 House Robber</h1>
+            <p class="subtitle">Maximize loot without triggering adjacent alarms</p>
+        </header>
+
+        <!-- Problem card -->
+        <div class="card problem-card">
+            <h2><span class="icon">📋</span> Problem Statement</h2>
+            <p style="margin-bottom:12px;color:var(--text-secondary);">
+                A thief plans to rob houses along a street. Each house <strong>i</strong> contains <strong>nums[i]</strong> cash.
+                Adjacent houses have connected alarms — robbing two adjacent houses triggers the alarm.
+                Find the <strong>maximum total cash</strong> that can be robbed safely.
+            </p>
+            <p style="font-weight:600;margin-bottom:8px;">Input array: <code style="font-family:'JetBrains Mono',monospace;background:#f1f5f9;padding:2px 8px;border-radius:4px;">nums = [2, 7, 9, 3, 1]</code></p>
+            <div class="array-display">
+                <span class="house-chip"><span class="idx">i=0</span> <span class="house-emoji">🏠</span> <strong>$2</strong></span>
+                <span class="house-chip"><span class="idx">i=1</span> <span class="house-emoji">🏠</span> <strong>$7</strong></span>
+                <span class="house-chip"><span class="idx">i=2</span> <span class="house-emoji">🏠</span> <strong>$9</strong></span>
+                <span class="house-chip"><span class="idx">i=3</span> <span class="house-emoji">🏠</span> <strong>$3</strong></span>
+                <span class="house-chip"><span class="idx">i=4</span> <span class="house-emoji">🏠</span> <strong>$1</strong></span>
+            </div>
+        </div>
+
+        <!-- Visualization card -->
+        <div class="card">
+            <h2><span class="icon">📊</span> Step-by-Step DP Visualization</h2>
+            <p class="text-muted mb-2">Use <span class="kbd">←</span> <span class="kbd">→</span> arrow keys, the slider, or buttons to step through the algorithm.</p>
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="vizCanvas" width="800" height="360" tabindex="0" aria-label="DP visualization canvas showing houses and algorithm steps. Use left and right arrow keys to navigate."></canvas>
+            </div>
+            <div class="timeline-controls mt-2">
+                <button class="btn btn-outline btn-sm" id="btnPrev" aria-label="Previous step" title="Previous step (Left Arrow)">◀ Prev</button>
+                <button class="btn btn-ghost btn-sm" id="btnPlay" aria-label="Auto-play steps" title="Auto-play">▶ Play</button>
+                <input type="range" class="step-slider" id="stepSlider" min="0" max="4" value="0" step="1" aria-label="Step timeline slider" title="Drag to navigate steps">
+                <span class="step-label" id="stepLabel">Step 0/4</span>
+                <button class="btn btn-outline btn-sm" id="btnNext" aria-label="Next step" title="Next step (Right Arrow)">Next ▶</button>
+            </div>
+        </div>
+
+        <!-- Checkpoint / Prediction card -->
+        <div class="card">
+            <h2><span class="icon">🎯</span> Checkpoint: Make a Prediction</h2>
+            <p style="color:var(--text-secondary);margin-bottom:10px;">What is the <strong>maximum total cash</strong> the thief can rob from these 5 houses?</p>
+            <div class="flex-row gap-2">
+                <input type="number" class="prediction-input" id="predictionInput" placeholder="Your answer" aria-label="Enter your prediction for the maximum robbery amount" min="0">
+                <button class="btn btn-primary" id="btnSubmit">Submit Prediction</button>
+                <button class="btn btn-outline btn-sm" id="btnHint" title="Get a hint">💡 Hint</button>
+                <button class="btn btn-warning btn-sm" id="btnShowAnswer" title="Reveal the answer">👁 Show Answer</button>
+            </div>
+            <div id="feedbackArea" class="feedback-area feedback-neutral" role="status" aria-live="polite">
+                Ready to check your prediction. Type a number and click Submit.
+            </div>
+            <div id="hintDisplay" style="display:none;"></div>
+            <div class="final-answer-display pulse-ring mt-3" id="finalAnswerDisplay">
+                <span class="answer-label">🏆 Authoritative Final Answer:</span>
+                <span class="answer-value">12</span>
+            </div>
+        </div>
+
+        <!-- Learning Log card -->
+        <div class="card">
+            <h2><span class="icon">📝</span> Learning Log</h2>
+            <p class="text-muted mb-2">All your attempts and actions are recorded here.</p>
+            <ul class="learning-log" id="learningLogList" aria-label="Learning log of attempts">
+                <li class="log-empty" id="logEmpty">No attempts yet. Make a prediction to start!</li>
+            </ul>
+            <button class="btn btn-ghost btn-sm mt-2" id="btnClearLog" style="display:none;">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ─────────────────────────────────────
+            // State
+            // ─────────────────────────────────────
+            const nums = [2, 7, 9, 3, 1];
+            const dp = [2, 7, 11, 11, 12];
+            const robbedSets = [
+                [0],
+                [1],
+                [0, 2],
+                [0, 2],
+                [0, 2, 4]
+            ];
+            const correctAnswer = 12;
+            const totalSteps = 5;
+
+            let currentStep = 0;
+            let learningLog = [];
+            let hintLevel = 0;
+            let answerRevealed = false;
+            let autoPlaying = false;
+            let autoPlayTimer = null;
+            let animationProgress = 0; // For smooth transitions
+            let targetStep = 0;
+
+            // ─────────────────────────────────────
+            // DOM refs
+            // ─────────────────────────────────────
+            const canvas = document.getElementById('vizCanvas');
+            const ctx = canvas.getContext('2d');
+            const canvasContainer = document.getElementById('canvasContainer');
+            const stepSlider = document.getElementById('stepSlider');
+            const stepLabel = document.getElementById('stepLabel');
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnPlay = document.getElementById('btnPlay');
+            const btnSubmit = document.getElementById('btnSubmit');
+            const btnHint = document.getElementById('btnHint');
+            const btnShowAnswer = document.getElementById('btnShowAnswer');
+            const btnClearLog = document.getElementById('btnClearLog');
+            const predictionInput = document.getElementById('predictionInput');
+            const feedbackArea = document.getElementById('feedbackArea');
+            const hintDisplay = document.getElementById('hintDisplay');
+            const learningLogList = document.getElementById('learningLogList');
+            const logEmpty = document.getElementById('logEmpty');
+            const finalAnswerDisplay = document.getElementById('finalAnswerDisplay');
+
+            // ─────────────────────────────────────
+            // HiDPI canvas setup
+            // ─────────────────────────────────────
+            function setupCanvas() {
+                const dpr = window.devicePixelRatio || 1;
+                const containerWidth = canvasContainer.clientWidth;
+                const displayWidth = Math.min(containerWidth - 4, 800);
+                const displayHeight = Math.round(displayWidth * 0.45); // 800:360 ratio
+                canvas.style.width = displayWidth + 'px';
+                canvas.style.height = displayHeight + 'px';
+                canvas.width = displayWidth * dpr;
+                canvas.height = displayHeight * dpr;
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.scale(dpr, dpr);
+                return { w: displayWidth, h: displayHeight };
+            }
+
+            let canvasDims = { w: 800, h: 360 };
+
+            function resizeCanvas() {
+                canvasDims = setupCanvas();
+                drawCanvas();
+            }
+
+            // ─────────────────────────────────────
+            // Canvas drawing
+            // ─────────────────────────────────────
+            function drawCanvas() {
+                const { w, h } = canvasDims;
+                ctx.clearRect(0, 0, w, h);
+
+                // Background
+                const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+                bgGrad.addColorStop(0, '#f8fafc');
+                bgGrad.addColorStop(1, '#f1f5f9');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, w, h);
+
+                // Subtle grid
+                ctx.strokeStyle = 'rgba(203,213,225,0.3)';
+                ctx.lineWidth = 0.5;
+                const gridSpacing = 40;
+                for (let x = gridSpacing; x < w; x += gridSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, h);
+                    ctx.stroke();
+                }
+                for (let y = gridSpacing; y < h; y += gridSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                    ctx.stroke();
+                }
+
+                // Calculate house positions
+                const houseCount = nums.length;
+                const houseWidth = 64;
+                const totalHousesWidth = houseCount * houseWidth;
+                const availableWidth = w - 80;
+                const spacing = (availableWidth - totalHousesWidth) / (houseCount + 1);
+                const startX = 40 + spacing;
+                const groundY = h - 70;
+
+                // Draw houses
+                const housePositions = [];
+                for (let i = 0; i < houseCount; i++) {
+                    const hx = startX + i * (houseWidth + spacing);
+                    const hy = groundY - 90;
+                    housePositions.push({ x: hx, y: hy, w: houseWidth, h: 90, cx: hx + houseWidth / 2, cy: hy + 45 });
+                }
+
+                // Determine house states based on currentStep
+                const currentRobbedSet = robbedSets[Math.min(currentStep, totalSteps - 1)] || [];
+
+                // Draw each house
+                for (let i = 0; i < houseCount; i++) {
+                    const pos = housePositions[i];
+                    const isRobbed = currentRobbedSet.includes(i);
+                    const isCurrent = (i === currentStep);
+                    const isPast = (i < currentStep);
+                    const wasConsidered = (i <= currentStep);
+
+                    drawHouseOnCanvas(pos, nums[i], i, isRobbed, isCurrent, wasConsidered);
+                }
+
+                // Draw DP array values below houses
+                const dpY = groundY + 16;
+                for (let i = 0; i < houseCount; i++) {
+                    const pos = housePositions[i];
+                    const isVisible = (i <= currentStep);
+                    if (isVisible) {
+                        // dp value
+                        ctx.fillStyle = '#4f46e5';
+                        ctx.font = '600 13px "JetBrains Mono", monospace';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('dp[' + i + ']=' + dp[i], pos.cx, dpY);
+
+                        // Small underline
+                        ctx.strokeStyle = '#c7d2fe';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(pos.cx - 22, dpY + 4);
+                        ctx.lineTo(pos.cx + 22, dpY + 4);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw recurrence explanation for current step
+                if (currentStep < totalSteps) {
+                    const explY = h - 18;
+                    ctx.fillStyle = '#1e293b';
+                    ctx.font = '500 12px "Inter", sans-serif';
+                    ctx.textAlign = 'center';
+                    let explText = '';
+                    if (currentStep === 0) {
+                        explText = 'Step 0: dp[0] = nums[0] = 2  (only one house to consider)';
+                    } else if (currentStep === 1) {
+                        explText = 'Step 1: dp[1] = max(dp[0], nums[1]) = max(2, 7) = 7';
+                    } else {
+                        const i = currentStep;
+                        const skipVal = dp[i - 1];
+                        const robVal = dp[i - 2] + nums[i];
+                        explText = 'Step ' + i + ': dp[' + i + '] = max(dp[' + (i - 1) + '], dp[' + (i - 2) + ']+nums[' + i +
+                            ']) = max(' + skipVal + ', ' + dp[i - 2] + '+' + nums[i] + ') = max(' + skipVal + ', ' + robVal +
+                            ') = ' + dp[i];
+                    }
+                    ctx.fillStyle = '#334155';
+                    ctx.fillText(explText, w / 2, explY);
+                }
+
+                // Title
+                ctx.fillStyle = '#1e293b';
+                ctx.font = '700 15px "Inter", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('🏠 House Robber — DP State at Step ' + currentStep + ' of ' + (totalSteps - 1), 20, 28);
+
+                // Legend
+                const legendY = 50;
+                const legendX = w - 200;
+                ctx.font = '500 11px "Inter", sans-serif';
+                // Robbed
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(legendX, legendY - 6, 14, 14);
+                ctx.strokeStyle = '#059669';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(legendX, legendY - 6, 14, 14);
+                ctx.fillStyle = '#1e293b';
+                ctx.textAlign = 'left';
+                ctx.fillText('Robbed', legendX + 20, legendY + 4);
+                // Skipped
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillRect(legendX, legendY + 16, 14, 14);
+                ctx.strokeStyle = '#94a3b8';
+                ctx.strokeRect(legendX, legendY + 16, 14, 14);
+                ctx.fillText('Skipped', legendX + 20, legendY + 26);
+                // Current
+                ctx.fillStyle = '#dbeafe';
+                ctx.fillRect(legendX, legendY + 38, 14, 14);
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(legendX, legendY + 38, 14, 14);
+                ctx.fillText('Current', legendX + 20, legendY + 48);
+                ctx.lineWidth = 1;
+                // Undecided
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(legendX, legendY + 60, 14, 14);
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.setLineDash([4, 3]);
+                ctx.strokeRect(legendX, legendY + 60, 14, 14);
+                ctx.setLineDash([]);
+                ctx.fillText('Future', legendX + 20, legendY + 70);
+            }
+
+            function drawHouseOnCanvas(pos, value, index, isRobbed, isCurrent, wasConsidered) {
+                const { x, y, w, h } = pos;
+                const cx = x + w / 2;
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.08)';
+                ctx.beginPath();
+                ctx.ellipse(cx, y + h + 8, w * 0.5, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body color
+                let bodyColor, roofColor, borderColor, borderWidth;
+                if (isCurrent && isRobbed) {
+                    bodyColor = '#d1fae5';
+                    roofColor = '#10b981';
+                    borderColor = '#059669';
+                    borderWidth = 3;
+                } else if (isCurrent) {
+                    bodyColor = '#dbeafe';
+                    roofColor = '#3b82f6';
+                    borderColor = '#2563eb';
+                    borderWidth = 3;
+                } else if (isRobbed) {
+                    bodyColor = '#d1fae5';
+                    roofColor = '#34d399';
+                    borderColor = '#10b981';
+                    borderWidth = 2;
+                } else if (wasConsidered && !isRobbed) {
+                    bodyColor = '#f1f5f9';
+                    roofColor = '#94a3b8';
+                    borderColor = '#cbd5e1';
+                    borderWidth = 1.5;
+                } else {
+                    bodyColor = '#f8fafc';
+                    roofColor = '#cbd5e1';
+                    borderColor = '#e2e8f0';
+                    borderWidth = 1.5;
+                }
+
+                // House body
+                const bodyHeight = h * 0.65;
+                const bodyY = y + h - bodyHeight;
+                ctx.fillStyle = bodyColor;
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = borderWidth;
+                ctx.beginPath();
+                const rx = 4;
+                roundRect(ctx, x, bodyY, w, bodyHeight, rx);
+                ctx.fill();
+                ctx.stroke();
+
+                // Roof (triangle)
+                const roofBaseY = bodyY;
+                const roofPeakY = y;
+                ctx.fillStyle = roofColor;
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = borderWidth;
+                ctx.beginPath();
+                ctx.moveTo(x - 8, roofBaseY);
+                ctx.lineTo(cx, roofPeakY - 4);
+                ctx.lineTo(x + w + 8, roofBaseY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Chimney (small)
+                if (isRobbed) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.strokeStyle = '#d97706';
+                    ctx.lineWidth = 1;
+                    const chimX = x + w * 0.65;
+                    const chimW = 10;
+                    const chimH = 20;
+                    ctx.fillRect(chimX, roofPeakY, chimW, chimH);
+                    ctx.strokeRect(chimX, roofPeakY, chimW, chimH);
+                    // Smoke particles
+                    ctx.fillStyle = 'rgba(200,200,210,0.6)';
+                    ctx.beginPath();
+                    ctx.arc(chimX + chimW / 2, roofPeakY - 5, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(chimX + chimW / 2 + 4, roofPeakY - 12, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Door
+                const doorW = 14;
+                const doorH = 20;
+                const doorX = cx - doorW / 2;
+                const doorY = bodyY + bodyHeight - doorH - 4;
+                ctx.fillStyle = isRobbed ? '#fef3c7' : '#e2e8f0';
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(doorX, doorY, doorW, doorH, [3, 3, 0, 0]);
+                ctx.fill();
+                ctx.stroke();
+
+                // Window
+                const winSize = 10;
+                const winX = cx - winSize / 2;
+                const winY = bodyY + 12;
+                ctx.fillStyle = isRobbed ? '#fef9c3' : '#e2e8f0';
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 1;
+                ctx.fillRect(winX, winY, winSize, winSize);
+                ctx.strokeRect(winX, winY, winSize, winSize);
+                if (isRobbed) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.fillRect(winX + 2, winY + 2, winSize - 4, winSize - 4);
+                }
+
+                // Value label
+                ctx.fillStyle = isRobbed ? '#065f46' : (isCurrent ? '#1e40af' : '#1e293b');
+                ctx.font = '700 15px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('$' + value, cx, bodyY - 8);
+
+                // Index label below
+                ctx.fillStyle = '#64748b';
+                ctx.font = '500 10px "Inter", sans-serif';
+                ctx.fillText('House ' + index, cx, y + h + 10);
+
+                // Robbed badge
+                if (isRobbed) {
+                    ctx.fillStyle = '#10b981';
+                    ctx.font = '700 11px "Inter", sans-serif';
+                    ctx.fillText('✓ ROBBED', cx, bodyY - 22);
+                } else if (wasConsidered && !isRobbed && !isCurrent) {
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '500 10px "Inter", sans-serif';
+                    ctx.fillText('skipped', cx, bodyY - 22);
+                }
+
+                // Current highlight ring
+                if (isCurrent) {
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([5, 3]);
+                    ctx.beginPath();
+                    ctx.roundRect(x - 6, y - 4, w + 12, h + 20, 10);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = 1;
+                }
+            }
+
+            function roundRect(ctx, x, y, w, h, r) {
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
+            }
+
+            // ─────────────────────────────────────
+            // Update UI
+            // ─────────────────────────────────────
+            function updateStepUI() {
+                stepSlider.value = currentStep;
+                stepLabel.textContent = 'Step ' + currentStep + '/' + (totalSteps - 1);
+                // Update slider fill
+                const pct = (currentStep / (totalSteps - 1)) * 100;
+                stepSlider.style.setProperty('--fill', pct + '%');
+                btnPrev.disabled = (currentStep === 0);
+                btnNext.disabled = (currentStep === totalSteps - 1);
+                drawCanvas();
+            }
+
+            function setStep(newStep) {
+                currentStep = Math.max(0, Math.min(totalSteps - 1, newStep));
+                targetStep = currentStep;
+                animationProgress = 1;
+                updateStepUI();
+            }
+
+            function goToStep(newStep) {
+                targetStep = Math.max(0, Math.min(totalSteps - 1, newStep));
+                if (targetStep !== currentStep) {
+                    currentStep = targetStep;
+                    animationProgress = 1;
+                    updateStepUI();
+                }
+            }
+
+            // ─────────────────────────────────────
+            // Learning log
+            // ─────────────────────────────────────
+            function addLogEntry(type, message, detail) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit',
+                    second: '2-digit' });
+                const entry = {
+                    type: type,
+                    message: message,
+                    detail: detail,
+                    time: timeStr,
+                    timestamp: now
+                };
+                learningLog.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLog.length === 0) {
+                    learningLogList.innerHTML =
+                        '<li class="log-empty" id="logEmpty">No attempts yet. Make a prediction to start!</li>';
+                    btnClearLog.style.display = 'none';
+                    return;
+                }
+                btnClearLog.style.display = 'inline-flex';
+                let html = '';
+                for (let i = learningLog.length - 1; i >= 0; i--) {
+                    const entry = learningLog[i];
+                    let icon = '';
+                    let cssClass = '';
+                    switch (entry.type) {
+                        case 'correct':
+                            icon = '✅';
+                            cssClass = 'log-correct';
+                            break;
+                        case 'incorrect':
+                            icon = '❌';
+                            cssClass = 'log-incorrect';
+                            break;
+                        case 'reveal':
+                            icon = '👁';
+                            cssClass = 'log-reveal';
+                            break;
+                        case 'hint':
+                            icon = '💡';
+                            cssClass = 'log-hint';
+                            break;
+                        default:
+                            icon = '📝';
+                            cssClass = '';
+                    }
+                    html += '<li class="' + cssClass + '"><span class="log-icon">' + icon + '</span>';
+                    html += '<span style="flex:1;">' + entry.message + '</span>';
+                    html += '<span class="log-time">' + entry.time + '</span></li>';
+                }
+                learningLogList.innerHTML = html;
+                learningLogList.scrollTop = 0;
+            }
+
+            // ─────────────────────────────────────
+            // Hint system
+            // ─────────────────────────────────────
+            const hints = [
+                'This is a dynamic programming problem. For each house, you must decide: <strong>rob it</strong> or <strong>skip it</strong>. If you rob house i, you cannot rob house i-1.',
+                'The recurrence relation is: <strong>dp[i] = max(dp[i-1], dp[i-2] + nums[i])</strong>. dp[i] represents the maximum cash obtainable from the first i+1 houses.',
+                'Try filling in the dp array step by step:<br>dp[0] = nums[0] = <strong>2</strong><br>dp[1] = max(dp[0], nums[1]) = max(2, 7) = <strong>7</strong><br>dp[2] = max(dp[1], dp[0]+nums[2]) = max(7, 2+9) = <strong>?</strong><br>Continue from there...',
+                'The completed dp array is: [2, 7, 11, 11, <strong>12</strong>]. The answer is <strong>12</strong>, achieved by robbing houses 0, 2, and 4 (2+9+1=12).'
+            ];
+
+            function showHint() {
+                if (hintLevel < hints.length) {
+                    const hintText = hints[hintLevel];
+                    hintDisplay.style.display = 'block';
+                    hintDisplay.className = 'hint-display';
+                    hintDisplay.innerHTML = '<strong>Hint ' + (hintLevel + 1) + ' of ' + hints.length +
+                        ':</strong> ' + hintText;
+                    addLogEntry('hint', 'Viewed Hint ' + (hintLevel + 1) + ': ' + hintText.replace(/<[^>]*>/g, '').substring(
+                        0, 60) + '...');
+                    hintLevel++;
+                }
+                if (hintLevel >= hints.length) {
+                    btnHint.textContent = '💡 No More Hints';
+                    btnHint.disabled = true;
+                }
+            }
+
+            function revealAnswer() {
+                answerRevealed = true;
+                setStep(totalSteps - 1);
+                hintLevel = hints.length;
+                hintDisplay.style.display = 'block';
+                hintDisplay.className = 'hint-display';
+                hintDisplay.innerHTML = '<strong>✅ Answer Revealed:</strong> The maximum amount is <strong>$12</strong>. ' +
+                    'Optimal plan: rob <strong>House 0 ($2)</strong>, <strong>House 2 ($9)</strong>, and <strong>House 4 ($1)</strong> = 2+9+1=12.';
+                btnHint.disabled = true;
+                btnHint.textContent = '💡 No More Hints';
+                feedbackArea.className = 'feedback-area feedback-neutral';
+                feedbackArea.textContent = 'The answer has been revealed: $12. You can still explore the steps above.';
+                addLogEntry('reveal', 'Answer revealed: $12 (rob houses 0, 2, 4)');
+                // Pulse the final answer
+                finalAnswerDisplay.classList.add('pulse-ring');
+                setTimeout(() => finalAnswerDisplay.classList.remove('pulse-ring'), 2600);
+            }
+
+            // ─────────────────────────────────────
+            // Prediction check
+            // ─────────────────────────────────────
+            function submitPrediction() {
+                const rawValue = predictionInput.value.trim();
+                if (rawValue === '') {
+                    feedbackArea.className = 'feedback-area feedback-neutral';
+                    feedbackArea.textContent = 'Please enter a number before submitting.';
+                    return;
+                }
+                const prediction = parseInt(rawValue, 10);
+                if (isNaN(prediction)) {
+                    feedbackArea.className = 'feedback-area feedback-incorrect';
+                    feedbackArea.textContent = 'That does not look like a valid number. Please enter an integer.';
+                    return;
+                }
+
+                if (prediction === correctAnswer) {
+                    feedbackArea.className = 'feedback-area feedback-correct';
+                    feedbackArea.innerHTML =
+                        '🎉 <strong>Correct!</strong> The maximum amount is indeed <strong>$12</strong>. Excellent work! The optimal strategy is to rob houses 0, 2, and 4 (2+9+1=12).';
+                    addLogEntry('correct', 'Predicted: ' + prediction + ' — Correct! Max is $12.');
+                    setStep(totalSteps - 1);
+                } else {
+                    feedbackArea.className = 'feedback-area feedback-incorrect';
+                    const diff = prediction > correctAnswer ? 'higher' : 'lower';
+                    feedbackArea.innerHTML = '❌ <strong>Not quite.</strong> Your answer of <strong>$' + prediction +
+                        '</strong> is ' + diff +
+                        ' than the correct maximum. Try reviewing the DP steps or use a hint. Keep going!';
+                    addLogEntry('incorrect', 'Predicted: ' + prediction + ' — Incorrect. Correct answer is $12.');
+                }
+                predictionInput.value = '';
+                predictionInput.focus();
+                // Scroll to feedback
+                feedbackArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // ─────────────────────────────────────
+            // Auto-play
+            // ─────────────────────────────────────
+            function toggleAutoPlay() {
+                if (autoPlaying) {
+                    stopAutoPlay();
+                } else {
+                    startAutoPlay();
+                }
+            }
+
+            function startAutoPlay() {
+                autoPlaying = true;
+                btnPlay.textContent = '⏸ Pause';
+                btnPlay.classList.add('btn-danger');
+                btnPlay.classList.remove('btn-ghost');
+                advanceAutoPlay();
+            }
+
+            function stopAutoPlay() {
+                autoPlaying = false;
+                btnPlay.textContent = '▶ Play';
+                btnPlay.classList.remove('btn-danger');
+                btnPlay.classList.add('btn-ghost');
+                if (autoPlayTimer) {
+                    clearTimeout(autoPlayTimer);
+                    autoPlayTimer = null;
+                }
+            }
+
+            function advanceAutoPlay() {
+                if (!autoPlaying) return;
+                if (currentStep < totalSteps - 1) {
+                    setStep(currentStep + 1);
+                    autoPlayTimer = setTimeout(advanceAutoPlay, 1200);
+                } else {
+                    stopAutoPlay();
+                }
+            }
+
+            // ─────────────────────────────────────
+            // Event handlers
+            // ─────────────────────────────────────
+            stepSlider.addEventListener('input', function() {
+                const val = parseInt(this.value, 10);
+                goToStep(val);
+                if (autoPlaying) stopAutoPlay();
+            });
+
+            btnPrev.addEventListener('click', function() {
+                if (currentStep > 0) {
+                    setStep(currentStep - 1);
+                    if (autoPlaying) stopAutoPlay();
+                }
+            });
+
+            btnNext.addEventListener('click', function() {
+                if (currentStep < totalSteps - 1) {
+                    setStep(currentStep + 1);
+                    if (autoPlaying) stopAutoPlay();
+                }
+            });
+
+            btnPlay.addEventListener('click', toggleAutoPlay);
+            btnSubmit.addEventListener('click', submitPrediction);
+            btnHint.addEventListener('click', showHint);
+            btnShowAnswer.addEventListener('click', revealAnswer);
+            btnClearLog.addEventListener('click', function() {
+                learningLog = [];
+                hintLevel = 0;
+                answerRevealed = false;
+                btnHint.disabled = false;
+                btnHint.textContent = '💡 Hint';
+                hintDisplay.style.display = 'none';
+                feedbackArea.className = 'feedback-area feedback-neutral';
+                feedbackArea.textContent = 'Ready to check your prediction. Type a number and click Submit.';
+                predictionInput.value = '';
+                setStep(0);
+                renderLearningLog();
+            });
+
+            predictionInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitPrediction();
+                }
+            });
+
+            // Keyboard controls on document
+            const keys = {};
+            document.addEventListener('keydown', function(e) {
+                keys[e.key] = true;
+                // Only handle navigation keys when not typing in the input
+                const activeEl = document.activeElement;
+                const isTyping = (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' ||
+                    activeEl.isContentEditable));
+
+                if (e.key === 'ArrowLeft' && !isTyping) {
+                    e.preventDefault();
+                    if (currentStep > 0) {
+                        setStep(currentStep - 1);
+                        if (autoPlaying) stopAutoPlay();
+                    }
+                } else if (e.key === 'ArrowRight' && !isTyping) {
+                    e.preventDefault();
+                    if (currentStep < totalSteps - 1) {
+                        setStep(currentStep + 1);
+                        if (autoPlaying) stopAutoPlay();
+                    }
+                } else if (e.key === ' ' && !isTyping && document.activeElement === canvas) {
+                    e.preventDefault();
+                    toggleAutoPlay();
+                }
+            });
+            document.addEventListener('keyup', function(e) {
+                keys[e.key] = false;
+            });
+
+            // Focus canvas on click
+            canvas.addEventListener('click', function() {
+                canvas.focus();
+            });
+
+            // Window resize
+            let resizeDebounce = null;
+            window.addEventListener('resize', function() {
+                if (resizeDebounce) clearTimeout(resizeDebounce);
+                resizeDebounce = setTimeout(resizeCanvas, 200);
+            });
+
+            // ─────────────────────────────────────
+            // Animation loop
+            // ─────────────────────────────────────
+            function animationLoop() {
+                // Smooth transition
+                if (Math.abs(animationProgress - 1) > 0.001 && currentStep === targetStep) {
+                    animationProgress += (1 - animationProgress) * 0.3;
+                    if (Math.abs(animationProgress - 1) < 0.002) animationProgress = 1;
+                    drawCanvas();
+                }
+                requestAnimationFrame(animationLoop);
+            }
+
+            // ─────────────────────────────────────
+            // Initialization
+            // ─────────────────────────────────────
+            function init() {
+                resizeCanvas();
+                setStep(0);
+                updateStepUI();
+                renderLearningLog();
+                feedbackArea.className = 'feedback-area feedback-neutral';
+                feedbackArea.textContent = 'Ready to check your prediction. Type a number and click Submit.';
+                hintDisplay.style.display = 'none';
+                btnClearLog.style.display = 'none';
+                // Auto-focus canvas for keyboard navigation
+                setTimeout(function() {
+                    canvas.focus();
+                }, 300);
+                // Start animation loop
+                animationLoop();
+            }
+
+            // Run on load
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+</body>
+</html>

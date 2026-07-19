@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverse Linked List</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --primary: #4f46e5;
+            --primary-light: #eef2ff;
+            --primary-dark: #3730a3;
+            --success: #059669;
+            --success-light: #ecfdf5;
+            --success-dark: #047857;
+            --error: #dc2626;
+            --error-light: #fef2f2;
+            --error-dark: #b91c1c;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 18px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 30%, #f8fafc 60%, #eef2ff 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(79, 70, 229, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 60%, rgba(5, 150, 105, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(217, 119, 6, 0.03) 0%, transparent 50%);
+        }
+
+        .page-container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 20px 48px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            border-radius: var(--radius-xl);
+            padding: 28px 32px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .header-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        .header-icon svg {
+            width: 26px;
+            height: 26px;
+            fill: #fff;
+        }
+        .header-info h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+        .header-info .badge-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.01em;
+        }
+        .badge-algorithm {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+        .badge-topic {
+            background: #f0fdf4;
+            color: #059669;
+        }
+
+        /* Card */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            transition: box-shadow var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .icon-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* Answer box - authoritative, always visible */
+        .answer-box {
+            background: linear-gradient(135deg, #eef2ff, #f8fafc);
+            border: 2px solid #c7d2fe;
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .answer-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #4f46e5;
+            white-space: nowrap;
+        }
+        .answer-value {
+            font-family: 'Inter', 'SF Mono', 'Fira Code', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1e293b;
+            background: #fff;
+            padding: 6px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e2e8f0;
+            letter-spacing: 0.02em;
+            box-shadow: var(--shadow-sm);
+        }
+        .answer-lock-icon {
+            color: #4f46e5;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        /* SVG visualization area */
+        .viz-container {
+            background: #fafbfc;
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            position: relative;
+        }
+        .viz-container svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 280px;
+        }
+        .step-indicator-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 12px 16px;
+            background: #fff;
+            border-top: 1px solid var(--gray-100);
+        }
+        .step-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 2px solid var(--gray-300);
+            background: #fff;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-700);
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+        .step-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #eef2ff;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+        }
+        .step-btn:active {
+            transform: scale(0.94);
+            background: #e0e7ff;
+        }
+        .step-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .step-info {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 80px;
+            text-align: center;
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        .timeline-step {
+            flex: 1;
+            min-width: 110px;
+            background: #f8fafc;
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-align: center;
+            position: relative;
+            user-select: none;
+        }
+        .timeline-step:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+        }
+        .timeline-step.active {
+            background: #eef2ff;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        .timeline-step.completed {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+        }
+        .timeline-step .step-num {
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--gray-500);
+            margin-bottom: 2px;
+        }
+        .timeline-step.active .step-num {
+            color: #4f46e5;
+        }
+        .timeline-step.completed .step-num {
+            color: #059669;
+        }
+        .timeline-step .step-desc {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+        .timeline-step .step-state {
+            font-family: 'Inter', 'SF Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 3px;
+            background: #fff;
+            border-radius: 4px;
+            padding: 2px 6px;
+            display: inline-block;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            border-left: 4px solid #d97706;
+            background: #fffdf7;
+        }
+        .checkpoint-card .card-title {
+            color: #92400e;
+        }
+        .checkpoint-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkpoint-input-row input {
+            flex: 1;
+            min-width: 180px;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-family: 'Inter', 'SF Mono', monospace;
+            background: #fff;
+            transition: border-color var(--transition);
+            outline: none;
+            color: var(--text);
+        }
+        .checkpoint-input-row input:focus {
+            border-color: #d97706;
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.08);
+        }
+        .checkpoint-input-row input.input-correct {
+            border-color: #059669 !important;
+            background: #ecfdf5 !important;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.08) !important;
+        }
+        .checkpoint-input-row input.input-incorrect {
+            border-color: #dc2626 !important;
+            background: #fef2f2 !important;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08) !important;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            font-family: 'Inter', sans-serif;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn-primary {
+            background: #4f46e5;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+        }
+        .btn-primary:hover {
+            background: #4338ca;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+        }
+        .btn-hint {
+            background: #fffbeb;
+            color: #92400e;
+            border: 2px solid #fcd34d;
+        }
+        .btn-hint:hover {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+        .btn-reveal {
+            background: #f8fafc;
+            color: #475569;
+            border: 2px solid #e2e8f0;
+        }
+        .btn-reveal:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+        .btn-reset {
+            background: #fff;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+        .btn-reset:hover {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+
+        /* Feedback */
+        .feedback {
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: none;
+            animation: fadeIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .feedback.correct {
+            display: block;
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+        }
+        .feedback.incorrect {
+            display: block;
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+        .feedback.info {
+            display: block;
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+        }
+
+        /* Learning log */
+        .log-container {
+            max-height: 240px;
+            overflow-y: auto;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            background: #fafbfc;
+        }
+        .log-entry {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background var(--transition);
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-entry:hover {
+            background: #f8fafc;
+        }
+        .log-entry .log-time {
+            font-weight: 500;
+            color: var(--gray-500);
+            font-size: 0.75rem;
+            white-space: nowrap;
+            min-width: 55px;
+        }
+        .log-entry .log-prediction {
+            font-family: 'Inter', 'SF Mono', monospace;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .log-entry .log-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .log-badge-correct {
+            background: #ecfdf5;
+            color: #047857;
+        }
+        .log-badge-incorrect {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+        .log-empty {
+            padding: 28px 16px;
+            text-align: center;
+            color: var(--gray-400);
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        /* Revealed answer in checkpoint */
+        .revealed-answer {
+            background: #eef2ff;
+            border: 1px dashed #818cf8;
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            margin-top: 8px;
+            font-family: 'Inter', 'SF Mono', monospace;
+            font-weight: 700;
+            color: #3730a3;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .revealed-answer.visible {
+            display: block;
+        }
+
+        /* Hint display */
+        .hint-display {
+            background: #fffbeb;
+            border: 1px dashed #fcd34d;
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            margin-top: 8px;
+            color: #92400e;
+            font-weight: 500;
+            font-size: 0.88rem;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .hint-display.visible {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .page-container {
+                padding: 12px 10px 32px;
+            }
+            .header {
+                padding: 18px 16px;
+                gap: 10px;
+            }
+            .header-icon {
+                width: 40px;
+                height: 40px;
+            }
+            .header-info h1 {
+                font-size: 1.25rem;
+            }
+            .card {
+                padding: 16px 14px;
+            }
+            .timeline {
+                flex-direction: column;
+            }
+            .timeline-step {
+                min-width: auto;
+            }
+            .checkpoint-input-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .checkpoint-input-row input {
+                min-width: auto;
+            }
+            .step-indicator-row {
+                gap: 8px;
+            }
+            .btn {
+                font-size: 0.82rem;
+                padding: 8px 14px;
+            }
+        }
+
+        /* Focus visible for accessibility */
+        *:focus-visible {
+            outline: 2px solid #4f46e5;
+            outline-offset: 2px;
+        }
+        .step-btn:focus-visible {
+            outline: 2px solid #4f46e5;
+            outline-offset: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <header class="header" role="banner" aria-label="Page header">
+            <div class="header-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z"/></svg>
+            </div>
+            <div class="header-info">
+                <h1>Reverse Linked List</h1>
+                <div class="badge-row">
+                    <span class="badge badge-algorithm">Algorithm: Two-Pointer Iteration</span>
+                    <span class="badge badge-topic">Linked List &amp; Cache</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Problem description -->
+        <section class="card" aria-labelledby="problem-title">
+            <div class="card-title" id="problem-title">
+                <span class="icon-dot" aria-hidden="true"></span> Problem Statement
+            </div>
+            <p style="color:var(--text-secondary);font-size:0.92rem;line-height:1.65;">
+                You are developing a browser where a user visits a series of web pages.
+                A list <strong>values</strong> records the visited URL IDs in order.
+                The browser needs to generate a <strong>backward history path</strong> — i.e., reverse the visit order
+                so the user can gradually go back from the current page to the earliest visited page.
+            </p>
+            <p style="margin-top:8px;color:var(--text-secondary);font-size:0.92rem;">
+                <strong>Input:</strong> <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;font-family:'Inter','SF Mono',monospace;">{"values": [1, 2, 3]}</code>
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                <strong>Expected Output:</strong>
+            </p>
+        </section>
+
+        <!-- Authoritative answer - always visible, never changes -->
+        <section class="card" aria-labelledby="answer-title">
+            <div class="answer-box" role="region" aria-label="Authoritative final answer">
+                <span class="answer-lock-icon" aria-hidden="true">&#128274;</span>
+                <span class="answer-label">Authoritative Final Answer:</span>
+                <span class="answer-value" id="authoritativeAnswer">[3, 2, 1]</span>
+                <span style="font-size:0.8rem;color:var(--gray-500);margin-left:4px;">(immutable)</span>
+            </div>
+        </section>
+
+        <!-- Algorithm visualization -->
+        <section class="card" aria-labelledby="viz-title">
+            <div class="card-title" id="viz-title">
+                <span class="icon-dot" aria-hidden="true"></span> Algorithm Visualization
+            </div>
+            <div class="viz-container">
+                <svg id="algoSvg" viewBox="0 0 650 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linked list reversal visualization">
+                    <defs>
+                        <!-- Forward arrow marker (gray) -->
+                        <marker id="arrowhead-gray" markerWidth="10" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                        </marker>
+                        <!-- Backward arrow marker (green) -->
+                        <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#10b981" />
+                        </marker>
+                        <!-- Highlight arrow marker (amber) -->
+                        <marker id="arrowhead-amber" markerWidth="10" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                        </marker>
+                        <!-- Glow filter for active node -->
+                        <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                        <filter id="glow-green" x="-40%" y="-40%" width="180%" height="180%">
+                            <feGaussianBlur stdDeviation="2.5" result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    <!-- NULL box -->
+                    <rect id="nullBox" x="500" y="72" width="60" height="40" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2.5" />
+                    <text id="nullText" x="530" y="97" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#64748b">NULL</text>
+
+                    <!-- Nodes -->
+                    <circle id="node1" cx="90" cy="92" r="32" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5" />
+                    <text x="90" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#1e293b">1</text>
+
+                    <circle id="node2" cx="240" cy="92" r="32" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5" />
+                    <text x="240" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#1e293b">2</text>
+
+                    <circle id="node3" cx="390" cy="92" r="32" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.5" />
+                    <text x="390" y="98" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="700" fill="#1e293b">3</text>
+
+                    <!-- Forward arrows (top) -->
+                    <line id="fw12" x1="122" y1="80" x2="208" y2="80" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrowhead-gray)" />
+                    <line id="fw23" x1="272" y1="80" x2="358" y2="80" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrowhead-gray)" />
+                    <line id="fw3n" x1="422" y1="80" x2="495" y2="80" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#arrowhead-gray)" />
+
+                    <!-- Backward arrows (bottom) -->
+                    <line id="bw21" x1="208" y1="104" x2="122" y2="104" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowhead-green)" opacity="0" />
+                    <line id="bw32" x1="358" y1="104" x2="272" y2="104" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowhead-green)" opacity="0" />
+                    <line id="bwN3" x1="495" y1="104" x2="422" y2="104" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowhead-green)" opacity="0" />
+
+                    <!-- Pointer labels -->
+                    <text id="labelPrev" x="90" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#4f46e5" opacity="0">prev</text>
+                    <text id="labelCurr" x="240" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#f59e0b" opacity="1">curr</text>
+                    <text id="labelCurrAlt" x="390" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#f59e0b" opacity="0">curr</text>
+
+                    <!-- Pointer arrows from labels to nodes -->
+                    <line id="ptrCurr" x1="240" y1="152" x2="240" y2="126" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4,3" opacity="1" />
+                    <line id="ptrPrev" x1="90" y1="152" x2="90" y2="126" stroke="#4f46e5" stroke-width="1.8" stroke-dasharray="4,3" opacity="0" />
+                    <line id="ptrCurr2" x1="390" y1="152" x2="390" y2="126" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4,3" opacity="0" />
+
+                    <!-- Null pointer label at the end -->
+                    <text id="labelCurrNull" x="530" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#f59e0b" opacity="0">curr (null)</text>
+                    <line id="ptrCurrNull" x1="530" y1="152" x2="530" y2="120" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4,3" opacity="0" />
+                </svg>
+                <div class="step-indicator-row">
+                    <button class="step-btn" id="btnPrev" aria-label="Previous step" title="Previous step (Left arrow key)">&#9664;</button>
+                    <span class="step-info" id="stepInfo">Step 0 of 3</span>
+                    <button class="step-btn" id="btnNext" aria-label="Next step" title="Next step (Right arrow key)">&#9654;</button>
+                    <button class="step-btn" id="btnResetViz" aria-label="Reset to beginning" title="Reset to Step 0" style="font-size:0.8rem;width:auto;border-radius:20px;padding:0 14px;">&#8634; Reset</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step timeline -->
+        <section class="card" aria-labelledby="timeline-title">
+            <div class="card-title" id="timeline-title">
+                <span class="icon-dot" aria-hidden="true"></span> Step-by-Step Algorithm Timeline
+            </div>
+            <div class="timeline" id="timelineContainer">
+                <div class="timeline-step completed active" data-step="0" tabindex="0" role="button" aria-label="Step 0: Initial state">
+                    <div class="step-num">Step 0</div>
+                    <div class="step-desc">Initial state</div>
+                    <div class="step-state">1→2→3→null</div>
+                </div>
+                <div class="timeline-step" data-step="1" tabindex="0" role="button" aria-label="Step 1: Reverse first link">
+                    <div class="step-num">Step 1</div>
+                    <div class="step-desc">Reverse 1st link</div>
+                    <div class="step-state">1←? · 2→3</div>
+                </div>
+                <div class="timeline-step" data-step="2" tabindex="0" role="button" aria-label="Step 2: Reverse second link">
+                    <div class="step-num">Step 2</div>
+                    <div class="step-desc">Reverse 2nd link</div>
+                    <div class="step-state">1←2 · 3→?</div>
+                </div>
+                <div class="timeline-step" data-step="3" tabindex="0" role="button" aria-label="Step 3: Complete reversal">
+                    <div class="step-num">Step 3</div>
+                    <div class="step-desc">Complete reversal</div>
+                    <div class="step-state">3→2→1→null</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Checkpoint -->
+        <section class="card checkpoint-card" aria-labelledby="checkpoint-title">
+            <div class="card-title" id="checkpoint-title">
+                <span class="icon-dot" style="background:#d97706;" aria-hidden="true"></span> Checkpoint: Test Your Understanding
+            </div>
+            <p style="font-size:0.9rem;color:#92400e;margin-bottom:10px;font-weight:500;">
+                After <strong>Step 2</strong> of the reversal algorithm, the <em>prev</em> pointer is at node <strong>2</strong>.
+                Following the <em>next</em> pointers from this node, what sequence do you get?
+                <br>This is the partially reversed portion. Enter your prediction below.
+            </p>
+            <div class="checkpoint-input-row">
+                <input type="text" id="checkpointInput" placeholder="e.g. [2, 1] or 2,1" aria-label="Prediction input for partially reversed list after Step 2" maxlength="30" autocomplete="off" />
+                <button class="btn btn-primary" id="btnSubmit" aria-label="Submit prediction">Submit Prediction</button>
+                <button class="btn btn-hint" id="btnHint" aria-label="Get a hint">&#128161; Hint</button>
+                <button class="btn btn-reveal" id="btnReveal" aria-label="Show checkpoint answer">Show Answer</button>
+                <button class="btn btn-reset" id="btnResetCheckpoint" aria-label="Clear checkpoint">Clear</button>
+            </div>
+            <div class="feedback" id="checkpointFeedback" role="status" aria-live="polite"></div>
+            <div class="hint-display" id="hintDisplay" role="status" aria-live="polite"></div>
+            <div class="revealed-answer" id="revealedAnswer" role="status" aria-live="polite">
+                The correct partially reversed sequence after Step 2 is: <strong>[2, 1]</strong>
+                <br><small style="color:#64748b;">prev points to node 2, node 2's next points to node 1, node 1's next points to null.</small>
+            </div>
+        </section>
+
+        <!-- Learning log -->
+        <section class="card" aria-labelledby="log-title">
+            <div class="card-title" id="log-title">
+                <span class="icon-dot" aria-hidden="true"></span> Learning Log
+            </div>
+            <div class="log-container" id="logContainer" role="log" aria-label="Learning log of checkpoint attempts">
+                <div class="log-empty" id="logEmpty">No attempts recorded yet. Submit a prediction above to see your learning log.</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        (function() {
+            // === State ===
+            const TOTAL_STEPS = 3; // Steps 0, 1, 2, 3 (4 states)
+            let currentStep = 0;
+            let learningLog = [];
+            let hintLevel = 0;
+            let checkpointRevealed = false;
+            let checkpointSubmittedCorrect = false;
+
+            // === DOM references ===
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnResetViz = document.getElementById('btnResetViz');
+            const stepInfo = document.getElementById('stepInfo');
+            const btnSubmit = document.getElementById('btnSubmit');
+            const btnHint = document.getElementById('btnHint');
+            const btnReveal = document.getElementById('btnReveal');
+            const btnResetCheckpoint = document.getElementById('btnResetCheckpoint');
+            const checkpointInput = document.getElementById('checkpointInput');
+            const checkpointFeedback = document.getElementById('checkpointFeedback');
+            const hintDisplay = document.getElementById('hintDisplay');
+            const revealedAnswer = document.getElementById('revealedAnswer');
+            const logContainer = document.getElementById('logContainer');
+            const logEmpty = document.getElementById('logEmpty');
+            const timelineSteps = document.querySelectorAll('.timeline-step');
+
+            // SVG elements
+            const node1 = document.getElementById('node1');
+            const node2 = document.getElementById('node2');
+            const node3 = document.getElementById('node3');
+            const fw12 = document.getElementById('fw12');
+            const fw23 = document.getElementById('fw23');
+            const fw3n = document.getElementById('fw3n');
+            const bw21 = document.getElementById('bw21');
+            const bw32 = document.getElementById('bw32');
+            const bwN3 = document.getElementById('bwN3');
+            const labelPrev = document.getElementById('labelPrev');
+            const labelCurr = document.getElementById('labelCurr');
+            const labelCurrAlt = document.getElementById('labelCurrAlt');
+            const labelCurrNull = document.getElementById('labelCurrNull');
+            const ptrCurr = document.getElementById('ptrCurr');
+            const ptrPrev = document.getElementById('ptrPrev');
+            const ptrCurr2 = document.getElementById('ptrCurr2');
+            const ptrCurrNull = document.getElementById('ptrCurrNull');
+            const nullBox = document.getElementById('nullBox');
+            const nullText = document.getElementById('nullText');
+
+            // === Update SVG visualization based on currentStep ===
+            function updateVisualization() {
+                // Reset all
+                [fw12, fw23, fw3n].forEach(el => { el.setAttribute('opacity', '1');
+                    el.setAttribute('stroke', '#94a3b8');
+                    el.setAttribute('marker-end', 'url(#arrowhead-gray)'); });
+                [bw21, bw32, bwN3].forEach(el => el.setAttribute('opacity', '0'));
+                [labelPrev, labelCurr, labelCurrAlt, labelCurrNull].forEach(el => el.setAttribute('opacity',
+                '0'));
+                [ptrCurr, ptrPrev, ptrCurr2, ptrCurrNull].forEach(el => el.setAttribute('opacity', '0'));
+                [node1, node2, node3].forEach(el => {
+                    el.setAttribute('fill', '#ffffff');
+                    el.setAttribute('stroke', '#cbd5e1');
+                    el.setAttribute('stroke-width', '2.5');
+                    el.removeAttribute('filter');
+                });
+                nullBox.setAttribute('fill', '#f8fafc');
+                nullBox.setAttribute('stroke', '#cbd5e1');
+                nullBox.setAttribute('stroke-width', '2.5');
+                nullText.setAttribute('fill', '#64748b');
+
+                if (currentStep === 0) {
+                    // Initial: all forward, curr at node 1
+                    labelCurr.setAttribute('opacity', '1');
+                    ptrCurr.setAttribute('opacity', '1');
+                    node1.setAttribute('fill', '#fff7ed');
+                    node1.setAttribute('stroke', '#f59e0b');
+                    node1.setAttribute('stroke-width', '3');
+                    node1.setAttribute('filter', 'url(#glow)');
+                    labelCurr.setAttribute('x', '90');
+                    labelCurr.setAttribute('y', '160');
+                    ptrCurr.setAttribute('x1', '90');
+                    ptrCurr.setAttribute('x2', '90');
+                    ptrCurr.setAttribute('y1', '152');
+                    ptrCurr.setAttribute('y2', '126');
+                } else if (currentStep === 1) {
+                    // After first iteration: 1←null, 2→3→null
+                    fw12.setAttribute('opacity', '0');
+                    bw21.setAttribute('opacity', '1');
+                    bw21.setAttribute('stroke', '#10b981');
+                    bw21.setAttribute('marker-end', 'url(#arrowhead-green)');
+                    // Node 1 now reversed (green tint)
+                    node1.setAttribute('fill', '#ecfdf5');
+                    node1.setAttribute('stroke', '#10b981');
+                    node1.setAttribute('stroke-width', '2.8');
+                    node1.setAttribute('filter', 'url(#glow-green)');
+                    // curr at node 2
+                    labelCurr.setAttribute('opacity', '1');
+                    labelCurr.setAttribute('x', '240');
+                    labelCurr.setAttribute('y', '160');
+                    ptrCurr.setAttribute('x1', '240');
+                    ptrCurr.setAttribute('x2', '240');
+                    ptrCurr.setAttribute('opacity', '1');
+                    node2.setAttribute('fill', '#fff7ed');
+                    node2.setAttribute('stroke', '#f59e0b');
+                    node2.setAttribute('stroke-width', '3');
+                    node2.setAttribute('filter', 'url(#glow)');
+                    // prev at node 1
+                    labelPrev.setAttribute('opacity', '1');
+                    labelPrev.setAttribute('x', '90');
+                    labelPrev.setAttribute('y', '175');
+                    ptrPrev.setAttribute('x1', '90');
+                    ptrPrev.setAttribute('x2', '90');
+                    ptrPrev.setAttribute('y1', '167');
+                    ptrPrev.setAttribute('y2', '126');
+                    ptrPrev.setAttribute('opacity', '1');
+                } else if (currentStep === 2) {
+                    // After second iteration: 1←2, 3→null
+                    fw12.setAttribute('opacity', '0');
+                    fw23.setAttribute('opacity', '0');
+                    bw21.setAttribute('opacity', '1');
+                    bw21.setAttribute('stroke', '#10b981');
+                    bw21.setAttribute('marker-end', 'url(#arrowhead-green)');
+                    bw32.setAttribute('opacity', '1');
+                    bw32.setAttribute('stroke', '#10b981');
+                    bw32.setAttribute('marker-end', 'url(#arrowhead-green)');
+                    // Nodes 1 and 2 are reversed
+                    [node1, node2].forEach(n => {
+                        n.setAttribute('fill', '#ecfdf5');
+                        n.setAttribute('stroke', '#10b981');
+                        n.setAttribute('stroke-width', '2.8');
+                        n.setAttribute('filter', 'url(#glow-green)');
+                    });
+                    // curr at node 3
+                    labelCurrAlt.setAttribute('opacity', '1');
+                    labelCurrAlt.setAttribute('x', '390');
+                    labelCurrAlt.setAttribute('y', '160');
+                    ptrCurr2.setAttribute('opacity', '1');
+                    ptrCurr2.setAttribute('x1', '390');
+                    ptrCurr2.setAttribute('x2', '390');
+                    node3.setAttribute('fill', '#fff7ed');
+                    node3.setAttribute('stroke', '#f59e0b');
+                    node3.setAttribute('stroke-width', '3');
+                    node3.setAttribute('filter', 'url(#glow)');
+                    // prev at node 2
+                    labelPrev.setAttribute('opacity', '1');
+                    labelPrev.setAttribute('x', '240');
+                    labelPrev.setAttribute('y', '175');
+                    ptrPrev.setAttribute('x1', '240');
+                    ptrPrev.setAttribute('x2', '240');
+                    ptrPrev.setAttribute('y1', '167');
+                    ptrPrev.setAttribute('y2', '126');
+                    ptrPrev.setAttribute('opacity', '1');
+                    // Forward from 3 to null still visible
+                    fw3n.setAttribute('opacity', '1');
+                } else if (currentStep === 3) {
+                    // Complete: all backward arrows
+                    [fw12, fw23, fw3n].forEach(el => el.setAttribute('opacity', '0'));
+                    [bw21, bw32, bwN3].forEach(el => {
+                        el.setAttribute('opacity', '1');
+                        el.setAttribute('stroke', '#10b981');
+                        el.setAttribute('marker-end', 'url(#arrowhead-green)');
+                    });
+                    // All nodes reversed
+                    [node1, node2, node3].forEach(n => {
+                        n.setAttribute('fill', '#ecfdf5');
+                        n.setAttribute('stroke', '#10b981');
+                        n.setAttribute('stroke-width', '2.8');
+                        n.setAttribute('filter', 'url(#glow-green)');
+                    });
+                    // curr is null
+                    labelCurrNull.setAttribute('opacity', '1');
+                    ptrCurrNull.setAttribute('opacity', '1');
+                    nullBox.setAttribute('fill', '#fff7ed');
+                    nullBox.setAttribute('stroke', '#f59e0b');
+                    nullBox.setAttribute('stroke-width', '2.8');
+                    nullText.setAttribute('fill', '#92400e');
+                    // prev at node 3
+                    labelPrev.setAttribute('opacity', '1');
+                    labelPrev.setAttribute('x', '390');
+                    labelPrev.setAttribute('y', '175');
+                    ptrPrev.setAttribute('x1', '390');
+                    ptrPrev.setAttribute('x2', '390');
+                    ptrPrev.setAttribute('y1', '167');
+                    ptrPrev.setAttribute('y2', '126');
+                    ptrPrev.setAttribute('opacity', '1');
+                }
+
+                // Update step info
+                stepInfo.textContent = 'Step ' + currentStep + ' of ' + TOTAL_STEPS;
+
+                // Update button states
+                btnPrev.disabled = (currentStep === 0);
+                btnNext.disabled = (currentStep === TOTAL_STEPS);
+
+                // Update timeline
+                updateTimeline();
+            }
+
+            // === Update timeline indicators ===
+            function updateTimeline() {
+                timelineSteps.forEach(stepEl => {
+                    const stepNum = parseInt(stepEl.getAttribute('data-step'), 10);
+                    stepEl.classList.remove('active', 'completed');
+                    if (stepNum < currentStep) {
+                        stepEl.classList.add('completed');
+                    } else if (stepNum === currentStep) {
+                        stepEl.classList.add('active');
+                    }
+                    // Update state text for each step
+                    const stateEl = stepEl.querySelector('.step-state');
+                    if (stateEl) {
+                        if (stepNum === 0) stateEl.textContent = '1→2→3→null';
+                        if (stepNum === 1) stateEl.textContent = 'null←1 · 2→3→null';
+                        if (stepNum === 2) stateEl.textContent = 'null←1←2 · 3→null';
+                        if (stepNum === 3) stateEl.textContent = 'null←1←2←3';
+                    }
+                });
+            }
+
+            // === Navigation ===
+            function goToStep(step) {
+                if (step < 0 || step > TOTAL_STEPS) return;
+                currentStep = step;
+                updateVisualization();
+            }
+
+            btnPrev.addEventListener('click', () => { if (currentStep > 0) goToStep(currentStep - 1); });
+            btnNext.addEventListener('click', () => { if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1); });
+            btnResetViz.addEventListener('click', () => goToStep(0));
+
+            // Timeline clicks
+            timelineSteps.forEach(stepEl => {
+                stepEl.addEventListener('click', () => {
+                    const stepNum = parseInt(stepEl.getAttribute('data-step'), 10);
+                    goToStep(stepNum);
+                });
+                stepEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const stepNum = parseInt(stepEl.getAttribute('data-step'), 10);
+                        goToStep(stepNum);
+                    }
+                });
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                // Only handle if not typing in the input
+                if (document.activeElement === checkpointInput) return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    if (currentStep > 0) goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+                }
+            });
+
+            // === Checkpoint logic ===
+            function parsePrediction(raw) {
+                let s = raw.trim();
+                if (!s) return null;
+                // Remove surrounding brackets
+                if (s.startsWith('[') && s.endsWith(']')) {
+                    s = s.slice(1, -1);
+                }
+                // Split by commas
+                const parts = s.split(',');
+                const nums = [];
+                for (let p of parts) {
+                    p = p.trim();
+                    if (p === '') continue;
+                    const n = parseInt(p, 10);
+                    if (isNaN(n)) return null;
+                    nums.push(n);
+                }
+                if (nums.length === 0) return null;
+                return nums;
+            }
+
+            function arraysEqual(a, b) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }
+
+            function addLogEntry(predictionStr, isCorrect, correctAnswer) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    hour12: false });
+                learningLog.push({
+                    time: timeStr,
+                    prediction: predictionStr,
+                    correct: isCorrect,
+                    correctAnswer: correctAnswer,
+                    timestamp: now.getTime()
+                });
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLog.length === 0) {
+                    logContainer.innerHTML =
+                        '<div class="log-empty" id="logEmpty">No attempts recorded yet. Submit a prediction above to see your learning log.</div>';
+                    return;
+                }
+                let html = '';
+                learningLog.forEach((entry, idx) => {
+                    const badgeClass = entry.correct ? 'log-badge-correct' : 'log-badge-incorrect';
+                    const badgeText = entry.correct ? 'CORRECT' : 'INCORRECT';
+                    html += `
+                        <div class="log-entry">
+                            <span class="log-time">${entry.time}</span>
+                            <span class="log-prediction">Predicted: [${entry.prediction}]</span>
+                            <span class="log-badge ${badgeClass}">${badgeText}</span>
+                            ${!entry.correct ? `<span style="font-size:0.78rem;color:#64748b;">Expected: [${entry.correctAnswer}]</span>` : ''}
+                        </div>`;
+                });
+                logContainer.innerHTML = html;
+                // Scroll to bottom
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+
+            function showFeedback(type, message) {
+                checkpointFeedback.className = 'feedback ' + type;
+                checkpointFeedback.textContent = message;
+                // Auto-hide after 6 seconds for correct, 8 for incorrect
+                const delay = type === 'correct' ? 6000 : 8000;
+                clearTimeout(checkpointFeedback._timeout);
+                checkpointFeedback._timeout = setTimeout(() => {
+                    checkpointFeedback.className = 'feedback';
+                    checkpointFeedback.textContent = '';
+                }, delay);
+            }
+
+            function resetCheckpointUI() {
+                checkpointInput.value = '';
+                checkpointInput.className = '';
+                checkpointFeedback.className = 'feedback';
+                checkpointFeedback.textContent = '';
+                hintDisplay.classList.remove('visible');
+                hintDisplay.textContent = '';
+                revealedAnswer.classList.remove('visible');
+                hintLevel = 0;
+                checkpointRevealed = false;
+                checkpointSubmittedCorrect = false;
+                btnSubmit.disabled = false;
+                btnHint.disabled = false;
+            }
+
+            btnSubmit.addEventListener('click', () => {
+                if (checkpointSubmittedCorrect) {
+                    showFeedback('info',
+                        'You have already submitted the correct answer for this checkpoint. Well done!');
+                    return;
+                }
+                const raw = checkpointInput.value;
+                const parsed = parsePrediction(raw);
+                const correctAnswer = [2, 1];
+
+                if (parsed === null) {
+                    showFeedback('incorrect',
+                        'Please enter a valid sequence of numbers, e.g., "2,1" or "[2,1]".');
+                    checkpointInput.className = 'input-incorrect';
+                    addLogEntry(raw || '(empty)', false, correctAnswer.join(','));
+                    return;
+                }
+
+                const isCorrect = arraysEqual(parsed, correctAnswer);
+
+                if (isCorrect) {
+                    showFeedback('correct',
+                        'Correct! After Step 2, the partially reversed list is [2, 1]. Node 2 points to node 1, and node 1 points to null. Great understanding of the algorithm!'
+                        );
+                    checkpointInput.className = 'input-correct';
+                    checkpointSubmittedCorrect = true;
+                    btnSubmit.disabled = true;
+                    // Also reveal the answer box
+                    revealedAnswer.classList.add('visible');
+                } else {
+                    showFeedback('incorrect',
+                        `You entered [${parsed.join(',')}]. That is not correct. The partially reversed sequence after Step 2 should be [2, 1]. Try again or use the Hint button.`
+                        );
+                    checkpointInput.className = 'input-incorrect';
+                    // Clear the incorrect styling after a moment so they can retry
+                    setTimeout(() => {
+                        if (!checkpointSubmittedCorrect) {
+                            checkpointInput.className = '';
+                        }
+                    }, 1800);
+                }
+
+                addLogEntry(parsed.join(','), isCorrect, correctAnswer.join(','));
+                checkpointRevealed = isCorrect || checkpointRevealed;
+            });
+
+            btnHint.addEventListener('click', () => {
+                hintLevel++;
+                const hints = [
+                    'Hint 1: The reversal algorithm uses two pointers — <strong>prev</strong> (initially null) and <strong>curr</strong> (initially at the head). In each iteration, the current node\'s <em>next</em> pointer is redirected to <em>prev</em>.',
+                    'Hint 2: After 2 iterations, nodes 1 and 2 have been processed. The <strong>prev</strong> pointer now points to node 2. Trace the <em>next</em> pointers starting from node 2.',
+                    'Hint 3: Starting from node 2: node 2 → node 1 → null. So the sequence is [2, 1].'
+                ];
+                const idx = Math.min(hintLevel - 1, hints.length - 1);
+                hintDisplay.innerHTML = hints[idx];
+                hintDisplay.classList.add('visible');
+                if (hintLevel >= hints.length) {
+                    btnHint.disabled = true;
+                    btnHint.textContent = 'No More Hints';
+                }
+            });
+
+            btnReveal.addEventListener('click', () => {
+                revealedAnswer.classList.add('visible');
+                checkpointRevealed = true;
+                showFeedback('info',
+                    'The checkpoint answer has been revealed. The partially reversed sequence after Step 2 is [2, 1].');
+                if (!checkpointSubmittedCorrect) {
+                    addLogEntry('(answer revealed)', false, '2,1');
+                }
+                checkpointSubmittedCorrect = true;
+                btnSubmit.disabled = true;
+                checkpointInput.className = 'input-correct';
+                checkpointInput.value = '2,1';
+            });
+
+            btnResetCheckpoint.addEventListener('click', () => {
+                resetCheckpointUI();
+                btnHint.textContent = '\u{1F4A1} Hint';
+                btnHint.disabled = false;
+            });
+
+            // Allow Enter key in the input to submit
+            checkpointInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    btnSubmit.click();
+                }
+            });
+
+            // === Initialize ===
+            function init() {
+                goToStep(0);
+                renderLearningLog();
+                // Focus the visualization for keyboard navigation
+                document.getElementById('algoSvg').focus();
+            }
+
+            // Run on load
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // Make SVG focusable for keyboard nav
+            document.getElementById('algoSvg').setAttribute('tabindex', '0');
+            document.getElementById('algoSvg').addEventListener('focus', function() {
+                // Visual indicator that the SVG is focused for keyboard navigation
+                this.style.outline = '2px solid #4f46e5';
+                this.style.outlineOffset = '2px';
+                this.style.borderRadius = '8px';
+            });
+            document.getElementById('algoSvg').addEventListener('blur', function() {
+                this.style.outline = 'none';
+                this.style.outlineOffset = '0';
+            });
+
+            console.log('Reverse Linked List tutoring page initialized successfully.');
+            console.log('Use left/right arrow keys to navigate algorithm steps.');
+            console.log('Authoritative final answer: [3, 2, 1] — always visible and immutable.');
+        })();
+    </script>
+</body>
+</html>

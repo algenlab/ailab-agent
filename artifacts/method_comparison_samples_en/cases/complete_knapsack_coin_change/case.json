@@ -1,0 +1,127 @@
+{
+  "id": "complete_knapsack_coin_change",
+  "algorithm_id": "complete_knapsack_coin_change",
+  "title": "Complete Knapsack Coin Change",
+  "family": "DP Core Extension",
+  "family_id": "dp_core",
+  "subfamily_id": "complete_knapsack",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "dp",
+  "difficulty": "medium",
+  "problem": "A store cashier needs to give change for amount. There is an unlimited number of coins in the cash register, with denominations given by the array coins. Write a program to calculate the minimum number of coins needed to make up the amount. If it is impossible to make up the amount in any way, return -1.",
+  "strategy": "Update dp[c] in increasing capacity order, allowing the same coin to be reused.",
+  "input_contract": "Input: coins array and amount.",
+  "variant_name": "Complete Knapsack Minimum Coins",
+  "time_complexity": "O(len(coins) * amount)",
+  "space_complexity": "O(amount)",
+  "learning_objectives": [
+    "Understand that dp[capacity] represents the minimum number of coins to make up capacity.",
+    "Analyze how the coin loop and increasing capacity order allow coin reuse.",
+    "Be able to predict the next dp update based on the current dp state and coin denomination."
+  ],
+  "required_views": [
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! You successfully applied the state transition equation.",
+      "feedback_wrong": "Not quite. Please observe dp[capacity-coin]+1 and compare with the current value, taking the smaller one.",
+      "id": "task_1",
+      "oracle": "Check if the predicted value equals min(3, dp[3]+1)=3, correct if so.",
+      "prompt": "Current coin denomination coin=2, capacity=5, before update dp[5]=3, dp[3]=2. Predict the value of dp[5] after update.",
+      "stage2_affordance": "Click the dp cell to highlight the calculation process.",
+      "trace_anchor": [
+        "state.dp",
+        "state.coin"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Exactly! No coins are needed when the capacity is 0.",
+      "feedback_wrong": "Think again: what capacity requires no coins to make up?",
+      "id": "task_2",
+      "oracle": "The answer must point out that dp[0] is always 0 and explain why.",
+      "prompt": "In the complete knapsack coin change problem, regardless of how coins and amount change, which state's value remains constant?",
+      "stage2_affordance": "Slide the capacity axis to observe the constant value of dp[0].",
+      "trace_anchor": [
+        "state.dp",
+        "state.amount"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Great! You discovered the impact of denomination changes on the optimal solution.",
+      "feedback_wrong": "Removing a large denomination might require more small coins. You can try computing the new dp array.",
+      "id": "task_3",
+      "oracle": "The predicted answer should match the verifier's output for coins=[1,2], amount=11 (should be 6).",
+      "prompt": "Original coins=[1,2,5], amount=11, minimum coins=3. If we remove denomination 5, leaving only [1,2], what will be the minimum number of coins?",
+      "stage2_affordance": "Click the coin denomination label to add or remove denominations.",
+      "trace_anchor": [
+        "state.coins",
+        "state.amount"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Your explanation is spot on! dp[capacity-coin] represents the optimal state before using the current coin.",
+      "feedback_wrong": "Note that dp[capacity-coin] holds the minimum coins to make up capacity-coin, adding the current coin creates a new plan.",
+      "id": "task_4",
+      "oracle": "The answer must explain that dp[5] is the minimum coins to make up 5, then adding one coin of 5 makes up 10, and compare with the current optimum.",
+      "prompt": "Explain why when coin=5, capacity=10, the update of dp[10] uses min(dp[10], dp[5]+1).",
+      "stage2_affordance": "Drag the coin to the corresponding capacity slot to see the combination process.",
+      "trace_anchor": [
+        "state.dp",
+        "state.coin",
+        "state.capacity"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 3,
+      "index": 0,
+      "input_data": {
+        "amount": 11,
+        "coins": [
+          1,
+          2,
+          5
+        ]
+      }
+    },
+    {
+      "expected": -1,
+      "index": 1,
+      "input_data": {
+        "amount": 3,
+        "coins": [
+          2
+        ]
+      }
+    },
+    {
+      "expected": 0,
+      "index": 2,
+      "input_data": {
+        "amount": 0,
+        "coins": [
+          1
+        ]
+      }
+    },
+    {
+      "expected": 2,
+      "index": 3,
+      "input_data": {
+        "amount": 7,
+        "coins": [
+          2,
+          3,
+          5
+        ]
+      }
+    }
+  ]
+}

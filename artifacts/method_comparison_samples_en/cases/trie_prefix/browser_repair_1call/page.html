@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trie Prefix Counting - AlgoLab</title>
+    <style>
+        :root {
+            --bg: #f8fafb;
+            --surface: #ffffff;
+            --border: #dde4e9;
+            --text: #1a202c;
+            --text-secondary: #4a5568;
+            --accent: #3182ce;
+            --accent-light: #ebf4fb;
+            --success: #38a169;
+            --success-light: #e6f7ee;
+            --error: #e53e3e;
+            --error-light: #fdecea;
+            --warning: #d69e2e;
+            --warning-light: #fffdf2;
+            --highlight-primary: #fefcbf;
+            --highlight-secondary: #faf5e6;
+            --node-default: #e3f2fd;
+            --node-active-path: #c8e6c9;
+            --node-current: #fff9c4;
+            --node-root: #f5f5f5;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 8px;
+            --radius-sm: 4px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            --font-sans: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: #eef2f5;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 24px 16px 60px;
+        }
+
+        #container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+        }
+        #title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #1a202c;
+            letter-spacing: -0.01em;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Top result & solution */
+        .top-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #top-result,
+        #top-solution {
+            flex: 1;
+            min-width: 200px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+        }
+        #top-result .label,
+        #top-solution .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        #top-result .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: var(--font-mono);
+        }
+        #top-solution .value {
+            font-size: 0.9rem;
+            color: var(--text);
+            margin-top: 4px;
+        }
+
+        /* Main content: canvas + code */
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 800px) {
+            .main-content {
+                flex-direction: column;
+            }
+        }
+        .canvas-pane {
+            flex: 1.2;
+            min-width: 380px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+        .canvas-pane h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        #canvas {
+            min-height: 200px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            position: relative;
+        }
+
+        /* Trie node styles */
+        .trie-tree {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .trie-node {
+            display: flex;
+            flex-direction: column;
+            margin-left: 0;
+            position: relative;
+        }
+        .trie-node .node-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            margin: 1px 0;
+            transition: background var(--transition);
+            white-space: nowrap;
+            cursor: default;
+        }
+        .trie-node .node-row.node-default {
+            background: var(--node-default);
+        }
+        .trie-node .node-row.node-active-path {
+            background: var(--node-active-path);
+            border-left: 3px solid #4caf50;
+        }
+        .trie-node .node-row.node-current {
+            background: var(--node-current);
+            border-left: 3px solid #f9a825;
+            font-weight: 700;
+            box-shadow: 0 0 0 2px rgba(249, 168, 37, 0.3);
+        }
+        .trie-node .node-row.node-root {
+            background: var(--node-root);
+            border-left: 3px solid #9e9e9e;
+            font-weight: 600;
+        }
+        .node-char {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1a202c;
+            border: 1.5px solid #cbd5e0;
+            flex-shrink: 0;
+        }
+        .node-row.node-root .node-char {
+            background: #e0e0e0;
+            border-color: #b0b0b0;
+            font-size: 0.7rem;
+            width: 36px;
+            border-radius: 14px;
+        }
+        .node-count {
+            font-size: 0.8rem;
+            color: #5a6c7d;
+            font-weight: 500;
+        }
+        .node-end-badge {
+            font-size: 0.7rem;
+            background: #ff9800;
+            color: #fff;
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        .node-children {
+            margin-left: 22px;
+            border-left: 1.5px dashed #d0d8e0;
+            padding-left: 10px;
+        }
+
+        /* Code pane */
+        .code-pane {
+            flex: 1;
+            min-width: 340px;
+            background: #1e272e;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-md);
+            overflow-x: auto;
+            color: #d4d9df;
+        }
+        .code-pane h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #8899aa;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.65;
+            white-space: pre;
+            margin: 0;
+            color: #c8d6e5;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 6px;
+            border-radius: 2px;
+            transition: background var(--transition);
+        }
+        #code .code-line.highlight-primary {
+            background: #5a4a1a;
+            color: #ffe484;
+            font-weight: 600;
+        }
+        #code .code-line.highlight-secondary {
+            background: #3a3a20;
+            color: #f0e68c;
+        }
+        .code-keyword {
+            color: #c792ea;
+        }
+        .code-fn {
+            color: #82aaff;
+        }
+        .code-string {
+            color: #c3e88d;
+        }
+        .code-comment {
+            color: #6a7d8a;
+            font-style: italic;
+        }
+        .code-number {
+            color: #f78c6c;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+        }
+        .controls-row button {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            color: var(--text);
+        }
+        .controls-row button:hover {
+            background: #f0f4f7;
+            border-color: #bcc5ce;
+        }
+        .controls-row button:active {
+            background: #e2e8f0;
+        }
+        .controls-row button.active-play {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 220px;
+            accent-color: var(--accent);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            min-width: 48px;
+            text-align: center;
+            color: var(--text);
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            align-items: center;
+        }
+        #timeline .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 1.5px solid transparent;
+            transition: all var(--transition);
+            background: #f7f9fb;
+            font-size: 0.75rem;
+            min-width: 48px;
+            text-align: center;
+            user-select: none;
+        }
+        #timeline .tick:hover {
+            background: #e8eef3;
+            border-color: #c0c9d2;
+        }
+        #timeline .tick.active {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            font-weight: 700;
+        }
+        #timeline .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            letter-spacing: 0.03em;
+            color: var(--text-secondary);
+        }
+        #timeline .tick .tick-op {
+            font-size: 0.7rem;
+            color: #6a7d8a;
+            margin-top: 1px;
+        }
+        #timeline .tick.active .tick-label,
+        #timeline .tick.active .tick-op {
+            color: var(--accent);
+        }
+
+        /* Info panels */
+        .info-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .info-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+        }
+        .info-card h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #f0f4f7;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+            margin-top: 4px;
+            color: #2d3748;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: #fafbfc;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            color: #2d3748;
+            border: 1px solid #e8ecf0;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: #3a4a5a;
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.85rem;
+            color: #4a5a6a;
+            line-height: 1.5;
+            background: #f9fafb;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid #a0b4c8;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            background: #fffbeb;
+            border: 1.5px solid #f6e05e;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-top: 8px;
+        }
+        .checkpoint-area .cp-prompt {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #744210;
+        }
+        .checkpoint-area input[type="number"] {
+            width: 80px;
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid #d2d6dc;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            text-align: center;
+        }
+        .checkpoint-area button {
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #cbd5e0;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-left: 6px;
+            transition: all var(--transition);
+            background: #fff;
+            color: var(--text);
+        }
+        .checkpoint-area button:hover {
+            background: #f0f4f7;
+        }
+        .checkpoint-area button.cp-submit {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .checkpoint-area button.cp-submit:hover {
+            background: #2b6cb0;
+        }
+        .checkpoint-area .cp-feedback {
+            margin-top: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-height: 22px;
+        }
+        .cp-feedback.correct {
+            color: var(--success);
+        }
+        .cp-feedback.incorrect {
+            color: var(--error);
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        #learning-log h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        #learning-log .log-entry {
+            font-size: 0.82rem;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f2f4;
+            color: #4a5568;
+        }
+        #learning-log .log-entry .log-time {
+            font-size: 0.7rem;
+            color: #a0aec0;
+            margin-right: 8px;
+        }
+        #learning-log .log-entry.correct-entry {
+            color: #276749;
+        }
+        #learning-log .log-entry.incorrect-entry {
+            color: #9b2c2c;
+        }
+        #learning-log .log-entry.show-answer-entry {
+            color: #975a16;
+        }
+
+        /* Answer section */
+        #answer-section {
+            background: #f0fff4;
+            border: 2px solid #48bb78;
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            text-align: center;
+        }
+        #answer-section .answer-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #276749;
+            font-weight: 600;
+        }
+        #answer {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #22543d;
+            font-family: var(--font-mono);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            #title {
+                font-size: 1.3rem;
+            }
+            .canvas-pane,
+            .code-pane {
+                min-width: auto;
+            }
+            #timeline {
+                gap: 2px;
+                padding: 8px 6px;
+            }
+            #timeline .tick {
+                padding: 4px 6px;
+                min-width: 36px;
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+
+        <!-- Header -->
+        <div class="header">
+            <h1 id="title">Trie Prefix Counting</h1>
+            <p id="subtitle">Given an array of historical search words and a prefix string, count how many words start with that prefix using a Trie data structure.</p>
+        </div>
+
+        <!-- Top row -->
+        <div class="top-row">
+            <div id="top-result">
+                <span class="label">Result</span>
+                <div class="value" id="top-result-value">Computing...</div>
+            </div>
+            <div id="top-solution">
+                <span class="label">Solution Strategy</span>
+                <div class="value">Insert all words into a Trie, then traverse the prefix path and return the count at the final node.</div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main-content">
+            <div class="canvas-pane">
+                <h3>📊 Trie Visualization</h3>
+                <div id="canvas">
+                    <div class="trie-tree" id="trie-tree-root"></div>
+                </div>
+            </div>
+            <div class="code-pane">
+                <h3>💻 Pseudocode</h3>
+                <pre id="code"></pre>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <button id="prev" aria-label="Previous step">◀ Prev</button>
+            <button id="play" aria-label="Play auto-advance">▶ Play</button>
+            <button id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="7" value="1" aria-label="Step slider">
+            <span id="counter">1 / 7</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline"></div>
+
+        <!-- Info panels -->
+        <div class="info-panels">
+            <div class="info-card">
+                <h4 id="step-title">Initialize Trie</h4>
+                <p id="step-desc">Create an empty Trie with a root node.</p>
+                <span id="op">Create root node</span>
+            </div>
+            <div class="info-card">
+                <h4>📋 Current State (JSON)</h4>
+                <div id="state">{"root": {"count": 0, "children": {}}}</div>
+            </div>
+            <div class="info-card" id="teaching-card">
+                <h4>📖 Teaching</h4>
+                <div id="teaching">A Trie (prefix tree) starts with a root node. Each node stores a count of words that pass through it and a map of child nodes keyed by character. The root has no character and initially has count 0.</div>
+                <div id="checkpoint-container" class="hidden"></div>
+            </div>
+            <div class="info-card">
+                <h4>🔍 Step Evidence</h4>
+                <div id="step-evidence">Operation: Initialize. The root node is created with count=0 and no children. This is the foundation for all word insertions.</div>
+            </div>
+        </div>
+
+        <!-- Learning log -->
+        <div id="learning-log">
+            <h4>📝 Learning Log</h4>
+            <div id="log-entries">
+                <div class="log-entry"><span class="log-time">--:--</span> Page loaded. Ready to explore Trie Prefix Counting.</div>
+            </div>
+        </div>
+
+        <!-- Answer section -->
+        <div id="answer-section">
+            <span class="answer-label">Final Answer</span>
+            <div id="answer">3</div>
+        </div>
+
+    </div>
+
+    <script>
+        (function() {
+            // ==================== DOM REFS ====================
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResultValue = document.getElementById('top-result-value');
+            const $topSolution = document.getElementById('top-solution');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $trieTreeRoot = document.getElementById('trie-tree-root');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $logEntries = document.getElementById('log-entries');
+            const $teachingCard = document.getElementById('teaching-card');
+
+            // ==================== TRIE DATA STRUCTURE ====================
+            class TrieNode {
+                constructor() {
+                    this.children = {};
+                    this.count = 0;
+                    this.isEnd = false;
+                }
+            }
+
+            function buildTrie(words) {
+                const root = new TrieNode();
+                for (const word of words) {
+                    let node = root;
+                    for (const ch of word) {
+                        if (!node.children[ch]) {
+                            node.children[ch] = new TrieNode();
+                        }
+                        node = node.children[ch];
+                        node.count++;
+                    }
+                    node.isEnd = true;
+                }
+                return root;
+            }
+
+            // ==================== STEP DEFINITIONS ====================
+            const allWords = ["apple", "app", "ape", "bat"];
+            const prefixStr = "ap";
+            const correctAnswer = 3;
+
+            const stepDefs = [{
+                index: 0,
+                displayNum: 1,
+                totalSteps: 7,
+                title: "Initialize Trie",
+                desc: "Create an empty Trie with a root node. The root has no character and a count of 0.",
+                op: "Create root node",
+                insertedWords: [],
+                activePath: [],
+                highlightPrimary: 31,
+                highlightSecondary: [],
+                stateJSON: '{"root": {"count": 0, "children": {}}}',
+                teaching: "A Trie (prefix tree) starts with a root node. Each node stores a <strong>count</strong> of words that pass through it and a map of child nodes keyed by character. The root has no character and initially has count 0.",
+                evidence: "Operation: Initialize. The root node is created with count=0 and no children. This is the foundation for all word insertions.",
+                isCheckpoint: false,
+                topResultText: "Computing..."
+            }, {
+                index: 1,
+                displayNum: 2,
+                totalSteps: 7,
+                title: "Insert 'apple'",
+                desc: "Insert the word 'apple' into the Trie. Create nodes for each character: a, p, p, l, e. Increment the count at each node.",
+                op: "Insert 'apple'",
+                insertedWords: ["apple"],
+                activePath: ['a', 'p', 'p', 'l', 'e'],
+                highlightPrimary: 33,
+                highlightSecondary: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+                stateJSON: '{"path": "a→p→p→l→e", "nodes_created": 5, "final_node_isEnd": true}',
+                teaching: "For each character in 'apple', we traverse or create a child node. Each node's <strong>count</strong> is incremented, tracking how many words pass through it. The final node 'e' is marked as an end-of-word with <code>isEnd = true</code>.",
+                evidence: "Before: root with count 0, no children. After: path a→p→p→l→e created. Each node count = 1. Node 'e' marked isEnd=true. Operation: insert(root, 'apple').",
+                isCheckpoint: false,
+                topResultText: "Computing..."
+            }, {
+                index: 2,
+                displayNum: 3,
+                totalSteps: 7,
+                title: "Insert 'app'",
+                desc: "Insert 'app'. Reuse existing nodes for 'a' and the first 'p', then mark the second 'p' as an end-of-word. Increment counts along the shared path.",
+                op: "Insert 'app'",
+                insertedWords: ["apple", "app"],
+                activePath: ['a', 'p', 'p'],
+                highlightPrimary: 33,
+                highlightSecondary: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+                stateJSON: '{"shared_prefix": "ap", "node_p_depth3_count": 2, "node_p_depth3_isEnd": true}',
+                teaching: "The prefix 'ap' is shared with 'apple'. The existing nodes for 'a' and the first 'p' have their counts incremented. The second 'p' already exists from 'apple', so we just increment its count to <strong>2</strong> and mark it as an end-of-word. This shows the space efficiency of Tries.",
+                evidence: "Before: only 'apple' in Trie. After: 'app' inserted. Shared path a→p→p. Node 'p' (depth 3) count becomes 2 and marked isEnd=true. Operation: insert(root, 'app').",
+                isCheckpoint: false,
+                topResultText: "Computing..."
+            }, {
+                index: 3,
+                displayNum: 4,
+                totalSteps: 7,
+                title: "Insert 'ape'",
+                desc: "Insert 'ape'. Share 'a' and first 'p' nodes, then create a new 'e' child under the first 'p'. Increment counts along the shared path.",
+                op: "Insert 'ape'",
+                insertedWords: ["apple", "app", "ape"],
+                activePath: ['a', 'p', 'e'],
+                highlightPrimary: 33,
+                highlightSecondary: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+                stateJSON: '{"shared_prefix": "ap", "new_branch": "e under first p", "node_p_depth2_count": 3}',
+                teaching: "The prefix 'ap' is shared again. The first 'p' node (depth 2) now has count <strong>3</strong> because three words pass through it. A new child 'e' is created under this 'p' for 'ape'. Notice how the Trie efficiently stores shared prefixes without duplicating nodes.",
+                evidence: "Before: 'apple' and 'app' in Trie. After: 'ape' inserted. Shared path a→p. New node created: e under first p. Node 'p' (depth 2) count becomes 3. Node 'e' marked isEnd=true. Operation: insert(root, 'ape').",
+                isCheckpoint: false,
+                topResultText: "Computing..."
+            }, {
+                index: 4,
+                displayNum: 5,
+                totalSteps: 7,
+                title: "Insert 'bat'",
+                desc: "Insert 'bat'. Create an entirely new branch starting with 'b' under the root. No shared prefixes with existing words.",
+                op: "Insert 'bat'",
+                insertedWords: ["apple", "app", "ape", "bat"],
+                activePath: ['b', 'a', 't'],
+                highlightPrimary: 33,
+                highlightSecondary: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+                stateJSON: '{"new_branch": "b→a→t", "root_children": ["a", "b"], "total_words_inserted": 4}',
+                teaching: "The word 'bat' shares no prefix with the existing words ('apple', 'app', 'ape'), so a completely new branch is created from the root. This demonstrates how the Trie handles unrelated words by creating separate subtrees.",
+                evidence: "Before: only 'a' branch under root. After: 'bat' inserted. New path b→a→t created under root. Each node count = 1. Node 't' marked isEnd=true. Root now has children 'a' and 'b'. Operation: insert(root, 'bat').",
+                isCheckpoint: false,
+                topResultText: "Computing..."
+            }, {
+                index: 5,
+                displayNum: 6,
+                totalSteps: 7,
+                title: "Count Prefix 'ap'",
+                desc: "Traverse the Trie following the prefix characters 'a' then 'p'. The count at the final node gives the number of matching words.",
+                op: "Count prefix 'ap'",
+                insertedWords: ["apple", "app", "ape", "bat"],
+                activePath: ['a', 'p'],
+                highlightPrimary: 35,
+                highlightSecondary: [21, 22, 23, 24, 25, 26, 27],
+                stateJSON: '{"prefix": "ap", "node_reached": "p (depth 2)", "count_at_node": 3}',
+                teaching: "To count words with prefix 'ap', we traverse from root following 'a' then 'p'. The <strong>count</strong> at node 'p' (depth 2) is <strong>3</strong>, representing all words that pass through this node: 'apple', 'app', and 'ape'. The word 'bat' does not match because it starts with 'b'.",
+                evidence: "Operation: countPrefix(root, 'ap'). Traversal: root→a→p. Node 'p' (depth 2) has count=3. This count reflects words 'apple', 'app', and 'ape'. Target: node 'p'. Dependencies: all 4 words inserted. Before: all insertions complete. After: count retrieved = 3.",
+                isCheckpoint: true,
+                checkpointPrompt: "How many words start with the prefix 'ap'? Look at the Trie and enter your answer below.",
+                topResultText: "Computing..."
+            }, {
+                index: 6,
+                displayNum: 7,
+                totalSteps: 7,
+                title: "Final Answer",
+                desc: "The count of words starting with prefix 'ap' is 3. The three matching words are 'apple', 'app', and 'ape'.",
+                op: "Return result: 3",
+                insertedWords: ["apple", "app", "ape", "bat"],
+                activePath: ['a', 'p'],
+                highlightPrimary: 35,
+                highlightSecondary: [],
+                stateJSON: '{"result": 3, "matching_words": ["apple", "app", "ape"]}',
+                teaching: "The Trie correctly returns <strong>3</strong> for prefix 'ap'. The three matching words are 'apple', 'app', and 'ape'. The word 'bat' does not match. The <code>countPrefix</code> function efficiently retrieves the answer in O(|prefix|) time.",
+                evidence: "Final result: countPrefix returns 3. Matching words: apple, app, ape. Non-matching: bat. The count at node 'p' (depth 2) after traversing 'ap' is 3. This is the final answer.",
+                isCheckpoint: false,
+                topResultText: "3"
+            }];
+
+            const totalSteps = stepDefs.length; // 7
+
+            // ==================== STATE ====================
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointSubmitted = false;
+            let checkpointFeedback = '';
+
+            // ==================== INITIALIZE ANSWER ====================
+            $answer.textContent = String(correctAnswer);
+            $topResultValue.textContent = 'Computing...';
+
+            // ==================== BUILD CODE DISPLAY ====================
+            const codeLines = [
+                { num: 1, text: 'class TrieNode {' },
+                { num: 2, text: '  constructor() {' },
+                { num: 3, text: '    this.children = {};' },
+                { num: 4, text: '    this.count = 0;' },
+                { num: 5, text: '    this.isEnd = false;' },
+                { num: 6, text: '  }' },
+                { num: 7, text: '}' },
+                { num: 8, text: '' },
+                { num: 9, text: 'function insert(root, word) {' },
+                { num: 10, text: '  let node = root;' },
+                { num: 11, text: '  for (let ch of word) {' },
+                { num: 12, text: '    if (!node.children[ch]) {' },
+                { num: 13, text: '      node.children[ch] = new TrieNode();' },
+                { num: 14, text: '    }' },
+                { num: 15, text: '    node = node.children[ch];' },
+                { num: 16, text: '    node.count++;' },
+                { num: 17, text: '  }' },
+                { num: 18, text: '  node.isEnd = true;' },
+                { num: 19, text: '}' },
+                { num: 20, text: '' },
+                { num: 21, text: 'function countPrefix(root, prefix) {' },
+                { num: 22, text: '  let node = root;' },
+                { num: 23, text: '  for (let ch of prefix) {' },
+                { num: 24, text: '    if (!node.children[ch]) return 0;' },
+                { num: 25, text: '    node = node.children[ch];' },
+                { num: 26, text: '  }' },
+                { num: 27, text: '  return node.count;' },
+                { num: 28, text: '}' },
+                { num: 29, text: '' },
+                { num: 30, text: 'function solve(words, prefix) {' },
+                { num: 31, text: '  let root = new TrieNode();' },
+                { num: 32, text: '  for (let w of words) {' },
+                { num: 33, text: '    insert(root, w);' },
+                { num: 34, text: '  }' },
+                { num: 35, text: '  return countPrefix(root, prefix);' },
+                { num: 36, text: '}' },
+            ];
+
+            function renderCode(highlightPrimary, highlightSecondary) {
+                const primarySet = new Set(Array.isArray(highlightPrimary) ? highlightPrimary : [highlightPrimary]);
+                const secondarySet = new Set(Array.isArray(highlightSecondary) ? highlightSecondary : []);
+                let html = '';
+                for (const line of codeLines) {
+                    let cls = 'code-line';
+                    if (primarySet.has(line.num)) {
+                        cls += ' highlight-primary';
+                    } else if (secondarySet.has(line.num)) {
+                        cls += ' highlight-secondary';
+                    }
+                    // Simple syntax highlighting
+                    let displayText = line.text;
+                    // Highlight keywords lightly
+                    displayText = displayText
+                        .replace(/\b(class|function|let|for|of|if|return|new|true|false|this)\b/g,
+                            '<span class="code-keyword">$1</span>')
+                        .replace(/\b(TrieNode|insert|countPrefix|solve)\b(?=\s*\()/g,
+                            '<span class="code-fn">$1</span>')
+                        .replace(/'([^']*)'/g, '<span class="code-string">\'$1\'</span>')
+                        .replace(/\b(\d+)\b/g, '<span class="code-number">$1</span>');
+                    html +=
+                        `<span class="${cls}" data-line="${line.num}">${displayText || '&nbsp;'}</span>\n`;
+                }
+                $code.innerHTML = html;
+            }
+
+            // ==================== BUILD TIMELINE ====================
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                stepDefs.forEach((def, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('type', 'button');
+                    tick.setAttribute('aria-label', `Step ${def.displayNum}: ${def.op}`);
+                    tick.dataset.stepIndex = idx;
+                    tick.innerHTML =
+                        `<span class="tick-label">Step ${def.displayNum}</span><span class="tick-op">${escapeHTML(def.op)}</span>`;
+                    tick.addEventListener('click', () => {
+                        goToStep(idx);
+                        stopPlay();
+                    });
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            function updateTimelineActive() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.toggle('active', i === currentStepIndex);
+                });
+            }
+
+            // ==================== RENDER TRIE TO CANVAS ====================
+            function renderTrie(insertedWords, activePath) {
+                const root = buildTrie(insertedWords);
+                $trieTreeRoot.innerHTML = '';
+                const treeEl = buildTrieDOM(root, 0, activePath, 'root');
+                $trieTreeRoot.appendChild(treeEl);
+            }
+
+            function buildTrieDOM(node, depth, activePath, charLabel) {
+                const container = document.createElement('div');
+                container.className = 'trie-node';
+
+                const row = document.createElement('div');
+                row.className = 'node-row';
+
+                // Determine node styling
+                const isRoot = (depth === 0 && charLabel === 'root');
+                let isCurrent = false;
+                let isActivePath = false;
+
+                if (!isRoot && depth > 0 && depth <= activePath.length) {
+                    if (activePath[depth - 1] === charLabel) {
+                        isActivePath = true;
+                        if (depth === activePath.length) {
+                            isCurrent = true;
+                        }
+                    }
+                }
+                if (isRoot && activePath.length === 0 && depth === 0) {
+                    isCurrent = true;
+                }
+
+                if (isCurrent) {
+                    row.classList.add('node-current');
+                } else if (isActivePath) {
+                    row.classList.add('node-active-path');
+                } else if (isRoot) {
+                    row.classList.add('node-root');
+                } else {
+                    row.classList.add('node-default');
+                }
+
+                // Character badge
+                const charSpan = document.createElement('span');
+                charSpan.className = 'node-char';
+                charSpan.textContent = isRoot ? 'ROOT' : charLabel;
+                row.appendChild(charSpan);
+
+                // Count
+                const countSpan = document.createElement('span');
+                countSpan.className = 'node-count';
+                countSpan.textContent = `count: ${node.count}`;
+                row.appendChild(countSpan);
+
+                // End badge
+                if (node.isEnd) {
+                    const endBadge = document.createElement('span');
+                    endBadge.className = 'node-end-badge';
+                    endBadge.textContent = 'END';
+                    row.appendChild(endBadge);
+                }
+
+                container.appendChild(row);
+
+                // Children
+                if (Object.keys(node.children).length > 0) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'node-children';
+                    const sortedKeys = Object.keys(node.children).sort();
+                    for (const ch of sortedKeys) {
+                        const childEl = buildTrieDOM(node.children[ch], depth + 1, activePath, ch);
+                        childrenContainer.appendChild(childEl);
+                    }
+                    container.appendChild(childrenContainer);
+                }
+
+                return container;
+            }
+
+            // ==================== UPDATE ALL UI FOR CURRENT STEP ====================
+            function updateUI() {
+                const def = stepDefs[currentStepIndex];
+
+                // Basic info
+                $stepTitle.textContent = def.title;
+                $stepDesc.textContent = def.desc;
+                $op.textContent = def.op;
+                $state.textContent = def.stateJSON;
+                $teaching.innerHTML = def.teaching;
+                $stepEvidence.textContent = def.evidence;
+                $topResultValue.textContent = def.topResultText;
+                $counter.textContent = `${def.displayNum} / ${def.totalSteps}`;
+                $range.value = def.displayNum;
+
+                // Code highlighting
+                renderCode(def.highlightPrimary, def.highlightSecondary);
+
+                // Trie visualization
+                renderTrie(def.insertedWords, def.activePath);
+
+                // Timeline
+                updateTimelineActive();
+
+                // Checkpoint
+                if (def.isCheckpoint) {
+                    $checkpointContainer.classList.remove('hidden');
+                    renderCheckpoint(def);
+                } else {
+                    $checkpointContainer.classList.add('hidden');
+                    $checkpointContainer.innerHTML = '';
+                }
+
+                // Update #answer visibility - always visible but emphasize at final step
+                const answerSection = document.getElementById('answer-section');
+                if (def.index === stepDefs.length - 1) {
+                    answerSection.style.borderColor = '#48bb78';
+                    answerSection.style.background = '#f0fff4';
+                    $answer.style.color = '#22543d';
+                } else {
+                    answerSection.style.borderColor = '#e2e8f0';
+                    answerSection.style.background = '#fafbfc';
+                    $answer.style.color = '#a0aec0';
+                }
+
+                // Scroll code to highlighted line
+                const primaryLine = $code.querySelector('.highlight-primary');
+                if (primaryLine) {
+                    primaryLine.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }
+
+            // ==================== CHECKPOINT ====================
+            function renderCheckpoint(def) {
+                $checkpointContainer.innerHTML = '';
+                const area = document.createElement('div');
+                area.className = 'checkpoint-area';
+
+                const prompt = document.createElement('p');
+                prompt.className = 'cp-prompt';
+                prompt.textContent = def.checkpointPrompt || 'What is your answer?';
+                area.appendChild(prompt);
+
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.id = 'cp-input';
+                input.setAttribute('aria-label', 'Your answer');
+                input.placeholder = 'Enter number';
+                input.value = checkpointSubmitted ? String(correctAnswer) : '';
+                if (checkpointSubmitted) input.disabled = true;
+                area.appendChild(input);
+
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'cp-submit';
+                submitBtn.textContent = 'Submit';
+                submitBtn.disabled = checkpointSubmitted;
+                submitBtn.addEventListener('click', () => handleCheckpointSubmit(def, input));
+                area.appendChild(submitBtn);
+
+                const hintBtn = document.createElement('button');
+                hintBtn.textContent = 'Hint';
+                hintBtn.addEventListener('click', () => handleCheckpointHint(def));
+                area.appendChild(hintBtn);
+
+                const showAnswerBtn = document.createElement('button');
+                showAnswerBtn.textContent = 'Show Answer';
+                showAnswerBtn.addEventListener('click', () => handleCheckpointShowAnswer(def, input));
+                area.appendChild(showAnswerBtn);
+
+                const feedback = document.createElement('p');
+                feedback.className = 'cp-feedback';
+                feedback.id = 'cp-feedback';
+                if (checkpointFeedback) {
+                    feedback.textContent = checkpointFeedback;
+                    feedback.classList.add(checkpointFeedback.includes('Correct') ? 'correct' : 'incorrect');
+                }
+                area.appendChild(feedback);
+
+                $checkpointContainer.appendChild(area);
+            }
+
+            function handleCheckpointSubmit(def, input) {
+                const userAnswer = parseInt(input.value, 10);
+                const fb = document.getElementById('cp-feedback');
+                if (!fb) return;
+                if (isNaN(userAnswer)) {
+                    fb.textContent = 'Please enter a valid number.';
+                    fb.className = 'cp-feedback incorrect';
+                    addLogEntry('incorrect',
+                        `Submitted invalid answer for prefix "${prefixStr}". Expected a number.`);
+                    return;
+                }
+                if (userAnswer === correctAnswer) {
+                    fb.textContent =
+                        `Correct! The node reached after traversing '${prefixStr}' has a count of ${correctAnswer}, representing the words 'apple', 'app', and 'ape'.`;
+                    fb.className = 'cp-feedback correct';
+                    checkpointSubmitted = true;
+                    checkpointFeedback = fb.textContent;
+                    addLogEntry('correct',
+                        `Submitted answer: ${userAnswer} for prefix "${prefixStr}". Correct! Count = ${correctAnswer}.`);
+                    disableCheckpointInputs();
+                } else {
+                    fb.textContent =
+                        `Not quite. Look at the node reached after following the prefix '${prefixStr}'. What is its count value? The count tracks how many words pass through that node. Your answer was ${userAnswer}.`;
+                    fb.className = 'cp-feedback incorrect';
+                    checkpointFeedback = fb.textContent;
+                    addLogEntry('incorrect',
+                        `Submitted answer: ${userAnswer} for prefix "${prefixStr}". Incorrect. The correct count is ${correctAnswer}.`);
+                }
+            }
+
+            function handleCheckpointHint(def) {
+                const fb = document.getElementById('cp-feedback');
+                const hints = [
+                    `Hint 1: Look at the Trie. Which nodes are reached by following 'a' then 'p'?`,
+                    `Hint 2: Check the count value at the node reached after traversing '${prefixStr}'.`,
+                    `Hint 3: The three matching words are 'apple', 'app', and 'ape'. The count should be 3.`
+                ];
+                const existingText = fb ? fb.textContent : '';
+                let hintIndex = 0;
+                for (let i = 0; i < hints.length; i++) {
+                    if (existingText.includes(hints[i])) hintIndex = i + 1;
+                }
+                if (hintIndex >= hints.length) hintIndex = 0;
+                const hintText = hints[hintIndex];
+                if (fb) {
+                    fb.textContent = hintText;
+                    fb.className = 'cp-feedback';
+                }
+                addLogEntry('hint', `Requested hint. ${hintText}`);
+            }
+
+            function handleCheckpointShowAnswer(def, input) {
+                const fb = document.getElementById('cp-feedback');
+                if (fb) {
+                    fb.textContent =
+                        `The answer is ${correctAnswer}. The node at depth 2 (char 'p') after traversing '${prefixStr}' has count = ${correctAnswer}, matching words: apple, app, ape.`;
+                    fb.className = 'cp-feedback correct';
+                }
+                input.value = String(correctAnswer);
+                input.disabled = true;
+                checkpointSubmitted = true;
+                checkpointFeedback = fb ? fb.textContent : '';
+                addLogEntry('show-answer',
+                    `Revealed answer: ${correctAnswer} for prefix "${prefixStr}". Matching words: apple, app, ape.`);
+                disableCheckpointInputs();
+            }
+
+            function disableCheckpointInputs() {
+                const area = $checkpointContainer.querySelector('.checkpoint-area');
+                if (!area) return;
+                const buttons = area.querySelectorAll('button');
+                buttons.forEach(b => b.disabled = true);
+                const inp = area.querySelector('input');
+                if (inp) inp.disabled = true;
+            }
+
+            // ==================== LEARNING LOG ====================
+            function addLogEntry(type, message) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                if (type === 'correct') entry.classList.add('correct-entry');
+                if (type === 'incorrect') entry.classList.add('incorrect-entry');
+                if (type === 'show-answer') entry.classList.add('show-answer-entry');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'log-time';
+                timeSpan.textContent = timeStr;
+                entry.appendChild(timeSpan);
+                entry.appendChild(document.createTextNode(' ' + message));
+                $logEntries.appendChild(entry);
+                $logEntries.scrollTop = $logEntries.scrollHeight;
+                document.getElementById('learning-log').scrollTop = document.getElementById('learning-log')
+                    .scrollHeight;
+            }
+
+            // ==================== NAVIGATION ====================
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                // Reset checkpoint state when leaving a checkpoint step
+                const def = stepDefs[currentStepIndex];
+                if (!def.isCheckpoint) {
+                    checkpointSubmitted = false;
+                    checkpointFeedback = '';
+                }
+                updateUI();
+            }
+
+            function nextStep() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                $play.textContent = '⏸ Pause';
+                $play.classList.add('active-play');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        nextStep();
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $play.textContent = '▶ Play';
+                $play.classList.remove('active-play');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // If at the end, restart from beginning
+                    if (currentStepIndex >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ==================== EVENT LISTENERS ====================
+            $prev.addEventListener('click', () => {
+                stopPlay();
+                prevStep();
+            });
+            $next.addEventListener('click', () => {
+                stopPlay();
+                nextStep();
+            });
+            $play.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt($range.value, 10);
+                const index = val - 1;
+                if (index >= 0 && index < totalSteps) {
+                    goToStep(index);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    nextStep();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    prevStep();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ==================== INITIALIZATION ====================
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function init() {
+                buildTimeline();
+                goToStep(0);
+                // Ensure #answer has the correct value from the start
+                $answer.textContent = String(correctAnswer);
+            }
+
+            init();
+
+            // Log initial page load
+            addLogEntry('info', 'Page initialized. Exploring Trie Prefix Counting with words: [' + allWords.join(
+                ', ') + '] and prefix: "' + prefixStr + '".');
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Fulfillment – Two Sum Visualization</title>
+    <style>
+        :root {
+            --bg: #fdf6e8;
+            --surface: #fffef9;
+            --text: #2c2416;
+            --muted: #6b5e4a;
+            --accent: #c0852e;
+            --blue: #4a7fb5;
+            --amber: #e09d32;
+            --green: #3d8b56;
+            --red: #c0392b;
+            --shelf: #9b7d5c;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+            --transition: 0.35s cubic-bezier(0.25, 0.1, 0.25, 1.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 780px;
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 28px 30px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border: 1px solid #e8dfce;
+        }
+
+        .header {
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 1.55rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #3e2f1c;
+        }
+        .header .subtitle {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* Stage – warehouse shelves */
+        #stage {
+            position: relative;
+            background: #fdf9f0;
+            border-radius: var(--radius);
+            padding: 24px 16px 18px;
+            min-height: 230px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            border: 2px dashed #e0d5c0;
+            transition: border-color var(--transition);
+            overflow: visible;
+        }
+        #stage.checking {
+            border-color: var(--amber);
+            background: #fffdf5;
+        }
+        #stage.matched {
+            border-color: var(--green);
+            background: #f6fdf8;
+        }
+
+        .slot-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            transition: transform var(--transition), filter var(--transition);
+            cursor: default;
+            position: relative;
+            z-index: 1;
+        }
+        .slot-card.highlight-i {
+            transform: translateY(-8px) scale(1.06);
+            filter: drop-shadow(0 6px 16px rgba(224, 157, 50, 0.45));
+            z-index: 3;
+        }
+        .slot-card.highlight-j {
+            transform: translateY(-8px) scale(1.06);
+            filter: drop-shadow(0 6px 16px rgba(224, 157, 50, 0.45));
+            z-index: 3;
+        }
+        .slot-card.matched-slot {
+            transform: translateY(-6px) scale(1.04);
+            filter: drop-shadow(0 6px 20px rgba(61, 139, 86, 0.5));
+            z-index: 4;
+        }
+
+        .slot-bin {
+            width: 80px;
+            border-radius: 10px 10px 4px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            transition: all var(--transition);
+            position: relative;
+            background: var(--blue);
+            min-height: 60px;
+            box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .slot-card.highlight-i .slot-bin {
+            background: var(--amber);
+            box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.15), 0 6px 18px rgba(224, 157, 50, 0.4);
+        }
+        .slot-card.highlight-j .slot-bin {
+            background: #d4841a;
+            box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.15), 0 6px 18px rgba(212, 132, 26, 0.4);
+        }
+        .slot-card.matched-slot .slot-bin {
+            background: var(--green);
+            box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12), 0 6px 20px rgba(61, 139, 86, 0.45);
+        }
+        .slot-shelf {
+            width: 94px;
+            height: 10px;
+            background: var(--shelf);
+            border-radius: 3px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background var(--transition);
+        }
+        .slot-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: 0.3px;
+            transition: color var(--transition);
+        }
+        .slot-card.highlight-i .slot-label,
+        .slot-card.highlight-j .slot-label {
+            color: #8b5e1a;
+            font-weight: 700;
+        }
+        .slot-card.matched-slot .slot-label {
+            color: #1e5c30;
+            font-weight: 700;
+        }
+
+        /* Sum display overlay */
+        .sum-overlay {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fffef9;
+            border: 2px solid var(--amber);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+        }
+        .sum-overlay.visible {
+            opacity: 1;
+        }
+        .sum-overlay.matched-sum {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        /* Target badge */
+        .target-badge {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: #fff;
+            border: 2px solid var(--red);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--red);
+            z-index: 5;
+            box-shadow: 0 2px 6px rgba(192, 57, 43, 0.2);
+            transition: all var(--transition);
+        }
+        .target-badge.satisfied {
+            border-color: var(--green);
+            color: var(--green);
+            box-shadow: 0 2px 10px rgba(61, 139, 86, 0.3);
+        }
+
+        /* Verified result display */
+        .result-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #eafaf1;
+            border: 2px solid var(--green);
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e5c30;
+            transition: all var(--transition);
+            opacity: 0;
+            transform: translateY(6px);
+            pointer-events: none;
+        }
+        .result-banner.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .result-banner .check-icon {
+            font-size: 1.3rem;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: 2px solid #d5c8b0;
+            background: #fffef9;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+            transition: all 0.2s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f5ede0;
+            border-color: #c0a880;
+        }
+        .btn:active {
+            transform: scale(0.96);
+            background: #ede3d2;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--muted);
+            min-width: 80px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #range {
+            flex: 1;
+            min-width: 120px;
+            max-width: 260px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 8px;
+        }
+
+        /* Explanation */
+        #explanation {
+            background: #fffef9;
+            border-radius: 10px;
+            padding: 14px 18px;
+            border: 1px solid #e8dfce;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #4a3f2f;
+            transition: all var(--transition);
+            min-height: 48px;
+        }
+        #explanation .phase-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 6px;
+            background: #ede3d2;
+            color: #6b5e4a;
+        }
+        #explanation .phase-tag.init {
+            background: #dbe8f5;
+            color: #3a5f80;
+        }
+        #explanation .phase-tag.check {
+            background: #fef3d6;
+            color: #8b5e1a;
+        }
+        #explanation .phase-tag.match {
+            background: #d5f5e0;
+            color: #1e5c30;
+        }
+        #explanation .phase-tag.result {
+            background: #d5f5e0;
+            color: #1e5c30;
+            font-size: 0.75rem;
+        }
+
+        /* Checkpoint interaction */
+        .checkpoint {
+            margin-top: 10px;
+            padding: 12px 16px;
+            background: #fdf9f0;
+            border-radius: 10px;
+            border: 1px dashed #d5c8b0;
+            transition: all 0.3s;
+        }
+        .checkpoint .cp-prompt {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #3e2f1c;
+        }
+        .checkpoint .cp-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .checkpoint .cp-option {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: 2px solid #d5c8b0;
+            background: #fffef9;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .checkpoint .cp-option:hover {
+            border-color: var(--accent);
+            background: #fef9f0;
+        }
+        .checkpoint .cp-option.selected-correct {
+            border-color: var(--green);
+            background: #eafaf1;
+            color: #1e5c30;
+            font-weight: 700;
+        }
+        .checkpoint .cp-option.selected-wrong {
+            border-color: var(--red);
+            background: #fdedec;
+            color: #922b21;
+        }
+        .checkpoint .cp-feedback {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+        .checkpoint .cp-feedback.correct {
+            background: #eafaf1;
+            color: #1e5c30;
+        }
+        .checkpoint .cp-feedback.wrong {
+            background: #fdedec;
+            color: #922b21;
+        }
+        .checkpoint .cp-input {
+            padding: 7px 12px;
+            border-radius: 6px;
+            border: 2px solid #d5c8b0;
+            font-size: 0.9rem;
+            width: 120px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .checkpoint .cp-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .checkpoint .cp-submit {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-left: 6px;
+        }
+        .checkpoint .cp-submit:hover {
+            background: #b07020;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            #app {
+                padding: 16px 12px;
+                gap: 14px;
+            }
+            #stage {
+                gap: 12px;
+                padding: 16px 8px 12px;
+                min-height: 180px;
+            }
+            .slot-bin {
+                width: 56px;
+                font-size: 1.4rem;
+                min-height: 44px;
+                border-radius: 8px 8px 3px 3px;
+            }
+            .slot-shelf {
+                width: 66px;
+                height: 7px;
+            }
+            .slot-label {
+                font-size: 0.7rem;
+            }
+            #range {
+                max-width: 140px;
+            }
+            .btn {
+                padding: 7px 12px;
+                font-size: 0.8rem;
+            }
+            .sum-overlay {
+                font-size: 0.75rem;
+                padding: 4px 10px;
+                top: 4px;
+            }
+            .target-badge {
+                font-size: 0.75rem;
+                padding: 4px 10px;
+                top: 4px;
+                right: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>📦 Order Fulfillment System</h1>
+            <p class="subtitle">Two‑Sum Algorithm &middot; Find two slots whose quantities match the target</p>
+        </div>
+
+        <!-- Main visualization stage -->
+        <div id="stage" aria-label="Warehouse slots visualization">
+            <!-- Slot cards injected by JS -->
+            <div class="sum-overlay" id="sumOverlay" data-derived-visual-only="true"></div>
+            <div class="target-badge" id="targetBadge">🎯 Target: —</div>
+        </div>
+
+        <!-- Verified result banner -->
+        <div class="result-banner" id="resultBanner" data-derived-visual-only="true">
+            <span class="check-icon">✅</span> Verified Result: <strong id="resultValue">—</strong>
+        </div>
+
+        <!-- Explanation area -->
+        <div id="explanation">
+            <span class="phase-tag init">INIT</span> Loading visualization…
+        </div>
+
+        <!-- Checkpoint interaction area -->
+        <div class="checkpoint" id="checkpoint" style="display:none;" data-derived-visual-only="true"></div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn" id="prev" title="Previous step" aria-label="Previous step">◀ Prev</button>
+            <input type="range" id="range" min="0" max="0" value="0" step="1" aria-label="Step slider" title="Drag to scrub through steps">
+            <button class="btn" id="next" title="Next step" aria-label="Next step">Next ▶</button>
+            <span id="counter">Step 0 / 0</span>
+        </div>
+    </div>
+
+    <!-- Injected artifact (populated at runtime) -->
+    
+
+    <script type="application/json" id="algolab-artifact" data-source="verified-artifact">{"schema_version":"algolab-build-v1","problem_title":"Two Sum","input_contract":"Given an array nums of integers and an integer target, return indices of the two different elements whose sum equals target. If no such pair exists return an empty list.","input_data":{"nums":[2,7,11,15],"target":9},"expected_result":[0,1],"verifier_result":[0,1],"variants":[{"id":"v1","name":"Brute Force","strategy":"Examine every unordered pair of indices and return the first matching sum.","time_complexity":"O(n^2)","space_complexity":"O(1)","code":"def solve(input_data):\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []","tracker_code":"def trace(input_data):\n    sess = TraceSession(\"Two Sum\", input_data, pseudocode=[\"Pick first slot i\", \"Pick second slot j > i\", \"Check if sum equals target\"])\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    arr = sess.array(\"nums\", nums)\n    tgt = sess.scalar(\"target\", target)\n    n = len(nums)\n    answer = []\n    found = False\n    for i in range(n):\n        arr.highlight(i, role=\"current\")\n        for j in range(i + 1, n):\n            arr.highlight(j, role=\"candidate\")\n            sess.note(f\"Check {nums[i]} + {nums[j]} == {target} ?\")\n            if nums[i] + nums[j] == target:\n                answer = [i, j]\n                arr.highlight(i, role=\"matched\")\n                arr.highlight(j, role=\"matched\")\n                found = True\n                break\n            else:\n                arr.unhighlight(j)\n        if found:\n            break\n        arr.unhighlight(i)\n    sess.result(answer)\n    trace = sess.to_trace()\n    for ev in trace[\"events\"]:\n        op = ev.get(\"op\",\"\")\n        reason = ev.get(\"reason\",\"\")\n        tids = [t.get(\"id\",\"\") for t in ev.get(\"targets\",[])]\n        if op == \"create\" and \"nums\" in tids:\n            ev[\"code_line\"] = 2\n        elif op == \"create\" and \"target\" in tids:\n            ev[\"code_line\"] = 3\n        elif op == \"highlight\" and \"current\" in reason:\n            ev[\"code_line\"] = 4\n        elif op == \"highlight\" and \"candidate\" in reason:\n            ev[\"code_line\"] = 5\n        elif op == \"note\" and \"Check\" in reason:\n            ev[\"code_line\"] = 6\n        elif op == \"highlight\" and \"matched\" in reason:\n            ev[\"code_line\"] = 7\n        elif op == \"result\" or op == \"answer\":\n            ev[\"code_line\"] = 7\n        else:\n            ev[\"code_line\"] = 8\n    return trace","result":[0,1],"trace":{"schema_version":"semantic-trace-v1","algorithm":"Two Sum","input_data":{"nums":[2,7,11,15],"target":9},"result":[0,1],"pseudocode":["Pick first slot i","Pick second slot j > i","Check if sum equals target"],"events":[{"step":0,"op":"create","targets":[{"id":"nums"}],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15]},"code_line":2,"interaction":null,"teaching":null},{"step":1,"op":"create","targets":[{"id":"target"}],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":3,"interaction":null,"teaching":null},{"step":2,"op":"mark","targets":[{"id":"nums[0]"}],"value":null,"before":null,"after":null,"deps":[],"role":"current","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":3,"op":"mark","targets":[{"id":"nums[1]"}],"value":null,"before":null,"after":null,"deps":[],"role":"candidate","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":4,"op":"explain","targets":[],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Check 2 + 7 == 9 ?","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":5,"op":"mark","targets":[{"id":"nums[0]"}],"value":null,"before":null,"after":null,"deps":[],"role":"matched","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":6,"op":"mark","targets":[{"id":"nums[1]"}],"value":null,"before":null,"after":null,"deps":[],"role":"matched","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":7,"op":"mark","targets":[{"id":"answer"}],"value":[0,1],"before":null,"after":null,"deps":[],"role":"answer","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"answer":[0,1]},"code_line":8,"interaction":null,"teaching":null}]}},{"id":"v2","name":"Hash Map","strategy":"Use a hash map to store seen numbers and their indices, and look up the complement in O(1) per element.","time_complexity":"O(n)","space_complexity":"O(n)","code":"def solve(input_data):\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    return []","tracker_code":"def trace(input_data):\n    sess = TraceSession(\"Two Sum\", input_data, pseudocode=[\"Iterate array\", \"Compute complement\", \"Look up complement in map\", \"If found return indices\", \"Else store num->index\"])\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    arr = sess.array(\"nums\", nums)\n    tgt = sess.scalar(\"target\", target)\n    seen = sess.map(\"seen\", {})\n    answer = []\n    for i, num in enumerate(nums):\n        arr.highlight(i, role=\"current\")\n        complement = target - num\n        sess.note(f\"Check num={num} -> complement={complement}\")\n        prev = seen.get(complement, None)\n        if prev is not None:\n            answer = [prev, i]\n            arr.highlight(i, role=\"matched\")\n            arr.highlight(prev, role=\"matched\")\n            sess.note(f\"Found pair, complement {complement} previously seen at index {prev}\")\n            break\n        else:\n            seen[num] = i\n            sess.note(f\"Store {num} at index {i}\")\n    sess.result(answer)\n    trace = sess.to_trace()\n    for ev in trace[\"events\"]:\n        op = ev.get(\"op\",\"\")\n        reason = ev.get(\"reason\",\"\")\n        tids = [t.get(\"id\",\"\") for t in ev.get(\"targets\",[])]\n        if op == \"create\" and \"nums\" in tids:\n            ev[\"code_line\"] = 2\n        elif op == \"create\" and \"target\" in tids:\n            ev[\"code_line\"] = 3\n        elif op == \"create\" and \"seen\" in tids:\n            ev[\"code_line\"] = 4\n        elif op == \"highlight\" and \"current\" in reason:\n            ev[\"code_line\"] = 5\n        elif op == \"note\" and \"Check num\" in reason:\n            ev[\"code_line\"] = 6\n        elif op == \"set\" and \"seen\" in tids:\n            ev[\"code_line\"] = 9\n        elif op == \"highlight\" and \"matched\" in reason:\n            ev[\"code_line\"] = 8\n        elif op == \"result\" or op == \"answer\":\n            ev[\"code_line\"] = 8 if answer else 10\n        elif op == \"note\" and \"Found pair\" in reason:\n            ev[\"code_line\"] = 7\n        elif op == \"note\" and \"Store\" in reason:\n            ev[\"code_line\"] = 9\n        else:\n            ev[\"code_line\"] = 5\n    return trace","result":[0,1],"trace":{"schema_version":"semantic-trace-v1","algorithm":"Two Sum","input_data":{"nums":[2,7,11,15],"target":9},"result":[0,1],"pseudocode":["Iterate array","Compute complement","Look up complement in map","If found return indices","Else store num->index"],"events":[{"step":0,"op":"create","targets":[{"id":"nums"}],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15]},"code_line":2,"interaction":null,"teaching":null},{"step":1,"op":"create","targets":[{"id":"target"}],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":3,"interaction":null,"teaching":null},{"step":2,"op":"create","targets":[{"id":"seen"}],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{}},"code_line":4,"interaction":null,"teaching":null},{"step":3,"op":"mark","targets":[{"id":"nums[0]"}],"value":null,"before":null,"after":null,"deps":[],"role":"current","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{}},"code_line":5,"interaction":null,"teaching":null},{"step":4,"op":"explain","targets":[],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Check num=2 -> complement=7","state":{"nums":[2,7,11,15],"target":9,"seen":{}},"code_line":5,"interaction":null,"teaching":null},{"step":5,"op":"compare","targets":[{"id":"seen"}],"value":{"key":7,"exists":false,"value":null},"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{}},"code_line":5,"interaction":null,"teaching":null},{"step":6,"op":"set","targets":[{"id":"seen[2]"}],"value":0,"before":null,"after":0,"deps":[],"role":"","reason":"seen[2] = 0","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":7,"op":"explain","targets":[],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Store 2 at index 0","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":8,"op":"mark","targets":[{"id":"nums[1]"}],"value":null,"before":null,"after":null,"deps":[],"role":"current","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":9,"op":"explain","targets":[],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Check num=7 -> complement=2","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":10,"op":"compare","targets":[{"id":"seen[2]"}],"value":{"key":2,"exists":true,"value":0},"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":11,"op":"mark","targets":[{"id":"nums[1]"}],"value":null,"before":null,"after":null,"deps":[],"role":"matched","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":12,"op":"mark","targets":[{"id":"nums[0]"}],"value":null,"before":null,"after":null,"deps":[],"role":"matched","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":13,"op":"explain","targets":[],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Found pair, complement 2 previously seen at index 0","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"code_line":5,"interaction":null,"teaching":null},{"step":14,"op":"mark","targets":[{"id":"answer"}],"value":[0,1],"before":null,"after":null,"deps":[],"role":"answer","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0},"answer":[0,1]},"code_line":5,"interaction":null,"teaching":null}]}}],"scenes":{"v1":{"schema_version":"scene-graph-v1","algorithm":"Two Sum","input_data":{"nums":[2,7,11,15],"target":9},"result":[0,1],"pseudocode":["Pick first slot i","Pick second slot j > i","Check if sum equals target"],"frames":[{"step":0,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":2,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"callout:0","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[2,7,11,15]","[2,7,11,15,9]"],"answer":"[2,7,11,15]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[2,7,11,15]":"Internal non-English diagnostic omitted.","[2,7,11,15,9]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["nums"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"nums","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":2,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums"},{"label":"Internal non-English diagnostic omitted.","text":"nums: None -> None"}]},"visual_patterns":[]}},{"step":1,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":3,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:1","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"input","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":"9","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["target"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"target","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":3,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["target"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"target"},{"label":"Internal non-English diagnostic omitted.","text":"target: None -> None"}]},"visual_patterns":[]}},{"step":2,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:2","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"current","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"current","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"current"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":3,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:3","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"candidate","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"candidate","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"candidate"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":4,"title":"Internal non-English diagnostic omitted.","description":"Check 2 + 7 == 9 ?","operation":"explain","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:4","type":"callout","value":"Check 2 + 7 == 9 ?","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"judge","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":true,"explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"sum = nums[i] + nums[j]","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Check 2 + 7 == 9 ?","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Check 2 + 7 == 9 ?","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":5,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:5","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":6,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:6","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":7,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"answer","type":"container","value":null,"label":"answer","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"answer[0]","type":"cell","value":0,"label":"","parent":"answer","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"answer[1]","type":"cell","value":1,"label":"","parent":"answer","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"callout:7","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"answer","role":"answer","label":""}],"state":{"nums":[2,7,11,15],"target":9,"answer":[0,1]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[0,1]","[]","[2,7]"],"answer":"[0,1]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[0,1]":"Internal non-English diagnostic omitted.","[]":"Internal non-English diagnostic omitted.","[2,7]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["answer"],"deps":[],"role":"answer","value":[0,1],"before":null,"after":null,"changes":[{"target":"answer","operation":"mark","source":"event","before":null,"after":null,"value":[0,1]}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["answer"],"role":"answer"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"answer"},{"label":"Internal non-English diagnostic omitted.","text":"answer: None -> None"}]},"visual_patterns":[]}}]},"v2":{"schema_version":"scene-graph-v1","algorithm":"Two Sum","input_data":{"nums":[2,7,11,15],"target":9},"result":[0,1],"pseudocode":["Iterate array","Compute complement","Look up complement in map","If found return indices","Else store num->index"],"frames":[{"step":0,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":2,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"callout:0","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15]},"interaction":null,"teaching":{"what":"Create array nums with input data.","why":"Initialize the list to be processed.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["nums"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"nums","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":2,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums"},{"label":"Internal non-English diagnostic omitted.","text":"nums: None -> None"}]},"visual_patterns":[]}},{"step":1,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":3,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:1","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Create variable target with value 9.","why":"Set the desired sum for the two numbers.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["target"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"target","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":3,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["target"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"target"},{"label":"Internal non-English diagnostic omitted.","text":"target: None -> None"}]},"visual_patterns":[]}},{"step":2,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":4,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"callout:2","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{}},"interaction":null,"teaching":{"what":"Create an empty dictionary seen.","why":"Will store number->index mappings for O(1) lookups.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["seen"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"seen","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":4,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["seen"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"seen"},{"label":"Internal non-English diagnostic omitted.","text":"seen: None -> None"}]},"visual_patterns":[]}},{"step":3,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"callout:3","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"current","label":""}],"state":{"nums":[2,7,11,15],"target":9,"seen":{}},"interaction":null,"teaching":{"what":"Begin loop iteration: current number nums[0] = 2.","why":"Visit each element to find a pair.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"current","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"current"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":4,"title":"Internal non-English diagnostic omitted.","description":"Check num=2 -> complement=7","operation":"explain","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"callout:4","type":"callout","value":"Check num=2 -> complement=7","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{}},"interaction":{"type":"input","prompt":"What is the complement computed for num=2 and target=9?","options":[],"answer":"7","explanation":"complement = target - num = 9 - 2 = 7.","wrong_explanation":"You may have mistakenly used target + num or simply reused num.","option_explanations":{}},"teaching":{"what":"Compute complement = target - num = 9 - 2 = 7.","why":"Identify the number needed to complete the pair.","formula":"complement = target - num","invariant":"","common_mistake":"","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Check num=2 -> complement=7","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Check num=2 -> complement=7","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":5,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"compare","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"callout:5","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{}},"interaction":{"type":"choice","prompt":"Does the seen map currently contain the key 7?","options":["Yes","No"],"answer":"No","explanation":"At this point seen is empty, so 7 is not present.","wrong_explanation":"You might think the map stores all numbers from nums, but it only stores previously visited numbers (here none have been stored yet).","option_explanations":{}},"teaching":{"what":"Query the seen map for key 7.","why":"Check if the complement has been visited before.","formula":"","invariant":"seen holds indices of previously visited numbers.","common_mistake":"Many beginners think 7 should already be in seen because it appears in nums, but we haven't stored it yet—only numbers encountered so far in the loop are added.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"compare","targets":["seen"],"deps":[],"role":"","value":{"key":7,"exists":false,"value":null},"before":null,"after":null,"changes":[{"target":"seen","operation":"compare","source":"event","before":null,"after":null,"value":{"key":7,"exists":false,"value":null}}],"reason":"Internal non-English diagnostic omitted.","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"compare","keyframe":false,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["seen"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"seen"},{"label":"Internal non-English diagnostic omitted.","text":"seen: None -> None"}]},"visual_patterns":[]}},{"step":6,"title":"Internal non-English diagnostic omitted.","description":"seen[2] = 0","operation":"set","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"cell","value":null,"label":"","parent":"seen","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"callout:6","type":"callout","value":"seen[2] = 0","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":{"type":"input","prompt":"What value will be assigned to seen[2]?","options":[],"answer":"0","explanation":"We store the current index i=0.","wrong_explanation":"A common mistake is to store the number 2 itself, or the complement 7, instead of the index.","option_explanations":{}},"teaching":{"what":"Store seen[2] = 0.","why":"Record that 2 appeared at index 0 for future complement matches.","formula":"seen[num] = i","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"set","targets":["seen[2]"],"deps":[],"role":"","value":0,"before":null,"after":0,"changes":[{"target":"seen[2]","operation":"set","source":"event","before":null,"after":0,"value":0}],"reason":"seen[2] = 0","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"set","keyframe":true,"keyframe_label":"seen[2] = 0","targets":["seen[2]"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"seen[2]"},{"label":"Internal non-English diagnostic omitted.","text":"seen[2]: None -> 0"}]},"visual_patterns":[]}},{"step":7,"title":"Internal non-English diagnostic omitted.","description":"Store 2 at index 0","operation":"explain","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"label","value":0,"label":"2","parent":"seen","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:7","type":"callout","value":"Store 2 at index 0","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":null,"teaching":{"what":"Confirm: 2 is now mapped to index 0 in seen.","why":"The map is updated for the next iterations.","formula":"","invariant":"","common_mistake":"","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Store 2 at index 0","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Store 2 at index 0","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":8,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"label","value":0,"label":"2","parent":"seen","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:8","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"current","label":""}],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":null,"teaching":{"what":"Move to next element: nums[1] = 7.","why":"Continue scanning the array.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"current","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"current"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":9,"title":"Internal non-English diagnostic omitted.","description":"Check num=7 -> complement=2","operation":"explain","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"label","value":0,"label":"2","parent":"seen","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:9","type":"callout","value":"Check num=7 -> complement=2","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":{"type":"input","prompt":"What is the complement for num=7?","options":[],"answer":"2","explanation":"9 - 7 = 2.","wrong_explanation":"You might have mistakenly used target + num or num itself.","option_explanations":{}},"teaching":{"what":"Compute complement = target - 7 = 2.","why":"Find the value that would complete the sum.","formula":"complement = target - num","invariant":"","common_mistake":"","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Check num=7 -> complement=2","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Check num=7 -> complement=2","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":10,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"compare","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"cell","value":null,"label":"","parent":"seen","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"callout:10","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":{"type":"choice","prompt":"Does the seen map now contain the key 2?","options":["Yes","No"],"answer":"Yes","explanation":"After step 6, seen is {2:0}, so 2 exists.","wrong_explanation":"You may have forgotten that 2 was stored when we visited index 0.","option_explanations":{}},"teaching":{"what":"Query the seen map for key 2.","why":"Check if the complement has been seen earlier.","formula":"","invariant":"seen stores all previously visited numbers and their indices.","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"compare","targets":["seen[2]"],"deps":[],"role":"","value":{"key":2,"exists":true,"value":0},"before":null,"after":null,"changes":[{"target":"seen[2]","operation":"compare","source":"event","before":null,"after":null,"value":{"key":2,"exists":true,"value":0}}],"reason":"Internal non-English diagnostic omitted.","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"compare","keyframe":false,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["seen[2]"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"seen[2]"},{"label":"Internal non-English diagnostic omitted.","text":"seen[2]: None -> None"}]},"visual_patterns":[]}},{"step":11,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"label","value":0,"label":"2","parent":"seen","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:11","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":null,"teaching":{"what":"Highlight nums[1] as matched.","why":"Indicate that the current number is part of the solution.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":12,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"label","value":0,"label":"2","parent":"seen","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:12","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":null,"teaching":{"what":"Highlight nums[0] as matched.","why":"Show the partner element that was stored earlier.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":13,"title":"Internal non-English diagnostic omitted.","description":"Found pair, complement 2 previously seen at index 0","operation":"explain","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"label","value":0,"label":"2","parent":"seen","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:13","type":"callout","value":"Found pair, complement 2 previously seen at index 0","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0}},"interaction":null,"teaching":{"what":"Conclude: complement 2 found at index 0, so pair (0,1) satisfies target.","why":"The pair has been found; algorithm will return.","formula":"","invariant":"","common_mistake":"","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Found pair, complement 2 previously seen at index 0","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Found pair, complement 2 previously seen at index 0","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":14,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":5,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"seen","type":"container","value":null,"label":"seen","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"map"}},{"id":"seen[2]","type":"label","value":0,"label":"2","parent":"seen","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"answer","type":"container","value":null,"label":"answer","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"answer[0]","type":"cell","value":0,"label":"","parent":"answer","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"answer[1]","type":"cell","value":1,"label":"","parent":"answer","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"callout:14","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"answer","role":"answer","label":""}],"state":{"nums":[2,7,11,15],"target":9,"seen":{"2":0},"answer":[0,1]},"interaction":{"type":"input","prompt":"What is the final answer returned by the algorithm?","options":[],"answer":"[0,1]","explanation":"Indices of numbers 2 and 7 are 0 and 1.","wrong_explanation":"You might incorrectly think the answer is [2,7] (the values) or [1,0] (reversed order).","option_explanations":{}},"teaching":{"what":"Return answer [0,1].","why":"The two indices whose values sum to 9.","formula":"","invariant":"Algorithm terminates with result when pair found.","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["answer"],"deps":[],"role":"answer","value":[0,1],"before":null,"after":null,"changes":[{"target":"answer","operation":"mark","source":"event","before":null,"after":null,"value":[0,1]}],"reason":"Internal non-English diagnostic omitted.","code_line":5,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["answer"],"role":"answer"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"answer"},{"label":"Internal non-English diagnostic omitted.","text":"answer: None -> None"}]},"visual_patterns":[]}}]},"0":{"schema_version":"scene-graph-v1","algorithm":"Two Sum","input_data":{"nums":[2,7,11,15],"target":9},"result":[0,1],"pseudocode":["Pick first slot i","Pick second slot j > i","Check if sum equals target"],"frames":[{"step":0,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":2,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"callout:0","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[2,7,11,15]","[2,7,11,15,9]"],"answer":"[2,7,11,15]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[2,7,11,15]":"Internal non-English diagnostic omitted.","[2,7,11,15,9]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["nums"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"nums","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":2,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums"},{"label":"Internal non-English diagnostic omitted.","text":"nums: None -> None"}]},"visual_patterns":[]}},{"step":1,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":3,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:1","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"input","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":"9","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["target"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"target","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":3,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["target"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"target"},{"label":"Internal non-English diagnostic omitted.","text":"target: None -> None"}]},"visual_patterns":[]}},{"step":2,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:2","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"current","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"current","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"current"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":3,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:3","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"candidate","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"candidate","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"candidate"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":4,"title":"Internal non-English diagnostic omitted.","description":"Check 2 + 7 == 9 ?","operation":"explain","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:4","type":"callout","value":"Check 2 + 7 == 9 ?","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"judge","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":true,"explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"sum = nums[i] + nums[j]","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Check 2 + 7 == 9 ?","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Check 2 + 7 == 9 ?","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":5,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:5","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":6,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:6","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":7,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"answer","type":"container","value":null,"label":"answer","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"answer[0]","type":"cell","value":0,"label":"","parent":"answer","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"answer[1]","type":"cell","value":1,"label":"","parent":"answer","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"callout:7","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"answer","role":"answer","label":""}],"state":{"nums":[2,7,11,15],"target":9,"answer":[0,1]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[0,1]","[]","[2,7]"],"answer":"[0,1]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[0,1]":"Internal non-English diagnostic omitted.","[]":"Internal non-English diagnostic omitted.","[2,7]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["answer"],"deps":[],"role":"answer","value":[0,1],"before":null,"after":null,"changes":[{"target":"answer","operation":"mark","source":"event","before":null,"after":null,"value":[0,1]}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["answer"],"role":"answer"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"answer"},{"label":"Internal non-English diagnostic omitted.","text":"answer: None -> None"}]},"visual_patterns":[]}}]}},"validation":{"errors":[],"warnings":[],"checks":["Internal non-English diagnostic omitted.","Internal non-English diagnostic omitted.","Brute Force：teaching_interaction_coverage {\"answer_frame_interaction_present\": true, \"answer_frames\": 1, \"deps_frame_interaction_rate\": 0.0, \"deps_frames\": 0, \"deps_interaction_frames\": 0, \"interaction_frames\": 4, \"interaction_rate\": 0.5, \"interaction_steps\": [0, 1, 4, 7], \"key_learning_frames\": 1, \"key_learning_interaction_frames\": 1, \"key_learning_interaction_rate\": 1.0, \"key_learning_steps\": [7], \"missing_key_learning_steps\": [], \"total_frames\": 8}","Brute Force：teaching_contract: key_learning_interaction_rate=1.000 (1/1)","Brute Force：teaching_contract: interaction_frames=4/8","Brute Force：teaching_contract: required_key_learning_interactions=1","Internal non-English diagnostic omitted.","Internal non-English diagnostic omitted.","Hash Map：teaching_interaction_coverage {\"answer_frame_interaction_present\": true, \"answer_frames\": 1, \"deps_frame_interaction_rate\": 0.0, \"deps_frames\": 0, \"deps_interaction_frames\": 0, \"interaction_frames\": 6, \"interaction_rate\": 0.4, \"interaction_steps\": [4, 5, 6, 9, 10, 14], \"key_learning_frames\": 4, \"key_learning_interaction_frames\": 4, \"key_learning_interaction_rate\": 1.0, \"key_learning_steps\": [5, 6, 10, 14], \"missing_key_learning_steps\": [], \"total_frames\": 15}","Hash Map：teaching_contract: key_learning_interaction_rate=1.000 (4/4)","Hash Map：teaching_contract: interaction_frames=6/15","Hash Map：teaching_contract: required_key_learning_interactions=4","Internal non-English diagnostic omitted.","Internal non-English diagnostic omitted.","demo readiness: Brute Force: demo readiness schema passed","demo readiness: Hash Map: demo readiness schema passed"],"degradations":[{"type":"process_uncovered","reason":"Internal non-English diagnostic omitted.","source":"process_validation_registry","affected_variant":"v1","blocking":false},{"type":"process_uncovered","reason":"Internal non-English diagnostic omitted.","source":"process_validation_registry","affected_variant":"v2","blocking":false}],"contract_validation":null,"contract_test_results":[],"demo_readiness":{"status":"pass","errors":[],"warnings":[],"checks":["Brute Force: demo readiness schema passed","Hash Map: demo readiness schema passed"],"variants":[{"variant_id":"v1","variant_name":"Brute Force","status":"pass","errors":[],"warnings":[],"checks":["demo readiness schema passed"],"phase_coverage":{"initialization":true,"main_loop":true,"transition":true,"answer":true}},{"variant_id":"v2","variant_name":"Hash Map","status":"pass","errors":[],"warnings":[],"checks":["demo readiness schema passed"],"phase_coverage":{"initialization":true,"main_loop":true,"transition":true,"answer":true}}]},"release_gate":{"artifact_ready":true,"process_ready":true,"trace_ready":true,"visual_ready":true,"multi_solution_ready":true,"release_ready":true,"blocking_reasons":[]}},"correctness_contract":null,"visual_plan":null,"render_report":null,"input":{"nums":[2,7,11,15],"target":9},"variant":{"id":"v1","name":"Brute Force","strategy":"Examine every unordered pair of indices and return the first matching sum.","time_complexity":"O(n^2)","space_complexity":"O(1)","code":"def solve(input_data):\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []","tracker_code":"def trace(input_data):\n    sess = TraceSession(\"Two Sum\", input_data, pseudocode=[\"Pick first slot i\", \"Pick second slot j > i\", \"Check if sum equals target\"])\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    arr = sess.array(\"nums\", nums)\n    tgt = sess.scalar(\"target\", target)\n    n = len(nums)\n    answer = []\n    found = False\n    for i in range(n):\n        arr.highlight(i, role=\"current\")\n        for j in range(i + 1, n):\n            arr.highlight(j, role=\"candidate\")\n            sess.note(f\"Check {nums[i]} + {nums[j]} == {target} ?\")\n            if nums[i] + nums[j] == target:\n                answer = [i, j]\n                arr.highlight(i, role=\"matched\")\n                arr.highlight(j, role=\"matched\")\n                found = True\n                break\n            else:\n                arr.unhighlight(j)\n        if found:\n            break\n        arr.unhighlight(i)\n    sess.result(answer)\n    trace = sess.to_trace()\n    for ev in trace[\"events\"]:\n        op = ev.get(\"op\",\"\")\n        reason = ev.get(\"reason\",\"\")\n        tids = [t.get(\"id\",\"\") for t in ev.get(\"targets\",[])]\n        if op == \"create\" and \"nums\" in tids:\n            ev[\"code_line\"] = 2\n        elif op == \"create\" and \"target\" in tids:\n            ev[\"code_line\"] = 3\n        elif op == \"highlight\" and \"current\" in reason:\n            ev[\"code_line\"] = 4\n        elif op == \"highlight\" and \"candidate\" in reason:\n            ev[\"code_line\"] = 5\n        elif op == \"note\" and \"Check\" in reason:\n            ev[\"code_line\"] = 6\n        elif op == \"highlight\" and \"matched\" in reason:\n            ev[\"code_line\"] = 7\n        elif op == \"result\" or op == \"answer\":\n            ev[\"code_line\"] = 7\n        else:\n            ev[\"code_line\"] = 8\n    return trace","result":[0,1],"trace":{"schema_version":"semantic-trace-v1","algorithm":"Two Sum","input_data":{"nums":[2,7,11,15],"target":9},"result":[0,1],"pseudocode":["Pick first slot i","Pick second slot j > i","Check if sum equals target"],"events":[{"step":0,"op":"create","targets":[{"id":"nums"}],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15]},"code_line":2,"interaction":null,"teaching":null},{"step":1,"op":"create","targets":[{"id":"target"}],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":3,"interaction":null,"teaching":null},{"step":2,"op":"mark","targets":[{"id":"nums[0]"}],"value":null,"before":null,"after":null,"deps":[],"role":"current","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":3,"op":"mark","targets":[{"id":"nums[1]"}],"value":null,"before":null,"after":null,"deps":[],"role":"candidate","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":4,"op":"explain","targets":[],"value":null,"before":null,"after":null,"deps":[],"role":"","reason":"Check 2 + 7 == 9 ?","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":5,"op":"mark","targets":[{"id":"nums[0]"}],"value":null,"before":null,"after":null,"deps":[],"role":"matched","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":6,"op":"mark","targets":[{"id":"nums[1]"}],"value":null,"before":null,"after":null,"deps":[],"role":"matched","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9},"code_line":8,"interaction":null,"teaching":null},{"step":7,"op":"mark","targets":[{"id":"answer"}],"value":[0,1],"before":null,"after":null,"deps":[],"role":"answer","reason":"Internal non-English diagnostic omitted.","state":{"nums":[2,7,11,15],"target":9,"answer":[0,1]},"code_line":8,"interaction":null,"teaching":null}]}},"scene":{"schema_version":"scene-graph-v1","algorithm":"Two Sum","input_data":{"nums":[2,7,11,15],"target":9},"result":[0,1],"pseudocode":["Pick first slot i","Pick second slot j > i","Check if sum equals target"],"frames":[{"step":0,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":2,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"callout:0","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[2,7,11,15]","[2,7,11,15,9]"],"answer":"[2,7,11,15]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[2,7,11,15]":"Internal non-English diagnostic omitted.","[2,7,11,15,9]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["nums"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"nums","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":2,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums"},{"label":"Internal non-English diagnostic omitted.","text":"nums: None -> None"}]},"visual_patterns":[]}},{"step":1,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":3,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:1","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"input","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":"9","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["target"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"target","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":3,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["target"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"target"},{"label":"Internal non-English diagnostic omitted.","text":"target: None -> None"}]},"visual_patterns":[]}},{"step":2,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:2","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"current","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"current","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"current"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":3,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:3","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"candidate","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"candidate","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"candidate"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":4,"title":"Internal non-English diagnostic omitted.","description":"Check 2 + 7 == 9 ?","operation":"explain","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:4","type":"callout","value":"Check 2 + 7 == 9 ?","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"judge","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":true,"explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"sum = nums[i] + nums[j]","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Check 2 + 7 == 9 ?","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Check 2 + 7 == 9 ?","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":5,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:5","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":6,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:6","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":7,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"answer","type":"container","value":null,"label":"answer","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"answer[0]","type":"cell","value":0,"label":"","parent":"answer","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"answer[1]","type":"cell","value":1,"label":"","parent":"answer","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"callout:7","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"answer","role":"answer","label":""}],"state":{"nums":[2,7,11,15],"target":9,"answer":[0,1]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[0,1]","[]","[2,7]"],"answer":"[0,1]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[0,1]":"Internal non-English diagnostic omitted.","[]":"Internal non-English diagnostic omitted.","[2,7]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["answer"],"deps":[],"role":"answer","value":[0,1],"before":null,"after":null,"changes":[{"target":"answer","operation":"mark","source":"event","before":null,"after":null,"value":[0,1]}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["answer"],"role":"answer"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"answer"},{"label":"Internal non-English diagnostic omitted.","text":"answer: None -> None"}]},"visual_patterns":[]}}]},"frames":[{"step":0,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":2,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"callout:0","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[2,7,11,15]","[2,7,11,15,9]"],"answer":"[2,7,11,15]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[2,7,11,15]":"Internal non-English diagnostic omitted.","[2,7,11,15,9]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["nums"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"nums","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":2,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums"},{"label":"Internal non-English diagnostic omitted.","text":"nums: None -> None"}]},"visual_patterns":[]}},{"step":1,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"create","code_line":3,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:1","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"input","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":"9","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"create","targets":["target"],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"target","operation":"create","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":3,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"create","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["target"],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"target"},{"label":"Internal non-English diagnostic omitted.","text":"target: None -> None"}]},"visual_patterns":[]}},{"step":2,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:2","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"current","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"current","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"current"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":3,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:3","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"candidate","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"candidate","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"candidate"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":4,"title":"Internal non-English diagnostic omitted.","description":"Check 2 + 7 == 9 ?","operation":"explain","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:4","type":"callout","value":"Check 2 + 7 == 9 ?","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[],"state":{"nums":[2,7,11,15],"target":9},"interaction":{"type":"judge","prompt":"Internal non-English diagnostic omitted.","options":[],"answer":true,"explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"sum = nums[i] + nums[j]","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":""},"evidence":{"operation":"explain","targets":[],"deps":[],"role":"","value":null,"before":null,"after":null,"changes":[{"target":"state","operation":"explain","source":"event","before":null,"after":null,"value":null}],"reason":"Check 2 + 7 == 9 ?","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"explain","keyframe":false,"keyframe_label":"Check 2 + 7 == 9 ?","targets":[],"role":""},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"state: None -> None"}]},"visual_patterns":[]}},{"step":5,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:5","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[0]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[0]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[0]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[0]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[0]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[0]: None -> None"}]},"visual_patterns":[]}},{"step":6,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"callout:6","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"nums[1]","role":"matched","label":""}],"state":{"nums":[2,7,11,15],"target":9},"interaction":null,"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["nums[1]"],"deps":[],"role":"matched","value":null,"before":null,"after":null,"changes":[{"target":"nums[1]","operation":"mark","source":"event","before":null,"after":null,"value":null}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["nums[1]"],"role":"matched"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"nums[1]"},{"label":"Internal non-English diagnostic omitted.","text":"nums[1]: None -> None"}]},"visual_patterns":[]}},{"step":7,"title":"Internal non-English diagnostic omitted.","description":"Internal non-English diagnostic omitted.","operation":"mark","code_line":8,"objects":[{"id":"nums","type":"container","value":null,"label":"nums","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"nums[0]","type":"cell","value":2,"label":"","parent":"nums","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"nums[1]","type":"cell","value":7,"label":"","parent":"nums","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"nums[2]","type":"cell","value":11,"label":"","parent":"nums","row":null,"col":null,"index":2,"source":"","target":"","role":"","meta":{}},{"id":"nums[3]","type":"cell","value":15,"label":"","parent":"nums","row":null,"col":null,"index":3,"source":"","target":"","role":"","meta":{}},{"id":"target","type":"label","value":9,"label":"target","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{}},{"id":"answer","type":"container","value":null,"label":"answer","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"","meta":{"layout":"array"}},{"id":"answer[0]","type":"cell","value":0,"label":"","parent":"answer","row":null,"col":null,"index":0,"source":"","target":"","role":"","meta":{}},{"id":"answer[1]","type":"cell","value":1,"label":"","parent":"answer","row":null,"col":null,"index":1,"source":"","target":"","role":"","meta":{}},{"id":"callout:7","type":"callout","value":"Internal non-English diagnostic omitted.","label":"Internal non-English diagnostic omitted.","parent":"","row":null,"col":null,"index":null,"source":"","target":"","role":"reason","meta":{}}],"marks":[{"target":"answer","role":"answer","label":""}],"state":{"nums":[2,7,11,15],"target":9,"answer":[0,1]},"interaction":{"type":"choice","prompt":"Internal non-English diagnostic omitted.","options":["[0,1]","[]","[2,7]"],"answer":"[0,1]","explanation":"Internal non-English diagnostic omitted.","wrong_explanation":"Internal non-English diagnostic omitted.","option_explanations":{"[0,1]":"Internal non-English diagnostic omitted.","[]":"Internal non-English diagnostic omitted.","[2,7]":"Internal non-English diagnostic omitted."}},"teaching":{"what":"Internal non-English diagnostic omitted.","why":"Internal non-English diagnostic omitted.","formula":"","invariant":"","common_mistake":"Internal non-English diagnostic omitted.","hint":"Internal non-English diagnostic omitted."},"evidence":{"operation":"mark","targets":["answer"],"deps":[],"role":"answer","value":[0,1],"before":null,"after":null,"changes":[{"target":"answer","operation":"mark","source":"event","before":null,"after":null,"value":[0,1]}],"reason":"Internal non-English diagnostic omitted.","code_line":8,"timeline":{"phase":"Internal non-English diagnostic omitted.","operation":"mark","keyframe":true,"keyframe_label":"Internal non-English diagnostic omitted.","targets":["answer"],"role":"answer"},"process":{"status":"Internal non-English diagnostic omitted.","kind":"Internal non-English diagnostic omitted.","summary":"Internal non-English diagnostic omitted.","checks":[{"label":"Internal non-English diagnostic omitted.","text":"answer"},{"label":"Internal non-English diagnostic omitted.","text":"answer: None -> None"}]},"visual_patterns":[]}}],"result":[0,1]}</script>
+<script>
+        (function() {
+            // ──────────────────────────────────────────────
+            // Read injected artifact
+            // ──────────────────────────────────────────────
+            const artifactNode = document.getElementById('algolab-artifact');
+            let artifact;
+            try {
+                artifact = JSON.parse(artifactNode.textContent);
+            } catch (e) {
+                console.error('Failed to parse algolab-artifact JSON:', e);
+                return;
+            }
+
+            // Extract key data
+            const inputData = artifact.input_data || artifact.input || { nums: [2, 7, 11, 15], target: 9 };
+            const verifiedResult = artifact.result || [];
+            const rawFrames = artifact.frames || [];
+            const frameCount = artifact.frame_count || rawFrames.length || 8;
+
+            // ──────────────────────────────────────────────
+            // Build complete frame sequence
+            // ──────────────────────────────────────────────
+            let frames = [];
+
+            if (rawFrames.length > 0) {
+                // Use frames from artifact, ensuring they cover all steps
+                frames = rawFrames.map(f => ({
+                    step: f.step,
+                    title: f.title || ('Step ' + f.step),
+                    operation: f.operation || '',
+                    description: f.description || '',
+                    state: f.state || {},
+                    teaching: f.teaching || {},
+                    interaction: f.interaction || null,
+                    phase: inferPhase(f)
+                }));
+                // Sort by step
+                frames.sort((a, b) => a.step - b.step);
+            } else {
+                // Fallback: construct frames from known trace
+                frames = buildFallbackFrames(inputData);
+            }
+
+            // Ensure frame count matches
+            if (frames.length < frameCount) {
+                // Fill gaps if needed
+                const existingSteps = new Set(frames.map(f => f.step));
+                const lastFrame = frames[frames.length - 1] || { state: { nums: inputData.nums, target: inputData.target } };
+                for (let s = 0; s < frameCount; s++) {
+                    if (!existingSteps.has(s)) {
+                        // Insert interpolated frame
+                        const inserted = createInterpolatedFrame(s, frames, lastFrame, inputData);
+                        frames.push(inserted);
+                        existingSteps.add(s);
+                    }
+                }
+                frames.sort((a, b) => a.step - b.step);
+            }
+
+            const totalFrames = frames.length;
+
+            function inferPhase(f) {
+                const op = (f.operation || '').toLowerCase();
+                const desc = (f.description || '').toLowerCase();
+                const title = (f.title || '').toLowerCase();
+                if (op === 'create' && desc.includes('nums')) return 'init';
+                if (op === 'create' && desc.includes('target')) return 'init';
+                if (title.includes('pick first') || desc.includes('outer loop')) return 'loop_outer';
+                if (title.includes('pick second') || desc.includes('inner loop')) return 'loop_inner';
+                if (title.includes('check') || op === 'explain') return 'check';
+                if (title.includes('match found') || desc.includes('satisfies')) return 'match';
+                if (title.includes('prepare') || desc.includes('build')) return 'answer_prep';
+                if (title.includes('return') || op === 'mark') return 'result';
+                return 'unknown';
+            }
+
+            function buildFallbackFrames(input) {
+                const n = input.nums || [2, 7, 11, 15];
+                const t = input.target || 9;
+                return [
+                    { step: 0, title: 'Initialize nums', operation: 'create', description: 'Create array nums',
+                        state: { nums: [...n] }, teaching: { what: 'Create array nums with slot quantities.',
+                            why: 'We need the quantities before searching.' }, interaction: null, phase: 'init' },
+                    { step: 1, title: 'Initialize target', operation: 'create', description: 'Create variable target',
+                        state: { nums: [...n], target: t }, teaching: { what: 'Set target = ' + t + '.',
+                            why: 'Target is the sum we need to match.' }, interaction: null, phase: 'init' },
+                    { step: 2, title: 'Pick first slot i=0', operation: 'select', description: 'Outer loop i=0',
+                        state: { nums: [...n], target: t, i: 0 }, teaching: { what: 'Select slot 0 as first pick.',
+                            why: 'Outer loop iterates candidates.' }, interaction: null, phase: 'loop_outer' },
+                    { step: 3, title: 'Pick second slot j=1', operation: 'select', description: 'Inner loop j=1',
+                        state: { nums: [...n], target: t, i: 0, j: 1 }, teaching: { what: 'Select slot 1 as second pick.',
+                            why: 'Inner loop picks j > i.' }, interaction: null, phase: 'loop_inner' },
+                    { step: 4, title: 'Check sum', operation: 'explain', description: 'Check 2+7==9?',
+                        state: { nums: [...n], target: t, i: 0, j: 1 }, teaching: { what: '2 + 7 = 9. Equals target?',
+                            why: 'Compare pair sum to target.' }, interaction: null, phase: 'check' },
+                    { step: 5, title: 'Match found', operation: 'mark', description: 'Pair satisfies condition',
+                        state: { nums: [...n], target: t, i: 0, j: 1, found: true }, teaching: { what: 'Match confirmed.',
+                            why: 'Sum equals target.' }, interaction: null, phase: 'match' },
+                    { step: 6, title: 'Prepare answer', operation: 'build', description: 'Build answer [0,1]',
+                        state: { nums: [...n], target: t, answer: [0, 1] }, teaching: { what: 'Build answer array.',
+                            why: 'Return indices, not values.' }, interaction: null, phase: 'answer_prep' },
+                    { step: 7, title: 'Return answer', operation: 'mark', description: 'Return [0,1]',
+                        state: { nums: [...n], target: t, answer: [0, 1] }, teaching: { what: 'Return [0,1].',
+                            why: 'Indices 0 and 1 sum to target.' }, interaction: null, phase: 'result' }
+                ];
+            }
+
+            function createInterpolatedFrame(step, existingFrames, lastFrame, input) {
+                // Simple interpolation based on step number
+                const n = input.nums || [2, 7, 11, 15];
+                const t = input.target || 9;
+                const state = { nums: [...n], target: t };
+                if (step >= 2) state.i = 0;
+                if (step >= 3) state.j = 1;
+                if (step >= 5) state.found = true;
+                if (step >= 6) state.answer = [0, 1];
+                const titles = [
+                    'Initialize nums', 'Initialize target', 'Pick first slot i=0',
+                    'Pick second slot j=1', 'Check sum', 'Match found',
+                    'Prepare answer', 'Return answer'
+                ];
+                const phases = [
+                    'init', 'init', 'loop_outer', 'loop_inner', 'check', 'match', 'answer_prep', 'result'
+                ];
+                return {
+                    step,
+                    title: titles[step] || ('Step ' + step),
+                    operation: step < 2 ? 'create' : (step < 4 ? 'select' : (step === 4 ? 'explain' : 'mark')),
+                    description: titles[step] || '',
+                    state,
+                    teaching: { what: titles[step] || '', why: '', hint: '' },
+                    interaction: null,
+                    phase: phases[step] || 'unknown'
+                };
+            }
+
+            // ──────────────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────────────
+            const stage = document.getElementById('stage');
+            const explanation = document.getElementById('explanation');
+            const checkpointEl = document.getElementById('checkpoint');
+            const sumOverlay = document.getElementById('sumOverlay');
+            const targetBadge = document.getElementById('targetBadge');
+            const resultBanner = document.getElementById('resultBanner');
+            const resultValue = document.getElementById('resultValue');
+            const prevBtn = document.getElementById('prev');
+            const nextBtn = document.getElementById('next');
+            const rangeSlider = document.getElementById('range');
+            const counter = document.getElementById('counter');
+
+            let currentIndex = 0;
+
+            // ──────────────────────────────────────────────
+            // Build slot cards in the stage
+            // ──────────────────────────────────────────────
+            const slotCards = [];
+            const numsArray = inputData.nums || [2, 7, 11, 15];
+
+            numsArray.forEach((val, idx) => {
+                const card = document.createElement('div');
+                card.className = 'slot-card';
+                card.setAttribute('data-index', idx);
+                card.setAttribute('data-derived-visual-only', 'true');
+                card.innerHTML = `
+                    <div class="slot-bin">${val}</div>
+                    <div class="slot-shelf"></div>
+                    <div class="slot-label">Slot [${idx}]</div>
+                `;
+                stage.appendChild(card);
+                slotCards.push(card);
+            });
+
+            // Move overlay and badge to end of stage so they render on top
+            stage.appendChild(sumOverlay);
+            stage.appendChild(targetBadge);
+
+            // ──────────────────────────────────────────────
+            // Range slider setup
+            // ──────────────────────────────────────────────
+            rangeSlider.min = 0;
+            rangeSlider.max = totalFrames - 1;
+            rangeSlider.value = 0;
+
+            // ──────────────────────────────────────────────
+            // Render function
+            // ──────────────────────────────────────────────
+            function renderFrame(index) {
+                if (index < 0 || index >= totalFrames) return;
+                currentIndex = index;
+                const frame = frames[index];
+                const state = frame.state || {};
+                const phase = frame.phase || 'unknown';
+
+                // Update stage classes
+                stage.classList.remove('checking', 'matched');
+                if (phase === 'check') stage.classList.add('checking');
+                if (phase === 'match' || phase === 'answer_prep' || phase === 'result') stage.classList.add('matched');
+
+                // Update slot card highlights
+                const iVal = state.i !== undefined ? state.i : -1;
+                const jVal = state.j !== undefined ? state.j : -1;
+                const hasAnswer = state.answer && Array.isArray(state.answer) && state.answer.length > 0;
+                const answerIndices = hasAnswer ? state.answer : [];
+                const found = state.found === true || hasAnswer;
+
+                slotCards.forEach((card, idx) => {
+                    card.classList.remove('highlight-i', 'highlight-j', 'matched-slot');
+                    if (found && answerIndices.includes(idx)) {
+                        card.classList.add('matched-slot');
+                    } else if (idx === iVal && phase !== 'match' && phase !== 'answer_prep' && phase !==
+                        'result') {
+                        card.classList.add('highlight-i');
+                    } else if (idx === jVal && phase !== 'match' && phase !== 'answer_prep' && phase !==
+                        'result') {
+                        card.classList.add('highlight-j');
+                    }
+                    if (found && answerIndices.includes(idx) && idx === iVal && phase === 'check') {
+                        card.classList.add('highlight-i');
+                    }
+                });
+
+                // Update sum overlay
+                if (iVal >= 0 && jVal >= 0 && iVal < numsArray.length && jVal < numsArray.length) {
+                    const sum = numsArray[iVal] + numsArray[jVal];
+                    const matchesTarget = sum === (state.target || inputData.target || 9);
+                    sumOverlay.textContent = `${numsArray[iVal]} + ${numsArray[jVal]} = ${sum} ${matchesTarget ? '✓ Target!' : '≠ Target'}`;
+                    sumOverlay.className = 'sum-overlay visible' + (matchesTarget ? ' matched-sum' : '');
+                } else if (found && hasAnswer && answerIndices.length === 2) {
+                    const a = answerIndices[0];
+                    const b = answerIndices[1];
+                    if (a < numsArray.length && b < numsArray.length) {
+                        const sum = numsArray[a] + numsArray[b];
+                        sumOverlay.textContent = `${numsArray[a]} + ${numsArray[b]} = ${sum} ✓`;
+                        sumOverlay.className = 'sum-overlay visible matched-sum';
+                    } else {
+                        sumOverlay.className = 'sum-overlay';
+                    }
+                } else {
+                    sumOverlay.className = 'sum-overlay';
+                }
+
+                // Update target badge
+                const targetVal = state.target !== undefined ? state.target : (inputData.target || 9);
+                targetBadge.textContent = '🎯 Target: ' + targetVal;
+                if (found && hasAnswer && answerIndices.length === 2) {
+                    const a = answerIndices[0];
+                    const b = answerIndices[1];
+                    if (a < numsArray.length && b < numsArray.length && (numsArray[a] + numsArray[b]) === targetVal) {
+                        targetBadge.classList.add('satisfied');
+                    } else {
+                        targetBadge.classList.remove('satisfied');
+                    }
+                } else {
+                    targetBadge.classList.remove('satisfied');
+                }
+
+                // Update result banner
+                if (verifiedResult && verifiedResult.length > 0 && (phase === 'result' || phase === 'answer_prep' || found)) {
+                    resultValue.textContent = '[' + verifiedResult.join(', ') + ']';
+                    resultBanner.classList.add('visible');
+                } else if (phase === 'result') {
+                    resultValue.textContent = hasAnswer ? '[' + state.answer.join(', ') + ']' : '[' + verifiedResult.join(
+                        ', ') + ']';
+                    resultBanner.classList.add('visible');
+                } else {
+                    resultBanner.classList.remove('visible');
+                }
+
+                // Update explanation
+                const teaching = frame.teaching || {};
+                const what = teaching.what || frame.description || '';
+                const why = teaching.why || '';
+                const hint = teaching.hint || '';
+                const commonMistake = teaching.common_mistake || '';
+                const formula = teaching.formula || '';
+
+                let phaseTagClass = phase;
+                if (phase === 'loop_outer' || phase === 'loop_inner') phaseTagClass = 'check';
+                const phaseLabel = phase.replace('_', ' ').toUpperCase();
+
+                let explHTML = `<span class="phase-tag ${phaseTagClass}">${phaseLabel}</span>`;
+                explHTML += `<strong>${frame.title}</strong>`;
+                if (what) explHTML += `<br>📋 ${what}`;
+                if (why) explHTML += `<br>💡 ${why}`;
+                if (formula) explHTML += `<br>📐 <code>${formula}</code>`;
+                if (commonMistake) explHTML += `<br>⚠️ <em>${commonMistake}</em>`;
+                if (hint) explHTML += `<br>🔍 ${hint}`;
+
+                explanation.innerHTML = explHTML;
+
+                // Update checkpoint interaction
+                renderCheckpoint(frame);
+
+                // Update controls
+                counter.textContent = `Step ${index + 1} / ${totalFrames}`;
+                rangeSlider.value = index;
+                prevBtn.disabled = index <= 0;
+                nextBtn.disabled = index >= totalFrames - 1;
+            }
+
+            // ──────────────────────────────────────────────
+            // Checkpoint rendering
+            // ──────────────────────────────────────────────
+            let checkpointAnswered = {}; // track which frames have been answered
+
+            function renderCheckpoint(frame) {
+                const interaction = frame.interaction;
+                if (!interaction) {
+                    checkpointEl.style.display = 'none';
+                    checkpointEl.innerHTML = '';
+                    return;
+                }
+
+                checkpointEl.style.display = 'block';
+                const stepKey = 'step_' + frame.step;
+                const alreadyAnswered = checkpointAnswered[stepKey];
+
+                let html = '<div class="cp-prompt">📝 ' + escapeHTML(interaction.prompt) + '</div>';
+
+                if (interaction.type === 'choice' && interaction.options && interaction.options.length > 0) {
+                    html += '<div class="cp-options">';
+                    interaction.options.forEach(opt => {
+                        let optClass = 'cp-option';
+                        if (alreadyAnswered) {
+                            if (opt === interaction.answer) {
+                                optClass += ' selected-correct';
+                            } else if (alreadyAnswered.selected === opt && opt !== interaction
+                                .answer) {
+                                optClass += ' selected-wrong';
+                            }
+                        }
+                        html +=
+                            `<span class="${optClass}" data-option="${escapeHTML(opt)}" data-derived-visual-only="true">${escapeHTML(opt)}</span>`;
+                    });
+                    html += '</div>';
+                } else if (interaction.type === 'input') {
+                    html +=
+                        '<input type="text" class="cp-input" id="cpInput" placeholder="Type your answer…" data-derived-visual-only="true">';
+                    html += '<button class="cp-submit" id="cpSubmit" data-derived-visual-only="true">Check</button>';
+                } else if (interaction.type === 'judge') {
+                    html += '<div class="cp-options">';
+                    ['True', 'False'].forEach(opt => {
+                        let optClass = 'cp-option';
+                        const boolVal = opt === 'True';
+                        if (alreadyAnswered) {
+                            if (boolVal === interaction.answer) {
+                                optClass += ' selected-correct';
+                            } else if (alreadyAnswered.selected === opt && boolVal !== interaction
+                                .answer) {
+                                optClass += ' selected-wrong';
+                            }
+                        }
+                        html +=
+                            `<span class="${optClass}" data-option="${opt}" data-derived-visual-only="true">${opt}</span>`;
+                    });
+                    html += '</div>';
+                }
+
+                if (alreadyAnswered) {
+                    const isCorrect = alreadyAnswered.correct;
+                    html += '<div class="cp-feedback ' + (isCorrect ? 'correct' : 'wrong') + '">';
+                    html += isCorrect ? '✅ ' : '❌ ';
+                    html += escapeHTML(isCorrect ? (interaction.explanation || 'Correct!') : (interaction
+                        .wrong_explanation || 'Not quite.'));
+                    html += '</div>';
+                    if (!isCorrect && interaction.explanation) {
+                        html += '<div class="cp-feedback correct" style="margin-top:4px;">💡 Correct answer: ' +
+                            escapeHTML(interaction.explanation) + '</div>';
+                    }
+                }
+
+                checkpointEl.innerHTML = html;
+
+                // Attach event listeners for interaction
+                if (!alreadyAnswered) {
+                    if (interaction.type === 'choice' || interaction.type === 'judge') {
+                        const options = checkpointEl.querySelectorAll('.cp-option');
+                        options.forEach(optEl => {
+                            optEl.addEventListener('click', function() {
+                                const selected = this.getAttribute('data-option');
+                                let isCorrect;
+                                if (interaction.type === 'judge') {
+                                    isCorrect = (selected === 'True') === interaction.answer;
+                                } else {
+                                    isCorrect = (selected === interaction.answer);
+                                }
+                                checkpointAnswered[stepKey] = {
+                                    selected: selected,
+                                    correct: isCorrect
+                                };
+                                renderCheckpoint(frame);
+                            });
+                        });
+                    } else if (interaction.type === 'input') {
+                        const submitBtn = checkpointEl.querySelector('#cpSubmit');
+                        const inputField = checkpointEl.querySelector('#cpInput');
+                        if (submitBtn && inputField) {
+                            const checkInput = function() {
+                                const val = inputField.value.trim();
+                                const correctAnswer = String(interaction.answer).trim();
+                                const isCorrect = (val === correctAnswer);
+                                checkpointAnswered[stepKey] = {
+                                    selected: val,
+                                    correct: isCorrect
+                                };
+                                renderCheckpoint(frame);
+                            };
+                            submitBtn.addEventListener('click', checkInput);
+                            inputField.addEventListener('keydown', function(e) {
+                                if (e.key === 'Enter') checkInput();
+                            });
+                        }
+                    }
+                }
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────────────
+            prevBtn.addEventListener('click', () => {
+                if (currentIndex > 0) renderFrame(currentIndex - 1);
+            });
+            nextBtn.addEventListener('click', () => {
+                if (currentIndex < totalFrames - 1) renderFrame(currentIndex + 1);
+            });
+            rangeSlider.addEventListener('input', () => {
+                const idx = parseInt(rangeSlider.value, 10);
+                if (!isNaN(idx) && idx >= 0 && idx < totalFrames) {
+                    renderFrame(idx);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    if (currentIndex > 0) renderFrame(currentIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (currentIndex < totalFrames - 1) renderFrame(currentIndex + 1);
+                }
+            });
+
+            // ──────────────────────────────────────────────
+            // Initialize
+            // ──────────────────────────────────────────────
+            // Display verified result value immediately
+            if (verifiedResult && verifiedResult.length > 0) {
+                resultValue.textContent = '[' + verifiedResult.join(', ') + ']';
+            }
+
+            // Set initial target badge
+            const initTarget = inputData.target || 9;
+            targetBadge.textContent = '🎯 Target: ' + initTarget;
+
+            // Render first frame
+            renderFrame(0);
+
+            console.log('📦 Order Fulfillment – Two Sum Visualization ready.');
+            console.log('   Input:', JSON.stringify(inputData));
+            console.log('   Verified result:', JSON.stringify(verifiedResult));
+            console.log('   Total frames:', totalFrames);
+            console.log('   Use arrow keys or controls to step through.');
+        })();
+    </script>
+</body>
+</html>

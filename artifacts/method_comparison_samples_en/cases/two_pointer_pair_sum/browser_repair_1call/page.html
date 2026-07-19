@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Sum in Sorted Array - AlgoLab Tutorial</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --card-bg: #ffffff;
+            --border: #e2e5ea;
+            --text: #1a1d23;
+            --text-secondary: #5a5f6b;
+            --accent: #3b6df0;
+            --accent-light: #e8edfc;
+            --success: #1a8a4a;
+            --success-bg: #e6f4ec;
+            --warning: #c47d0a;
+            --warning-bg: #fef7e6;
+            --error: #c62828;
+            --error-bg: #fdecea;
+            --pointer-left: #3b6df0;
+            --pointer-right: #e8780a;
+            --answer-highlight: #1a8a4a;
+            --code-bg: #1e2233;
+            --code-text: #d6dae5;
+            --code-highlight: #2d3348;
+            --code-active: #3d4a6b;
+            --timeline-done: #3b6df0;
+            --timeline-active: #5b7df5;
+            --timeline-pending: #d0d4db;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Liberation Mono', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'system-ui', '-apple-system', sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 24px 16px 60px;
+        }
+
+        .page-container {
+            max-width: 960px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            margin: 0 0 4px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .top-info {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #top-result {
+            background: var(--success-bg);
+            color: var(--success);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            border: 1px solid #b8dbc4;
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Code */
+        .code-section {
+            background: var(--code-bg);
+            border-radius: var(--radius);
+            padding: 16px 0;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+        .code-section h3 {
+            color: #a0a8ba;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0 20px 8px;
+            margin: 0;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: var(--code-text);
+            padding: 0 20px;
+            white-space: pre;
+            counter-reset: codeline;
+            position: relative;
+        }
+        #code .line {
+            display: block;
+            padding: 2px 12px;
+            margin: 0 -12px;
+            border-radius: 3px;
+            transition: background var(--transition);
+            position: relative;
+        }
+        #code .line.active {
+            background: var(--code-active);
+            border-left: 3px solid #7b9af8;
+            padding-left: 9px;
+        }
+        #code .line .ln {
+            display: inline-block;
+            width: 28px;
+            color: #5a6378;
+            text-align: right;
+            margin-right: 14px;
+            user-select: none;
+            font-size: 0.78rem;
+        }
+        #code .keyword {
+            color: #c792ea;
+        }
+        #code .func {
+            color: #82aaff;
+        }
+        #code .string {
+            color: #c3e88d;
+        }
+        #code .number {
+            color: #f78c6c;
+        }
+        #code .comment {
+            color: #676e84;
+            font-style: italic;
+        }
+        #code .op {
+            color: #89ddff;
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        .controls-bar button {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .controls-bar button:hover {
+            background: #f1f3f6;
+            border-color: #c5c9d1;
+        }
+        .controls-bar button:active {
+            background: #e4e7ec;
+        }
+        .controls-bar button.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .controls-bar button.primary:hover {
+            background: #2d5de0;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text);
+            min-width: 48px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 4px 0;
+            align-items: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--timeline-pending);
+            background: #fafbfc;
+            cursor: pointer;
+            transition: all var(--transition);
+            min-width: 64px;
+            text-align: center;
+            font-size: 0.78rem;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            border-color: #b0b7c4;
+            background: #f0f2f5;
+        }
+        .tick.done {
+            border-color: var(--timeline-done);
+            background: #eef3fd;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: #dce6fb;
+            box-shadow: 0 0 0 3px rgba(59, 109, 240, 0.12);
+            font-weight: 600;
+        }
+        .tick.checkpoint-tick {
+            border-style: dashed;
+        }
+        .tick-label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--text);
+            display: block;
+        }
+        .tick-op {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            display: block;
+            font-family: var(--font-mono);
+            word-break: break-all;
+            max-width: 90px;
+        }
+        .tick.done .tick-op,
+        .tick.active .tick-op {
+            color: var(--text);
+        }
+        .tick .cp-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--warning);
+            margin-left: 3px;
+            vertical-align: middle;
+        }
+
+        /* Main content area */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 700px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Canvas */
+        .canvas-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            min-height: 200px;
+        }
+        .canvas-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin: 0 0 12px;
+        }
+        #canvas {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            font-family: var(--font-mono);
+        }
+        .array-row {
+            display: flex;
+            gap: 4px;
+            align-items: flex-end;
+        }
+        .array-cell {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.05rem;
+            transition: all var(--transition);
+            border: 2px solid #e2e5ea;
+            background: #fafbfc;
+            position: relative;
+            color: var(--text);
+        }
+        .array-cell .cell-idx {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+        .array-cell.pointer-left {
+            border-color: var(--pointer-left);
+            background: #e8edfc;
+            box-shadow: 0 0 0 4px rgba(59, 109, 240, 0.14);
+            color: #1a3fa8;
+        }
+        .array-cell.pointer-right {
+            border-color: var(--pointer-right);
+            background: #fef3e6;
+            box-shadow: 0 0 0 4px rgba(232, 120, 10, 0.14);
+            color: #8a4e08;
+        }
+        .array-cell.answer-cell {
+            border-color: var(--answer-highlight);
+            background: #e6f4ec;
+            box-shadow: 0 0 0 5px rgba(26, 138, 74, 0.16);
+            color: #0d5c2e;
+            animation: pulse-green 1.6s ease-in-out infinite;
+        }
+        @keyframes pulse-green {
+            0%,
+            100% {
+                box-shadow: 0 0 0 5px rgba(26, 138, 74, 0.16);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(26, 138, 74, 0.05);
+            }
+        }
+        .pointer-indicators {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+        }
+        .pointer-ind {
+            width: 52px;
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding-top: 2px;
+            transition: all var(--transition);
+            color: transparent;
+            min-height: 18px;
+        }
+        .pointer-ind.show-left {
+            color: var(--pointer-left);
+        }
+        .pointer-ind.show-right {
+            color: var(--pointer-right);
+        }
+        .sum-display {
+            background: #f1f4f8;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        /* Info cards */
+        .info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+        }
+        .info-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin: 0 0 8px;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin: 0 0 4px;
+            color: var(--text);
+        }
+        #step-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin: 0 0 10px;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #f8f9fb;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            color: var(--text);
+            border: 1px solid var(--border);
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            background: #fafbfc;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            line-height: 1.5;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            border: 2px dashed var(--warning);
+            background: var(--warning-bg);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 8px;
+            transition: all var(--transition);
+        }
+        .checkpoint-area .cp-question {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #5c3d08;
+        }
+        .checkpoint-area .cp-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .checkpoint-area .cp-options label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition);
+            font-size: 0.88rem;
+            border: 1px solid transparent;
+        }
+        .checkpoint-area .cp-options label:hover {
+            background: #fdf3d8;
+        }
+        .checkpoint-area .cp-options input[type="radio"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .checkpoint-area .cp-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-area .cp-buttons button {
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            background: #fff;
+        }
+        .checkpoint-area .cp-buttons button:hover {
+            background: #f1f3f6;
+        }
+        .checkpoint-area .cp-buttons button.cp-submit {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .checkpoint-area .cp-buttons button.cp-submit:hover {
+            background: #2d5de0;
+        }
+        .cp-feedback {
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+            font-weight: 500;
+            font-size: 0.86rem;
+            display: none;
+        }
+        .cp-feedback.correct {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid #b8dbc4;
+            display: block;
+        }
+        .cp-feedback.incorrect {
+            background: var(--error-bg);
+            color: var(--error);
+            border: 1px solid #f5c6c6;
+            display: block;
+        }
+        .cp-feedback.show-answer-reveal {
+            background: #e8f0fe;
+            color: #1a3fa8;
+            border: 1px solid #b8cdf0;
+            display: block;
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .learning-log h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin: 0 0 10px;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            padding-bottom: 6px;
+            z-index: 1;
+        }
+        .log-entry {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            border-left: 3px solid #d0d4db;
+            background: #fafbfc;
+            transition: all var(--transition);
+        }
+        .log-entry.correct-log {
+            border-left-color: var(--success);
+            background: #f7fdf9;
+        }
+        .log-entry.incorrect-log {
+            border-left-color: var(--error);
+            background: #fef9f9;
+        }
+        .log-entry .log-time {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--success);
+            background: var(--success-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            border: 2px solid #b8dbc4;
+        }
+        .answer-wrapper {
+            text-align: center;
+            padding: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header">
+            <h1 id="title">Two Sum in Sorted Array</h1>
+            <p id="subtitle">E-commerce promotion: find two items whose prices sum to the voucher target using a two-pointer strategy.</p>
+            <div class="top-info">
+                <span id="top-result">In progress…</span>
+                <span id="top-solution">Strategy: Two-pointer scan on ascending sorted array</span>
+            </div>
+        </div>
+
+        <!-- Code display -->
+        <div class="code-section">
+            <h3>Algorithm Pseudocode (JavaScript)</h3>
+            <div id="code"></div>
+        </div>
+
+        <!-- Controls and timeline -->
+        <div class="controls-bar">
+            <button id="prev" title="Previous step">◀ Prev</button>
+            <button id="play" title="Auto-play steps" class="primary">▶ Play</button>
+            <button id="next" title="Next step">Next ▶</button>
+            <span id="counter">1 / 7</span>
+            <input type="range" id="range" min="1" max="7" value="1" title="Jump to step">
+            <div id="timeline" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></div>
+        </div>
+
+        <!-- Main grid: canvas + info -->
+        <div class="main-grid">
+            <div class="canvas-card">
+                <h3>Visual State</h3>
+                <div id="canvas"></div>
+            </div>
+            <div class="info-card">
+                <h3>Current Step</h3>
+                <div id="step-title"></div>
+                <div id="step-desc"></div>
+                <div id="state"></div>
+                <div id="teaching"></div>
+                <div id="step-evidence"></div>
+                <div id="checkpoint-container"></div>
+            </div>
+        </div>
+
+        <!-- Learning log -->
+        <div class="learning-log" id="learning-log">
+            <h3>Learning Log</h3>
+            <div id="log-entries"><em style="color:#9aa0ab;">No submissions yet. Interact with checkpoints to populate this log.</em></div>
+        </div>
+
+        <!-- Answer display -->
+        <div class="answer-wrapper">
+            <span>Final answer: </span><span id="answer">[1, 3]</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Data: steps for Two Sum in Sorted Array
+            // Input: nums=[1,2,4,6,10], target=8
+            // Expected output: [1,3]
+            // ──────────────────────────────────────
+            const nums = [1, 2, 4, 6, 10];
+            const target = 8;
+            const totalSteps = 7;
+
+            const codeLines = [
+                { ln: 1, text: 'function twoSumSorted(nums, target) {', cls: '' },
+                { ln: 2, text: '  let left = 0;', cls: '' },
+                { ln: 3, text: '  let right = nums.length - 1;', cls: '' },
+                { ln: 4, text: '  while (left < right) {', cls: '' },
+                { ln: 5, text: '    let sum = nums[left] + nums[right];', cls: '' },
+                { ln: 6, text: '    if (sum === target) {', cls: '' },
+                { ln: 7, text: '      return [left, right];', cls: '' },
+                { ln: 8, text: '    } else if (sum < target) {', cls: '' },
+                { ln: 9, text: '      left++;', cls: '' },
+                { ln: 10, text: '    } else {', cls: '' },
+                { ln: 11, text: '      right--;', cls: '' },
+                { ln: 12, text: '    }', cls: '' },
+                { ln: 13, text: '  }', cls: '' },
+                { ln: 14, text: '  return [];', cls: '' },
+                { ln: 15, text: '}', cls: '' },
+            ];
+
+            // Step definitions
+            const steps = [{
+                id: 1,
+                title: 'Step 1: Initialize Pointers',
+                desc: 'Set the left pointer at index 0 and the right pointer at the last index of the sorted array.',
+                activeLines: [2, 3],
+                left: 0,
+                right: 4,
+                sum: null,
+                found: false,
+                answerIndices: null,
+                stateJSON: '{"left": 0, "right": 4, "sum": null, "target": 8, "nums": [1,2,4,6,10]}',
+                teaching: 'We use the <strong>two-pointer technique</strong> because the array is sorted in ascending order. The left pointer starts at the smallest element, and the right pointer starts at the largest. By comparing their sum to the target, we can decide which pointer to move.',
+                stepEvidence: 'Operation: <strong>Initialize</strong><br>Targets: left → index 0 (value 1), right → index 4 (value 10)<br>Dependencies: Sorted array property<br>State change: left=0, right=4, sum not yet computed.',
+                tickLabel: 'Init',
+                tickOp: 'left=0, right=4',
+                isCheckpoint: false,
+            }, {
+                id: 2,
+                title: 'Step 2: Compute First Sum',
+                desc: 'Calculate sum = nums[0] + nums[4] = 1 + 10 = 11. Since 11 > target (8), the sum is too large.',
+                activeLines: [5, 6, 10, 11],
+                left: 0,
+                right: 4,
+                sum: 11,
+                found: false,
+                answerIndices: null,
+                stateJSON: '{"left": 0, "right": 4, "sum": 11, "target": 8, "comparison": "sum > target"}',
+                teaching: 'The sum 11 exceeds the target 8. Because the array is sorted, any element to the right of index 4 would only be larger (but there are none). To decrease the sum, we must move the <strong>right pointer leftward</strong>.',
+                stepEvidence: 'Operation: <strong>Compare sum to target</strong><br>Targets: nums[0]=1, nums[4]=10 → sum=11<br>Dependencies: 11 > 8 → need smaller sum<br>Before: right=4; After (next step): right will become 3.',
+                tickLabel: 'Check 1',
+                tickOp: '1+10=11 > 8',
+                isCheckpoint: true,
+                checkpoint: {
+                    question: 'The sum 11 is greater than the target 8. What should we do next?',
+                    options: [
+                        { value: 'A', label: 'Move the right pointer left (right--)' },
+                        { value: 'B', label: 'Move the left pointer right (left++)' },
+                        { value: 'C', label: 'Return [0, 4] as the answer' },
+                        { value: 'D', label: 'Increase the target to 11' },
+                    ],
+                    correct: 'A',
+                    hint: 'Since the array is sorted in ascending order, moving the right pointer left selects a smaller element, which reduces the sum.',
+                    showAnswerText: 'Correct choice: A — Move the right pointer left (right--). Because 11 > 8, we need a smaller sum, and decrementing right gives us a smaller element at that position.',
+                },
+            }, {
+                id: 3,
+                title: 'Step 3: Move Right Pointer',
+                desc: 'Decrement right from 4 to 3. Now right points to nums[3] = 6.',
+                activeLines: [11, 4],
+                left: 0,
+                right: 3,
+                sum: null,
+                found: false,
+                answerIndices: null,
+                stateJSON: '{"left": 0, "right": 3, "sum": null, "target": 8, "action": "right--"}',
+                teaching: 'We moved the right pointer one step left. The new candidate pair is at indices 0 and 3. In the next iteration, we will compute the new sum.',
+                stepEvidence: 'Operation: <strong>Decrement right pointer</strong><br>Target: right from 4 → 3 (value 10 → 6)<br>Dependencies: Previous sum (11) > target (8)<br>State change: right=3, left unchanged at 0.',
+                tickLabel: 'Move R',
+                tickOp: 'right=3',
+                isCheckpoint: false,
+            }, {
+                id: 4,
+                title: 'Step 4: Compute Second Sum',
+                desc: 'Calculate sum = nums[0] + nums[3] = 1 + 6 = 7. Since 7 < target (8), the sum is too small.',
+                activeLines: [5, 8, 9],
+                left: 0,
+                right: 3,
+                sum: 7,
+                found: false,
+                answerIndices: null,
+                stateJSON: '{"left": 0, "right": 3, "sum": 7, "target": 8, "comparison": "sum < target"}',
+                teaching: 'The sum 7 is less than the target 8. To increase the sum, we need a larger element. Since the array is sorted, moving the <strong>left pointer rightward</strong> will give us a bigger value at that position.',
+                stepEvidence: 'Operation: <strong>Compare sum to target</strong><br>Targets: nums[0]=1, nums[3]=6 → sum=7<br>Dependencies: 7 < 8 → need larger sum<br>Before: left=0; After (next step): left will become 1.',
+                tickLabel: 'Check 2',
+                tickOp: '1+6=7 < 8',
+                isCheckpoint: true,
+                checkpoint: {
+                    question: 'The sum 7 is less than the target 8. What should we do next?',
+                    options: [
+                        { value: 'A', label: 'Move the left pointer right (left++)' },
+                        { value: 'B', label: 'Move the right pointer left (right--)' },
+                        { value: 'C', label: 'Return [0, 3] as the answer' },
+                        { value: 'D', label: 'Restart with new pointers' },
+                    ],
+                    correct: 'A',
+                    hint: 'Since the array is sorted, moving the left pointer right selects a larger element, which increases the sum.',
+                    showAnswerText: 'Correct choice: A — Move the left pointer right (left++). Because 7 < 8, we need a larger sum, and incrementing left gives us a larger element at that position.',
+                },
+            }, {
+                id: 5,
+                title: 'Step 5: Move Left Pointer',
+                desc: 'Increment left from 0 to 1. Now left points to nums[1] = 2.',
+                activeLines: [9, 4],
+                left: 1,
+                right: 3,
+                sum: null,
+                found: false,
+                answerIndices: null,
+                stateJSON: '{"left": 1, "right": 3, "sum": null, "target": 8, "action": "left++"}',
+                teaching: 'We moved the left pointer one step right. The new candidate pair is at indices 1 and 3. We are closing in on the target.',
+                stepEvidence: 'Operation: <strong>Increment left pointer</strong><br>Target: left from 0 → 1 (value 1 → 2)<br>Dependencies: Previous sum (7) < target (8)<br>State change: left=1, right unchanged at 3.',
+                tickLabel: 'Move L',
+                tickOp: 'left=1',
+                isCheckpoint: false,
+            }, {
+                id: 6,
+                title: 'Step 6: Compute Third Sum — Match Found!',
+                desc: 'Calculate sum = nums[1] + nums[3] = 2 + 6 = 8. This equals the target! We have found our answer.',
+                activeLines: [5, 6, 7],
+                left: 1,
+                right: 3,
+                sum: 8,
+                found: true,
+                answerIndices: [1, 3],
+                stateJSON: '{"left": 1, "right": 3, "sum": 8, "target": 8, "comparison": "sum === target", "found": true}',
+                teaching: 'The sum equals the target! The algorithm has found the pair. Now we return the indices of these two elements.',
+                stepEvidence: 'Operation: <strong>Match found — return answer</strong><br>Targets: nums[1]=2, nums[3]=6 → sum=8 == target<br>Dependencies: sum (8) === target (8)<br>Result: Return [1, 3].',
+                tickLabel: 'Match!',
+                tickOp: '2+6=8 ✓',
+                isCheckpoint: true,
+                checkpoint: {
+                    question: 'The sum equals the target. What is the correct return value?',
+                    options: [
+                        { value: 'A', label: '[2, 6] (the values, not indices)' },
+                        { value: 'B', label: '[1, 3] (the indices of 2 and 6)' },
+                        { value: 'C', label: '[0, 4]' },
+                        { value: 'D', label: '[] (empty list)' },
+                    ],
+                    correct: 'B',
+                    hint: 'Look at the indices: nums[1] = 2 and nums[3] = 6. We need to return the indices, not the values.',
+                    showAnswerText: 'Correct choice: B — [1, 3]. The problem asks for the 0-indexed indices. nums[1]=2 and nums[3]=6, and 2+6=8.',
+                },
+            }, {
+                id: 7,
+                title: 'Step 7: Return the Answer',
+                desc: 'The function returns [1, 3]. The two items at indices 1 and 2 have prices 2 and 6, which sum to the voucher target of 8.',
+                activeLines: [7],
+                left: 1,
+                right: 3,
+                sum: 8,
+                found: true,
+                answerIndices: [1, 3],
+                stateJSON: '{"result": [1, 3], "verification": "nums[1]=2, nums[3]=6, 2+6=8", "status": "complete"}',
+                teaching: '<strong>Congratulations!</strong> The two-pointer algorithm efficiently found the answer in O(n) time. The sorted nature of the array allowed us to eliminate half the search space with each comparison.',
+                stepEvidence: 'Operation: <strong>Return final answer</strong><br>Result: [1, 3]<br>Verification: 2 + 6 = 8 = target<br>Algorithm complexity: O(n) time, O(1) space.',
+                tickLabel: 'Return',
+                tickOp: '[1, 3]',
+                isCheckpoint: false,
+            }, ];
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $topResult = document.getElementById('top-result');
+            const $answer = document.getElementById('answer');
+            const $logEntries = document.getElementById('log-entries');
+            const $topSolution = document.getElementById('top-solution');
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            let currentStepIndex = 0; // 0-based
+            let playInterval = null;
+            let checkpointAnswered = {}; // track which checkpoint steps have been correctly answered
+            let learningLog = [];
+
+            // ──────────────────────────────────────
+            // Build code display
+            // ──────────────────────────────────────
+            function buildCodeDisplay() {
+                $code.innerHTML = '';
+                codeLines.forEach((cl) => {
+                    const lineEl = document.createElement('span');
+                    lineEl.className = 'line';
+                    lineEl.dataset.ln = cl.ln;
+                    lineEl.innerHTML = '<span class="ln">' + cl.ln + '</span>' + escapeHTML(cl.text);
+                    $code.appendChild(lineEl);
+                });
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    if (step.isCheckpoint) tick.classList.add('checkpoint-tick');
+                    tick.dataset.stepIndex = idx;
+                    tick.innerHTML =
+                        '<span class="tick-label">' + escapeHTML(step.tickLabel) +
+                        (step.isCheckpoint ? '<span class="cp-dot" title="Checkpoint"></span>' : '') +
+                        '</span>' +
+                        '<span class="tick-op">' + escapeHTML(step.tickOp) + '</span>';
+                    tick.addEventListener('click', () => {
+                        goToStep(idx);
+                        stopPlay();
+                    });
+                    tick.setAttribute('aria-label', 'Step ' + (idx + 1) + ': ' + step.tickLabel + ' — ' + step
+                        .tickOp);
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Render canvas for current step
+            // ──────────────────────────────────────
+            function renderCanvas(step) {
+                $canvas.innerHTML = '';
+                const arrayRow = document.createElement('div');
+                arrayRow.className = 'array-row';
+
+                const pointerRow = document.createElement('div');
+                pointerRow.className = 'pointer-indicators';
+
+                nums.forEach((val, idx) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell';
+                    cell.innerHTML = '<span>' + val + '</span><span class="cell-idx">idx ' + idx +
+                        '</span>';
+
+                    // Determine cell styling
+                    if (step.found && step.answerIndices && (idx === step.answerIndices[0] || idx ===
+                            step.answerIndices[1])) {
+                        cell.classList.add('answer-cell');
+                    } else if (idx === step.left && idx === step.right) {
+                        cell.classList.add('pointer-left');
+                        cell.classList.add('pointer-right');
+                    } else if (idx === step.left) {
+                        cell.classList.add('pointer-left');
+                    } else if (idx === step.right) {
+                        cell.classList.add('pointer-right');
+                    }
+
+                    arrayRow.appendChild(cell);
+
+                    const pointerInd = document.createElement('div');
+                    pointerInd.className = 'pointer-ind';
+                    if (idx === step.left) pointerInd.classList.add('show-left');
+                    if (idx === step.right) pointerInd.classList.add('show-right');
+                    if (idx === step.left && idx === step.right) {
+                        pointerInd.textContent = 'L,R';
+                    } else if (idx === step.left) {
+                        pointerInd.textContent = 'L';
+                    } else if (idx === step.right) {
+                        pointerInd.textContent = 'R';
+                    }
+                    pointerRow.appendChild(pointerInd);
+                });
+
+                $canvas.appendChild(arrayRow);
+                $canvas.appendChild(pointerRow);
+
+                // Sum display
+                if (step.sum !== null) {
+                    const sumDiv = document.createElement('div');
+                    sumDiv.className = 'sum-display';
+                    const lVal = nums[step.left];
+                    const rVal = nums[step.right];
+                    sumDiv.textContent = 'sum = ' + lVal + ' + ' + rVal + ' = ' + step.sum +
+                        (step.sum === target ? '  ✓ MATCH!' : step.sum > target ? '  (too large)' : '  (too small)');
+                    $canvas.appendChild(sumDiv);
+                } else if (step.found) {
+                    const sumDiv = document.createElement('div');
+                    sumDiv.className = 'sum-display';
+                    sumDiv.textContent = 'sum = 2 + 6 = 8  ✓ MATCH!';
+                    sumDiv.style.background = '#e6f4ec';
+                    sumDiv.style.borderColor = '#1a8a4a';
+                    sumDiv.style.color = '#0d5c2e';
+                    $canvas.appendChild(sumDiv);
+                } else {
+                    const hintDiv = document.createElement('div');
+                    hintDiv.className = 'sum-display';
+                    hintDiv.textContent = 'target = ' + target + '  |  waiting to compute sum...';
+                    hintDiv.style.opacity = '0.7';
+                    $canvas.appendChild(hintDiv);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Render checkpoint UI
+            // ──────────────────────────────────────
+            function renderCheckpoint(step) {
+                $checkpointContainer.innerHTML = '';
+                if (!step.isCheckpoint || !step.checkpoint) {
+                    return;
+                }
+                const cp = step.checkpoint;
+                const alreadyCorrect = checkpointAnswered[step.id] === true;
+                const alreadyShown = checkpointAnswered[step.id + '_shown'] === true;
+
+                const area = document.createElement('div');
+                area.className = 'checkpoint-area';
+
+                const question = document.createElement('div');
+                question.className = 'cp-question';
+                question.textContent = '🛑 Checkpoint: ' + cp.question;
+                area.appendChild(question);
+
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'cp-options';
+                cp.options.forEach((opt) => {
+                    const label = document.createElement('label');
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'cp-answer';
+                    radio.value = opt.value;
+                    if (alreadyCorrect || alreadyShown) radio.disabled = true;
+                    label.appendChild(radio);
+                    label.appendChild(document.createTextNode(opt.value + ') ' + opt.label));
+                    optionsDiv.appendChild(label);
+                });
+                area.appendChild(optionsDiv);
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'cp-buttons';
+
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'cp-submit';
+                submitBtn.textContent = 'Submit Answer';
+                if (alreadyCorrect || alreadyShown) submitBtn.disabled = true;
+                submitBtn.addEventListener('click', () => {
+                    handleCheckpointSubmit(step, cp, area);
+                });
+                buttonsDiv.appendChild(submitBtn);
+
+                const hintBtn = document.createElement('button');
+                hintBtn.textContent = '💡 Hint';
+                hintBtn.addEventListener('click', () => {
+                    showCheckpointHint(cp, area);
+                });
+                buttonsDiv.appendChild(hintBtn);
+
+                const showAnswerBtn = document.createElement('button');
+                showAnswerBtn.textContent = '👁 Show Answer';
+                if (alreadyShown) showAnswerBtn.disabled = true;
+                showAnswerBtn.addEventListener('click', () => {
+                    revealCheckpointAnswer(step, cp, area);
+                });
+                buttonsDiv.appendChild(showAnswerBtn);
+
+                area.appendChild(buttonsDiv);
+
+                // Feedback region
+                const feedback = document.createElement('div');
+                feedback.className = 'cp-feedback';
+                feedback.id = 'cp-feedback-' + step.id;
+                area.appendChild(feedback);
+
+                // If already answered correctly, show persistent feedback
+                if (alreadyCorrect) {
+                    feedback.classList.add('correct');
+                    feedback.textContent = '✓ Correct! You previously answered this checkpoint correctly. Well done!';
+                } else if (alreadyShown) {
+                    feedback.classList.add('show-answer-reveal');
+                    feedback.textContent = 'Answer revealed: ' + cp.showAnswerText.replace('Correct choice: ', '');
+                }
+
+                $checkpointContainer.appendChild(area);
+            }
+
+            function handleCheckpointSubmit(step, cp, area) {
+                const selectedRadio = area.querySelector('input[name="cp-answer"]:checked');
+                const feedback = area.querySelector('.cp-feedback');
+                if (!selectedRadio) {
+                    feedback.className = 'cp-feedback incorrect';
+                    feedback.textContent = '⚠ Please select an option before submitting.';
+                    return;
+                }
+                const userAnswer = selectedRadio.value;
+                const isCorrect = userAnswer === cp.correct;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                if (isCorrect) {
+                    feedback.className = 'cp-feedback correct';
+                    feedback.textContent = '✓ Correct! ' + cp.showAnswerText.replace('Correct choice: ' + cp.correct +
+                        ' — ', '');
+                    checkpointAnswered[step.id] = true;
+                    // Disable further interaction
+                    const allRadios = area.querySelectorAll('input[name="cp-answer"]');
+                    allRadios.forEach(r => r.disabled = true);
+                    const submitBtn = area.querySelector('.cp-submit');
+                    if (submitBtn) submitBtn.disabled = true;
+                    const showBtn = area.querySelectorAll('button');
+                    showBtn.forEach(b => { if (b.textContent.includes('Show Answer')) b.disabled = true; });
+
+                    appendLearningLog(timeStr, step, cp, userAnswer, true, 'Correct!');
+                } else {
+                    feedback.className = 'cp-feedback incorrect';
+                    feedback.textContent =
+                        '✗ Incorrect. That is not the right choice. Review the hint or try again. Remember: the array is sorted, so moving pointers changes the sum predictably.';
+                    appendLearningLog(timeStr, step, cp, userAnswer, false,
+                        'Incorrect. The correct answer was ' + cp.correct + '.');
+                }
+            }
+
+            function showCheckpointHint(cp, area) {
+                const feedback = area.querySelector('.cp-feedback');
+                feedback.className = 'cp-feedback show-answer-reveal';
+                feedback.textContent = '💡 Hint: ' + cp.hint;
+            }
+
+            function revealCheckpointAnswer(step, cp, area) {
+                const feedback = area.querySelector('.cp-feedback');
+                feedback.className = 'cp-feedback show-answer-reveal';
+                feedback.textContent = 'Answer: ' + cp.showAnswerText.replace('Correct choice: ', '');
+                checkpointAnswered[step.id + '_shown'] = true;
+                const allRadios = area.querySelectorAll('input[name="cp-answer"]');
+                allRadios.forEach(r => { r.disabled = true;
+                    r.checked = (r.value === cp.correct); });
+                const submitBtn = area.querySelector('.cp-submit');
+                if (submitBtn) submitBtn.disabled = true;
+                const showBtn = area.querySelectorAll('button');
+                showBtn.forEach(b => { if (b.textContent.includes('Show Answer')) b.disabled = true; });
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                appendLearningLog(timeStr, step, cp, '(answer revealed)', null, 'Answer revealed by learner.');
+            }
+
+            function appendLearningLog(timeStr, step, cp, userAnswer, isCorrect, feedbackMsg) {
+                const entry = { timeStr, stepId: step.id, question: cp.question, userAnswer, isCorrect, feedbackMsg };
+                learningLog.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLog.length === 0) {
+                    $logEntries.innerHTML =
+                        '<em style="color:#9aa0ab;">No submissions yet. Interact with checkpoints to populate this log.</em>';
+                    return;
+                }
+                $logEntries.innerHTML = '';
+                learningLog.forEach((entry) => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry';
+                    if (entry.isCorrect === true) div.classList.add('correct-log');
+                    if (entry.isCorrect === false) div.classList.add('incorrect-log');
+                    div.innerHTML = '<span class="log-time">[' + escapeHTML(entry.timeStr) + '] Step ' + entry
+                        .stepId + '</span><br>' +
+                        '<strong>Q:</strong> ' + escapeHTML(entry.question) + '<br>' +
+                        '<strong>Your answer:</strong> ' + escapeHTML(String(entry.userAnswer)) + '<br>' +
+                        '<strong>Result:</strong> ' + escapeHTML(entry.feedbackMsg);
+                    $logEntries.appendChild(div);
+                });
+                // Scroll to bottom
+                const logContainer = document.getElementById('learning-log');
+                if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // Highlight code lines
+            // ──────────────────────────────────────
+            function highlightCode(activeLines) {
+                const allLines = $code.querySelectorAll('.line');
+                allLines.forEach(lineEl => lineEl.classList.remove('active'));
+                activeLines.forEach(ln => {
+                    const lineEl = $code.querySelector('.line[data-ln="' + ln + '"]');
+                    if (lineEl) lineEl.classList.add('active');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Update timeline ticks
+            // ──────────────────────────────────────
+            function updateTimelineTicks(stepIndex) {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((tick, idx) => {
+                    tick.classList.remove('done', 'active');
+                    if (idx < stepIndex) tick.classList.add('done');
+                    if (idx === stepIndex) tick.classList.add('active');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Go to a specific step
+            // ──────────────────────────────────────
+            function goToStep(stepIndex) {
+                if (stepIndex < 0 || stepIndex >= steps.length) return;
+                currentStepIndex = stepIndex;
+                const step = steps[stepIndex];
+
+                // Update counter and range
+                $counter.textContent = (stepIndex + 1) + ' / ' + totalSteps;
+                $range.value = stepIndex + 1;
+
+                // Update step info
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $state.textContent = step.stateJSON;
+                $teaching.innerHTML = step.teaching;
+                $stepEvidence.innerHTML = step.stepEvidence;
+
+                // Highlight code
+                highlightCode(step.activeLines);
+
+                // Render canvas
+                renderCanvas(step);
+
+                // Render checkpoint if applicable
+                renderCheckpoint(step);
+
+                // Update timeline
+                updateTimelineTicks(stepIndex);
+
+                // Update top result
+                if (step.found && step.answerIndices) {
+                    $topResult.textContent = 'Result: ' + JSON.stringify(step.answerIndices);
+                    $topResult.style.background = '#e6f4ec';
+                    $topResult.style.color = '#0d5c2e';
+                    $topResult.style.borderColor = '#1a8a4a';
+                    $topSolution.textContent = 'Solution found! Two-pointer scan completed in O(n) time.';
+                } else if (stepIndex === steps.length - 1) {
+                    $topResult.textContent = 'Result: [1, 3]';
+                    $topResult.style.background = '#e6f4ec';
+                    $topResult.style.color = '#0d5c2e';
+                    $topResult.style.borderColor = '#1a8a4a';
+                } else {
+                    $topResult.textContent = 'In progress…';
+                    $topResult.style.background = '#fef7e6';
+                    $topResult.style.color = '#8a6d14';
+                    $topResult.style.borderColor = '#d4c08c';
+                    $topSolution.textContent = 'Strategy: Two-pointer scan on ascending sorted array';
+                }
+
+                // Update answer display emphasis
+                if (stepIndex === steps.length - 1 || (step.found && step.answerIndices)) {
+                    $answer.style.background = '#d4f0df';
+                    $answer.style.borderColor = '#1a8a4a';
+                    $answer.style.animation = 'pulse-green 1.6s ease-in-out infinite';
+                } else {
+                    $answer.style.background = '#e6f4ec';
+                    $answer.style.borderColor = '#b8dbc4';
+                    $answer.style.animation = 'none';
+                }
+
+                // Update prev/next button states
+                $prev.disabled = (stepIndex === 0);
+                $next.disabled = (stepIndex === steps.length - 1);
+                $range.value = stepIndex + 1;
+            }
+
+            // ──────────────────────────────────────
+            // Play / auto-advance
+            // ──────────────────────────────────────
+            function startPlay() {
+                stopPlay();
+                $play.textContent = '⏸ Pause';
+                $play.classList.remove('primary');
+                $play.style.background = '#e8780a';
+                $play.style.borderColor = '#e8780a';
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < steps.length - 1) {
+                        const nextStep = steps[currentStepIndex + 1];
+                        // Pause at checkpoint steps
+                        if (nextStep.isCheckpoint && !checkpointAnswered[nextStep.id] && !checkpointAnswered[
+                                nextStep.id + '_shown']) {
+                            stopPlay();
+                            goToStep(currentStepIndex + 1);
+                            return;
+                        }
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                $play.textContent = '▶ Play';
+                $play.classList.add('primary');
+                $play.style.background = '';
+                $play.style.borderColor = '';
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            $prev.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            $next.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < steps.length - 1) goToStep(currentStepIndex + 1);
+            });
+            $play.addEventListener('click', () => {
+                if (playInterval) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= steps.length - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            });
+            $range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt($range.value, 10);
+                if (val >= 1 && val <= totalSteps) {
+                    goToStep(val - 1);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex < steps.length - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (playInterval) {
+                        stopPlay();
+                    } else {
+                        if (currentStepIndex >= steps.length - 1) goToStep(0);
+                        startPlay();
+                    }
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize
+            // ──────────────────────────────────────
+            function init() {
+                buildCodeDisplay();
+                buildTimeline();
+                $range.min = 1;
+                $range.max = totalSteps;
+                $range.value = 1;
+                $answer.textContent = '[1, 3]';
+                $topResult.textContent = 'In progress…';
+                $topSolution.textContent = 'Strategy: Two-pointer scan on ascending sorted array';
+                goToStep(0);
+                renderLearningLog();
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

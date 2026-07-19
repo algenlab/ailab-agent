@@ -1,0 +1,193 @@
+{
+  "id": "kth_largest",
+  "algorithm_id": "kth_largest",
+  "title": "Kth Largest Element in an Array",
+  "family": "Heap / TopK / Huffman",
+  "family_id": "heap_topk_huffman",
+  "subfamily_id": "topk_min_heap",
+  "gate_layer": "family_core",
+  "support_level": "medium_plus",
+  "process_profile": "heap",
+  "difficulty": "medium",
+  "problem": "A recommendation system needs to find the top K highly rated items from a stream of user ratings. The rating data is stored in an array nums, and the integer k represents the desired K-th highest rating. Please implement a streaming algorithm that, while processing ratings from nums one by one, can query the current K-th highest rating at any time, and returns the final K-th highest rating after all data is processed.",
+  "strategy": "Maintain a min-heap of capacity k, where the top of the heap is the current k-th largest.",
+  "input_contract": "Input nums array and k.",
+  "variant_name": "Min-Heap TopK",
+  "time_complexity": "O(n log k)",
+  "space_complexity": "O(k)",
+  "learning_objectives": [
+    "Understand how a min-heap maintains state in TopK problems, explain why the heap top is the K-th largest element.",
+    "Be able to predict the heap change after adding the next element based on the current heap state.",
+    "Master the impact of push and pop operations on the candidate set size and heap top."
+  ],
+  "required_views": [
+    "array",
+    "heap"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! After push and pop, the heap maintains capacity k, and the heap top becomes the k-th largest.",
+      "feedback_wrong": "Note that when the heap is full, pushing a new element may trigger a pop. Observe the heap size after push.",
+      "id": "task_1",
+      "oracle": "Based on the next state in the trace, check if the heap is [5, 6] and the heap top is 5.",
+      "prompt": "Current heap contents are [4, 5], k=2, next element is 6. After pushing 6, what will the heap become? What will be the heap top?",
+      "stage2_affordance": "Drag numbers into the heap to observe the automatic maintenance process.",
+      "trace_anchor": [
+        "state.heap",
+        "state.i"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Correct! This is a key invariant of the min-heap algorithm.",
+      "feedback_wrong": "Check the length of the heap list in each step's state, compared to k.",
+      "id": "task_2",
+      "oracle": "Expected answer: The heap size never exceeds k, and equals min(k, number of processed elements).",
+      "prompt": "What invariant property does the heap size have across all steps?",
+      "stage2_affordance": "You can adjust the k value to observe changes in heap size.",
+      "trace_anchor": [
+        "state.heap",
+        "state.k"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct, you understand how changing element values affects TopK selection.",
+      "feedback_wrong": "Re-examine the algorithm logic: only the larger k elements are retained.",
+      "id": "task_3",
+      "oracle": "Check if the correct final answer is given based on input modification (verify with verifier).",
+      "prompt": "If we change an element value in nums to a negative number, what effect does it have on the final answer? Give an example and predict the result.",
+      "stage2_affordance": "Directly edit array elements and observe the heap changes.",
+      "trace_anchor": [
+        "nums",
+        "state.expected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Correct! This ensures the heap always contains the largest k elements.",
+      "feedback_wrong": "Think about the conditions for heap push and pop: if len(heap) > k: heappop, and comparison between the new element and the heap top.",
+      "id": "task_4",
+      "oracle": "Expected answer: Because the heap is full and the new element is not larger than the heap top, after push it immediately pops, the new element is discarded, and the heap remains unchanged.",
+      "prompt": "When the heap size equals k and the new element is smaller than the heap top, what happens? Why?",
+      "stage2_affordance": "Manually execute push and pop, observing the steps of heap changes.",
+      "trace_anchor": [
+        "state.heap",
+        "state.top"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 5,
+      "index": 0,
+      "input_data": {
+        "k": 2,
+        "nums": [
+          3,
+          2,
+          1,
+          5,
+          6,
+          4
+        ]
+      }
+    },
+    {
+      "expected": 4,
+      "index": 1,
+      "input_data": {
+        "k": 4,
+        "nums": [
+          3,
+          2,
+          3,
+          1,
+          2,
+          4,
+          5,
+          5,
+          6
+        ]
+      }
+    },
+    {
+      "expected": 1,
+      "index": 2,
+      "input_data": {
+        "k": 1,
+        "nums": [
+          1
+        ]
+      }
+    },
+    {
+      "expected": 0,
+      "index": 3,
+      "input_data": {
+        "k": 2,
+        "nums": [
+          -1,
+          -3,
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "expected": 7,
+      "index": 4,
+      "input_data": {
+        "k": 2,
+        "nums": [
+          7,
+          7,
+          7
+        ]
+      }
+    },
+    {
+      "expected": 7,
+      "index": 5,
+      "input_data": {
+        "k": 3,
+        "nums": [
+          9,
+          1,
+          8,
+          2,
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "expected": 4,
+      "index": 6,
+      "input_data": {
+        "k": 4,
+        "nums": [
+          10,
+          4,
+          6,
+          8
+        ]
+      }
+    },
+    {
+      "expected": 11,
+      "index": 7,
+      "input_data": {
+        "k": 1,
+        "nums": [
+          5,
+          -2,
+          11,
+          11,
+          0
+        ]
+      }
+    }
+  ]
+}

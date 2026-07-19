@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijkstra Shortest Path - AlgoLab Tutoring</title>
+    <style>
+        :root {
+            --bg: #1a1d23;
+            --surface: #21252b;
+            --surface2: #282c34;
+            --border: #3a3f4b;
+            --text: #e1e4e8;
+            --text2: #b0b5bd;
+            --accent: #61afef;
+            --accent2: #e5c07b;
+            --green: #98c379;
+            --red: #e06c75;
+            --purple: #c678dd;
+            --orange: #d19a66;
+            --cyan: #56b6c2;
+            --node-current: #e5c07b;
+            --node-visited: #98c379;
+            --node-unvisited: #5c6370;
+            --node-start: #61afef;
+            --highlight-line: #2c313a;
+            --timeline-active: #61afef;
+            --timeline-done: #98c379;
+            --timeline-pending: #5c6370;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+        }
+        #title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0 0 4px 0;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text2);
+            margin: 0 0 12px 0;
+        }
+        .top-info {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        #top-result {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            color: var(--green);
+            font-weight: 600;
+            min-width: 160px;
+        }
+        #top-solution {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: var(--cyan);
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            word-break: break-all;
+        }
+
+        /* Two-column layout */
+        .content-columns {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .left-col {
+            flex: 1 1 520px;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .right-col {
+            flex: 1 1 400px;
+            min-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Canvas */
+        #canvas {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 340px;
+            position: relative;
+            overflow: hidden;
+        }
+        .graph-area {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            margin-bottom: 12px;
+        }
+        .graph-area svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .graph-node {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            z-index: 2;
+            transition: background 0.35s, border-color 0.35s, box-shadow 0.35s;
+            border: 3px solid transparent;
+            cursor: default;
+            user-select: none;
+        }
+        .node-start {
+            background: #1e3a5f;
+            border-color: var(--node-start);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(97, 175, 239, 0.4);
+        }
+        .node-current {
+            background: #3d3520;
+            border-color: var(--node-current);
+            color: #fff;
+            box-shadow: 0 0 18px rgba(229, 192, 123, 0.55);
+            animation: pulse-current 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 18px rgba(229, 192, 123, 0.55);
+            }
+            50% {
+                box-shadow: 0 0 28px rgba(229, 192, 123, 0.8);
+            }
+        }
+        .node-visited {
+            background: #1e3520;
+            border-color: var(--node-visited);
+            color: #fff;
+            box-shadow: 0 0 8px rgba(152, 195, 121, 0.3);
+        }
+        .node-unvisited {
+            background: #2a2d33;
+            border-color: var(--node-unvisited);
+            color: #888;
+        }
+        .node-label {
+            pointer-events: none;
+        }
+        .edge-weight-label {
+            font-size: 0.8rem;
+            fill: var(--orange);
+            font-weight: 600;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+        }
+        .edge-line {
+            stroke: #555;
+            stroke-width: 2;
+            transition: stroke 0.35s, stroke-width 0.35s;
+        }
+        .edge-line.active-edge {
+            stroke: var(--accent2);
+            stroke-width: 3;
+            stroke-dasharray: 6 3;
+            animation: dash-flow 0.6s linear infinite;
+        }
+        @keyframes dash-flow {
+            to {
+                stroke-dashoffset: -18;
+            }
+        }
+        .arrow-head {
+            fill: #555;
+            transition: fill 0.35s;
+        }
+        .arrow-head.active-arrow {
+            fill: var(--accent2);
+        }
+
+        .info-panels {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .info-panel {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            min-width: 140px;
+            flex: 1;
+        }
+        .info-panel h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text2);
+            margin: 0 0 8px 0;
+        }
+        .info-panel .val {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+        .dist-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.82rem;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+        }
+        .dist-row .node-name {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .dist-row .node-dist {
+            color: var(--text);
+        }
+        .dist-row .node-dist.updated {
+            color: var(--accent2);
+            font-weight: 700;
+            animation: flash-update 0.5s ease-out;
+        }
+        @keyframes flash-update {
+            0% {
+                color: #fff;
+                text-shadow: 0 0 8px var(--accent2);
+            }
+            100% {
+                color: var(--accent2);
+                text-shadow: none;
+            }
+        }
+        .heap-item {
+            padding: 4px 8px;
+            margin: 2px 0;
+            background: var(--surface);
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-right: 6px;
+            border: 1px solid var(--border);
+        }
+        .heap-item.stale {
+            opacity: 0.45;
+            text-decoration: line-through;
+            color: var(--red);
+        }
+        .heap-item.current-pop {
+            border-color: var(--accent2);
+            background: #3d3520;
+            font-weight: 700;
+        }
+
+        /* Code */
+        #code {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.7;
+            counter-reset: codeline;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            transition: background 0.25s;
+            white-space: pre;
+            counter-increment: codeline;
+        }
+        #code .code-line::before {
+            content: counter(codeline);
+            display: inline-block;
+            width: 28px;
+            color: var(--text2);
+            font-size: 0.75rem;
+            text-align: right;
+            margin-right: 14px;
+            user-select: none;
+        }
+        #code .code-line.highlight {
+            background: var(--highlight-line);
+            border-left: 3px solid var(--accent2);
+            color: #fff;
+            font-weight: 500;
+        }
+        #code .code-line.highlight::before {
+            color: var(--accent2);
+            font-weight: 700;
+        }
+        .code-keyword {
+            color: #c678dd;
+        }
+        .code-func {
+            color: #61afef;
+        }
+        .code-string {
+            color: #98c379;
+        }
+        .code-number {
+            color: #d19a66;
+        }
+        .code-comment {
+            color: #5c6370;
+            font-style: italic;
+        }
+
+        /* Right column panels */
+        .info-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 18px;
+        }
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0 0 4px 0;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text2);
+            margin: 0 0 6px 0;
+        }
+        #op {
+            display: inline-block;
+            background: var(--surface2);
+            border: 1px solid var(--accent2);
+            color: var(--accent2);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin: 4px 0 10px 0;
+        }
+        #state {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.78rem;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text);
+            max-height: 150px;
+            overflow-y: auto;
+            margin: 8px 0;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        #teaching .checkpoint-q {
+            font-weight: 600;
+            color: var(--accent2);
+            margin: 0 0 8px 0;
+            font-size: 0.95rem;
+        }
+        #teaching .checkpoint-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin: 8px 0;
+        }
+        #teaching input[type="text"] {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text);
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            width: 140px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #teaching input[type="text"]:focus {
+            border-color: var(--accent);
+        }
+        .btn {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            background: var(--surface2);
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #3a3f4b;
+            border-color: #666;
+        }
+        .btn-submit {
+            background: #1e3a5f;
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .btn-submit:hover {
+            background: #254a73;
+            border-color: #7ec8ff;
+        }
+        .btn-hint {
+            background: #3d3520;
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+        .btn-hint:hover {
+            background: #4a4028;
+        }
+        .btn-show {
+            background: #2d2030;
+            border-color: var(--purple);
+            color: var(--purple);
+        }
+        .btn-show:hover {
+            background: #3a2a3d;
+        }
+        .feedback-correct {
+            color: var(--green);
+            font-weight: 600;
+            padding: 6px 0;
+        }
+        .feedback-incorrect {
+            color: var(--red);
+            font-weight: 600;
+            padding: 6px 0;
+        }
+        .feedback-reveal {
+            color: var(--cyan);
+            font-weight: 500;
+            padding: 6px 0;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: var(--text2);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        #step-evidence strong {
+            color: var(--accent);
+        }
+        #step-evidence .ev-before {
+            color: #e06c75;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.75rem;
+        }
+        #step-evidence .ev-after {
+            color: #98c379;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.75rem;
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+        }
+        #prev,
+        #next {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: var(--surface2);
+            color: var(--text);
+            transition: all 0.2s;
+        }
+        #prev:hover:not(:disabled),
+        #next:hover:not(:disabled) {
+            background: #3a3f4b;
+            border-color: #666;
+        }
+        #prev:disabled,
+        #next:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        #play {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--green);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: #1e3520;
+            color: var(--green);
+            transition: all 0.2s;
+        }
+        #play:hover {
+            background: #254a28;
+        }
+        #play.paused {
+            border-color: var(--orange);
+            color: var(--orange);
+            background: #3d3520;
+        }
+        #counter {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1 1 100px;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            background: var(--surface2);
+            transition: all 0.25s;
+            min-width: 56px;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #888;
+            background: #333842;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: #1e3040;
+            box-shadow: 0 0 10px rgba(97, 175, 239, 0.3);
+        }
+        .tick.done {
+            border-color: var(--timeline-done);
+            background: #1e3020;
+        }
+        .tick .tick-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text2);
+            letter-spacing: 0.03em;
+        }
+        .tick.active .tick-label {
+            color: var(--accent);
+        }
+        .tick.done .tick-label {
+            color: var(--green);
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text2);
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            letter-spacing: 0.04em;
+        }
+        .tick.active .tick-op {
+            color: #fff;
+        }
+
+        /* Answer */
+        #answer {
+            background: var(--surface);
+            border: 2px solid var(--green);
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            color: var(--green);
+            font-weight: 600;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        /* Learning Log */
+        .learning-log {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .learning-log h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text2);
+            margin: 0 0 10px 0;
+        }
+        .log-entry {
+            font-size: 0.78rem;
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text2);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: baseline;
+        }
+        .log-entry .log-time {
+            color: #666;
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+        .log-entry .log-q {
+            color: var(--text);
+            font-weight: 500;
+        }
+        .log-entry .log-answer {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-weight: 600;
+        }
+        .log-entry.log-correct .log-answer {
+            color: var(--green);
+        }
+        .log-entry.log-incorrect .log-answer {
+            color: var(--red);
+        }
+        .log-entry.log-revealed .log-answer {
+            color: var(--cyan);
+        }
+
+        @media (max-width: 860px) {
+            .content-columns {
+                flex-direction: column;
+            }
+            .left-col,
+            .right-col {
+                min-width: auto;
+                flex: 1 1 auto;
+            }
+            #canvas {
+                min-height: 280px;
+            }
+            .graph-area {
+                height: 180px;
+            }
+            .graph-node {
+                width: 40px;
+                height: 40px;
+                font-size: 0.9rem;
+            }
+            .tick {
+                min-width: 42px;
+                padding: 4px 6px;
+            }
+            .tick .tick-label {
+                font-size: 0.65rem;
+            }
+            .tick .tick-op {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div id="title">Dijkstra Shortest Path</div>
+            <div id="subtitle">Emergency dispatch: Find the shortest travel time from the starting intersection to all reachable intersections using a min-heap priority queue.</div>
+            <div class="top-info">
+                <div id="top-result">Computing shortest paths...</div>
+                <div id="top-solution">Expected: {"A": 0, "B": 2, "C": 3}</div>
+            </div>
+        </div>
+
+        <!-- Content columns -->
+        <div class="content-columns">
+            <!-- Left column: Canvas + Code -->
+            <div class="left-col">
+                <div id="canvas">
+                    <div class="graph-area" id="graphArea">
+                        <!-- Nodes and SVG edges rendered by JS -->
+                    </div>
+                    <div class="info-panels">
+                        <div class="info-panel" id="distPanel">
+                            <h4>Distance Table (dist)</h4>
+                            <div id="distTable"></div>
+                        </div>
+                        <div class="info-panel" id="heapPanel">
+                            <h4>Min-Heap</h4>
+                            <div id="heapDisplay"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="code"></div>
+            </div>
+
+            <!-- Right column: Step info + Teaching + Evidence -->
+            <div class="right-col">
+                <div class="info-block">
+                    <div id="step-title">Step 1: Initialize</div>
+                    <div id="step-desc">Setting up distances and the priority queue.</div>
+                    <div id="op">INIT</div>
+                    <div id="state"></div>
+                    <div id="teaching"></div>
+                    <div id="step-evidence"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button id="prev" aria-label="Previous step">&#9664; Prev</button>
+            <button id="play" aria-label="Play through steps">&#9654; Play</button>
+            <button id="next" aria-label="Next step">Next &#9654;</button>
+            <span id="counter">1 / 6</span>
+            <input type="range" id="range" min="0" max="5" value="0" step="1" aria-label="Step slider">
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Answer -->
+        <div id="answer">{"A": 0, "B": 2, "C": 3}</div>
+
+        <!-- Learning Log -->
+        <div class="learning-log" id="learningLog">
+            <h4>Learning Log</h4>
+            <div id="logEntries">No submissions yet. Answer the checkpoint questions to see your progress here.</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // STEP DATA
+            // ──────────────────────────────────────
+            const steps = [{
+                index: 0,
+                title: "Step 1: Initialize Distances &amp; Heap",
+                desc: "Set all node distances to Infinity, set start node A to 0, and push (0, A) into the min-heap.",
+                op: "INIT",
+                codeLines: [0, 1, 2, 3],
+                distances: { A: 0, B: Infinity, C: Infinity },
+                heap: [
+                    [0, "A"]
+                ],
+                currentNode: null,
+                visitedNodes: [],
+                updatedNode: null,
+                activeEdges: [],
+                staleHeapIndices: [],
+                popIndex: null,
+                teachingHTML: `
+                    <p>We begin by initializing every node's distance to <strong>Infinity</strong> (unknown). The <strong>start node A</strong> receives a distance of <strong>0</strong> because the vehicle is already there.</p>
+                    <p>A <strong>min-heap</strong> priority queue stores <code>[distance, node]</code> pairs. We push <code>[0, "A"]</code> so that A is processed first.</p>
+                    <p><em>Invariant:</em> The heap always yields the unvisited node with the smallest tentative distance.</p>
+                `,
+                evidenceHTML: `
+                    <strong>Operation:</strong> INIT — Initialize data structures<br>
+                    <strong>Targets:</strong> All graph nodes (A, B, C)<br>
+                    <strong>Dependencies:</strong> weighted_graph, start node<br>
+                    <span class="ev-before">Before: No distances known</span><br>
+                    <span class="ev-after">After: dist = {A: 0, B: Infinity, C: Infinity}, heap = [(0, A)]</span>
+                `,
+                checkpoint: null
+            }, {
+                index: 1,
+                title: "Step 2: Pop Minimum from Heap",
+                desc: "Pop the entry with the smallest distance from the min-heap. This is (0, A). Node A becomes the current node.",
+                op: "POP",
+                codeLines: [4, 5],
+                distances: { A: 0, B: Infinity, C: Infinity },
+                heap: [],
+                currentNode: "A",
+                visitedNodes: [],
+                updatedNode: null,
+                activeEdges: [],
+                staleHeapIndices: [],
+                popIndex: 0,
+                teachingHTML: `
+                    <p>The min-heap gives us the entry with the smallest distance: <strong>(0, A)</strong>. Node <strong>A</strong> is now the <em>current node</em> being processed.</p>
+                    <p>Since 0 equals dist["A"] (no stale entry), we proceed to examine A's outgoing edges.</p>
+                    <p><em>Common error:</em> Forgetting to check whether the popped distance is stale (greater than the recorded distance). We will see this check in action later.</p>
+                `,
+                evidenceHTML: `
+                    <strong>Operation:</strong> POP — Extract minimum from heap<br>
+                    <strong>Targets:</strong> Heap top entry (0, A)<br>
+                    <strong>Dependencies:</strong> heap must be non-empty<br>
+                    <span class="ev-before">Before: heap = [(0, A)], current = null</span><br>
+                    <span class="ev-after">After: heap = [], current = A, dist["A"] = 0 (confirmed)</span>
+                `,
+                checkpoint: {
+                    question: "Which node is popped from the min-heap first?",
+                    answer: "A",
+                    hint: "Look at the heap contents. The entry with distance 0 is at the top of the min-heap.",
+                    explanation: "The heap contains [(0, A)], so node A (distance 0) is popped first. It is the start node with the smallest tentative distance."
+                }
+            }, {
+                index: 2,
+                title: "Step 3: Relax Edges from Node A",
+                desc: "Examine A's neighbors: B (weight 2) and C (weight 5). Update dist[B] to 2 and dist[C] to 5. Push both into the heap.",
+                op: "RELAX",
+                codeLines: [6, 7, 8, 9],
+                distances: { A: 0, B: 2, C: 5 },
+                heap: [
+                    [2, "B"],
+                    [5, "C"]
+                ],
+                currentNode: "A",
+                visitedNodes: ["A"],
+                updatedNode: "B,C",
+                activeEdges: ["A->B", "A->C"],
+                staleHeapIndices: [],
+                popIndex: null,
+                teachingHTML: `
+                    <p>From node <strong>A</strong>, we relax its outgoing edges:</p>
+                    <ul>
+                        <li><strong>A → B</strong> (weight 2): newDist = 0 + 2 = <strong>2</strong>, which is less than Infinity. Update dist["B"] = 2 and push (2, B) onto the heap.</li>
+                        <li><strong>A → C</strong> (weight 5): newDist = 0 + 5 = <strong>5</strong>, which is less than Infinity. Update dist["C"] = 5 and push (5, C) onto the heap.</li>
+                    </ul>
+                    <p>Node A is now marked as visited (processed). The heap contains two entries.</p>
+                `,
+                evidenceHTML: `
+                    <strong>Operation:</strong> RELAX — Process outgoing edges of current node A<br>
+                    <strong>Targets:</strong> Neighbors B and C<br>
+                    <strong>Dependencies:</strong> graph["A"] = [["B", 2], ["C", 5]]<br>
+                    <span class="ev-before">Before: dist["B"] = Infinity, dist["C"] = Infinity</span><br>
+                    <span class="ev-after">After: dist["B"] = 2, dist["C"] = 5, heap = [(2, B), (5, C)]</span>
+                `,
+                checkpoint: {
+                    question: "After relaxing A's edges, what is the tentative distance to node C?",
+                    answer: "5",
+                    hint: "The edge from A to C has weight 5. Add A's distance (0) to the edge weight.",
+                    explanation: "dist[A] + weight(A→C) = 0 + 5 = 5. So the tentative distance to C is 5."
+                }
+            }, {
+                index: 3,
+                title: "Step 4: Process Node B",
+                desc: "Pop (2, B) from the heap. B is current. Relax its neighbor C: newDist = 2 + 1 = 3, which is less than 5. Update dist[C] to 3.",
+                op: "RELAX",
+                codeLines: [4, 5, 6, 7, 8, 9],
+                distances: { A: 0, B: 2, C: 3 },
+                heap: [
+                    [3, "C"],
+                    [5, "C"]
+                ],
+                currentNode: "B",
+                visitedNodes: ["A", "B"],
+                updatedNode: "C",
+                activeEdges: ["B->C"],
+                staleHeapIndices: [1],
+                popIndex: 0,
+                teachingHTML: `
+                    <p>Pop <strong>(2, B)</strong> from the heap. Node <strong>B</strong> becomes current. Its distance (2) matches dist["B"], so it is not stale.</p>
+                    <p>Relax B's only outgoing edge:</p>
+                    <ul>
+                        <li><strong>B → C</strong> (weight 1): newDist = 2 + 1 = <strong>3</strong>. Since 3 &lt; 5 (current dist["C"]), we <strong>update</strong> dist["C"] = 3 and push (3, C) onto the heap.</li>
+                    </ul>
+                    <p>Notice the heap now has two entries for C: (3, C) and the old (5, C). The old entry becomes <em>stale</em> and will be skipped later.</p>
+                `,
+                evidenceHTML: `
+                    <strong>Operation:</strong> POP + RELAX — Pop B, relax its edge to C<br>
+                    <strong>Targets:</strong> Node B (pop), neighbor C (relax)<br>
+                    <strong>Dependencies:</strong> dist["B"] = 2, graph["B"] = [["C", 1]]<br>
+                    <span class="ev-before">Before: dist["C"] = 5, heap = [(2, B), (5, C)]</span><br>
+                    <span class="ev-after">After: dist["C"] = 3, heap = [(3, C), (5, C)] (one stale entry)</span>
+                `,
+                checkpoint: {
+                    question: "What is the new shortest distance to C after processing node B? (Hint: 2 + 1 = ?)",
+                    answer: "3",
+                    hint: "Add B's distance (2) to the edge weight B→C (1). Compare with the current dist[C] which is 5.",
+                    explanation: "dist[B] + weight(B→C) = 2 + 1 = 3, which is less than the current dist[C] = 5. So we update dist[C] to 3."
+                }
+            }, {
+                index: 4,
+                title: "Step 5: Process C &amp; Skip Stale Entry",
+                desc: "Pop (3, C) — matches dist[C], no neighbors. Then pop (5, C) — stale (5 > 3), skip it. Heap becomes empty.",
+                op: "POP + SKIP",
+                codeLines: [4, 5, 6, 10],
+                distances: { A: 0, B: 2, C: 3 },
+                heap: [],
+                currentNode: "C",
+                visitedNodes: ["A", "B", "C"],
+                updatedNode: null,
+                activeEdges: [],
+                staleHeapIndices: [],
+                popIndex: 0,
+                teachingHTML: `
+                    <p>Pop <strong>(3, C)</strong>. dist["C"] = 3 matches, so C is current. C has no outgoing edges, so no relaxation occurs. C is marked visited.</p>
+                    <p>Next, pop <strong>(5, C)</strong>. But 5 &gt; dist["C"] (which is 3). This is a <em>stale entry</em> from the earlier relaxation. We <strong>skip</strong> it (lazy deletion).</p>
+                    <p>The heap is now empty. The algorithm terminates.</p>
+                    <p><em>Key insight:</em> Lazy deletion avoids the overhead of removing stale entries from the heap; we simply ignore them when they surface.</p>
+                `,
+                evidenceHTML: `
+                    <strong>Operation:</strong> POP + SKIP STALE — Process C, then discard stale (5, C)<br>
+                    <strong>Targets:</strong> (3, C) — valid; (5, C) — stale<br>
+                    <strong>Dependencies:</strong> dist["C"] = 3<br>
+                    <span class="ev-before">Before: heap = [(3, C), (5, C)]</span><br>
+                    <span class="ev-after">After: heap = [], all nodes visited, stale entry discarded</span>
+                `,
+                checkpoint: null
+            }, {
+                index: 5,
+                title: "Step 6: Return Final Distances",
+                desc: "The heap is empty. Return the distance map as the final shortest-path result.",
+                op: "RETURN",
+                codeLines: [10],
+                distances: { A: 0, B: 2, C: 3 },
+                heap: [],
+                currentNode: null,
+                visitedNodes: ["A", "B", "C"],
+                updatedNode: null,
+                activeEdges: [],
+                staleHeapIndices: [],
+                popIndex: null,
+                teachingHTML: `
+                    <p>All reachable nodes have been processed. The <strong>dist</strong> map now holds the shortest travel times:</p>
+                    <ul>
+                        <li><strong>A:</strong> 0 (the start)</li>
+                        <li><strong>B:</strong> 2 (via A → B directly)</li>
+                        <li><strong>C:</strong> 3 (via A → B → C, which beats the direct A → C cost of 5)</li>
+                    </ul>
+                    <p>The algorithm returns <code>{"A": 0, "B": 2, "C": 3}</code>.</p>
+                `,
+                evidenceHTML: `
+                    <strong>Operation:</strong> RETURN — Finalize and return distance map<br>
+                    <strong>Targets:</strong> All reachable nodes<br>
+                    <strong>Dependencies:</strong> All edges relaxed, heap exhausted<br>
+                    <span class="ev-before">Before: Final relaxations complete</span><br>
+                    <span class="ev-after">After: Return {"A": 0, "B": 2, "C": 3}</span>
+                `,
+                checkpoint: {
+                    question: "What is the final shortest distance from the start node A to node C?",
+                    answer: "3",
+                    hint: "Trace the path: A → B (2) then B → C (1). The total is the sum of these two segments.",
+                    explanation: "The shortest path from A to C is A → B → C with total cost 2 + 1 = 3, which is better than the direct A → C path costing 5."
+                }
+            }];
+
+            const totalSteps = steps.length;
+
+            // ──────────────────────────────────────
+            // CODE LINES (pseudocode)
+            // ──────────────────────────────────────
+            const codeLines = [
+                '<span class="code-keyword">function</span> <span class="code-func">dijkstra</span>(graph, start) {',
+                '  <span class="code-keyword">const</span> dist = {}, heap = <span class="code-keyword">new</span> MinHeap();',
+                '  <span class="code-keyword">for</span> (<span class="code-keyword">const</span> node <span class="code-keyword">of</span> <span class="code-func">Object.keys</span>(graph)) dist[node] = <span class="code-number">Infinity</span>;',
+                '  dist[start] = <span class="code-number">0</span>;  heap.<span class="code-func">push</span>([<span class="code-number">0</span>, start]);',
+                '  <span class="code-keyword">while</span> (heap.<span class="code-func">size</span>() > <span class="code-number">0</span>) {',
+                '    <span class="code-keyword">const</span> [currDist, curr] = heap.<span class="code-func">pop</span>();',
+                '    <span class="code-keyword">if</span> (currDist > dist[curr]) <span class="code-keyword">continue</span>;  <span class="code-comment">// stale entry</span>',
+                '    <span class="code-keyword">for</span> (<span class="code-keyword">const</span> [neighbor, weight] <span class="code-keyword">of</span> graph[curr]) {',
+                '      <span class="code-keyword">const</span> newDist = currDist + weight;',
+                '      <span class="code-keyword">if</span> (newDist < dist[neighbor]) {',
+                '        dist[neighbor] = newDist;',
+                '        heap.<span class="code-func">push</span>([newDist, neighbor]);',
+                '      }',
+                '    }',
+                '  }',
+                '  <span class="code-keyword">return</span> dist;',
+                '}'
+            ];
+
+            // ──────────────────────────────────────
+            // DOM REFERENCES
+            // ──────────────────────────────────────
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const elTitle = $('#title');
+            const elSubtitle = $('#subtitle');
+            const elTopResult = $('#top-result');
+            const elTopSolution = $('#top-solution');
+            const elCode = $('#code');
+            const elStepTitle = $('#step-title');
+            const elStepDesc = $('#step-desc');
+            const elOp = $('#op');
+            const elCanvas = $('#canvas');
+            const elGraphArea = $('#graphArea');
+            const elDistTable = $('#distTable');
+            const elHeapDisplay = $('#heapDisplay');
+            const elPrev = $('#prev');
+            const elPlay = $('#play');
+            const elNext = $('#next');
+            const elRange = $('#range');
+            const elCounter = $('#counter');
+            const elTimeline = $('#timeline');
+            const elTeaching = $('#teaching');
+            const elState = $('#state');
+            const elStepEvidence = $('#step-evidence');
+            const elAnswer = $('#answer');
+            const elLogEntries = $('#logEntries');
+
+            // ──────────────────────────────────────
+            // STATE
+            // ──────────────────────────────────────
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            const checkpointAttempts = {}; // { stepIndex: ['correct'|'incorrect'|'revealed', userAnswer] }
+            const learningLog = []; // [{time, question, userAnswer, result}]
+
+            // ──────────────────────────────────────
+            // BUILD CODE DISPLAY
+            // ──────────────────────────────────────
+            function buildCodeDisplay() {
+                elCode.innerHTML = '';
+                codeLines.forEach((lineHTML, i) => {
+                    const lineDiv = document.createElement('span');
+                    lineDiv.className = 'code-line';
+                    lineDiv.dataset.line = i;
+                    lineDiv.innerHTML = lineHTML;
+                    elCode.appendChild(lineDiv);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // BUILD TIMELINE
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                elTimeline.innerHTML = '';
+                steps.forEach((step, i) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.dataset.stepIndex = i;
+                    tick.setAttribute('aria-label', 'Go to step ' + (i + 1) + ': ' + step.op);
+                    tick.innerHTML =
+                        '<span class="tick-label">Step ' + (i + 1) + '</span><span class="tick-op">' + step
+                        .op + '</span>';
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                        stopPlay();
+                    });
+                    elTimeline.appendChild(tick);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // RENDER GRAPH IN CANVAS
+            // ──────────────────────────────────────
+            function renderGraph(step) {
+                // Node positions (relative to graphArea)
+                const nodePositions = {
+                    A: { x: 50, y: 15 },
+                    B: { x: 12, y: 78 },
+                    C: { x: 78, y: 78 }
+                };
+
+                const graphW = 400;
+                const graphH = 220;
+                const nodeRadius = 25;
+
+                // Determine node classes
+                function getNodeClass(node) {
+                    if (step.currentNode === node) return 'node-current';
+                    if (step.visitedNodes.includes(node)) return 'node-visited';
+                    if (node === 'A' && step.distances['A'] === 0 && !step.visitedNodes.includes('A') && step
+                        .currentNode !== 'A') return 'node-start';
+                    if (step.distances[node] !== Infinity && step.distances[node] !== undefined && !step.visitedNodes
+                        .includes(node) && step.currentNode !== node) return 'node-start';
+                    return 'node-unvisited';
+                }
+
+                // Build HTML for nodes
+                let nodesHTML = '';
+                for (const [node, pos] of Object.entries(nodePositions)) {
+                    const px = pos.x / 100 * graphW;
+                    const py = pos.y / 100 * graphH;
+                    const cls = getNodeClass(node);
+                    nodesHTML +=
+                        `<div class="graph-node ${cls}" style="left:${px - nodeRadius}px;top:${py - nodeRadius}px;" data-node="${node}"><span class="node-label">${node}</span></div>`;
+                }
+
+                // Build SVG for edges
+                const edges = [
+                    { from: 'A', to: 'B', weight: 2, id: 'A->B' },
+                    { from: 'A', to: 'C', weight: 5, id: 'A->C' },
+                    { from: 'B', to: 'C', weight: 1, id: 'B->C' }
+                ];
+
+                let svgHTML = '<svg viewBox="0 0 ' + graphW + ' ' + graphH + '" xmlns="http://www.w3.org/2000/svg">';
+                svgHTML +=
+                    '<defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head" /></marker><marker id="arrowhead-active" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" class="arrow-head active-arrow" /></marker></defs>';
+
+                for (const edge of edges) {
+                    const fromPos = nodePositions[edge.from];
+                    const toPos = nodePositions[edge.to];
+                    const x1 = fromPos.x / 100 * graphW;
+                    const y1 = fromPos.y / 100 * graphH;
+                    const x2 = toPos.x / 100 * graphW;
+                    const y2 = toPos.y / 100 * graphH;
+
+                    // Offset endpoints to node edges
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const offsetRatio = nodeRadius / dist;
+                    const sx = x1 + dx * offsetRatio;
+                    const sy = y1 + dy * offsetRatio;
+                    const ex = x2 - dx * offsetRatio;
+                    const ey = y2 - dy * offsetRatio;
+
+                    const isActive = step.activeEdges.includes(edge.id);
+                    const markerEnd = isActive ? 'url(#arrowhead-active)' : 'url(#arrowhead)';
+                    const edgeClass = isActive ? 'edge-line active-edge' : 'edge-line';
+
+                    // Weight label position
+                    const mx = (sx + ex) / 2;
+                    const my = (sy + ey) / 2 - 8;
+
+                    svgHTML +=
+                        `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" class="${edgeClass}" marker-end="${markerEnd}" />`;
+                    svgHTML +=
+                        `<text x="${mx}" y="${my}" class="edge-weight-label" text-anchor="middle" dominant-baseline="baseline">${edge.weight}</text>`;
+                }
+                svgHTML += '</svg>';
+
+                elGraphArea.innerHTML = nodesHTML + svgHTML;
+            }
+
+            // ──────────────────────────────────────
+            // RENDER DISTANCE TABLE
+            // ──────────────────────────────────────
+            function renderDistTable(step) {
+                const nodes = ['A', 'B', 'C'];
+                let html = '';
+                const updatedNodes = step.updatedNode ? step.updatedNode.split(',') : [];
+                for (const node of nodes) {
+                    const distVal = step.distances[node];
+                    const displayVal = distVal === Infinity ? 'Infinity' : String(distVal);
+                    const updatedClass = updatedNodes.includes(node) ? ' updated' : '';
+                    html +=
+                        `<div class="dist-row"><span class="node-name">${node}</span><span class="node-dist${updatedClass}">${displayVal}</span></div>`;
+                }
+                elDistTable.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // RENDER HEAP DISPLAY
+            // ──────────────────────────────────────
+            function renderHeapDisplay(step) {
+                let html = '';
+                if (step.heap.length === 0) {
+                    html = '<span style="color:#666;font-style:italic;">Heap empty</span>';
+                } else {
+                    step.heap.forEach((entry, i) => {
+                        const [d, n] = entry;
+                        let cls = 'heap-item';
+                        if (step.staleHeapIndices.includes(i)) cls += ' stale';
+                        if (step.popIndex === i) cls += ' current-pop';
+                        html += `<span class="${cls}">[${d}, "${n}"]</span>`;
+                    });
+                }
+                elHeapDisplay.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // RENDER STATE JSON
+            // ──────────────────────────────────────
+            function renderState(step) {
+                const stateObj = {
+                    distances: step.distances,
+                    heap: step.heap,
+                    currentNode: step.currentNode,
+                    visited: step.visitedNodes
+                };
+                elState.textContent = JSON.stringify(stateObj, null, 2);
+            }
+
+            // ──────────────────────────────────────
+            // RENDER TEACHING + CHECKPOINT
+            // ──────────────────────────────────────
+            function renderTeaching(step) {
+                const cp = step.checkpoint;
+                const attempt = checkpointAttempts[step.index];
+
+                let html = step.teachingHTML || '';
+
+                if (cp) {
+                    html += '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">';
+                    html += '<p class="checkpoint-q">&#128161; Checkpoint: ' + cp.question + '</p>';
+
+                    if (attempt) {
+                        // Show previous attempt result
+                        if (attempt.result === 'correct') {
+                            html += '<p class="feedback-correct">&#10004; Correct! Your answer "' + attempt.userAnswer +
+                                '" is right. ' + cp.explanation + '</p>';
+                        } else if (attempt.result === 'incorrect') {
+                            html += '<p class="feedback-incorrect">&#10008; Incorrect. You answered "' + attempt
+                                .userAnswer + '". ' + cp.explanation + '</p>';
+                        } else if (attempt.result === 'revealed') {
+                            html += '<p class="feedback-reveal">&#128065; Answer revealed: <strong>' + cp.answer +
+                                '</strong>. ' + cp.explanation + '</p>';
+                        }
+                    } else {
+                        // Fresh checkpoint
+                        html += '<div class="checkpoint-input-row">';
+                        html +=
+                            '<input type="text" id="checkpointInput" placeholder="Your answer..." aria-label="Checkpoint answer input">';
+                        html +=
+                            '<button class="btn btn-submit" id="btnSubmit" aria-label="Submit answer">Submit</button>';
+                        html += '<button class="btn btn-hint" id="btnHint" aria-label="Get a hint">Hint</button>';
+                        html +=
+                            '<button class="btn btn-show" id="btnShowAnswer" aria-label="Show the correct answer">Show Answer</button>';
+                        html += '</div>';
+                        html += '<div id="checkpointFeedback"></div>';
+                    }
+
+                    html += '</div>';
+                }
+
+                elTeaching.innerHTML = html;
+
+                // Attach checkpoint event listeners if fresh
+                if (cp && !attempt) {
+                    const btnSubmit = $('#btnSubmit');
+                    const btnHint = $('#btnHint');
+                    const btnShow = $('#btnShowAnswer');
+                    const inputEl = $('#checkpointInput');
+                    const feedbackEl = $('#checkpointFeedback');
+
+                    if (btnSubmit && inputEl && feedbackEl) {
+                        btnSubmit.addEventListener('click', () => {
+                            const userAnswer = inputEl.value.trim();
+                            if (userAnswer === '') return;
+                            const isCorrect = (userAnswer.toLowerCase() === cp.answer.toLowerCase());
+                            const result = isCorrect ? 'correct' : 'incorrect';
+                            checkpointAttempts[step.index] = { result, userAnswer };
+                            appendLearningLog(cp.question, userAnswer, result);
+                            if (isCorrect) {
+                                feedbackEl.innerHTML =
+                                    '<p class="feedback-correct">&#10004; Correct! ' + cp.explanation + '</p>';
+                            } else {
+                                feedbackEl.innerHTML =
+                                    '<p class="feedback-incorrect">&#10008; Incorrect. "' + userAnswer +
+                                    '" is not right. ' + cp.explanation + '</p>';
+                            }
+                            // Disable controls after submission
+                            if (inputEl) inputEl.disabled = true;
+                            if (btnSubmit) btnSubmit.disabled = true;
+                            if (btnHint) btnHint.disabled = true;
+                            if (btnShow) btnShow.disabled = true;
+                        });
+
+                        inputEl.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                btnSubmit.click();
+                            }
+                        });
+                    }
+
+                    if (btnHint && feedbackEl) {
+                        btnHint.addEventListener('click', () => {
+                            feedbackEl.innerHTML = '<p style="color:var(--orange);font-style:italic;">&#128161; Hint: ' +
+                                cp.hint + '</p>';
+                        });
+                    }
+
+                    if (btnShow && feedbackEl && inputEl && btnSubmit && btnHint) {
+                        btnShow.addEventListener('click', () => {
+                            checkpointAttempts[step.index] = { result: 'revealed', userAnswer: '(revealed)' };
+                            appendLearningLog(cp.question, '(revealed - answer: ' + cp.answer + ')', 'revealed');
+                            feedbackEl.innerHTML = '<p class="feedback-reveal">&#128065; The answer is: <strong>' + cp
+                                .answer + '</strong>. ' + cp.explanation + '</p>';
+                            if (inputEl) inputEl.disabled = true;
+                            if (btnSubmit) btnSubmit.disabled = true;
+                            if (btnHint) btnHint.disabled = true;
+                            if (btnShow) btnShow.disabled = true;
+                        });
+                    }
+                }
+            }
+
+            // ──────────────────────────────────────
+            // APPEND LEARNING LOG
+            // ──────────────────────────────────────
+            function appendLearningLog(question, userAnswer, result) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+                const entry = { time: timeStr, question, userAnswer, result };
+                learningLog.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLog.length === 0) {
+                    elLogEntries.innerHTML =
+                        '<span style="color:#666;">No submissions yet. Answer the checkpoint questions to see your progress here.</span>';
+                    return;
+                }
+                let html = '';
+                learningLog.forEach((entry) => {
+                    let logClass = 'log-entry';
+                    if (entry.result === 'correct') logClass += ' log-correct';
+                    else if (entry.result === 'incorrect') logClass += ' log-incorrect';
+                    else logClass += ' log-revealed';
+                    html += `<div class="${logClass}">`;
+                    html += `<span class="log-time">${entry.time}</span>`;
+                    html += `<span class="log-q">${entry.question}</span>`;
+                    html += `<span class="log-answer">→ "${entry.userAnswer}"</span>`;
+                    if (entry.result === 'correct') html +=
+                        ' <span style="color:var(--green);">&#10004;</span>';
+                    else if (entry.result === 'incorrect') html +=
+                        ' <span style="color:var(--red);">&#10008;</span>';
+                    else html += ' <span style="color:var(--cyan);">&#128065;</span>';
+                    html += `</div>`;
+                });
+                elLogEntries.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // RENDER STEP EVIDENCE
+            // ──────────────────────────────────────
+            function renderStepEvidence(step) {
+                elStepEvidence.innerHTML = step.evidenceHTML || '';
+            }
+
+            // ──────────────────────────────────────
+            // HIGHLIGHT CODE LINES
+            // ──────────────────────────────────────
+            function highlightCodeLines(lineIndices) {
+                const allLines = elCode.querySelectorAll('.code-line');
+                allLines.forEach(line => line.classList.remove('highlight'));
+                if (lineIndices && lineIndices.length > 0) {
+                    lineIndices.forEach(i => {
+                        const line = elCode.querySelector(`.code-line[data-line="${i}"]`);
+                        if (line) line.classList.add('highlight');
+                    });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // UPDATE TIMELINE TICKS
+            // ──────────────────────────────────────
+            function updateTimelineTicks(activeIndex) {
+                const ticks = elTimeline.querySelectorAll('.tick');
+                ticks.forEach((tick, i) => {
+                    tick.classList.remove('active', 'done');
+                    if (i === activeIndex) tick.classList.add('active');
+                    if (i < activeIndex) tick.classList.add('done');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // MAIN RENDER
+            // ──────────────────────────────────────
+            function renderStep(stepIndex) {
+                const step = steps[stepIndex];
+                if (!step) return;
+
+                // Update step info
+                elStepTitle.innerHTML = step.title;
+                elStepDesc.textContent = step.desc;
+                elOp.textContent = step.op;
+                elCounter.textContent = (stepIndex + 1) + ' / ' + totalSteps;
+
+                // Update top result
+                if (stepIndex === totalSteps - 1) {
+                    elTopResult.textContent = 'Shortest paths found! Result: {"A": 0, "B": 2, "C": 3}';
+                    elTopResult.style.color = 'var(--green)';
+                } else if (stepIndex >= 3) {
+                    elTopResult.textContent = 'Key update: dist[C] improved to 3 via path A→B→C';
+                    elTopResult.style.color = 'var(--accent2)';
+                } else {
+                    elTopResult.textContent = 'Computing shortest paths...';
+                    elTopResult.style.color = 'var(--text2)';
+                }
+
+                // Render all sub-components
+                renderGraph(step);
+                renderDistTable(step);
+                renderHeapDisplay(step);
+                renderState(step);
+                renderTeaching(step);
+                renderStepEvidence(step);
+                highlightCodeLines(step.codeLines);
+                updateTimelineTicks(stepIndex);
+
+                // Update range slider
+                elRange.value = stepIndex;
+                elRange.max = totalSteps - 1;
+
+                // Update navigation buttons
+                elPrev.disabled = (stepIndex === 0);
+                elNext.disabled = (stepIndex === totalSteps - 1);
+            }
+
+            // ──────────────────────────────────────
+            // NAVIGATION
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                renderStep(currentStepIndex);
+            }
+
+            function stopPlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                isPlaying = false;
+                elPlay.innerHTML = '&#9654; Play';
+                elPlay.classList.remove('paused');
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                elPlay.innerHTML = '&#9646;&#9646; Pause';
+                elPlay.classList.add('paused');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // If at end, restart from beginning
+                    if (currentStepIndex >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // EVENT LISTENERS
+            // ──────────────────────────────────────
+            elPrev.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+
+            elNext.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+            });
+
+            elPlay.addEventListener('click', togglePlay);
+
+            elRange.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(elRange.value, 10);
+                goToStep(val);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // INITIALIZATION
+            // ──────────────────────────────────────
+            function init() {
+                buildCodeDisplay();
+                buildTimeline();
+                elRange.min = 0;
+                elRange.max = totalSteps - 1;
+                elRange.value = 0;
+                elAnswer.textContent = '{"A": 0, "B": 2, "C": 3}';
+                elTopSolution.textContent = 'Expected: {"A": 0, "B": 2, "C": 3}';
+                renderLearningLog();
+                goToStep(0);
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

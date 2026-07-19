@@ -496,6 +496,7 @@ def run_case(
     token_target: int,
     language: str,
     force_regenerate_initial: bool,
+    collect_final_feedback: bool,
 ) -> dict[str, Any]:
     case_result_path = output_dir / "cases" / case.id / "case_result.json"
     if case_result_path.exists() and not force_regenerate_initial:
@@ -527,7 +528,8 @@ def run_case(
                 language=language,
             )
         )
-    _ensure_feedback(attempts[-1], timeout_ms=browser_timeout_ms)
+    if collect_final_feedback:
+        _ensure_feedback(attempts[-1], timeout_ms=browser_timeout_ms)
     result = _case_result(row, attempts, token_target=token_target)
     _write_json(case_result_path, result)
     return result
@@ -590,6 +592,11 @@ def main() -> int:
     parser.add_argument("--language", choices=["zh", "en"], default="zh")
     parser.add_argument("--case-overrides", type=Path, default=None)
     parser.add_argument("--regenerate-initial", action="store_true")
+    parser.add_argument(
+        "--skip-final-feedback",
+        action="store_true",
+        help="Skip browser feedback collection after the selected final call; useful for a one-call no-feedback run.",
+    )
     args = parser.parse_args()
     if args.max_calls < 1 or args.max_calls > 5:
         raise SystemExit("--max-calls 必须在 1..5")
@@ -604,7 +611,8 @@ def main() -> int:
     args.language = normalize_output_language(args.language)
     override_path = args.case_overrides or (ENGLISH_CASE_OVERRIDES_PATH if args.language == "en" else None)
     overrides = load_case_overrides(override_path) if override_path else {}
-    selected_cases = tuple(case for case in benchmark_cases() if not wanted or case.id in wanted)
+    source_case_ids = {str(row.get("case_id") or "") for row in rows}
+    selected_cases = tuple(case for case in benchmark_cases() if case.id in source_case_ids)
     selected_cases = apply_case_overrides(selected_cases, overrides, require_all=args.language == "en")
     case_map = {case.id: case for case in selected_cases}
     missing = sorted({str(row.get("case_id")) for row in rows} - set(case_map))
@@ -630,6 +638,7 @@ def main() -> int:
                     token_target=args.token_budget_target,
                     language=args.language,
                     force_regenerate_initial=bool(args.regenerate_initial),
+                    collect_final_feedback=not bool(args.skip_final_feedback),
                 ): str(row["case_id"])
                 for row in rows
             }
