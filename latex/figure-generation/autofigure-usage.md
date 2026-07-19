@@ -3,7 +3,7 @@
 ## Repository
 
 - URL: `https://github.com/ResearAI/AutoFigure-Edit`
-- Local path: `/ssd1/liaokunpeng/paper/AutoFigure-Edit`
+- Local path: `$AUTOFIGURE_ROOT`
 - Inspected revision: `a14889f82b9ed1376b848d8e8eaaf6bca6077033`
 - Main entry point: `autofigure2.py`
 
@@ -12,7 +12,7 @@
 Text or method section to a complete editable figure pipeline:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 autofigure2.py \
+python3 autofigure2.py \
   --method_file paper.txt \
   --output_dir outputs/demo \
   --provider custom \
@@ -27,7 +27,7 @@ Text or method section to a complete editable figure pipeline:
 Existing stage-1 raster to SAM/SVG reconstruction:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 autofigure2.py \
+python3 autofigure2.py \
   --input_figure_path ./figure.png \
   --output_dir outputs/import-demo \
   --provider custom \
@@ -56,4 +56,3 @@ Calling the stage-1 function is deliberate: it uses the repository's own OpenAI 
 
 - stage 1: `figure.png` or the requested output filename;
 - full optional pipeline: `samed.png`, `boxlib.json`, `template.svg`, `optimized_template.svg`, `final.svg`, and extracted icon assets.
-
