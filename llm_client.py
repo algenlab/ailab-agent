@@ -4,12 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from openai import OpenAI
 
-os.environ["no_proxy"] = os.environ.get("no_proxy", "") + ",baidu-int.com,baidu.com,localhost,127.0.0.1"
-
-DEFAULT_BASE_URL = "http://yy.dbh.baidu-int.com/v1"
+DEFAULT_BASE_URL = "https://api.openai.com/v1"
 _LOCAL_API_SETTINGS = None
-BASE_URL = os.environ.get("ALGOLAB_LLM_BASE_URL") or DEFAULT_BASE_URL
-API_KEY = os.environ.get("ALGOLAB_LLM_API_KEY")
 
 _client = None
 _MODEL_CALL_STATE = threading.local()
@@ -19,11 +15,11 @@ def get_client() -> OpenAI:
     if _client is None:
         settings = api_settings()
         if not settings["api_key"]:
-            raise RuntimeError("缺少 ALGOLAB_LLM_API_KEY 环境变量，或本地 api_settings.json/yaml")
+            raise RuntimeError("Missing ALGOLAB_LLM_API_KEY/OPENAI_API_KEY or an ignored local settings file")
         _client = OpenAI(base_url=settings["base_url"], api_key=settings["api_key"])
     return _client
 
-DEFAULT_MODEL = "deepseek-v4-pro"
+DEFAULT_MODEL = "gpt-4.1-mini"
 DEFAULT_TIMEOUT_S = 900
 DEFAULT_MAX_TOKENS = 32768
 DEFAULT_JSON_RETRIES = 4
@@ -95,10 +91,10 @@ def _api_retry_delay_s(attempt: int) -> float:
 def api_settings() -> dict:
     local = _load_local_api_settings()
     return {
-        "base_url": os.environ.get("ALGOLAB_LLM_BASE_URL") or local.get("base_url") or DEFAULT_BASE_URL,
-        "api_key": os.environ.get("ALGOLAB_LLM_API_KEY") or local.get("api_key") or "",
+        "base_url": os.environ.get("ALGOLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or local.get("base_url") or DEFAULT_BASE_URL,
+        "api_key": os.environ.get("ALGOLAB_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY") or local.get("api_key") or "",
         "model": local.get("model") or "",
-        "source": "env" if os.environ.get("ALGOLAB_LLM_API_KEY") else local.get("source", ""),
+        "source": "env" if (os.environ.get("ALGOLAB_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")) else local.get("source", ""),
     }
 
 
@@ -122,7 +118,8 @@ def _load_local_api_settings() -> dict:
             continue
         raw = path.read_text(encoding="utf-8")
         data = _parse_api_settings(raw)
-        data["source"] = str(path)
+        # Reports record only the configuration channel, never a local path.
+        data["source"] = "local-settings"
         _LOCAL_API_SETTINGS = data
         return data
     _LOCAL_API_SETTINGS = {}
@@ -176,11 +173,20 @@ def _parse_simple_yaml_api_settings(text: str) -> dict:
     }
 
 
+def public_endpoint_label() -> str:
+    """Return non-sensitive endpoint metadata suitable for reports and logs."""
+    settings = api_settings()
+    configured = str(settings.get("base_url") or "").rstrip("/")
+    if configured == DEFAULT_BASE_URL.rstrip("/"):
+        return DEFAULT_BASE_URL
+    return "configured-openai-compatible-endpoint"
+
+
 def llm_config() -> dict:
     settings = api_settings()
     return {
         "model": _model_name(),
-        "base_url": settings["base_url"],
+        "base_url": public_endpoint_label(),
         "api_key_configured": bool(settings["api_key"]),
         "api_key_source": settings["source"],
         "timeout_s": _timeout_s(),
@@ -238,7 +244,10 @@ def parse_json_content(content: str):
                 return json.loads(extracted)
             except json.JSONDecodeError:
                 pass
-        raise LLMJsonError(f"模型返回内容不是合法 JSON：{original}; preview={_preview(text)}") from original
+        raise LLMJsonError(
+            f"模型返回内容不是合法 JSON：{original.msg} "
+            f"(line={original.lineno}, column={original.colno})"
+        ) from original
 
 
 def _extract_json_span(text: str) -> str:
@@ -270,13 +279,6 @@ def _extract_json_span(text: str) -> str:
             if depth == 0:
                 return text[start : idx + 1]
     return ""
-
-
-def _preview(text: str, limit: int = 500) -> str:
-    compact = text.replace("\n", "\\n")
-    if len(compact) <= limit:
-        return compact
-    return compact[:limit] + "...<truncated>"
 
 
 def _chat_completion_text(response: object) -> str:
@@ -472,7 +474,7 @@ def vlm_config(model: str | None = None) -> dict:
     settings = api_settings()
     return {
         "model": _vision_model_name(model),
-        "base_url": settings["base_url"],
+        "base_url": public_endpoint_label(),
         "api_key_configured": bool(settings["api_key"]),
         "api_key_source": settings["source"],
         "timeout_s": _vision_timeout_s(),
@@ -558,7 +560,7 @@ def _chat_gemini_vision_with_metadata(
     *,
     model: str,
 ) -> dict:
-    """Call Gemini through the native generateContent endpoint used by oneapi-comate."""
+    """Call Gemini through a native generateContent-compatible endpoint."""
 
     import requests
 
@@ -595,7 +597,7 @@ def _chat_gemini_vision_with_metadata(
         timeout=_vision_timeout_s(),
     )
     if response.status_code >= 400:
-        raise RuntimeError(f"Gemini vision request failed: HTTP {response.status_code}: {response.text[:1000]}")
+        raise RuntimeError(f"Gemini vision request failed: HTTP {response.status_code}")
     payload = response.json()
     ended_at = _now_iso()
     usage = _gemini_usage_metadata(payload)

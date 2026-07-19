@@ -1,155 +1,143 @@
-# AlgoLab
+# AlgoTutorGen
 
-基于“语义轨迹 + Scene Graph + 固定中文 Web Runtime”的算法可视化生成系统。
+AlgoTutorGen turns a concrete algorithm problem into a verifiable, interactive
+teaching page. It separates generated algorithm semantics from deterministic
+visual compilation and browser execution.
 
-## 目标
+## Inputs and outputs
 
-输入：
+Inputs:
 
-- LeetCode 风格题目
-- 具体 JSON 输入
-- 可选：解法思路
-- 可选：用户代码
-- 可选：期望输出
+- an algorithm problem;
+- a concrete JSON input;
+- an optional strategy hint or reference implementation;
+- an optional expected result.
 
-输出：
+Outputs:
 
-- 可验证的算法执行语义轨迹
-- 多解法交互式可视化页面
-- 构建 JSON artifact
+- an executable solution specification;
+- a typed `SemanticTrace`;
+- a compiled `SceneGraph`;
+- a self-contained interactive HTML tutor;
+- a machine-readable build artifact.
 
-## 新架构
+## Pipeline
 
 ```text
-题目 / 输入 / 可选思路 / 可选代码
+Problem + concrete input
         |
         v
-LLM 生成 solve / trace / verify
+LLM-generated solve/trace specification
         |
         v
-沙箱执行与结果门禁
+Sandboxed materialization + contract gates
         |
         v
 SemanticTrace
         |
         v
-Scene Compiler
+Deterministic Scene Compiler
         |
         v
-SceneGraph
+SceneGraph + fixed Web Runtime
         |
         v
-固定中文 Web Runtime
+Teaching overlay + browser audit
 ```
 
-核心边界：
+The main design boundaries are:
 
-- LLM 不生成页面、不写布局、不写坐标。
-- Trace 只使用少量通用语义操作。
-- Renderer 只消费 SceneGraph，不理解具体算法。
+- the model does not generate the fixed page shell, global layout, or browser
+  controls;
+- traces use a small typed operation vocabulary;
+- the scene compiler projects verified trace objects into visual objects;
+- teaching content is generated from verified facts and is checked separately;
+- browser release requires all nine recorded interaction checks.
 
-## 通用语义操作
+The trace operation vocabulary is:
 
-`create`、`set`、`mark`、`unmark`、`move`、`compare`、`link`、`unlink`、`push`、`pop`、`enter`、`exit`、`explain`
+`create`, `set`, `mark`, `unmark`, `move`, `compare`, `link`, `unlink`, `push`,
+`pop`, `enter`, `exit`, and `explain`.
 
-新增算法时通常不需要新增操作。只有出现新的视觉形态时，才扩展 Scene Compiler 或 Web Runtime。
+## Quick start
 
-## 运行 CLI
-
-默认样例：
-
-```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py --strategy "动态规划" --solutions 2 --output output/algolab.html
-```
-
-自定义题目：
+Configure an OpenAI-compatible endpoint through environment variables described
+in [`.env.example`](.env.example), then run:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py \
-  --problem "LeetCode 62. 不同路径。机器人每次只能向下或向右移动，返回路径数。" \
+python3 cli.py \
+  --problem "Count the number of unique paths in an m by n grid." \
   --input '{"m":3,"n":7}' \
   --expected '28' \
-  --strategy "动态规划和组合数学" \
+  --strategy "Dynamic programming and combinatorics" \
   --solutions 2 \
   --output output/unique_paths.html
 ```
 
-## 运行 Web UI
+Start the local Web UI with:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 app.py
+python3 app.py
 ```
 
-默认端口：`7861`
+The default local port is `7861`.
 
-## 本地质量检查
+## Quality checks
 
-不调用 LLM 的轻量检查：
+Run the lightweight checks that do not call a remote model:
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
-当前默认检查聚焦 active pipeline 的 Python 编译、教学层 contract 和交互渲染入口。浏览器证据不再默认跑；需要截图或真实浏览器验证时显式使用容器：
+Run the explicit browser smoke path with:
 
 ```bash
 bash scripts/run_browser_smoke_container.sh
 ```
 
-当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。宿主机上的 Python 命令仍使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`；容器内命令使用镜像自带 Python。
+The container image defaults to the public Playwright image
+`mcr.microsoft.com/playwright/python:v1.59.0-noble` and can be overridden with
+`ALGOLAB_PLAYWRIGHT_IMAGE`.
 
-默认镜像为当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖为官方 Playwright 镜像。
+These checks cover schema validation, trace references, process continuity,
+scene compilation, sandbox timeouts, HTML export, and browser loading. They do
+not prove that every generated trace is a correct implementation for every
+possible input.
 
-运行容器命令需要 Docker daemon 权限。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`；如果两者都不可用，需要把用户加入 `docker` 组、配置免密 `sudo docker`，或在有 Docker 权限的 CI 环境运行。
+## Released English artifacts
 
-这些检查覆盖 schema 严格性、trace validator、scene compiler、沙箱超时、renderer HTML 输出和 Playwright 页面加载。它们不证明 LLM 对所有题目都正确，只证明系统的确定性边界和已有样例可重复通过。
+- [English five-method artifact gallery](artifacts/method_comparison_samples_en/README.md):
+  23 cases, five methods, 115 frozen pages/screenshots, and their nine-field
+  browser audits.
+- [Paper case-study figures](artifacts/paper_case_studies_en/README.md):
+  an aligned Dijkstra comparison, a complete-knapsack walkthrough, a
+  cross-family gallery, editable SVG/PDF/PNG outputs, and English prompt
+  skeletons.
 
-## 当前信心边界
+The qualitative figures distinguish static visual evidence from executable
+browser outcomes. A screenshot alone is not used as proof of hidden interaction
+behavior.
 
-事实支持：
-
-- LLM 不直接生成页面。
-- renderer 只消费 SceneGraph。
-- SemanticTrace 的 op 集合是固定枚举。
-- 子进程沙箱能阻止非法 import 和死循环。
-- 已有样例页面可加载、可步进、无 JS error。
-
-仍需继续强化：
-
-- LLM 生成的 tracker 对未知题目的算法正确性不能靠本地测试完全证明。
-- 需要更多自动生成边界用例和多输入回归。
-- 复杂图、递归树、线段树、几何类问题还需要扩展 scene compiler 的视觉形态。
-- 页面美学还需要 Playwright 截图回归和布局阈值检查。
-
-## 五方法产物样例
-
-[五方法产物对比样例库](artifacts/method_comparison_samples/README.md)从 23 个算法家族中各选一个典型案例，并列保存 AlgoTutorGen / Stage2、Direct HTML、WebGen-Agent、Direct + HTMLCure（strict）和 Direct-BrowserRepair（1-call）的真实页面或源码、截图与审计摘要。
-
-## 系统说明
-
-完整架构、流程、门禁、覆盖范围和排查方式见：
-
-- [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md)
-- [SYSTEM_FLOW.html](SYSTEM_FLOW.html)
-
-## 主要目录
+## Repository layout
 
 ```text
 algolab/
-  schemas/              # ProblemInput / SemanticTrace / SceneGraph / Validation
-  generation/           # 中文 prompt 与 LLM 生成
-  runtime/              # 沙箱执行 solve / trace / verify
-  verification/         # trace 校验与 release gate
+  schemas/              # ProblemInput, SemanticTrace, SceneGraph, validation
+  generation/           # Model prompts and structured generation
+  runtime/              # Sandboxed solve/trace execution
+  verification/         # Contract validators and release gate
   compiler/             # SemanticTrace -> SceneGraph
-  renderer/             # SceneGraph -> 单文件中文 HTML
+  renderer/             # SceneGraph -> self-contained HTML
 
-cli.py                  # 命令行入口
-app.py                  # Gradio 入口
-llm_client.py           # OpenAI-compatible LLM 客户端
-artifacts/              # 可提交的实验产物抽样与横向比较
-output/                 # 生成产物
+scripts/                # Experiment, audit, and artifact builders
+benchmark/              # Frozen benchmark definitions
+artifacts/              # Public qualitative artifacts and paper figures
+tests/                  # Offline and regression tests
+cli.py                  # Command-line entry point
+app.py                  # Local Web UI entry point
+llm_client.py           # OpenAI-compatible model client
 ```
 
-## 旧架构状态
-
-旧的 `modules/`、`renderers/`、`simulators/` 属于历史 pipeline，不再作为主入口。新系统从 `cli.py` / `app.py` 进入。
+The historical `modules/`, `renderers/`, and `simulators/` paths are not the
+active pipeline. The current entry points are `cli.py` and `app.py`.

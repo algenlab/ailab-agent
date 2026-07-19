@@ -170,8 +170,8 @@ scripts/run_llm_benchmark.py
 启动：
 
 ```bash
-cd /ssd1/liaokunpeng/paper/ailab-agent
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 app.py
+cd .
+python3 app.py
 ```
 
 默认端口：`7861`
@@ -191,7 +191,7 @@ teaching_enrichment = true
 文件：`cli.py`
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py \
+python3 cli.py \
   --problem "LeetCode 62. 不同路径。机器人每次只能向下或向右移动，返回路径数。" \
   --input '{"m":3,"n":7}' \
   --expected '28' \
@@ -205,7 +205,7 @@ CLI 和 Web UI 使用同一条 `build_artifact()` 主链路。
 CLI 默认开启 teaching enrichment，可以用下面参数关闭：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 cli.py --no-teaching-enrichment ...
+python3 cli.py --no-teaching-enrichment ...
 ```
 
 ### LLM Benchmark
@@ -261,7 +261,7 @@ expected_visible_to_model = true
 公平模式：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_direct_html_baseline.py \
+python3 scripts/run_direct_html_baseline.py \
   --hide-expected \
   --output-dir output/direct_html_no_expected
 ```
@@ -1092,7 +1092,7 @@ benchmark 内置的 `browser_smoke_html_paths()` 做轻量检查：
 从已成功的 `BuildArtifact` 派生 teaching / interaction 开关产物，不重新调用 LLM：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/export_component_ablation_artifacts.py \
+python3 scripts/export_component_ablation_artifacts.py \
   --artifact-dir output/stage1_verified_20cases_deepseek \
   --output-dir output/component_ablation_artifacts
 ```
@@ -1292,43 +1292,43 @@ VLM 使用同一套 `ALGOLAB_LLM_BASE_URL` / `ALGOLAB_LLM_API_KEY` 读取逻辑�
 所有 Python 命令使用项目指定解释器：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3
+python3
 ```
 
 快速回归：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
+python3 -m tests.offline_regression
 ```
 
 Benchmark 回归：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
+python3 -m tests.benchmark_regression
 ```
 
 Direct HTML answer audit 回归：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.direct_html_answer_audit
+python3 -m tests.regression.direct_html_answer_audit
 ```
 
 Baseline 回归：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.regression.baseline_experiments
+python3 -m tests.regression.baseline_experiments
 ```
 
 Teaching enrichment 回归：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m pytest tests/regression/teaching_enricher.py -q
+python3 -m pytest tests/regression/teaching_enricher.py -q
 ```
 
 全部本地检查：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
 浏览器 smoke 容器：
@@ -1340,7 +1340,7 @@ bash scripts/run_browser_smoke_container.sh
 宿主机 glibc 2.17 不能直接运行 Playwright 自带 node 时，使用容器：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+bash scripts/run_browser_smoke_container.sh python3 scripts/run_quality_checks.py
 ```
 
 容器命令要求能访问 Docker daemon；脚本会优先使用普通 `docker`，失败后尝试 `sudo -n docker`。
@@ -1371,7 +1371,7 @@ output/teaching_overlay_visual_check/multi_case_llm/llm_teaching_report_permutat
 检查 artifact：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 import json
 from pathlib import Path
 data = json.loads(Path("output/algolab.json").read_text())
@@ -1392,7 +1392,7 @@ PY
 如果要检查 LLM 实际返回/应用效果，看 artifact JSON：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 - <<'PY'
+python3 - <<'PY'
 import json
 from pathlib import Path
 data = json.loads(Path("output/teaching_overlay_visual_check/multi_case_llm/permutations.json").read_text())
