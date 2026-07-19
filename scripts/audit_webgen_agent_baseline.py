@@ -189,7 +189,7 @@ def run_one(case: dict[str, Any], workspace_root: Path, output_dir: Path) -> dic
         install = subprocess.run(
             [
                 "npm", "install", "--no-audit", "--no-fund",
-                "--registry", "https://registry.npmmirror.com",
+                "--registry", "https://registry.npmjs.org",
                 "--fetch-retries", "4", "--fetch-retry-maxtimeout", "60000",
                 "--cache", str(ROOT / "output/external_baselines/webgen/npm-cache"),
             ],
@@ -212,7 +212,7 @@ def run_one(case: dict[str, Any], workspace_root: Path, output_dir: Path) -> dic
         errors: list[str] = []
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
-                executable_path="/ms-playwright/chromium-1223/chrome-linux64/chrome",
+                executable_path=os.environ.get("ALGOLAB_CHROMIUM_EXECUTABLE") or None,
                 headless=True,
                 args=["--no-sandbox"],
             )
