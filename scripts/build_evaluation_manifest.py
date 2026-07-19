@@ -21,20 +21,23 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.build_demo_dashboard import CUSTOM_SUBSET_SUM_ID, selected_demo_definitions
-from tests.benchmark_cases import BenchmarkCase, benchmark_cases
+from benchmark.cases import BenchmarkCase, benchmark_cases
 
 
 @dataclass(frozen=True)
 class EvaluationCase:
     id: str
+    algorithm_id: str
     title: str
     problem: str
     input_contract: str
     source: str
+    dataset_source: str
     suite: str
     family: str
     family_id: str
     subfamily_id: str
+    difficulty: str
     gate_layer: str
     support_level: str
     process_profile: str
@@ -47,6 +50,13 @@ class EvaluationCase:
     sample_count: int
     expected_layouts: list[str]
     visual_forms: list[str]
+    learning_objectives: list[str]
+    input_generator: str
+    reference_solver: str
+    trace_oracle: str
+    required_views: list[str]
+    interaction_tasks: list[str]
+    assessment_rubric: str
     samples: list[dict[str, Any]]
     artifact_paths: dict[str, str]
     has_verifier: bool
@@ -57,14 +67,17 @@ class EvaluationCase:
 ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         id="linear_regression_single_step",
+        algorithm_id="linear_regression_single_step",
         title="线性回归单步梯度",
         problem="线性回归单步梯度下降演示。",
         input_contract="输入一组二维样本、当前参数和学习率。",
         source="phase9_ml_fixture",
+        dataset_source="ml_demo_fixture",
         suite="ml_demo",
         family="ML / regression",
         family_id="ml_regression",
         subfamily_id="linear_regression_single_step",
+        difficulty="medium",
         gate_layer="smoke",
         support_level="basic",
         process_profile="uncovered",
@@ -77,6 +90,13 @@ ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
         sample_count=1,
         expected_layouts=["ml", "matrix", "loss_curve"],
         visual_forms=["ml", "matrix", "loss_curve"],
+        learning_objectives=["理解单步梯度更新", "观察 loss 变化", "解释学习率作用"],
+        input_generator="phase9 fixed fixture",
+        reference_solver="phase9 deterministic property oracle",
+        trace_oracle="fixture property evidence",
+        required_views=["ml", "matrix", "loss_curve"],
+        interaction_tasks=["predict_parameter_update", "inspect_loss_change", "modify_learning_rate"],
+        assessment_rubric="Student explanation should match the deterministic gradient/loss fixture evidence.",
         samples=[
             {
                 "index": 0,
@@ -98,14 +118,17 @@ ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
     ),
     EvaluationCase(
         id="logistic_regression_boundary",
+        algorithm_id="logistic_regression_boundary",
         title="逻辑回归决策边界",
         problem="逻辑回归决策边界教学演示。",
         input_contract="输入二维分类样本、当前参数和阈值。",
         source="phase9_ml_fixture",
+        dataset_source="ml_demo_fixture",
         suite="ml_demo",
         family="ML / classification",
         family_id="ml_classification",
         subfamily_id="logistic_regression_boundary",
+        difficulty="medium",
         gate_layer="smoke",
         support_level="basic",
         process_profile="uncovered",
@@ -118,6 +141,13 @@ ML_DEMO_CASES: tuple[EvaluationCase, ...] = (
         sample_count=1,
         expected_layouts=["ml", "computational_graph", "decision_boundary"],
         visual_forms=["ml", "computational_graph", "decision_boundary"],
+        learning_objectives=["理解线性决策边界", "观察阈值分类", "解释样本到边界的关系"],
+        input_generator="phase9 fixed fixture",
+        reference_solver="phase9 deterministic property oracle",
+        trace_oracle="fixture property evidence",
+        required_views=["ml", "computational_graph", "decision_boundary"],
+        interaction_tasks=["predict_class_label", "inspect_boundary_shift", "modify_threshold"],
+        assessment_rubric="Student explanation should match the deterministic boundary fixture evidence.",
         samples=[
             {
                 "index": 0,
@@ -163,14 +193,17 @@ def _evaluation_case_from_benchmark(case: BenchmarkCase, default_demo_ids: set[s
     suite = "default_dashboard" if case.id in default_demo_ids else "benchmark"
     return EvaluationCase(
         id=case.id,
+        algorithm_id=case.algorithm_id,
         title=case.title,
         problem=case.problem,
         input_contract=case.input_contract,
-        source="tests.benchmark_cases",
+        source="benchmark.cases",
+        dataset_source=case.dataset_source,
         suite=suite,
         family=case.family,
         family_id=case.family_id,
         subfamily_id=case.subfamily_id,
+        difficulty=case.difficulty,
         gate_layer=case.gate_layer,
         support_level=case.support_level,
         process_profile=case.process_profile,
@@ -183,6 +216,13 @@ def _evaluation_case_from_benchmark(case: BenchmarkCase, default_demo_ids: set[s
         sample_count=len(case.samples),
         expected_layouts=list(case.expected_layouts),
         visual_forms=list(case.expected_layouts),
+        learning_objectives=list(case.learning_objectives),
+        input_generator=case.input_generator,
+        reference_solver=case.reference_solver,
+        trace_oracle=case.trace_oracle,
+        required_views=list(case.required_views),
+        interaction_tasks=list(case.interaction_tasks),
+        assessment_rubric=case.assessment_rubric,
         samples=_samples_for_case(case),
         artifact_paths=_artifact_paths_for_case(case.id, suite),
         has_verifier=bool(case.verifier_code.strip()),
@@ -248,12 +288,14 @@ def _samples_for_case(case: BenchmarkCase) -> list[dict[str, Any]]:
 def _summary(cases: list[EvaluationCase]) -> dict[str, Any]:
     return {
         "case_count": len(cases),
-        "benchmark_case_count": sum(1 for case in cases if case.source == "tests.benchmark_cases"),
+        "benchmark_case_count": sum(1 for case in cases if case.source == "benchmark.cases"),
         "ml_demo_count": sum(1 for case in cases if case.is_ml_demo),
         "sample_count": sum(case.sample_count for case in cases),
         "families": sorted({case.family for case in cases}),
         "families_by_id": dict(sorted(Counter(case.family_id for case in cases).items())),
         "subfamilies": dict(sorted(Counter(case.subfamily_id for case in cases).items())),
+        "dataset_sources": dict(sorted(Counter(case.dataset_source for case in cases).items())),
+        "difficulties": dict(sorted(Counter(case.difficulty for case in cases).items())),
         "gate_layers": dict(sorted(Counter(case.gate_layer for case in cases).items())),
         "support_levels": dict(sorted(Counter(case.support_level for case in cases).items())),
         "process_profiles": dict(sorted(Counter(case.process_profile for case in cases).items())),
@@ -290,13 +332,16 @@ def _write_cases_csv(path: Path, cases: list[dict[str, Any]]) -> None:
     fields = [
         "id",
         "title",
+        "algorithm_id",
         "problem",
         "input_contract",
         "source",
+        "dataset_source",
         "suite",
         "family",
         "family_id",
         "subfamily_id",
+        "difficulty",
         "gate_layer",
         "support_level",
         "process_profile",
@@ -309,6 +354,13 @@ def _write_cases_csv(path: Path, cases: list[dict[str, Any]]) -> None:
         "sample_count",
         "expected_layouts",
         "visual_forms",
+        "learning_objectives",
+        "input_generator",
+        "reference_solver",
+        "trace_oracle",
+        "required_views",
+        "interaction_tasks",
+        "assessment_rubric",
         "artifact_json",
         "html",
         "has_verifier",
@@ -323,6 +375,9 @@ def _write_cases_csv(path: Path, cases: list[dict[str, Any]]) -> None:
             row["strata"] = ";".join(row["strata"])
             row["expected_layouts"] = ";".join(row["expected_layouts"])
             row["visual_forms"] = ";".join(row["visual_forms"])
+            row["learning_objectives"] = ";".join(row["learning_objectives"])
+            row["required_views"] = ";".join(row["required_views"])
+            row["interaction_tasks"] = ";".join(row["interaction_tasks"])
             row["artifact_json"] = row["artifact_paths"].get("artifact_json", "")
             row["html"] = row["artifact_paths"].get("html", "")
             row.pop("samples", None)

@@ -39,11 +39,14 @@ teaching 规则：
 - 所有收到的 frame 都尽量补 teaching。
 - what 说明当前操作，why 说明为什么这样做。
 - 若 frame 有 deps/before/after/value/state_diff，优先写 formula 或 invariant。
+- hint 必须引导学生看 targets/deps/state 中的具体对象或变量，不要只写“请观察当前步骤”。
+- common_mistake 不能写成泛泛提醒，必须指出初学者在本步最可能混淆的对象、边界、依赖、更新方向或答案含义。
 - 字段应短而具体；不要为了变短省略关键变量、依赖对象、状态变化或转移依据。
 
 interaction 规则：
 - 不要求每个 frame 都有 interaction。
-- 但关键学习帧必须优先生成 interaction，除非无法从当前 frame 事实推出唯一答案。
+- interaction 是预测检查点，学生应该先预测当前或下一步状态，再查看反馈。
+- 关键学习帧必须优先生成 interaction，除非无法从当前 frame 事实推出唯一答案。
 - 关键学习帧包括：
   1. key_learning_frame=true 的帧。
   2. role 是 answer 的帧。
@@ -55,6 +58,7 @@ interaction 规则：
 - 如果关键学习帧数量 <= 8，关键学习帧尽量全部生成 interaction。
 - 如果关键学习帧数量 > 8，至少选择 8 个最有教学价值的关键学习帧生成 interaction。
 - 覆盖必须包含：首个关键转移帧、至少一个分支/比较帧、至少一个 deps 依赖帧、答案帧。
+- 答案帧也必须优先生成 checkpoint，可以让学生预测最终 answer/result，或判断此后是否还会更新状态。
 - 非关键帧、纯 enter/exit、纯说明帧、重复机械帧可以填 null。
 - 不要为了提高数量生成无意义问题。
 
@@ -67,10 +71,11 @@ interaction 写法：
 - 每个 frame 最多补一个 interaction。
 - choice 最多 2 个 options。
 - choice 的 answer 必须是 options 中的某一项原文，不要输出数字下标。
+- judge 的 answer 必须输出 true/false 或 “正确”/“错误”；不要输出“是/否”、选项编号或解释句。
 - prompt 要具体，优先 20-45 个汉字；复杂步骤允许更长。
 - explanation 必须说明依据，优先 30-70 个汉字；复杂转移允许更长。
-- wrong_explanation 必须指出错因，优先 20-60 个汉字。
-- option_explanations 可以省略；如果写，每项优先 20-50 个汉字。
+- wrong_explanation 必须解释为什么错，并明确指出错因来自误读 targets/deps/state、更新方向、边界条件、公式依赖或答案含义中的哪一类。
+- option_explanations 优先覆盖每个错误选项；如果预算不足，至少覆盖最容易误选的错误选项。
 - 不要为了变短省略关键变量、依赖对象、状态变化或转移依据。
 - 如果不能从当前 frame 事实推出唯一答案，interaction 填 null。
 
@@ -285,6 +290,73 @@ def compute_interaction_coverage(trace: SemanticTrace, scene: SceneGraph) -> dic
     }
 
 
+def validate_teaching_contract(
+    trace: SemanticTrace,
+    scene: SceneGraph,
+    *,
+    min_key_learning_interactions: int = 3,
+    max_key_learning_interactions: int = 8,
+) -> tuple[list[str], list[str]]:
+    """Validate the pedagogical layer without changing trace or scene facts.
+
+    The contract is intentionally warning-oriented: algorithm correctness still
+    comes from solve/trace/verifier gates, while these checks make missing or
+    weak learning interventions visible to strict benchmark runs.
+    """
+
+    warnings: list[str] = []
+    checks: list[str] = []
+    frame_by_step = {frame.step: frame for frame in scene.frames}
+
+    for event in trace.events:
+        reasons = key_learning_reasons_for_event(event)
+        if not reasons:
+            continue
+        frame = frame_by_step.get(event.step)
+        if frame is None:
+            warnings.append(f"teaching_contract step {event.step}: frame missing")
+            continue
+        teaching = frame.teaching if isinstance(frame.teaching, dict) else {}
+        interaction = frame.interaction if isinstance(frame.interaction, dict) else None
+        if not _teaching_has_core_explanation(teaching):
+            warnings.append(f"teaching_contract step {event.step}: key learning frame 缺少 teaching.what/why")
+        if _needs_rule_or_hint(event, reasons) and not _teaching_has_rule_or_hint(teaching):
+            warnings.append(f"teaching_contract step {event.step}: key learning frame 缺少 formula/invariant/hint")
+        if interaction is not None:
+            warnings.extend(_validate_interaction_contract(event.step, interaction, teaching))
+
+    coverage = compute_interaction_coverage(trace, scene)
+    checks.append(
+        "teaching_contract: key_learning_interaction_rate="
+        f"{coverage['key_learning_interaction_rate']:.3f} "
+        f"({coverage['key_learning_interaction_frames']}/{coverage['key_learning_frames']})"
+    )
+    checks.append(
+        "teaching_contract: interaction_frames="
+        f"{coverage['interaction_frames']}/{coverage['total_frames']}"
+    )
+    required_key_interactions = _required_key_learning_interactions(
+        coverage["key_learning_frames"],
+        floor=min_key_learning_interactions,
+        cap=max_key_learning_interactions,
+    )
+    checks.append(
+        "teaching_contract: required_key_learning_interactions="
+        f"{required_key_interactions}"
+    )
+    if coverage["key_learning_interaction_frames"] < required_key_interactions:
+        warnings.append(
+            "teaching_contract: key learning prediction checkpoint 覆盖不足 "
+            f"{coverage['key_learning_interaction_frames']}/{required_key_interactions} "
+            f"(key_learning_frames={coverage['key_learning_frames']})"
+        )
+    if coverage["answer_frames"] and not coverage["answer_frame_interaction_present"]:
+        warnings.append("teaching_contract: answer frame 缺少 prediction checkpoint")
+    if coverage["deps_frames"] and coverage["deps_interaction_frames"] == 0:
+        warnings.append("teaching_contract: deps frame 缺少 prediction checkpoint")
+    return warnings, checks
+
+
 def key_learning_reasons_for_event(event: SemanticEvent) -> list[str]:
     """Return reasons that make a trace event worth an interaction prompt."""
 
@@ -302,6 +374,99 @@ def key_learning_reasons_for_event(event: SemanticEvent) -> list[str]:
     if _reason_implies_decision(event.reason):
         reasons.append("decision_reason")
     return reasons
+
+
+def _teaching_has_core_explanation(teaching: dict[str, Any]) -> bool:
+    return bool(str(teaching.get("what") or "").strip() and str(teaching.get("why") or "").strip())
+
+
+def _teaching_has_rule_or_hint(teaching: dict[str, Any]) -> bool:
+    return any(str(teaching.get(key) or "").strip() for key in ("formula", "invariant", "hint"))
+
+
+def _needs_rule_or_hint(event: SemanticEvent, reasons: list[str]) -> bool:
+    return bool(event.deps or {"state_transition", "important_target", "decision_reason"} & set(reasons))
+
+
+def _validate_interaction_contract(step: int, interaction: dict[str, Any], teaching: dict[str, Any]) -> list[str]:
+    warnings: list[str] = []
+    kind = str(interaction.get("type") or "choice")
+    prompt = str(interaction.get("prompt") or "").strip()
+    if kind not in {"choice", "input", "judge"}:
+        warnings.append(f"teaching_contract step {step}: unknown interaction type {kind}")
+    if not prompt:
+        warnings.append(f"teaching_contract step {step}: interaction 缺少 prompt")
+    if not _interaction_has_answer(interaction):
+        warnings.append(f"teaching_contract step {step}: interaction 缺少 answer")
+    if not str(interaction.get("explanation") or "").strip():
+        warnings.append(f"teaching_contract step {step}: interaction 缺少正确反馈 explanation")
+    if kind == "choice":
+        warnings.extend(_validate_choice_interaction(step, interaction, teaching))
+    elif kind == "input":
+        if not _has_wrong_feedback(interaction, teaching):
+            warnings.append(f"teaching_contract step {step}: input checkpoint 缺少错误反馈")
+    elif kind == "judge":
+        answer = interaction.get("answer")
+        if not _is_bool_like_answer(answer):
+            warnings.append(f"teaching_contract step {step}: judge answer 必须是布尔值或正确/错误")
+        if not _has_wrong_feedback(interaction, teaching):
+            warnings.append(f"teaching_contract step {step}: judge checkpoint 缺少错误反馈")
+    return warnings
+
+
+def _required_key_learning_interactions(key_learning_frames: int, *, floor: int, cap: int) -> int:
+    if key_learning_frames <= 0:
+        return 0
+    return min(key_learning_frames, max(floor, min(key_learning_frames, cap)))
+
+
+def _validate_choice_interaction(step: int, interaction: dict[str, Any], teaching: dict[str, Any]) -> list[str]:
+    warnings: list[str] = []
+    options = interaction.get("options")
+    option_values = [str(option) for option in options] if isinstance(options, list) else []
+    answer = str(interaction.get("answer") or "")
+    if len(option_values) < 2:
+        warnings.append(f"teaching_contract step {step}: choice 至少需要 2 个 options")
+    if option_values and answer not in option_values:
+        warnings.append(f"teaching_contract step {step}: choice answer 必须来自 options")
+    if not _has_wrong_feedback(interaction, teaching, options=option_values, answer=answer):
+        warnings.append(f"teaching_contract step {step}: choice checkpoint 缺少错误反馈")
+    return warnings
+
+
+def _interaction_has_answer(interaction: dict[str, Any]) -> bool:
+    if "answer" not in interaction:
+        return False
+    value = interaction.get("answer")
+    if value is None:
+        return False
+    return not (isinstance(value, str) and not value.strip())
+
+
+def _has_wrong_feedback(
+    interaction: dict[str, Any],
+    teaching: dict[str, Any],
+    *,
+    options: list[str] | None = None,
+    answer: str = "",
+) -> bool:
+    if str(interaction.get("wrong_explanation") or "").strip():
+        return True
+    if str(teaching.get("common_mistake") or "").strip():
+        return True
+    explanations = interaction.get("option_explanations")
+    if not isinstance(explanations, dict):
+        return False
+    if not options:
+        return any(str(value or "").strip() for value in explanations.values())
+    wrong_options = [option for option in options if option != answer]
+    return any(str(explanations.get(option) or "").strip() for option in wrong_options)
+
+
+def _is_bool_like_answer(value: Any) -> bool:
+    if isinstance(value, bool):
+        return True
+    return str(value).strip().lower() in {"true", "false", "正确", "错误", "对", "错"}
 
 
 def _teaching_attempt_frame_counts(max_frames: int | None) -> list[int | None]:
@@ -387,6 +552,8 @@ def _sanitize_interaction(raw: Any) -> dict[str, Any] | None:
         cleaned["options"] = []
     if cleaned.get("type") == "choice":
         _normalize_choice_answer(cleaned)
+    if cleaned.get("type") == "judge":
+        _normalize_judge_answer(cleaned)
     if "option_explanations" in cleaned and not isinstance(cleaned["option_explanations"], dict):
         cleaned["option_explanations"] = {}
     return cleaned
@@ -403,6 +570,19 @@ def _normalize_choice_answer(interaction: dict[str, Any]) -> None:
         return
     if 0 <= answer < len(options):
         interaction["answer"] = options[answer]
+
+
+def _normalize_judge_answer(interaction: dict[str, Any]) -> None:
+    answer = interaction.get("answer")
+    if isinstance(answer, bool):
+        return
+    text = str(answer).strip().lower()
+    true_values = {"true", "正确", "对", "是", "yes", "y", "对的", "正确的"}
+    false_values = {"false", "错误", "错", "否", "no", "n", "错的", "错误的", "不正确"}
+    if text in true_values:
+        interaction["answer"] = True
+    elif text in false_values:
+        interaction["answer"] = False
 
 
 def _answer_like(target: str) -> bool:

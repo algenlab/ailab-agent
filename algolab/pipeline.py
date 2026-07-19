@@ -6,7 +6,11 @@ import json
 from typing import Any
 
 from algolab.compiler.scene_compiler import compile_scene
-from algolab.generation.teaching_enricher import compute_interaction_coverage, enrich_scene_teaching
+from algolab.generation.teaching_enricher import (
+    compute_interaction_coverage,
+    enrich_scene_teaching,
+    validate_teaching_contract,
+)
 from algolab.generation.solution_generator import generate_solution_spec, parse_variants, repair_solution_spec
 from algolab.runtime.executor import canonical, execute_variant, results_equivalent, run_verifier
 from algolab.runtime.sandbox import run_function
@@ -143,6 +147,9 @@ def _try_materialize(request: ProblemInput, spec: dict[str, Any]) -> tuple[Build
                     f"{materialized.name}：teaching_interaction_coverage "
                     f"{json.dumps(coverage, ensure_ascii=False, sort_keys=True)}"
                 )
+                teaching_contract_warnings, teaching_contract_checks = validate_teaching_contract(materialized.trace, scene)
+                warnings.extend(f"{materialized.name}: {w}" for w in teaching_contract_warnings)
+                checks.extend(f"{materialized.name}：{check}" for check in teaching_contract_checks)
             scene_errors, scene_warnings = validate_scene(scene)
             if scene_errors:
                 raise ValueError("; ".join(scene_errors))

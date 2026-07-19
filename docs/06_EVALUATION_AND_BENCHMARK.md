@@ -1,5 +1,7 @@
 # 评估与 Benchmark
 
+本文档定义评估方法、benchmark 分层和门禁语义；当前实验数字统一见 `docs/EXPERIMENT_RESULTS.md`。
+
 ## 1. 评估目标
 
 AlgoLab 的评估不是只看页面是否好看，而是证明系统能把 LLM 生成的算法可视化变得更正确、更稳定、更适合学习。
@@ -30,10 +32,10 @@ V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只�
 
 当前确定性 benchmark 见：
 
-- `tests/benchmark_cases.py`
+- `benchmark/cases.py`
 - `benchmark/benchmark_cases_list.md`
 
-当前 V1.2 deterministic benchmark 已有 71 个代表 case、259 个 samples。真实数据源是 `tests.benchmark_cases.benchmark_cases()`；`benchmark/benchmark_cases_list.md` 是同步后的可读清单。其中 V1 baseline `family_core` 层为 62 cases / 222 samples，`expansion` 层为 9 cases / 37 samples。当前覆盖：
+当前 V1.2 deterministic benchmark 已有 200 个代表 case、646 个 samples，达到 `plan.md` 中 Core benchmark 200-500 tasks 的下限。真实数据源是 `benchmark.cases.benchmark_cases()`；最终 JSON 版 benchmark 是 `benchmark/algo_learn_env_benchmark.json`，实验 manifest 见 `output/experiments/dataset_expansion_full_20260704/evaluation_manifest.json`。其中 V1 baseline `family_core` 层为 62 cases / 222 samples，`expansion` 层为 138 cases / 424 samples。当前覆盖：
 
 - 一维 DP：打家劫舍。
 - 二维 DP：不同路径。
@@ -56,7 +58,7 @@ V1 之后评估重心调整为算法族级正确性。单个 benchmark case 只�
 - 区间结构：线段树、树状数组、稀疏表。
 - 数学与位运算：GCD、快速幂、筛法、组合数、bitmask、lowbit。
 - 图高级：Tarjan SCC、割点桥、二分图匹配、Edmonds-Karp。
-- Expansion 层：贪心、最短路 / MST、堆、Trie、回溯、数学与位运算、几何、链表与缓存、图高级各至少 1 个 expansion case。
+- Expansion 层：贪心、最短路 / MST、堆、Trie、回溯、数学与位运算、几何、链表与缓存、图高级，以及新增 public synthetic 的数组/二分/哈希/栈/排序/图/DP/树/并查集/字符串等学习环境任务。
 
 第一阶段 V1 benchmark 门禁范围从 80 到 120 个 deterministic samples 起步；P13.3 后 V1.1 本地确定性门禁范围调整为 80 到 220 个 V1 baseline deterministic samples，用于容纳 DP family core 和图基础 / 最短路 / MST 扩容。当前 `family_core` baseline 为 222 samples，略高于旧窗口上限；P16.2 后，V1 release gate 只统计 `smoke` / `family_core` 作为 baseline 样本窗口，`expansion` 层进入 family release gate 的总量、分层和过程通过率报告。
 
@@ -152,11 +154,11 @@ V1 之后 benchmark 必须分层，不再把所有样例混成一个 pass/fail �
 - `oracle_notes`：解释 oracle 证据是否独立，以及风险边界。
 - `oracle_reference`：当 verifier 结构过于接近 solve，或需要额外佐证时，指向独立参考实现或性质检查入口。
 
-当前独立 oracle 示例放在 `tests/oracles/`。P11.1 至少提供 DP、图、字符串、排序、并查集和区间结构示例；这些示例只定义 reference / property 形态，不生成随机样例。固定 seed 的随机小样例属于 P11.2。
+当前独立 oracle 示例放在 `benchmark/oracles/`。P11.1 至少提供 DP、图、字符串、排序、并查集和区间结构示例；这些示例只定义 reference / property 形态，不生成随机样例。固定 seed 的随机小样例属于 P11.2。
 
 ## 2.3.1 Property Benchmark
 
-P11.2 的随机小样例由 `tests/property_cases.py` 定义，运行入口是：
+P11.2 的随机小样例由 `benchmark/property_cases.py` 定义，运行入口是：
 
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_property_benchmark.py --output-dir output/property_benchmark
@@ -371,7 +373,7 @@ P11.3 的边界覆盖登记由 `benchmark/boundary_cases.json` 定义，检查�
 
 ## 7.2 算法族能力注册表
 
-算法族能力由独立文件 `benchmark/family_capabilities.json` 声明，不能只从 `process_validator.py` 反向推断。注册表中的 `label` 必须与 `tests/benchmark_cases.py` 中的 `BenchmarkCase.family` 完全一致；`process_profile` 必须映射到已注册 profile，或显式写为 `uncovered` 并说明 fallback 边界。
+算法族能力由独立文件 `benchmark/family_capabilities.json` 声明，不能只从 `process_validator.py` 反向推断。注册表中的 `label` 必须与 `benchmark/cases.py` 中的 `BenchmarkCase.family` 完全一致；`process_profile` 必须映射到已注册 profile，或显式写为 `uncovered` 并说明 fallback 边界。
 
 当前 deterministic benchmark 注册族名：
 
@@ -486,20 +488,19 @@ P9.2 的可复现包由固定脚本生成：
 - `output/reproducibility/README.md`：给研究复现者阅读的简明说明。
 - `output/reproducibility/commands.sh`：可直接查看或逐条执行的命令清单。
 
-确定性质量检查只走本地 fixtures、deterministic benchmark 和浏览器 smoke，不调用 LLM：
+确定性质量检查只走本地轻量回归，不调用 LLM：
 
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
-当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。浏览器 smoke 和合并前完整质量检查应在 Playwright 兼容容器中运行：
+当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。浏览器截图或真实 DOM 验证应在 Playwright 兼容容器中显式运行：
 
 ```bash
 bash scripts/run_browser_smoke_container.sh
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 ```
 
-宿主机仍用于非浏览器分层验证，例如 offline regression、benchmark regression、family release gate。容器脚本默认使用当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`，并以宿主机 UID/GID 写入仓库，避免 root-owned 输出产物。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖镜像。
+宿主机仍用于非浏览器分层验证，例如 lightweight regression、benchmark 数据脚本和 family release gate。容器脚本默认使用当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`，并以宿主机 UID/GID 写入仓库，避免 root-owned 输出产物。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖镜像。
 
 容器命令要求能访问 Docker daemon。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`；若两者都不可用，应在有 Docker 权限的 CI 或容器宿主机上运行 browser gate。
 
@@ -542,7 +543,7 @@ unseen registry 位于 `benchmark/unseen_family_cases.json`，只包含题目描
 
 两条路径必须分开理解：
 
-- deterministic benchmark：来源是 `tests/benchmark_cases.py`，用于证明主 pipeline、validator、SceneGraph compiler、renderer 和浏览器 smoke 的稳定性。
+- deterministic benchmark：来源是 `benchmark/cases.py`，用于证明主 pipeline、validator、SceneGraph compiler、renderer 和浏览器 smoke 的稳定性。
 - LLM benchmark：来源是 `scripts/run_llm_benchmark.py`，用于评估真实模型生成、repair 和失败分类，不作为确定性质量检查的前置条件。
 
 常用输出路径：

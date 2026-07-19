@@ -39,18 +39,27 @@ def validate_scene(scene: SceneGraph) -> tuple[list[str], list[str]]:
             errors.append(f"第 {frame.step} 帧没有任何 scene object")
             continue
         object_ids = {obj.id for obj in frame.objects}
+        if len(object_ids) != len(frame.objects):
+            errors.append(f"第 {frame.step} 帧存在重复 scene object id")
         visible = [obj for obj in frame.objects if obj.type.value in VISIBLE_TYPES]
         if not visible:
             errors.append(f"第 {frame.step} 帧没有可见对象")
         for mark in frame.marks:
             if mark.target not in object_ids:
-                warnings.append(f"第 {frame.step} 帧 mark 指向不存在对象：{mark.target}")
+                errors.append(f"第 {frame.step} 帧 mark 指向不存在对象：{mark.target}")
         for obj in frame.objects:
-            if obj.type.value in {"arrow", "edge"}:
-                if obj.source and obj.source not in object_ids:
-                    warnings.append(f"第 {frame.step} 帧 {obj.type.value} source 不在对象集合：{obj.source}")
-                if obj.target and obj.target not in object_ids:
-                    warnings.append(f"第 {frame.step} 帧 {obj.type.value} target 不在对象集合：{obj.target}")
+            if obj.parent and obj.parent not in object_ids:
+                errors.append(
+                    f"第 {frame.step} 帧对象 {obj.id} parent 指向不存在对象：{obj.parent}"
+                )
+            if obj.source and obj.source not in object_ids:
+                errors.append(
+                    f"第 {frame.step} 帧对象 {obj.id} source 指向不存在对象：{obj.source}"
+                )
+            if obj.target and obj.target not in object_ids:
+                errors.append(
+                    f"第 {frame.step} 帧对象 {obj.id} target 指向不存在对象：{obj.target}"
+                )
     return errors, warnings
 
 

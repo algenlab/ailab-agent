@@ -8,7 +8,12 @@
 
 ## Deterministic Benchmark
 
-确定性路径不调用 LLM，输入来自 `tests/benchmark_cases.py` 的 `benchmark_cases()`，题目清单见 `benchmark/benchmark_cases_list.md`。当前 deterministic benchmark 为 71 cases / 259 samples，其中 `family_core=62 cases / 222 samples`，`expansion=9 cases / 37 samples`。
+确定性路径不调用 LLM，输入来自 `benchmark/cases.py` 的 `benchmark_cases()`。当前 deterministic benchmark 为 200 cases / 646 samples，其中 `family_core=62 cases / 222 samples`，`expansion=138 cases / 424 samples`。
+
+当前保留两个 JSON 版本：
+
+- `benchmark/algo_learn_env_benchmark.json`：内部全量版，包含 plan 核心字段、可执行 solver/tracker/verifier、Stage2 visual brief、hint/misconception、实验 gate/oracle bookkeeping 等完整元数据。
+- `benchmark/algo_learn_env_benchmark_core.json`：plan-aligned core 版，由 `scripts/export_algo_learn_env_core_benchmark.py` 从全量版导出；每题仅保留 20 个字段，包括 plan 明确的 task-bundle 字段，以及 `id/title/problem/samples/code/tracker_code/verifier_code` 等可验证所需字段。
 
 一条命令运行本地确定性质量检查：
 
@@ -16,14 +21,13 @@
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
-浏览器 smoke / 完整质量门禁需要 Playwright 兼容容器：
+浏览器截图或真实 DOM 验证需要 Playwright 兼容容器，并且现在只在需要浏览器证据时显式运行：
 
 ```bash
 bash scripts/run_browser_smoke_container.sh
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 ```
 
-原因：当前宿主机 glibc 2.17 不能运行 Playwright 自带 node。执行 AI 不应把该宿主机环境失败当作代码失败，也不应降级 browser smoke。默认镜像为当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`；外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖。
+原因：当前宿主机 glibc 2.17 不能运行 Playwright 自带 node。执行 AI 不应把该宿主机环境失败当作代码失败。默认镜像为当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`；外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖。
 
 容器命令要求能访问 Docker daemon。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`；若两者都不可用，应切到有 Docker 权限的执行环境后再跑门禁。
 

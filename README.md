@@ -84,31 +84,19 @@ SceneGraph
 
 ## 本地质量检查
 
-不调用 LLM 的确定性测试：
-
-```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-```
-
-浏览器烟测：
-
-```bash
-bash scripts/run_browser_smoke_container.sh
-```
-
-全部本地检查：
+不调用 LLM 的轻量检查：
 
 ```bash
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
-当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。涉及浏览器的完整门禁使用容器：
+当前默认检查聚焦 active pipeline 的 Python 编译、教学层 contract 和交互渲染入口。浏览器证据不再默认跑；需要截图或真实浏览器验证时显式使用容器：
 
 ```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
+bash scripts/run_browser_smoke_container.sh
 ```
 
-宿主机上的 Python 命令仍使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`；容器内命令使用镜像自带 Python。
+当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。宿主机上的 Python 命令仍使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`；容器内命令使用镜像自带 Python。
 
 默认镜像为当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`。外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖为官方 Playwright 镜像。
 

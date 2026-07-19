@@ -38,7 +38,7 @@ from algolab.schemas.visual_plan import VisualPlan
 from algolab.verification.visual_plan_validator import validate_visual_plan
 from scripts.check_family_capabilities import known_process_profiles, load_family_capabilities
 from scripts.export_creative_demos import subset_sum_spec
-from tests.benchmark_cases import BenchmarkCase, BenchmarkInput, benchmark_cases
+from benchmark.cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 
 
 CUSTOM_SUBSET_SUM_ID = "partition_subset_sum"

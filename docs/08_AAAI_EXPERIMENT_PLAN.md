@@ -1,5 +1,7 @@
 # AAAI 实验设计、Benchmark 与评分标准
 
+本文档保留历史实验计划和阶段完成证据；当前统一实验结果见 `docs/EXPERIMENT_RESULTS.md`，历史阶段数字不能替代最终结果。
+
 本文档定义 P0 到 P17 收口后的全套实验。目标不是继续堆功能，而是用可复现 benchmark、真实浏览器截图、真实 LLM 生成、VLM 截图评审和 baseline / ablation 证明系统能力。
 
 当前重点：

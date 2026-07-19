@@ -325,8 +325,10 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
     if (containerLike) return null;
     if (tag === 'svg') return null;
     if (tag === 'g' && visibleChildCount(node) > 0) return null;
+    const svgShapeTag = /^(rect|circle|ellipse|path|polygon|line|polyline)$/i.test(tag);
+    const shapeLike = /node|cell|bar|card|tile|block|box|edge|interval|water|queen|answer|pointer|pointer-chip|chip/i.test(`${cls} ${dataVisual} ${layoutRole}`);
+    if (svgShapeTag && (dataVisual || shapeLike || cls || layoutRole)) return { role: 'visual', text };
     const labelLike = /label|caption|tick-label|axis-label|value-label|index-label|pointer-label|legend-label|legend-title|badge|chip|note|annotation/i.test(kind);
-    const shapeLike = /node|cell|bar|card|tile|block|box|edge|interval|water|queen|path/i.test(`${cls} ${dataVisual} ${layoutRole}`);
     if (tag === 'text' || tag === 'foreignobject' || labelLike) return { role: 'text', text };
     if (text && visibleChildCount(node) === 0 && ['div', 'span', 'p', 'strong', 'code', 'small'].includes(tag)) {
       return { role: 'text', text };
@@ -447,7 +449,7 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
   function isSemanticHighlightOverlay(node) {
     if (!node || !(node instanceof Element)) return false;
     const kind = shapeKind(node);
-    if (!/highlight|selected|selection|active|range|window|focus|halo|overlay|band|marker|current-mark/i.test(kind)) {
+    if (!/highlight|selected|selection|active|range|window|focus|halo|outline|current-outline|overlay|band|marker|current-mark/i.test(kind)) {
       return false;
     }
     const paint = visualPaint(node);
@@ -494,6 +496,8 @@ STAGE_QUALITY_AUDIT_JS = r"""async (opts) => {
     if (isAllowedEmbeddedTop(textNode, top)) return true;
     if (isConnector(top)) return true;
     if (isNonBlockingOverlay(top)) return true;
+    const tag = String(top.tagName || '').toLowerCase();
+    if (tag === 'svg') return true;
     const cls = String(top.className && top.className.baseVal !== undefined ? top.className.baseVal : top.className || '');
     const role = String(top.getAttribute && (top.getAttribute('data-layout-role') || top.getAttribute('data-visual') || '') || '');
     return /background|backdrop|grid|axis|lane|shell/i.test(`${cls} ${role}`);

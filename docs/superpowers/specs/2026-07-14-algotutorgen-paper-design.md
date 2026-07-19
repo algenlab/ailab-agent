@@ -93,10 +93,10 @@ The current implementation realizes the first two substantially but not the thir
 
 Numerical facts follow this order:
 
-1. `docs/36_THEORY_ALIGNED_EXPERIMENTS_REPORT.md`
-2. `docs/21_ALGOTUTORGEN_PAPER_REPORT.md`
-3. newer dedicated reports with machine-result paths
-4. older summaries
+1. `docs/EXPERIMENT_RESULTS.md`
+2. `latex/evidence-ledger.md`
+3. frozen machine-result paths
+4. older plans and summaries
 
 Conflicts will be resolved in favor of the newer report and recorded as LaTeX comments near the relevant table or statement. No human label, expert result, student result, significance test, or bibliography entry will be invented.
 

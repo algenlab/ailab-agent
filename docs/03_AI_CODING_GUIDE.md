@@ -165,22 +165,14 @@ Renderer 可以改善页面体验，但不能改变语义。
 常用检查：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.offline_regression
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.tracer_regression
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 -m tests.benchmark_regression
 /ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
 ```
 
-浏览器 smoke 的默认执行环境是已缓存的 Ubuntu 22 / Playwright 兼容容器，不是当前宿主机。当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。涉及 renderer、HTML runtime、dashboard 浏览器交互或合并前完整门禁时，执行 AI 必须使用：
+`tests.benchmark_regression` 现在是轻量兼容入口，聚焦当前 teaching / interaction contract。浏览器证据的默认执行环境是已缓存的 Ubuntu 22 / Playwright 兼容容器，不是当前宿主机。当前宿主机 glibc 过旧，不能直接运行 Playwright 自带 node。涉及 renderer、HTML runtime 或 dashboard 浏览器交互时，执行 AI 必须使用：
 
 ```bash
 bash scripts/run_browser_smoke_container.sh
-```
-
-如果需要在同一容器里运行完整质量检查：
-
-```bash
-bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py
 ```
 
 容器内 Python 使用镜像自带解释器；宿主机上的所有 Python 命令仍必须使用 `/ssd1/liaokunpeng/agent-py310-cu/bin/python3`。容器脚本默认使用宿主机当前 UID/GID 写入挂载目录，避免再次生成 root-owned 输出文件。

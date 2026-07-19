@@ -1,4 +1,6 @@
-# Benchmark 71 题清单
+# Benchmark 历史 71 题清单
+
+> 说明：2026-07-04 已扩充到 200 个 deterministic AlgoLearnEnv tasks / 646 samples，达到 `plan.md` 的 Core benchmark 200-500 tasks 下限。最终 JSON 版 benchmark 以 `benchmark/algo_learn_env_benchmark.json` 为准；本文保留为扩充前的历史可读清单。
 
 ## 1. 打家劫舍 (`house_robber`)
 

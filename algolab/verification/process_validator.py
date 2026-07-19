@@ -17,9 +17,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
-from algolab.schemas.semantic_trace import SemanticTrace
+from algolab.compiler.target_parser import parse_target
+from algolab.schemas.semantic_trace import SemanticEvent, SemanticOp, SemanticTrace
 
 
 # -----------------------------------------------------------------------------
@@ -150,18 +151,160 @@ def validate_process(
     trace: SemanticTrace,
     levels: ProcessInvariantLevel | Iterable[ProcessInvariantLevel] | None = None,
 ) -> tuple[list[str], list[str]]:
-    """DSL-era simplification: schema correctness is already enforced upstream.
+    """Validate DSL-level causal invariants without algorithm-specific rules.
 
-    Returns ([], []) for any trace that passed schema validation. Family-specific
-    invariants (5500+ lines of validators in v0) are no longer maintained;
-    the DSL guarantees that every emitted event is structurally valid and that
-    per-step state snapshots stay in sync with object mutations.
+    These checks only depend on guarantees made by ``TraceSession``: creates
+    precede later uses, state snapshots are post-event snapshots, explicit
+    before/after values agree with adjacent snapshots, and enter/exit events are
+    properly nested. They intentionally do not reimplement per-family oracles.
     """
-    # Touch parameters so we still raise on type errors early
     _ = _normalize_levels(levels)
     if not isinstance(trace, SemanticTrace):
         return ([f"validate_process: 参数不是 SemanticTrace（{type(trace).__name__}）"], [])
-    return ([], [])
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    previous_state: dict[str, Any] = {}
+    frame_stack: list[str] = []
+    answer_seen = False
+
+    for event in trace.events:
+        targets = [target.id for target in event.targets]
+        frame_targets = [target for target in targets if target.startswith("frame:")]
+
+        if event.op == SemanticOp.CREATE and answer_seen:
+            errors.append(f"第 {event.step} 步在答案事件之后创建对象，违反因果顺序")
+
+        if event.op != SemanticOp.CREATE:
+            _validate_ordered_references(event, previous_state, errors)
+
+        _validate_explicit_transition(event, previous_state, errors)
+
+        if event.op == SemanticOp.ENTER:
+            frame_stack.extend(frame_targets)
+        elif event.op == SemanticOp.EXIT:
+            for target in frame_targets:
+                if not frame_stack:
+                    errors.append(f"第 {event.step} 步 exit 缺少对应 enter：{target}")
+                    continue
+                expected = frame_stack[-1]
+                if target != expected:
+                    errors.append(
+                        f"第 {event.step} 步阶段退出顺序错误：期望 {expected}，实际 {target}"
+                    )
+                    continue
+                frame_stack.pop()
+
+        if _is_answer_event(event):
+            answer_seen = True
+        previous_state = event.state
+
+    if frame_stack:
+        warnings.append(f"trace 结束时仍有 {len(frame_stack)} 个未闭合阶段，可能由 max_events 截断")
+
+    return errors, warnings
+
+
+def _validate_ordered_references(
+    event: SemanticEvent,
+    previous_state: dict[str, Any],
+    errors: list[str],
+) -> None:
+    references = list(event.deps)
+    if event.op in {
+        SemanticOp.SET,
+        SemanticOp.MOVE,
+        SemanticOp.LINK,
+        SemanticOp.UNLINK,
+        SemanticOp.PUSH,
+        SemanticOp.POP,
+    }:
+        references.extend(event.targets)
+    for ref in references:
+        if ref.id in {"answer", "result"}:
+            continue
+        if "." in ref.id or "->" in ref.id:
+            continue
+        parsed = parse_target(ref.id)
+        if parsed.kind in {"node", "edge", "frame", "point", "char", "slice"}:
+            continue
+        previous_exists, _previous_value = _resolve_state_target(previous_state, ref.id)
+        current_exists, _current_value = _resolve_state_target(event.state, ref.id)
+        if not previous_exists and not current_exists:
+            label = "dependency" if ref in event.deps else "target"
+            errors.append(f"第 {event.step} 步 {label} 在使用前不可解析：{ref.id}")
+
+
+def _validate_explicit_transition(
+    event: SemanticEvent,
+    previous_state: dict[str, Any],
+    errors: list[str],
+) -> None:
+    if len(event.targets) != 1:
+        return
+    target = event.targets[0].id
+    fields = event.model_fields_set
+    previous_exists, previous_value = _resolve_state_target(previous_state, target)
+    current_exists, current_value = _resolve_state_target(event.state, target)
+
+    if "before" in fields and event.before is not None and previous_exists:
+        if previous_value != event.before:
+            errors.append(
+                f"第 {event.step} 步 {target} 的 before 与前序状态不一致："
+                f"{event.before!r} != {previous_value!r}"
+            )
+    if "after" in fields and event.after is not None and current_exists:
+        if current_value != event.after:
+            errors.append(
+                f"第 {event.step} 步 {target} 的 after 与当前状态不一致："
+                f"{event.after!r} != {current_value!r}"
+            )
+
+
+def _is_answer_event(event: SemanticEvent) -> bool:
+    return event.role == "answer"
+
+
+def _resolve_state_target(state: dict[str, Any], target: str) -> tuple[bool, Any]:
+    if target in state:
+        return True, state[target]
+    if target.startswith("pointer:"):
+        name = target.split(":", 1)[1]
+        return (name in state, state.get(name))
+    if "[" not in target or not target.endswith("]"):
+        return False, None
+
+    name, rest = target.split("[", 1)
+    if not name or name not in state:
+        return False, None
+    parts = [part.rstrip("]") for part in rest.split("[")]
+    if not parts or any(part == "" or ":" in part for part in parts):
+        return False, None
+
+    value: Any = state[name]
+    for part in parts:
+        if isinstance(value, (list, str)):
+            try:
+                index = int(part)
+            except ValueError:
+                return False, None
+            if index < -len(value) or index >= len(value):
+                return False, None
+            value = value[index]
+        elif isinstance(value, dict):
+            if part in value:
+                value = value[part]
+            else:
+                try:
+                    numeric = int(part)
+                except ValueError:
+                    return False, None
+                if numeric not in value:
+                    return False, None
+                value = value[numeric]
+        else:
+            return False, None
+    return True, value
 
 
 # -----------------------------------------------------------------------------

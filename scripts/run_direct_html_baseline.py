@@ -33,7 +33,7 @@ from scripts.run_llm_benchmark import (
 def _system_prompt() -> str:
     return (
         "你是算法教学页面生成器。直接输出一个完整、可离线打开的单文件 HTML，不要输出 markdown。"
-        "你要生成 AlgoLab-style 算法教学页：包含代码、当前步状态、步骤时间线、可交互控件、讲解和最终答案。"
+        "你要生成 AlgoLab-style 算法教学页：包含代码、当前步状态、步骤时间线、可交互控件、讲解、预测题、即时反馈、学习日志和最终答案。"
         "页面不能调用外部资源，不能声称经过 AlgoLab SceneGraph、release gate 或机器校验。"
     )
 
@@ -69,8 +69,10 @@ def _user_prompt(
             "9. #timeline 的每个 .tick 必须是 button 或可点击元素，DOM 里必须同时包含 <span class=\"tick-label\">阶段</span> 和 <span class=\"tick-op\">操作</span>，不要只在 hover、title 或 CSS 里提供。",
             "10. #state 必须展示当前步骤状态 JSON 摘要；#teaching 必须解释当前步骤做什么、为什么做、不变量或常见错误；#step-evidence 必须写出本步 operation、targets、before/after 或状态变化。",
             "11. #answer 的 textContent 从页面加载开始就必须是题目最终返回值的裸 JSON，必须与页面展示一致；不是当前操作参数、查询区间、节点编号或中间状态；不要包成 {\"result\": ...}、{\"answer\": ...}，除非题目本身答案就是对象。",
-            "12. 步骤应覆盖初始化、关键状态转移、答案确认；HTML 必须完整闭合，不能输出半截。",
-            "13. 这是 direct_html_baseline，不要声称经过 AlgoLab SceneGraph、release gate 或机器 gate。",
+            "12. 每个关键步骤应包含一个 learner checkpoint：可以是选择题、输入预测题或判断题；页面中必须有可点击/可输入控件、提交按钮、hint 按钮、显示答案按钮和即时反馈区域。",
+            "13. learner checkpoint 的反馈必须 grounded in 当前步骤状态：答对说明为什么对，答错说明常见误区，并把每次提交追加到页面内 learning log。",
+            "14. 步骤应覆盖初始化、关键状态转移、答案确认；HTML 必须完整闭合，不能输出半截。",
+            "15. 这是 direct_html_baseline，不要声称经过 AlgoLab SceneGraph、release gate 或机器 gate。",
         ]
     )
     return "\n".join(lines)
@@ -108,8 +110,9 @@ def _repair_prompt(
             "5. #canvas 是页面的可见算法视图区，应包含当前步骤的算法对象和文字状态；不要把 #canvas 本身做成 canvas/svg 绘图节点。",
             "6. #timeline 每个 .tick 内必须同时有 .tick-label 和 .tick-op。",
             "7. #answer 的 textContent 必须从首屏开始就是题目最终返回值的裸 JSON，不能只写解释文字，不能填当前操作参数、查询区间、节点编号或中间状态，不能包成非题目要求的 result/answer 对象。",
-            "8. 步骤应覆盖初始化、关键状态转移、答案确认；HTML 必须完整闭合，不能输出半截。",
-            "9. 不调用外部资源，不要声称经过 AlgoLab SceneGraph 或机器 gate。",
+            "8. 每个关键步骤应包含 learner checkpoint，并提供可提交答案、hint、显示答案、即时反馈和 learning log 追加记录。",
+            "9. 步骤应覆盖初始化、关键状态转移、答案确认；HTML 必须完整闭合，不能输出半截。",
+            "10. 不调用外部资源，不要声称经过 AlgoLab SceneGraph 或机器 gate。",
             "上一版 HTML：",
             previous_html[-12000:],
         ]

@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from algolab.verification.process_validator import process_validation_registry
-from tests.benchmark_cases import BenchmarkCase, benchmark_cases
+from benchmark.cases import BenchmarkCase, benchmark_cases
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"

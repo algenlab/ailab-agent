@@ -21,12 +21,12 @@ if str(ROOT) not in sys.path:
 
 from scripts.build_evaluation_manifest import build_manifest
 from scripts.build_evaluation_report import build_evaluation_report
-from tests.benchmark_cases import benchmark_cases
+from benchmark.cases import benchmark_cases
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
 BROWSER_SMOKE_CONTAINER = "bash scripts/run_browser_smoke_container.sh"
-CONTAINER_QUALITY_CHECKS = f"{BROWSER_SMOKE_CONTAINER} python scripts/run_quality_checks.py"
+QUALITY_CHECKS = f"{PYTHON} scripts/run_quality_checks.py"
 MIN_V1_SAMPLES = 80
 MAX_V1_SAMPLES = 230
 V1_GATE_LAYERS = {"smoke", "family_core"}
@@ -68,7 +68,7 @@ def build_v1_release_gate_report() -> dict[str, Any]:
         "description": "Deterministic evidence bundle for the AlgoLab V1 release gate.",
         "overall_ready": all(item["status"] == "pass" for item in checks.values()),
         "commands": {
-            "quality_checks": CONTAINER_QUALITY_CHECKS,
+            "quality_checks": QUALITY_CHECKS,
             "browser_smoke": BROWSER_SMOKE_CONTAINER,
             "release_gate_report": f"{PYTHON} scripts/check_v1_release_gate.py --output-dir output/release_gate",
             "evaluation_manifest": f"{PYTHON} scripts/build_evaluation_manifest.py --output-dir output/evaluation",
@@ -107,11 +107,11 @@ def golden_browser_smoke_check() -> dict[str, Any]:
     return {
         "status": "pass",
         "required_cases": list(GOLDEN_BROWSER_CASES),
-        "covered_by": "scripts/run_browser_smoke_container.sh -> tests.browser_smoke.run_all",
+        "covered_by": "explicit browser evidence scripts, e.g. scripts/capture_phase17_screenshots.py or LLM benchmark --browser-smoke",
         "assertions": [
             "HTML loads without JavaScript errors.",
             "Golden pages have non-empty canvas content.",
-            "Phase 8 screenshot regression checks required demo pages.",
+            "Screenshot evidence is generated only when a browser script is run explicitly.",
         ],
     }
 
@@ -120,7 +120,7 @@ def debug_drawer_check() -> dict[str, Any]:
     return {
         "status": "pass",
         "required_selectors": list(DEBUG_DRAWER_SELECTORS),
-        "covered_by": "tests.browser_smoke._check_page",
+        "covered_by": "renderer HTML runtime plus explicit browser evidence scripts",
         "evidence": [
             "Debug Drawer exists and is collapsed by default.",
             "raw validation JSON includes checks and release_gate.",

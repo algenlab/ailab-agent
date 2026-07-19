@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tests.property_cases import DEFAULT_PROPERTY_SEED, PropertyCase, generate_property_samples, property_cases
+from benchmark.property_cases import DEFAULT_PROPERTY_SEED, PropertyCase, generate_property_samples, property_cases
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"

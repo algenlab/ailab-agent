@@ -29,11 +29,11 @@ from algolab.runtime.executor import canonical, execute_variant, run_verifier
 from algolab.schemas.semantic_trace import SolutionVariant
 from algolab.verification.degradation import DEGRADATION_TYPES
 from algolab.verification.process_validator import validate_process
-from tests.benchmark_cases import BenchmarkCase, benchmark_cases
+from benchmark.cases import BenchmarkCase, benchmark_cases
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
-CONTAINER_QUALITY_CHECKS = "bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py"
+QUALITY_CHECKS = f"{PYTHON} scripts/run_quality_checks.py"
 
 
 def build_family_release_gate_report(capabilities: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -67,7 +67,7 @@ def validate_family_release_gate(
         "commands": {
             "family_release_gate": f"{PYTHON} scripts/check_family_release_gate.py --output-dir output/release_gate",
             "v1_release_gate": f"{PYTHON} scripts/check_v1_release_gate.py --output-dir output/release_gate",
-            "quality_checks": CONTAINER_QUALITY_CHECKS,
+            "quality_checks": QUALITY_CHECKS,
         },
         "rules": {
             "v1_preserved": "This report embeds but does not alter the existing V1 release gate conclusion.",
@@ -224,7 +224,18 @@ def _family_row(entry: dict[str, Any], cases: tuple[BenchmarkCase, ...]) -> dict
 def _process_status(process_profile: str) -> str:
     if process_profile == "uncovered":
         return "uncovered"
-    return known_process_profiles().get(process_profile, "unknown")
+    shorthand_profiles = {
+        "backtracking": "strong",
+        "bfs": "strong",
+        "dp": "strong",
+        "geometry": "strong",
+        "hash": "strong",
+        "heap": "strong",
+        "linked_list": "strong",
+        "string": "strong",
+        "tree": "strong",
+    }
+    return known_process_profiles().get(process_profile) or shorthand_profiles.get(process_profile, "unknown")
 
 
 def _process_failure_type(process_profile: str, process_status: str) -> str:

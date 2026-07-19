@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from algolab.renderer.layout_registry import layout_registry_json
-from algolab.renderer.panels import workspace_markup
+from algolab.renderer.panels import debug_drawer_markup, workspace_markup
 from algolab.renderer.runtime_shell import document_end, document_start
 from algolab.renderer.spatial_runtime import spatial_runtime_script
 from algolab.renderer.targets import select_render_target
@@ -24,6 +24,7 @@ def save_html(artifact: BuildArtifact, output_path: str | Path) -> Path:
 
 def render_html(artifact: BuildArtifact) -> str:
     lab_json = json.dumps(_public_artifact_payload(artifact.model_dump()), ensure_ascii=False).replace("</", "<\\/")
+    debug_drawer_json = json.dumps(debug_drawer_markup(), ensure_ascii=False).replace("</", "<\\/")
     title = _escape(artifact.problem_title)
     render_target = select_render_target(artifact)
     return f"""{document_start(title)}
@@ -49,6 +50,18 @@ h1 {{ margin:0; font-size:18px; letter-spacing:0; }}
 .badge {{ border:1px solid var(--line); border-radius:999px; padding:3px 8px; background:#fff; color:var(--muted); font-size:11px; }}
 .badge.ok {{ color:#166534; border-color:#bbf7d0; background:#f0fdf4; }}
 .badge.warn {{ color:#92400e; border-color:#fde68a; background:#fffbeb; }}
+.student-overview {{ display:grid; gap:8px; }}
+.student-overview h2 {{ margin-bottom:0; }}
+.learning-objectives {{ margin:0; padding-left:18px; display:grid; gap:5px; color:#172033; font-size:12px; line-height:1.45; }}
+.takeaway-grid {{ display:grid; gap:7px; }}
+.takeaway-grid > div {{ border:1px solid #dbeafe; border-radius:7px; background:#eff6ff; padding:7px 8px; }}
+.takeaway-grid strong {{ display:block; margin-bottom:4px; color:#1e3a8a; font-size:12px; }}
+.takeaway-grid p,.final-takeaway,.practice-support p,.scenario-focus p {{ margin:0; color:#334155; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }}
+.practice-support {{ border:1px solid #ddd6fe; border-radius:7px; background:#faf5ff; padding:7px 8px; }}
+.practice-support strong {{ display:block; margin-bottom:4px; color:#5b21b6; font-size:12px; }}
+.scenario-focus {{ border:1px solid #fed7aa; border-radius:7px; background:#fff7ed; color:#7c2d12; padding:7px 8px; }}
+.scenario-focus strong {{ display:block; margin-bottom:4px; color:#7c2d12; font-size:12px; }}
+.final-takeaway {{ border:1px solid #bbf7d0; border-radius:7px; background:#f0fdf4; color:#14532d; padding:7px 8px; font-weight:650; }}
 .workspace {{ display:grid; grid-template-columns:minmax(280px,300px) minmax(660px,1fr) minmax(280px,300px); gap:10px; padding:10px; min-height:0; align-items:start; }}
 .col {{ display:grid; gap:10px; align-content:start; min-width:0; }}
 .task-col,.teaching-col {{ align-content:start; padding-right:2px; }}
@@ -378,10 +391,41 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .state-row code {{ display:block; color:#172033; overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; line-height:1.35; }}
 .interaction {{ border-left:3px solid var(--violet); background:#f5f3ff; padding:10px; border-radius:6px; }}
 .interaction button {{ display:block; width:100%; margin:6px 0; border:1px solid #ddd6fe; background:#fff; border-radius:6px; padding:8px; text-align:left; cursor:pointer; }}
+.interaction button:focus-visible {{ outline:2px solid #7c3aed; outline-offset:2px; }}
+.interaction input {{ width:100%; min-width:0; padding:8px; border:1px solid var(--line); border-radius:6px; background:#fff; }}
+.checkpoint-prompt {{ display:block; margin:0 0 8px; color:#172033; font-size:13px; line-height:1.45; }}
+.checkpoint-meta {{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; color:#5b21b6; font-size:12px; }}
+.checkpoint-meta span {{ font-weight:800; }}
+.checkpoint-meta small {{ color:#6d5f89; font-size:11px; text-align:right; }}
+.checkpoint-option.selected {{ border-color:#7c3aed; background:#ede9fe; color:#4c1d95; }}
+.checkpoint-option.correct {{ border-color:#86efac; background:#f0fdf4; color:#166534; }}
+.checkpoint-option.wrong {{ border-color:#fecaca; background:#fef2f2; color:#991b1b; }}
+.checkpoint-actions {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin-top:8px; }}
+.checkpoint-actions button {{ margin:0; text-align:center; background:#faf5ff; }}
+.checkpoint-input-row {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; align-items:center; }}
+.checkpoint-input-row button {{ width:auto; min-width:58px; margin:0; text-align:center; }}
+.checkpoint-deps {{ border-top:1px solid #ddd6fe; margin-top:8px; padding-top:7px; }}
+.checkpoint-deps summary {{ color:#5b21b6; font-size:12px; font-weight:700; cursor:pointer; }}
+.checkpoint-deps p {{ margin:6px 0 0; color:#4c1d95; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }}
 .feedback {{ margin-top:8px; color:#4c1d95; font-size:13px; }}
 .feedback.correct {{ color:#166534; }}
 .feedback.wrong {{ color:#991b1b; }}
+.feedback.hint {{ color:#4c1d95; background:#faf5ff; border:1px solid #ddd6fe; border-radius:6px; padding:7px 8px; }}
 .feedback-source {{ display:block; margin-top:4px; color:var(--muted); font-size:11px; }}
+.learning-log-frame {{ margin-top:8px; border:1px solid #d7deea; border-radius:6px; background:#fff; padding:7px 8px; color:#374151; font-size:12px; line-height:1.4; }}
+.learning-log-frame strong {{ color:#172033; }}
+.learning-log-details {{ border-top:1px solid #e9d5ff; padding-top:7px; }}
+.learning-log-summary {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }}
+.log-stat {{ border:1px solid #d7deea; border-radius:6px; background:#fff; padding:6px 7px; min-width:0; }}
+.log-stat span {{ display:block; color:var(--muted); font-size:11px; line-height:1.3; }}
+.log-stat strong {{ display:block; margin-top:2px; color:#172033; font-size:13px; }}
+.learning-log-actions {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin:7px 0; }}
+.learning-log-actions button {{ margin:0; border:1px solid #d7deea; border-radius:6px; background:#fff; color:#374151; padding:6px 8px; text-align:center; cursor:pointer; }}
+.learning-log-actions button:hover {{ border-color:#93c5fd; color:#1d4ed8; background:#eff6ff; }}
+.learning-log-preview {{ max-height:112px; overflow:auto; border:1px solid #d7deea; border-radius:6px; background:#fbfdff; padding:7px; color:#334155; font-size:11px; line-height:1.45; }}
+.log-line {{ margin:0 0 4px; overflow-wrap:anywhere; }}
+.log-line:last-child {{ margin-bottom:0; }}
+.learning-log-empty {{ margin:0; color:var(--muted); font-size:12px; }}
 .teaching {{ display:grid; gap:6px; overflow:visible; padding-right:2px; }}
 .teach-row {{ border:1px solid var(--line); border-radius:6px; padding:8px; background:#fff; }}
 .teach-row.formula {{ border-color:#bfdbfe; background:#eff6ff; }}
@@ -437,6 +481,7 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 .debug-json {{ max-height:260px; }}
 .debug-download {{ display:inline-block; margin:0 0 8px; color:#1d4ed8; font-size:12px; text-decoration:none; }}
 .debug-download:hover {{ text-decoration:underline; }}
+.debug-host:empty {{ display:none; }}
 .compact-details {{ margin-top:8px; }}
 .compact-details summary {{ list-style:none; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; color:#374151; font-size:12px; font-weight:700; }}
 .compact-details summary::-webkit-details-marker {{ display:none; }}
@@ -461,6 +506,8 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
   .controls .range {{ grid-column:1 / -1; }}
   .counter {{ grid-column:1 / -1; text-align:left; min-width:0; }}
   .controls button {{ min-width:0; padding:8px 6px; }}
+  .checkpoint-input-row,.learning-log-summary,.learning-log-actions {{ grid-template-columns:1fr; }}
+  .checkpoint-input-row button {{ width:100%; }}
   .maprow,.evidence-line {{ grid-template-columns:1fr; }}
 }}
 </style>
@@ -471,9 +518,14 @@ pre {{ margin:0; white-space:pre-wrap; overflow:auto; font-size:12px; line-heigh
 const ARTIFACT = {lab_json};
 const RUNTIME_TARGET = {json.dumps(render_target, ensure_ascii=False)};
 const LAYOUT_RENDERERS = {layout_registry_json()};
+const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1' || window.location.hash === '#debug';
+const DEBUG_DRAWER_HTML = {debug_drawer_json};
 let variantIndex = 0;
 let stepIndex = 0;
 let timer = null;
+const LEARNING_LOG_KEY = `algolab.learningLog.${{simpleHash(stableJson({{title: ARTIFACT.problem_title || '', input: ARTIFACT.input_data || {{}}, variants: (ARTIFACT.variants || []).map(v => v.id || '')}}))}}`;
+let learningLog = loadLearningLog();
+let frameVisit = {{ key:'', touched:false }};
 const SPATIAL_STATE = {{ renderer:null, scene:null, camera:null, canvas:null, resizeBound:false, fallbackReason:'', primitives:{{}}, layouts:[] }};
 const VIEW_STATE = {{ scale:1, x:0, y:0, userPan:false, auto:null, boundFit:null, drag:null }};
 window.SPATIAL_STATE = SPATIAL_STATE;
@@ -490,16 +542,33 @@ const frame = () => frames()[stepIndex];
 const isSpatialTarget = () => RUNTIME_TARGET === 'spatial_3d' || RUNTIME_TARGET === 'hybrid_2_5d';
 
 function boot() {{
+  mountDebugDrawer();
+  variantIndex = defaultVariantIndex();
   setText('title', ARTIFACT.problem_title || '算法可视化实验');
-  setText('subtitle', ARTIFACT.input_contract || '由语义轨迹编译生成，页面只渲染 scene graph');
-  setText('debug-artifact', pretty(ARTIFACT));
-  const artifactDownload = $('debug-artifact-download');
-  if (artifactDownload) artifactDownload.href = `data:application/json;charset=utf-8,${{encodeURIComponent(pretty(ARTIFACT))}}`;
+  setText('subtitle', ARTIFACT.input_contract || '逐步观察算法状态，完成预测并查看反馈。');
+  if (DEBUG_MODE) {{
+    setText('debug-artifact', pretty(ARTIFACT));
+    const artifactDownload = $('debug-artifact-download');
+    if (artifactDownload) artifactDownload.href = `data:application/json;charset=utf-8,${{encodeURIComponent(pretty(ARTIFACT))}}`;
+  }}
   renderBadges();
+  renderStudentOverview();
   renderEvidence();
   renderTabs();
   renderVariantCompare();
-  selectVariant(0);
+  selectVariant(variantIndex);
+}}
+function mountDebugDrawer() {{
+  const host = $('debug-host');
+  if (!host) return;
+  document.documentElement.dataset.mode = DEBUG_MODE ? 'debug' : 'student';
+  if (DEBUG_MODE) {{
+    host.innerHTML = DEBUG_DRAWER_HTML;
+    host.className = 'debug-host';
+  }} else {{
+    host.innerHTML = '';
+    host.className = 'debug-host';
+  }}
 }}
 function renderBadges() {{
   const g = ARTIFACT.validation.release_gate || {{}};
@@ -511,8 +580,83 @@ function renderBadges() {{
   ];
   $('badges').innerHTML = items.map(([k,v]) => `<span class="badge ${{v?'ok':'warn'}}">${{k}}：${{v?'通过':'待检查'}}</span>`).join('');
 }}
+function renderStudentOverview() {{
+  const v = variant() || (ARTIFACT.variants && ARTIFACT.variants[0]) || {{}};
+  const objectiveNode = $('learning-objectives');
+  if (!objectiveNode) return;
+  const title = ARTIFACT.problem_title || '当前算法';
+  const strategy = textOrEmpty(v.strategy);
+  const objectives = [
+    `理解“${{title}}”的输入、状态变化和最终输出。`,
+    strategy ? `掌握核心策略：${{strategy}}。` : '掌握每一步为什么更新当前状态。',
+    '先预测当前步骤，再用反馈检查自己的理解。'
+  ];
+  objectiveNode.innerHTML = objectives.map(item => `<li>${{esc(item)}}</li>`).join('');
+  const invariant = firstTeachingText(['invariant']) || strategy || '始终让当前状态与已经确认的答案候选保持一致。';
+  const mistake = firstTeachingText(['common_mistake','mistake']) || '不要把中间状态、当前操作参数或可视化标签误当作最终答案。';
+  setText('key-invariant', invariant);
+  setText('common-mistake', mistake);
+  setText('practice-support-text', activePracticeSummary(v));
+  setText('scenario-focus', learningInstanceSummary(title));
+  setText('final-takeaway', `最终输出：${{compactValue(ARTIFACT.expected_result)}}`);
+}}
+function activePracticeSummary(v) {{
+  const sceneForVariant = ARTIFACT.scenes && ARTIFACT.scenes[v.id] || {{}};
+  const sceneFrames = sceneForVariant.frames || [];
+  const interactionFrames = sceneFrames.filter(f => f && f.interaction);
+  const types = Array.from(new Set(interactionFrames.map(f => interactionTypeLabel(f.interaction && f.interaction.type)).filter(Boolean)));
+  if (!interactionFrames.length) {{
+    return '主动练习：本页提供步骤导航、提示和最终答案核对；当前解法没有单独的预测检查点。';
+  }}
+  const typeText = types.length ? `，类型包括${{types.join('、')}}` : '';
+  return `主动练习：本解法包含 ${{interactionFrames.length}} 个预测检查点${{typeText}}。学生先提交预测，再获得即时正误反馈、错误解释、提示和查看答案；学习日志会记录提交、提示、查看答案和跳步行为，方便教师复盘。`;
+}}
+function learningInstanceSummary(title) {{
+  const inputText = compactValue(ARTIFACT.input_data);
+  const compactInput = inputText.length > 120 ? `${{inputText.slice(0, 120)}}...` : inputText;
+  return `实例任务：围绕“${{title}}”的具体输入 ${{compactInput}} 演示状态如何变化，避免只看抽象代码。`;
+}}
+function firstTeachingText(keys) {{
+  const scenes = ARTIFACT.scenes || {{}};
+  const currentId = variant() && variant().id;
+  const currentScene = currentId ? scenes[currentId] : null;
+  for (const f of currentScene && currentScene.frames || []) {{
+    const teaching = f && f.teaching || {{}};
+    for (const key of keys) {{
+      const value = teaching[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+      if (Array.isArray(value) && value.length) return value.map(x => String(x)).join('；');
+    }}
+  }}
+  return '';
+}}
 function renderTabs() {{
   $('tabs').innerHTML = ARTIFACT.variants.map((v,i) => `<button class="tab ${{i===variantIndex?'active':''}}" onclick="selectVariant(${{i}})"><strong>${{esc(v.name)}}</strong><span>${{esc(v.time_complexity)}} · ${{esc(v.space_complexity)}}<br>${{esc(v.strategy)}}</span></button>`).join('');
+}}
+function defaultVariantIndex() {{
+  const variants = ARTIFACT.variants || [];
+  if (!variants.length) return 0;
+  const baselineResult = stableJson(variants[0].result);
+  let bestIndex = 0;
+  let bestScore = variantTeachingLoadScore(variants[0], baselineResult);
+  variants.forEach((v, i) => {{
+    const score = variantTeachingLoadScore(v, baselineResult);
+    if (score < bestScore) {{
+      bestScore = score;
+      bestIndex = i;
+    }}
+  }});
+  const firstScore = variantTeachingLoadScore(variants[0], baselineResult);
+  return firstScore - bestScore >= 15 ? bestIndex : 0;
+}}
+function variantTeachingLoadScore(v, baselineResult) {{
+  const sceneForVariant = ARTIFACT.scenes && ARTIFACT.scenes[v.id] || {{}};
+  const sceneFrames = sceneForVariant.frames || [];
+  if (!sceneFrames.length) return 100000;
+  const keyStepCount = sceneFrames.filter(isKeyCompareFrame).length || sceneFrames.length;
+  const interactionCount = sceneFrames.filter(f => f && f.interaction).length;
+  const resultPenalty = stableJson(v.result) === baselineResult ? 0 : 10000;
+  return resultPenalty + keyStepCount + sceneFrames.length * 0.02 - interactionCount * 0.5;
 }}
 function renderVariantCompare() {{
   const node = $('variant-compare');
@@ -529,7 +673,7 @@ function renderVariantCompare() {{
     const stepCount = sceneFrames.length;
     const keyStepCount = sceneFrames.filter(isKeyCompareFrame).length || stepCount;
     const consistent = stableJson(v.result) === stableJson(baseline.result);
-    return `<article class="variant-compare-card ${{i === variantIndex ? 'active' : ''}}" data-variant-id="${{esc(v.id)}}" data-scene-id="${{esc(v.id)}}" data-step-count="${{stepCount}}" data-key-step-count="${{keyStepCount}}"><strong>${{esc(v.name || v.id)}}</strong><div class="variant-compare-meta"><span>复杂度：${{esc(v.time_complexity || '未标注')}} / ${{esc(v.space_complexity || '未标注')}}</span><span>关键步骤数：${{keyStepCount}} / ${{stepCount}}</span><span>SceneGraph：${{esc(v.id)}}</span></div><span class="variant-compare-status ${{consistent ? '' : 'warn'}}">结果一致性：${{consistent ? '一致' : '不一致'}} · ${{esc(compactValue(v.result))}}</span><button type="button" onclick="selectVariant(${{i}})">查看这个解法</button></article>`;
+    return `<article class="variant-compare-card ${{i === variantIndex ? 'active' : ''}}" data-variant-id="${{esc(v.id)}}" data-scene-id="${{esc(v.id)}}" data-step-count="${{stepCount}}" data-key-step-count="${{keyStepCount}}"><strong>${{esc(v.name || v.id)}}</strong><div class="variant-compare-meta"><span>复杂度：${{esc(v.time_complexity || '未标注')}} / ${{esc(v.space_complexity || '未标注')}}</span><span>关键步骤数：${{keyStepCount}} / ${{stepCount}}</span><span>步骤序列：${{esc(v.name || v.id)}}</span></div><span class="variant-compare-status ${{consistent ? '' : 'warn'}}">结果一致性：${{consistent ? '一致' : '不一致'}} · ${{esc(compactValue(v.result))}}</span><button type="button" onclick="selectVariant(${{i}})">查看这个解法</button></article>`;
   }}).join('');
 }}
 function isKeyCompareFrame(f) {{
@@ -541,22 +685,33 @@ function isKeyCompareFrame(f) {{
   return ['set','mark','move','compare','push','pop','enter','exit'].includes(op);
 }}
 function selectVariant(i) {{
+  recordSkipIfNeeded(stepIndex, 'variant');
   variantIndex = i; stepIndex = 0; stop();
   renderTabs();
   renderVariantCompare();
   $('top-result').textContent = compactValue(variant().result);
   $('top-solution').textContent = `${{variant().name || variant().id}} · ${{variant().time_complexity || '复杂度未标注'}}`;
+  renderStudentOverview();
   $('range').max = Math.max(0, frames().length - 1);
   renderEvidence();
   renderStep();
 }}
-function go(i) {{
-  stepIndex = Math.max(0, Math.min(i, frames().length - 1));
+function go(i, reason = 'navigate') {{
+  const target = Math.max(0, Math.min(i, frames().length - 1));
+  if (target === stepIndex) {{
+    renderStep();
+    return;
+  }}
+  const from = stepIndex;
+  recordSkipIfNeeded(target, reason);
+  stepIndex = target;
   renderStep();
+  logLearningEvent('navigate', {{ reason, from_step: from, to_step: target }}, {{ markTouched:false }});
 }}
 function renderStep() {{
   const f = frame();
   if (!f) return;
+  beginFrameVisit();
   $('step-title').textContent = frameTitle(f);
   $('step-desc').textContent = frameDescription(f);
   $('op').textContent = frameOperation(f);
@@ -571,6 +726,7 @@ function renderStep() {{
   const code = variant().code || '';
   renderCode(code, codeLineInfo(f, code));
   renderTimeline();
+  renderLearningLog();
 }}
 function frameTitle(f) {{
   const teaching = f && f.teaching || {{}};
@@ -904,7 +1060,7 @@ function fitSceneToCanvas() {{
   const fitHeight = Math.max(1, availableHeight - topSafePad - safePad);
   const rawScale = Math.min(fitWidth / bounds.width, fitHeight / bounds.height) * 0.985;
   const fitMode = scene.dataset.fitMode || 'contain';
-  const minReadableScale = 1;
+  const minReadableScale = availableWidth < 520 ? 0.36 : 0.6;
   const maxUsefulScale = 1.85;
   const minContainScale = 0.08;
   const needsReadableFallback = rawScale < minReadableScale;
@@ -2560,7 +2716,7 @@ function renderGraph(c, children, marks) {{
   const w=760,h=380;
   const nodeRadius = nodes.length <= 5 ? 50 : nodes.length <= 10 ? 42 : 36;
   const hasMetricText = nodes.some(n => graphNodeMetricText(frame(), n));
-  const pos=graphPositions(c, nodes, edges, state, w, h, nodeRadius, hasMetricText ? 30 : 10);
+  const pos=graphPositions(c, nodes, edges, state, w, h, nodeRadius, hasMetricText ? 48 : 22);
   const edgeSvg = edges.map(e => {{
     const a=pos[e.source], b=pos[e.target]; if(!a||!b) return '';
     const cls = `${{markClass(e.id, marks)}} ${{objectMetaClass(e)}} ${{graphEdgeSemanticClass(e, state)}}`;
@@ -2586,9 +2742,9 @@ function renderGraph(c, children, marks) {{
 function graphPositions(c, nodes, edges, state, w, h, nodeRadius, bottomExtra) {{
   const partition = bipartitePartitions(nodes, edges, state);
   if (partition) return bipartiteGraphPositions(nodes, partition.left, partition.right, w, h, nodeRadius, bottomExtra);
-  const padX = nodeRadius + 26;
-  const padTop = nodeRadius + 14;
-  const padBottom = nodeRadius + bottomExtra;
+  const padX = nodeRadius + 42;
+  const padTop = nodeRadius + 24;
+  const padBottom = nodeRadius + bottomExtra + 14;
   const cx=w/2, cy=padTop + Math.max(1, h - padTop - padBottom) / 2;
   const rx=Math.max(24, w / 2 - padX);
   const ry=Math.max(24, (h - padTop - padBottom) / 2);
@@ -2605,8 +2761,8 @@ function bipartiteGraphPositions(nodes, leftIds, rightIds, w, h, nodeRadius, bot
   leftovers.forEach((id, i) => (left.length <= right.length ? left : right).push(id));
   const pos={{}};
   const place = (ids, x) => {{
-    const padTop = nodeRadius + 14;
-    const padBottom = nodeRadius + bottomExtra;
+    const padTop = nodeRadius + 24;
+    const padBottom = nodeRadius + bottomExtra + 14;
     const usable = Math.max(1, h - padTop - padBottom);
     const gap = usable / Math.max(1, ids.length - 1);
     ids.forEach((id, i) => pos[id] = [x, ids.length === 1 ? padTop + usable / 2 : padTop + i * gap]);
@@ -2878,7 +3034,7 @@ function renderTimeline() {{
     const label = timelineLabel(f, i, meta);
     const op = timelineOperation(f, meta);
     const title = `${{i + 1}} / ${{frames().length}} · ${{label}} · ${{op}}`;
-    return `<button class="tick ${{i===stepIndex?'active':''}} ${{meta.keyframe ? 'keyframe' : 'ordinary'}}" data-step="${{i}}" data-phase="${{esc(textOrEmpty(meta.phase) || label)}}" title="${{esc(title)}}" aria-label="${{esc(title)}}" onclick="go(${{i}})"><span class="tick-label">${{esc(label)}}</span><span class="tick-op">${{esc(op)}}</span></button>`;
+    return `<button class="tick ${{i===stepIndex?'active':''}} ${{meta.keyframe ? 'keyframe' : 'ordinary'}}" data-step="${{i}}" data-phase="${{esc(textOrEmpty(meta.phase) || label)}}" title="${{esc(title)}}" aria-label="${{esc(title)}}" onclick="go(${{i}}, 'timeline')"><span class="tick-label">${{esc(label)}}</span><span class="tick-op">${{esc(op)}}</span></button>`;
   }}).join('');
   requestAnimationFrame(syncActiveTimelineTick);
 }}
@@ -3115,13 +3271,12 @@ function sortJson(value) {{
 }}
 function teachingFieldRows(f) {{
   const teaching = f.teaching || {{}};
+  const hasInteraction = Boolean(f && f.interaction);
   return [
-    {{ key:'what', label:'当前步骤', value:teaching.what || frameTitle(f), code:false }},
-    {{ key:'why', label:'为什么', value:teaching.why || frameDescription(f) || '根据当前状态推进算法步骤。', code:false }},
     {{ key:'formula', label:'公式 / 规则', value:teaching.formula || '', code:true }},
     {{ key:'invariant', label:'不变量', value:teaching.invariant || '', code:false }},
-    {{ key:'common_mistake', label:'常见错误', value:teaching.common_mistake || '', code:false }},
-    {{ key:'hint', label:'提示', value:teaching.hint || '', code:false }},
+    {{ key:'common_mistake', label:'常见错误', value:hasInteraction ? '' : teaching.common_mistake || '', code:false }},
+    {{ key:'hint', label:'提示', value:hasInteraction ? '' : teaching.hint || '', code:false }},
   ].filter(row => String(row.value || '').trim());
 }}
 function renderTeachingField(row, f) {{
@@ -3169,36 +3324,223 @@ function formulaValueSummary(evidence) {{
   return parts.join(' · ');
 }}
 function teachingRows(f) {{
-  const rows = teachingFieldRows(f);
-  return rows.length ? rows : [{{ key:'what', label:'当前步骤', value:frameDescription(f) || frameTitle(f) || '继续执行算法步骤。', code:false }}];
+  return teachingFieldRows(f);
 }}
 function renderTeaching(f) {{
-  $('teaching').innerHTML = `<div class="teaching">${{teachingRows(f).map(row => renderTeachingField(row, f)).join('')}}${{renderChangeSummary(f)}}</div>`;
+  const content = `${{teachingRows(f).map(row => renderTeachingField(row, f)).join('')}}${{renderChangeSummary(f)}}`;
+  $('teaching').innerHTML = content
+    ? `<div class="teaching">${{content}}</div>`
+    : '<p style="color:var(--muted);margin:0;font-size:12px;">本步没有额外公式、不变量或状态变化。</p>';
+}}
+function simpleHash(text) {{
+  let hash = 2166136261;
+  const value = String(text || '');
+  for (let i = 0; i < value.length; i += 1) {{
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }}
+  return (hash >>> 0).toString(36);
+}}
+function loadLearningLog() {{
+  try {{
+    const parsed = JSON.parse(localStorage.getItem(LEARNING_LOG_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.slice(-240) : [];
+  }} catch (_) {{
+    return [];
+  }}
+}}
+function saveLearningLog() {{
+  try {{ localStorage.setItem(LEARNING_LOG_KEY, JSON.stringify(learningLog.slice(-240))); }} catch (_) {{}}
+}}
+function currentFrameKey(index = stepIndex) {{
+  const v = variant() || {{}};
+  const f = frames()[index] || {{}};
+  return `${{v.id || variantIndex}}:${{f.step ?? index}}`;
+}}
+function beginFrameVisit() {{
+  const key = currentFrameKey();
+  if (frameVisit.key !== key) frameVisit = {{ key, touched:false }};
+}}
+function markFrameTouched() {{
+  const key = currentFrameKey();
+  if (frameVisit.key !== key) frameVisit = {{ key, touched:true }};
+  frameVisit.touched = true;
+}}
+function recordSkipIfNeeded(nextStep, reason) {{
+  const f = frame();
+  if (!f || !f.interaction) return;
+  if (frameVisit.key !== currentFrameKey() || frameVisit.touched) return;
+  logLearningEvent('skip', {{ reason, next_step: nextStep }}, {{ markTouched:false }});
+  frameVisit.touched = true;
+}}
+function logLearningEvent(action, detail = {{}}, options = {{}}) {{
+  const v = variant() || {{}};
+  const f = frame() || {{}};
+  const interaction = f.interaction || {{}};
+  const event = {{
+    timestamp:new Date().toISOString(),
+    action,
+    frame_key:currentFrameKey(),
+    variant_id:v.id || '',
+    variant_name:v.name || v.id || '',
+    step_index:stepIndex,
+    trace_step:f.step ?? stepIndex,
+    operation:frameOperation(f),
+    interaction_type:interaction.type || '',
+    prompt:interaction.prompt || '',
+    ...detail,
+  }};
+  learningLog.push(event);
+  learningLog = learningLog.slice(-240);
+  if (options.markTouched !== false) markFrameTouched();
+  saveLearningLog();
+  renderLearningLog();
+}}
+function renderLearningLogShell() {{
+  return `<div id="learning-log-frame" class="learning-log-frame"></div><details class="compact-details learning-log-details" data-learning-log="true"><summary>学习记录</summary><div id="learning-log-summary" class="learning-log-summary"></div><div class="learning-log-actions"><button type="button" onclick="exportLearningLog()">导出日志</button><button type="button" onclick="clearLearningLog()">清空</button></div><div id="learning-log-preview" class="learning-log-preview"></div></details>`;
+}}
+function renderLearningLog() {{
+  const frameNode = $('learning-log-frame');
+  if (frameNode) frameNode.innerHTML = frameLearningStatusHtml();
+  const summary = $('learning-log-summary');
+  if (summary) {{
+    const stats = learningStats();
+    summary.innerHTML = [
+      logStat('提交', stats.submits),
+      logStat('正确率', stats.submits ? `${{Math.round(stats.correct / stats.submits * 100)}}%` : '无'),
+      logStat('提示/答案', `${{stats.hints}}/${{stats.reveals}}`),
+      logStat('跳过', stats.skips),
+    ].join('');
+  }}
+  const preview = $('learning-log-preview');
+  if (preview) {{
+    preview.innerHTML = learningLog.length
+      ? learningLog.slice(-8).reverse().map(formatLearningEvent).join('')
+      : '<p class="learning-log-empty">暂无学习动作。</p>';
+  }}
+}}
+function frameLearningStatusHtml() {{
+  const events = learningLog.filter(event => event.frame_key === currentFrameKey() && ['submit','hint','reveal','skip'].includes(event.action));
+  if (!events.length) return '<strong>本帧</strong>：还没有提交、提示或看答案记录。';
+  const last = events[events.length - 1];
+  if (last.action === 'submit') return `<strong>本帧</strong>：已提交 ${{esc(compactValue(last.submitted))}}，${{last.correct ? '回答正确' : '需要订正'}}。`;
+  if (last.action === 'hint') return '<strong>本帧</strong>：已查看提示。';
+  if (last.action === 'reveal') return '<strong>本帧</strong>：已查看参考答案。';
+  return '<strong>本帧</strong>：未作答即离开。';
+}}
+function learningStats() {{
+  const submits = learningLog.filter(event => event.action === 'submit');
+  return {{
+    submits:submits.length,
+    correct:submits.filter(event => event.correct).length,
+    hints:learningLog.filter(event => event.action === 'hint').length,
+    reveals:learningLog.filter(event => event.action === 'reveal').length,
+    skips:learningLog.filter(event => event.action === 'skip').length,
+  }};
+}}
+function logStat(label, value) {{
+  return `<div class="log-stat"><span>${{esc(label)}}</span><strong>${{esc(value)}}</strong></div>`;
+}}
+function formatLearningEvent(event) {{
+  const time = new Date(event.timestamp).toLocaleTimeString('zh-CN', {{ hour12:false }});
+  const action = {{
+    submit:event.correct ? '提交正确' : '提交错误',
+    hint:'查看提示',
+    reveal:'查看答案',
+    skip:'跳过',
+    navigate:'导航',
+    play:'播放',
+  }}[event.action] || event.action;
+  const extra = event.action === 'submit' ? ` · ${{compactValue(event.submitted)}}` : '';
+  return `<p class="log-line"><strong>${{esc(time)}}</strong> · ${{esc(event.variant_name || event.variant_id)}} · 第 ${{Number(event.step_index || 0) + 1}} 步 · ${{esc(action)}}${{esc(extra)}}</p>`;
+}}
+function exportLearningLog() {{
+  const payload = {{
+    schema_version:'algolab-learning-log-v1',
+    problem_title:ARTIFACT.problem_title || '',
+    input_data:ARTIFACT.input_data || {{}},
+    exported_at:new Date().toISOString(),
+    events:learningLog,
+  }};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {{ type:'application/json' }});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `algolab-learning-log-${{Date.now()}}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}}
+function clearLearningLog() {{
+  learningLog = [];
+  frameVisit = {{ key:currentFrameKey(), touched:false }};
+  saveLearningLog();
+  renderLearningLog();
 }}
 function renderInteraction(interaction) {{
-  if (!interaction) {{ $('interaction').innerHTML = '<p style="color:var(--muted);margin:0;">当前步骤没有交互题。</p>'; return; }}
+  const logShell = renderLearningLogShell();
+  if (!interaction) {{
+    $('interaction').innerHTML = `<p style="color:var(--muted);margin:0;">本步用于观察状态变化；本页后续关键帧包含预测检查点，可提交预测、查看提示和答案，并记录学习日志。</p>${{logShell}}`;
+    renderLearningLog();
+    return;
+  }}
   const opts = Array.isArray(interaction.options) ? interaction.options : [];
-  const choiceHtml = interaction.type === 'choice' ? opts.map(o => `<button data-option="${{esc(o)}}" onclick="checkChoice('${{encodeURIComponent(String(o))}}')">${{esc(o)}}</button>`).join('') : '';
-  const inputHtml = interaction.type === 'input' ? '<input id="free-answer" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;"><button onclick="checkInput()">检查</button>' : '';
-  const judgeHtml = interaction.type === 'judge' ? '<button onclick="checkJudge(true)">正确</button><button onclick="checkJudge(false)">错误</button>' : '';
-  $('interaction').innerHTML = `<div class="interaction" data-interaction-type="${{esc(interaction.type || '')}}" data-trace-step="${{frame().step}}"><strong>${{esc(interaction.prompt || '思考题')}}</strong>${{choiceHtml}}${{inputHtml}}${{judgeHtml}}<div id="feedback" class="feedback"></div></div>`;
+  const choiceHtml = interaction.type === 'choice' ? `<div class="checkpoint-options">${{opts.map(o => `<button class="checkpoint-option" data-option="${{esc(o)}}" aria-pressed="false" onclick="checkChoice('${{encodeURIComponent(String(o))}}')">${{esc(o)}}</button>`).join('')}}</div>` : '';
+  const inputHtml = interaction.type === 'input' ? '<div class="checkpoint-input-row"><input id="free-answer" placeholder="先写下你的预测" onkeydown="if(event.key===\\'Enter\\') checkInput()"><button type="button" onclick="checkInput()">检查</button></div>' : '';
+  const judgeHtml = interaction.type === 'judge' ? '<div class="checkpoint-actions"><button type="button" onclick="checkJudge(true)">正确</button><button type="button" onclick="checkJudge(false)">错误</button></div>' : '';
+  const actions = '<div class="checkpoint-actions"><button type="button" onclick="showInteractionHint()">提示</button><button type="button" onclick="revealInteractionAnswer()">查看答案</button></div>';
+  $('interaction').innerHTML = `<div class="interaction" data-learning-checkpoint="prediction" data-interaction-type="${{esc(interaction.type || '')}}" data-trace-step="${{frame().step}}"><div class="checkpoint-meta"><span>预测检查点</span><small>${{esc(interactionTypeLabel(interaction.type))}}</small></div><strong class="checkpoint-prompt">${{esc(interaction.prompt || '思考题')}}</strong>${{choiceHtml}}${{inputHtml}}${{judgeHtml}}${{actions}}${{renderCheckpointDependencyDetails(frame())}}<div id="feedback" class="feedback"></div></div>${{logShell}}`;
+  renderLearningLog();
+}}
+function interactionTypeLabel(type) {{
+  if (type === 'choice') return '选择后即时反馈';
+  if (type === 'input') return '输入预测值';
+  if (type === 'judge') return '判断对错';
+  return '先预测，再查看反馈';
+}}
+function renderCheckpointDependencyDetails(f) {{
+  const evidence = f && f.evidence || {{}};
+  const marks = f && f.marks || [];
+  const targets = Array.isArray(evidence.targets) && evidence.targets.length ? evidence.targets : marks.filter(m => m.role !== 'dependency').map(m => m.target);
+  const deps = Array.isArray(evidence.deps) && evidence.deps.length ? evidence.deps : marks.filter(m => m.role === 'dependency').map(m => m.target);
+  const lines = [
+    targets && targets.length ? `当前要预测的是：${{targets.slice(0, 5).join(', ')}}` : '',
+    deps && deps.length ? `先看依赖对象：${{deps.slice(0, 5).join(', ')}}` : '',
+  ].filter(Boolean);
+  if (!lines.length) return '';
+  return `<details class="checkpoint-deps"><summary>依赖提示</summary><p>${{esc(lines.join('；'))}}</p></details>`;
 }}
 function checkChoice(encoded) {{
   const value = decodeURIComponent(encoded);
   const ans = frame().interaction.answer;
   const ok = Array.isArray(ans) ? ans.map(String).includes(value) : String(ans) === value;
-  setFeedback(ok, ok ? correctFeedback(value) : wrongFeedback(value), value);
+  markChoiceSelection(value, ok);
+  const source = setFeedback(ok, ok ? correctFeedback(value) : wrongFeedback(value), value);
+  logLearningEvent('submit', {{ submitted:value, correct:ok, source }});
 }}
 function checkInput() {{
   const value = $('free-answer').value.trim();
   const ans = String(frame().interaction.answer ?? '').trim();
   const ok = value === ans;
-  setFeedback(ok, ok ? correctFeedback(value) : `参考答案：${{ans}}。${{wrongFeedback(value)}}`, value);
+  const source = setFeedback(ok, ok ? correctFeedback(value) : `参考答案：${{ans}}。${{wrongFeedback(value)}}`, value);
+  logLearningEvent('submit', {{ submitted:value, expected:ans, correct:ok, source }});
 }}
 function checkJudge(value) {{
   const ans = frame().interaction.answer;
   const expected = ans === true || String(ans).toLowerCase() === 'true' || String(ans) === '正确';
-  setFeedback(value === expected, value === expected ? correctFeedback(value) : wrongFeedback(value), value);
+  const ok = value === expected;
+  const source = setFeedback(ok, ok ? correctFeedback(value) : wrongFeedback(value), value);
+  logLearningEvent('submit', {{ submitted:value, expected, correct:ok, source }});
+}}
+function markChoiceSelection(value, ok) {{
+  document.querySelectorAll('#interaction .checkpoint-option').forEach(button => {{
+    const selected = button.dataset.option === String(value);
+    button.classList.toggle('selected', selected);
+    button.classList.toggle('correct', selected && ok);
+    button.classList.toggle('wrong', selected && !ok);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  }});
 }}
 function correctFeedback(value) {{
   const interaction = frame().interaction || {{}};
@@ -3213,6 +3555,28 @@ function wrongFeedback(value) {{
     || teaching.common_mistake
     || interaction.explanation
     || '这一步没有提供针对该错误选项的解释。';
+}}
+function showInteractionHint() {{
+  const teaching = frame().teaching || {{}};
+  const evidence = frame().evidence || {{}};
+  const deps = Array.isArray(evidence.deps) ? evidence.deps.filter(Boolean) : [];
+  const targets = Array.isArray(evidence.targets) ? evidence.targets.filter(Boolean) : [];
+  const msg = teaching.hint
+    || teaching.invariant
+    || teaching.common_mistake
+    || (deps.length ? `先关注依赖对象：${{deps.slice(0, 4).join(', ')}}。` : '')
+    || (targets.length ? `先关注当前目标：${{targets.slice(0, 4).join(', ')}}。` : '')
+    || '先观察当前高亮对象和状态变化，再给出预测。';
+  setNeutralFeedback(msg, 'teaching.hint/evidence');
+  logLearningEvent('hint', {{ source:'teaching.hint/evidence' }});
+}}
+function revealInteractionAnswer() {{
+  const interaction = frame().interaction || {{}};
+  const answer = interaction.answer;
+  const answerText = Array.isArray(answer) ? answer.map(compactValue).join(' / ') : compactValue(answer);
+  const explanation = interaction.explanation || correctFeedback(answer) || '';
+  setNeutralFeedback(`参考答案：${{answerText}}。${{explanation}}`, 'interaction.answer');
+  logLearningEvent('reveal', {{ answer:answerText, source:'interaction.answer' }});
 }}
 function optionExplanation(interaction, value) {{
   const explanations = interaction && interaction.option_explanations || {{}};
@@ -3231,12 +3595,23 @@ function feedbackSource(value, ok) {{
 }}
 function setFeedback(ok, message, value) {{
   const node = $('feedback');
-  if (!node) return;
   const source = feedbackSource(value, ok);
+  if (!node) return source;
   node.className = `feedback ${{ok ? 'correct' : 'wrong'}}`;
   node.dataset.source = source;
   node.dataset.correct = ok ? 'true' : 'false';
-  node.innerHTML = `${{ok ? '正确。' : '错误选项解释：'}}${{esc(message || '')}}<span class="feedback-source">来源：${{esc(source)}}，只读当前 SceneGraph interaction / teaching。</span>`;
+  const text = String(message || '');
+  const prefix = ok ? '正确。' : (text.trim().startsWith('错误选项解释') ? '' : '错误选项解释：');
+  node.innerHTML = `${{prefix}}${{esc(text)}}<span class="feedback-source">依据：当前步骤状态、检查点标准答案和讲解提示。</span>`;
+  return source;
+}}
+function setNeutralFeedback(message, source) {{
+  const node = $('feedback');
+  if (!node) return;
+  node.className = 'feedback hint';
+  node.dataset.source = source;
+  node.dataset.correct = 'hint';
+  node.innerHTML = `${{esc(message || '')}}<span class="feedback-source">依据：当前步骤状态、检查点标准答案和讲解提示。</span>`;
 }}
 function renderCode(code, info) {{
   const lines = String(code || '').split('\\n');
@@ -3254,14 +3629,15 @@ function renderCode(code, info) {{
 function play() {{
   if (timer) return stop();
   $('play').textContent = '暂停';
-  timer = setInterval(()=>{{ if(stepIndex >= frames().length-1) return stop(); go(stepIndex+1); }}, 850);
+  logLearningEvent('play', {{ step: stepIndex }}, {{ markTouched:false }});
+  timer = setInterval(()=>{{ if(stepIndex >= frames().length-1) return stop(); go(stepIndex+1, 'play'); }}, 850);
 }}
 function stop() {{ if(timer) clearInterval(timer); timer=null; $('play').textContent='播放'; }}
-$('prev').onclick = () => go(stepIndex-1);
-$('next').onclick = () => go(stepIndex+1);
+$('prev').onclick = () => go(stepIndex-1, 'prev');
+$('next').onclick = () => go(stepIndex+1, 'next');
 $('play').onclick = play;
-$('range').oninput = e => go(parseInt(e.target.value,10));
-window.addEventListener('keydown', e => {{ if(e.key==='ArrowLeft') go(stepIndex-1); if(e.key==='ArrowRight') go(stepIndex+1); if(e.key===' ') {{ e.preventDefault(); play(); }} }});
+$('range').oninput = e => go(parseInt(e.target.value,10), 'range');
+window.addEventListener('keydown', e => {{ if(e.key==='ArrowLeft') go(stepIndex-1, 'keyboard'); if(e.key==='ArrowRight') go(stepIndex+1, 'keyboard'); if(e.key===' ') {{ e.preventDefault(); play(); }} }});
 window.addEventListener('resize', () => {{ if (!isSpatialTarget()) fitSceneToCanvas(); }});
 boot();
 </script>

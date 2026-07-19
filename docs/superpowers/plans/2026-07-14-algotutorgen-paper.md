@@ -14,11 +14,7 @@
 
 **Files:**
 - Create: `latex/evidence-ledger.md`
-- Read: `docs/36_THEORY_ALIGNED_EXPERIMENTS_REPORT.md`
-- Read: `docs/21_ALGOTUTORGEN_PAPER_REPORT.md`
-- Read: `docs/33_PLAN_MD_EXPERIMENT_COMPLETION_REPORT.md`
-- Read: `docs/34_MULTIMODEL_FULL200_BASELINE_REPORT.md`
-- Read: `docs/35_CANDIDATE_ROUND_BUDGET_ANALYSIS.md`
+- Read: `docs/EXPERIMENT_RESULTS.md`
 
 - [ ] **Step 1: Extract every number used by the required abstract, figures, and tables**
 

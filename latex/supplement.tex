@@ -1,0 +1,405 @@
+% Compile with:
+% pdflatex supplement.tex
+% pdflatex supplement.tex
+\documentclass[letterpaper]{article}
+\usepackage[submission]{aaai2027}
+\usepackage[hyphens]{url}
+\usepackage{graphicx}
+\urlstyle{rm}
+\def\UrlFont{\rm}
+\usepackage{natbib}
+\usepackage{caption}
+\frenchspacing
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\pdfinfo{
+/TemplateVersion (2027.1)
+}
+
+\newcommand{\system}{\textsc{AlgoTutorGen}}
+\newcommand{\machineok}{\textsc{Machine OK}}
+\newcommand{\localresume}{\textsc{Local Resume}}
+\newcommand{\globalrestart}{\textsc{Global Restart}}
+\newenvironment{coltable}
+  {\begin{center}\begin{minipage}{\columnwidth}\centering}
+  {\end{minipage}\end{center}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\setcounter{secnumdepth}{0}
+
+\begin{document}
+
+\title{Supplementary Material for AlgoTutorGen: Contract-Guided Compositional Synthesis of Verifiable Interactive Algorithm Tutors}
+\author{Anonymous Submission}
+\affiliations{}
+
+\maketitle
+
+\begin{abstract}
+This supplement documents protocols, secondary results, artifact provenance, and reproducibility boundaries; it adds no primary claim. Its finite executable audits do not establish universal guarantees, \localresume{} is not fully checkpointed recovery, and all human studies remain incomplete.
+\end{abstract}
+
+\section{Supplement Scope and Reading Guide}
+
+The main paper contains every result required to evaluate the contribution within the seven-page technical-content limit. This document expands the measurement protocol, reports secondary tables, records artifact provenance, and presents the real generated interface. Review of this supplement is not necessary to interpret the primary claims. Where an audit set contains a targeted retry, we identify it explicitly rather than converting it into an original generation success.
+
+\section{Machine OK Protocol and Artifact Provenance}
+
+\subsection{Decision Rule}
+
+For each page, the browser harness records nine booleans: page load, visible-answer match, reachable interaction, correct feedback, wrong feedback, hint behavior, answer-reveal behavior, learning-log behavior, and mutation-free teaching behavior. A page is \machineok{} only if all nine are true. Correct and wrong feedback are tested using distinct submitted values. Hint and answer-reveal controls must change their associated pedagogical state, and the learning log must record the tested event. Pure teaching actions must preserve the canonical algorithm state, current step, and artifact hash. Navigation may change the step only to a verified target frame. External requests are blocked during the release audit.
+
+\subsection{Generation and Statistical Boundaries}
+
+The main comparison uses sample index 0 for each of 200 tasks, preventing tasks with more stored inputs from receiving greater weight. The full benchmark contains 646 samples. The original \system{} condition uses DeepSeek-V4-Pro; the uniform fixed-budget study uses DeepSeek-V4-Flash, GLM-5.2, and Kimi-K2.5. Direct HTML receives the concrete input and expected answer and is explicitly asked to generate the complete interaction suite. The main selected-final \system{} set contains 195 primary successes plus five recorded targeted retries; it must not be described as 200 first-pass successes.
+
+McNemar tests use paired task-level binary outcomes. Paired bootstrap confidence intervals resample tasks, not frames, actions, or individual metric checks. Holm correction applies to test families, and paired ordinal or continuous secondary scores use Wilcoxon signed-rank tests where appropriate. Frame and action totals describe implementation coverage and are not treated as independent inferential samples. A nonsignificant result is not evidence of equivalence.
+
+\section{Nested Contract Survival}
+
+The nested levels are: C1 visible-answer match; C2 C1 plus page load; C3 C2 plus reachable interaction; C4 C3 plus correct and wrong feedback; C5 C4 plus hint, answer reveal, and learning log; and C6 C5 plus mutation-free teaching behavior. Values in Table~\ref{tab:nested-survival} are cumulative. Conditional survival at level $i$ is the cumulative C$i$ count divided by the cumulative C$(i-1)$ count; no independence assumption is made.
+
+The repeated pattern is not that all contracts are independent. Rather, monolithic pages continue to lose surviving artifacts at load, interaction, and feedback boundaries, while factored pages that pass semantic validation retain most downstream mass.
+
+\section{Theory-Aligned Executable Audits}
+
+\subsection{Representation Preservation and Determinism}
+
+The preservation audit compares the normalized algorithm-state projection stored in each trace event, scene frame, and reachable runtime frame. The projection includes stable identifiers, values, marks, pointers, graph edges, container contents, current step, and final answer; layout, CSS, and teaching text are excluded.
+
+\begin{table*}[t]
+\centering
+\caption{Artifact sets used by the main and theory-aligned evaluations. The completed held-out audit set contains one documented targeted retry that is not counted as an original generation pass.}
+\label{tab:artifact-sets}
+\small
+\begin{tabular}{@{}lrrp{0.225\textwidth}p{0.245\textwidth}@{}}
+\toprule
+Set & Artifacts/pages & Frames/sequences & Primary use & Provenance boundary \\
+\midrule
+Main benchmark & 200 & 9,421 frames & Reliability, preservation, mutation & One sample per task across 23 families; selected-final artifacts \\
+Held-out generation & 39 valid of 40 & -- & Frozen-task generalization & Original result remains 39/40 \\
+Completed held-out audit & 40 & 4,568 frames & Semantic/state audits & Fortieth artifact is a documented targeted retry \\
+Long-trace & 54 & 41,119 frames & Preservation and scalability & 18 tasks at small, medium, and large scales \\
+Noninterference & 240 pages & 24,000 sequences & Browser state isolation & Main 200 plus completed held-out 40 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Cumulative nested-contract survival (percent). Cross-model \system{} rows use final-quality artifacts, whereas the fixed-budget primary comparison in the main paper reports the uniform generation budget.}
+\label{tab:nested-survival}
+\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Method & C1 & C2 & C3 & C4 & C5 & C6 \\
+\midrule
+\system{} main & 100.0 & 100.0 & 100.0 & 99.0 & 99.0 & 99.0 \\
+Direct HTML main & 100.0 & 94.0 & 74.5 & 54.0 & 49.0 & 49.0 \\
+\addlinespace
+\system{} Flash final & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 \\
+Direct Flash & 99.0 & 95.0 & 81.0 & 65.5 & 59.0 & 59.0 \\
+\system{} GLM final & 99.0 & 99.0 & 99.0 & 98.0 & 98.0 & 98.0 \\
+Direct GLM & 100.0 & 91.0 & 53.0 & 38.0 & 17.5 & 17.5 \\
+\system{} Kimi final & 97.5 & 97.5 & 97.5 & 97.0 & 97.0 & 97.0 \\
+Direct Kimi & 99.5 & 95.0 & 68.0 & 52.5 & 43.5 & 43.5 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+\FloatBarrier
+
+\begin{coltable}
+\captionof{table}{Trace--scene--runtime projection audit.}
+\label{tab:projection-audit}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Set & Artifact pass & Equivalent frames \\
+\midrule
+Main & 200/200 & 9,421/9,421 \\
+Completed held-out & 40/40 & 4,568/4,568 \\
+Long-trace & 54/54 & 41,119/41,119 \\
+\midrule
+Total & 294/294 & 55,108/55,108 \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+Twenty stratified artifacts were recompiled and rerendered ten times each. Every artifact produced one canonical projection hash and one render hash across reruns. These observations establish representation-level agreement and tested-environment stability; they do not independently establish that every source-trace event is the intended algorithm step or that pixels are formally verified.
+
+\subsection{Semantic Mutation and Overlay Isolation}
+
+The mutation suite distinguishes changes that must be rejected from transformations that should be accepted. Ambiguous event deletions are not automatically classified as semantic faults because a deleted explanation or repeated mark may be redundant. Reordered unordered-set results are compared with a case-aware equivalence relation.
+
+\begin{coltable}
+\captionof{table}{Contract discrimination on the defined mutation suite.}
+\label{tab:mutation-audit}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Class & Expected & Observed \\
+\midrule
+Semantic violations & Reject & 2,198/2,198 \\
+Teaching-text rewrites & Accept & 195/195 \\
+Visual-metadata changes & Accept & 195/195 \\
+Equivalent reorderings & Accept & 2/2 \\
+\midrule
+Preserving total & Accept & 392/392 \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+\begin{coltable}
+\captionof{table}{Teaching-overlay isolation. Outcomes preserve the canonical algorithm-state hash unless marked as rejected or warned.}
+\label{tab:overlay-audit}
+\small
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lr@{}}
+\toprule
+Condition & Outcome \\
+\midrule
+Four legal overlay variants & 372/372 each \\
+Illegal \texttt{final\_answer}/\texttt{state} fields & 372/372 sanitized \\
+Negative step & 372/372 rejected \\
+Nonexistent step & 372/372 warned \\
+Cross-model GLM overlay & 369/369 \\
+\bottomrule
+\end{tabular*}
+\end{coltable}
+
+The legal variants are original, concise, detailed, and random text overlays; their text changes do not redefine algorithm state. The existing sanitizer removes the tested protected writes, the schema rejects negative indices, and step-not-found warnings prevent unbound teaching steps. For the GLM overlay, 169 cases apply fully and 200 apply partially because model-specific traces expose different step sets. The illegal-field result is specifically sanitization, not a claim that every unknown field is rejected by schema-level \texttt{extra=forbid}. Complete discrimination is claimed only for these defined finite suites.
+
+\subsection{Pedagogical Noninterference Stress Test}
+
+\begin{coltable}
+\captionof{table}{Browser noninterference stress-test coverage.}
+\label{tab:noninterference}
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Quantity & Count \\
+\midrule
+Unique pages & 240 \\
+Random action sequences & 24,000 \\
+Total actions & 1,561,298 \\
+Pure pedagogical actions & 435,859 \\
+Navigation/variant actions & 1,125,439 \\
+Pages passed & 240/240 \\
+Overlay artifacts passed & 240/240 \\
+Observed violations & 0 \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+Pure actions are correct submission, wrong submission, hint, show answer, and clear learning log. Navigation actions are next, previous, timeline selection, reset, and variant selection. Each page receives 100 random sequences of 30--100 actions. Pure actions must preserve artifact, state, and step hashes; navigation must preserve the artifact and select the expected verified frame. The result is that no counterexample was found, not that all possible browser executions are proved noninterfering.
+
+\section{Local Resume Versus Global Restart}
+
+Both policies use the same structured output space, validators, and maximum of three policy decisions. Local keeps the current solution specification, repairs it, then reruns materialization and teaching. Global discards the specification and independently regenerates it before rerunning the same downstream work.
+
+\begin{coltable}
+\captionof{table}{Recovery outcomes, paired success counts, and token decomposition. Calls and tokens are per successful page and include final-failure costs; time is time-to-valid on successful cases.}
+\label{tab:recovery-full}
+\label{tab:recovery-pairs}
+\label{tab:recovery-cost}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\textit{A. End-to-end outcomes}\par
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}llrrrrr@{}}
+\toprule
+Model & Policy & Succ. & Calls & Tokens & Time & $p$ \\
+\midrule
+Flash & \localresume{} & 38/50 & 6.63 & 71,369 & 172.9 s & \multirow{2}{*}{0.4545} \\
+Flash & \globalrestart{} & 42/50 & 5.50 & 62,256 & 194.2 s & \\
+GLM & \localresume{} & 42/50 & 6.69 & 92,385 & 533.8 s & \multirow{2}{*}{1.0000} \\
+GLM & \globalrestart{} & 43/50 & 6.65 & 96,186 & 558.2 s & \\
+\bottomrule
+\end{tabular*}
+
+\smallskip
+\textit{B. Paired success counts}\par
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrrr@{}}
+\toprule
+Model & Both & Local only & Global only & Neither \\
+\midrule
+Flash & 32 & 6 & 10 & 2 \\
+GLM & 37 & 5 & 6 & 2 \\
+\bottomrule
+\end{tabular*}
+
+\smallskip
+\textit{C. Token decomposition per successful page}\par
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}llrrr@{}}
+\toprule
+Model & Policy & Spec/repair & Teaching & Total \\
+\midrule
+Flash & \localresume{} & 25,031 & 46,338 & 71,369 \\
+Flash & \globalrestart{} & 25,781 & 36,476 & 62,256 \\
+GLM & \localresume{} & 37,342 & 55,043 & 92,385 \\
+GLM & \globalrestart{} & 47,462 & 48,724 & 96,186 \\
+\bottomrule
+\end{tabular*}
+\end{coltable}
+
+Flash favors Global numerically in success and tokens per success. GLM gives Local slightly lower token and time cost but one fewer success. Neither paired success difference is significant. The negative result does not contradict the ideal checkpoint theorem: the implementation violates its no-recomputation premise because repair rematerializes the specification and reinvokes teaching.
+
+\section{Additional Reliability Evidence}
+
+\subsection{Held-Out Tasks and Full-Sample Replay}
+
+\begin{coltable}
+\captionof{table}{Additional task/input robustness.}
+\label{tab:additional-robustness}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Set & \system{} & Direct \\
+\midrule
+Held-out generation & 39/40 & 40/40 \\
+Held-out \machineok{} & 39/40 & 18/40 \\
+Held-out self-contained & 40/40 & 40/40 \\
+Frozen tracker replay & 626/646 & -- \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+The held-out set contains 40 new cases from 15 families. The \machineok{} difference is +52.5 percentage points (95\% paired-bootstrap CI [37.5, 67.5], exact McNemar $p=9.54\times10^{-7}$). The targeted retry used to complete the semantic audit does not retroactively change 39/40 generation. The 646-sample replay reuses frozen solvers/trackers across all stored inputs and has 20 failures; it is an unbalanced robustness set, not 646 independent main-table tasks.
+
+\subsection{Non-Degenerate Ablations and Browser Repair}
+
+\begin{coltable}
+\captionof{table}{Non-degenerate 50-task ablations. Both outputs are self-contained under the corrected resource parser.}
+\label{tab:ablations}
+\scriptsize
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrr@{}}
+\toprule
+Condition & Full & Ablation \\
+\midrule
+Direct-to-SceneGraph & 49/50 & 1/50 \\
+VerifiedTrace-to-LLM-HTML & 49/50 & 0/50 \\
+\bottomrule
+\end{tabular*}
+\end{coltable}
+
+Direct-to-SceneGraph isolates the fixed runtime without an executable trace and validation; its 96-point difference has a 95\% CI of [90, 100] and exact McNemar $p=7.11\times10^{-15}$. VerifiedTrace-to-LLM-HTML isolates unconstrained page generation after a verified trace: its visible answer is 50/50, but interaction reachability and \machineok{} are 0/50. On these 50 tasks, neither a fixed renderer nor a verified trace alone reproduces the full-chain reliability.
+
+\begin{coltable}
+\captionof{table}{Direct whole-HTML browser-repair budget.}
+\label{tab:repair-budget}
+\small
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Calls & \machineok{} & Avg. tokens & Avg. time \\
+\midrule
+1 & 106/200 & 19.7k & 207.2 s \\
+2 & 10/200 & 36.8k & 347.2 s \\
+3 & 15/200 & 53.7k & 477.6 s \\
+5 & 6/200 & 87.2k & 733.9 s \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+All 1,000 repair attempts are self-contained after correcting the resource parser. More calls do not monotonically improve this evaluated whole-page rewrite policy; the result does not imply that every browser-repair method fails.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/system-ui.png}
+\caption{A real selected-final binary-search tutor captured with Playwright at an intermediate frame after opening a hint. The interface exposes objectives, algorithm state, pointers, timeline, explanation, prediction feedback, learning log, and validation indicators through the fixed runtime. This bitmap documents the implemented interface; correctness evidence comes from contracts and executable audits, not visual appearance.}
+\label{fig:system-ui}
+\end{figure*}
+
+\section{Original Main-Run Generation Cost}
+
+\begin{coltable}
+\captionof{table}{Original DeepSeek-V4-Pro generation boundary. No stable price configuration was frozen, so monetary cost is not reported.}
+\label{tab:generation-cost}
+\small
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrr@{}}
+\toprule
+Condition & Calls & Tokens & Tokens/task \\
+\midrule
+Selected-final & 1,066 & 15,369,433 & 76.8k \\
+All attempts & 1,151 & 16,870,557 & -- \\
+Direct HTML & 222 & 4,385,641 & 21.9k \\
+\bottomrule
+\end{tabular*}
+\end{coltable}
+
+The extra compute is part of the evaluated system. The fixed runtime and compiler also embody engineering unavailable to the Direct generator; ablations reduce but do not remove this implementation asymmetry.
+
+\section{Long-Trace Scalability}
+
+All 54 artifacts materialize, while 52 complete browser measurement. The exporter currently embeds complete frames in a self-contained document, so repeated state dominates size and load cost.
+
+\begin{coltable}
+\captionof{table}{Long-trace browser costs; all entries are means.}
+\label{tab:scalability}
+\scriptsize
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Scale & Frames & HTML & Load & Step & Heap \\
+\midrule
+Small & 104.4 & 1.40 MB & 120 ms & 14.7 ms & 6.3 MB \\
+Medium & 543.3 & 23.25 MB & 1,933 ms & 45.4 ms & 59.1 MB \\
+Large & 1,636.7 & 160.42 MB & 8,354 ms & 101.3 ms & 185.6 MB \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+The large KMP page contains 3,063 frames and 581 MB of HTML. The large sliding-window-unique page contains 5,533 frames and 1.08 GB of HTML. Both exceed the 60-second load budget. These results motivate event deltas, frame virtualization, lazy loading, or state compression when scaling beyond the evaluated regime.
+
+\section{Secondary Visual Evaluation}
+
+\begin{coltable}
+\captionof{table}{Stage2 versus Direct under the same machine-rated rubric. Only instructional design is significant after Holm correction.}
+\label{tab:visual}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Dimension & Stage2 & Direct & Holm $p$ \\
+\midrule
+Overall & 4.611 & 4.596 & -- \\
+Problem alignment & 4.835 & 4.825 & 0.856 \\
+State readability & 4.385 & 4.505 & 0.059 \\
+Process clarity & 4.320 & 4.400 & 0.326 \\
+Instructional design & 4.905 & 4.655 & $1.56\times10^{-5}$ \\
+\bottomrule
+\end{tabular}
+\end{coltable}
+
+The result does not support visual superiority on every dimension. Direct is numerically higher on state readability and process-transition clarity. The evaluator is one vision-language model, so these results remain secondary until human calibration is completed.
+
+\section{Reproducibility Boundaries}
+
+{\raggedright
+The evaluation package freezes benchmark manifests, prompts, selected artifact paths, result JSON files, paired statistics, semantic-projection reports, mutation reports, retry reports, and browser-stress reports. The principal machine-readable files are under
+\path{output/experiments/theory_aligned_20260714/}:
+\begin{itemize}
+  \item \path{semantic_preservation_report.json};
+  \item \path{nested_contract_survival_report.json};
+  \item \path{semantic_mutation_report.json};
+  \item \path{cross_model_overlay_report.json};
+  \item \path{noninterference_stress_report.json};
+  \item \path{retry_flash/local_vs_global_retry_report.json}; and
+  \item \path{retry_glm/local_vs_global_retry_report.json}.
+\end{itemize}
+\par}
+
+\newpage
+
+Browser evaluation blocks external resources. The screenshot in Figure~\ref{fig:system-ui} is produced by a scripted viewport, timeline selection, and hint interaction. Remote model versions can drift, and self-contained artifacts cannot reproduce a retired remote service exactly. Selected-final reporting preserves retry provenance rather than treating every page as a first-pass generation.
+
+\subsection{Prepared but Unlabeled Human Protocols}
+
+No protocol below has completed labels or participants:
+\begin{itemize}
+  \item \textbf{Machine-evaluator calibration:} 30 tasks $\times$ 4 methods, or 120 blind pages, prepared for two human annotators; no precision or recall result exists.
+  \item \textbf{Independent trace audit:} 40 tasks across 23 families prepared for two reviewers; no critical-error rate exists.
+  \item \textbf{Expert comparison:} 3 experts $\times$ 30 pairs planned; there is no preference or usability result.
+  \item \textbf{Student study:} 24 students $\times$ 12 trials planned, subject to any required ethics process; there is no learning outcome.
+\end{itemize}
+These protocols are future evaluation infrastructure. No missing human labels are imputed, and no learning, retention, transfer, expert-preference, or human-calibrated trace-correctness claim is made.
+
+\end{document}

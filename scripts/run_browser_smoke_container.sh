@@ -23,7 +23,7 @@ if ! "${DOCKER_CMD[@]}" info >/dev/null 2>&1; then
 fi
 
 if [ "$#" -eq 0 ]; then
-  CONTAINER_COMMAND="python -m tests.browser_smoke"
+  CONTAINER_COMMAND="python scripts/capture_phase17_screenshots.py --output-dir output/phase17_screenshots"
 else
   printf -v CONTAINER_COMMAND "%q " "$@"
 fi
@@ -33,6 +33,7 @@ fi
   -e HOME=/tmp \
   -e PYTHONDONTWRITEBYTECODE=1 \
   -e PIP_DISABLE_PIP_VERSION_CHECK=1 \
+  -e ALGOLAB_HOST_PROJECT_ROOT="${PROJECT_ROOT}" \
   -e ALGOLAB_CONTAINER_INSTALL_DEPS="${INSTALL_DEPS}" \
   -e ALGOLAB_BROWSER_SMOKE_REQUIREMENTS="${REQUIREMENTS}" \
   -e http_proxy="${http_proxy:-}" \

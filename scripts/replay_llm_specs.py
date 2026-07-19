@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 import time
@@ -29,15 +30,41 @@ def replay_artifact_file(
     family_id: str | None = None,
     subfamily_id: str | None = None,
 ) -> dict[str, Any]:
-    started = time.time()
     data = json.loads(artifact_path.read_text(encoding="utf-8"))
-    inferred_case_id = case_id or _case_id_from_artifact_name(artifact_path)
+    return replay_artifact_data(
+        data,
+        artifact_path=artifact_path,
+        case_id=case_id,
+        family_id=family_id,
+        subfamily_id=subfamily_id,
+    )
+
+
+def replay_artifact_data(
+    artifact: dict[str, Any],
+    *,
+    artifact_path: Path | None = None,
+    case_id: str | None = None,
+    family_id: str | None = None,
+    subfamily_id: str | None = None,
+    input_data: Any = None,
+    expected: Any = None,
+) -> dict[str, Any]:
+    started = time.time()
+    data = copy.deepcopy(artifact)
+    if input_data is not None:
+        data["input_data"] = input_data
+    if expected is not None:
+        data["expected_result"] = expected
+    display_path = artifact_path or Path("<memory>")
+    inferred_case_id = case_id or _case_id_from_artifact_name(display_path)
     input_data = data.get("input_data")
     expected = data.get("expected_result")
     errors: list[str] = []
     warnings: list[str] = []
     variant_count = 0
     scene_count = 0
+    stage_status = {"solve": False, "trace": False, "process": False, "demo": False, "scene": False}
     context = {"case_id": inferred_case_id, "family_id": family_id, "subfamily_id": subfamily_id}
 
     for index, raw_variant in enumerate(data.get("variants") or []):
@@ -45,6 +72,7 @@ def replay_artifact_file(
             variant_count += 1
             variant = SolutionVariant.model_validate(_variant_spec_for_replay(raw_variant, index))
             materialized = execute_variant(variant, input_data, **context)
+            stage_status["solve"] = True
             if expected is not None and not results_equivalent(materialized.result, expected, **context):
                 raise ValueError(f"结果 {materialized.result!r} 与 expected {expected!r} 不一致")
             assert materialized.trace is not None
@@ -52,26 +80,30 @@ def replay_artifact_file(
             if trace_errors:
                 raise ValueError("; ".join(trace_errors))
             warnings.extend(f"{variant.name}: {warning}" for warning in trace_warnings)
+            stage_status["trace"] = True
             process_errors, process_warnings = validate_process(materialized.trace)
             if process_errors:
                 raise ValueError("; ".join(process_errors))
             warnings.extend(f"{variant.name}: {warning}" for warning in process_warnings)
+            stage_status["process"] = True
             demo_report = validate_variant_demo_readiness(materialized.id, materialized.name, materialized.trace)
             if demo_report.errors:
                 raise ValueError("; ".join(demo_report.errors))
             warnings.extend(f"{variant.name}: {warning}" for warning in demo_report.warnings)
+            stage_status["demo"] = True
             scene = compile_scene(materialized.trace)
             scene_errors, scene_warnings = validate_scene(scene)
             if scene_errors:
                 raise ValueError("; ".join(scene_errors))
             warnings.extend(f"{variant.name}: {warning}" for warning in scene_warnings)
             scene_count += 1
+            stage_status["scene"] = True
         except Exception as exc:
             errors.append(f"variant[{index}] 失败：{type(exc).__name__}: {exc}")
 
     ok = bool(variant_count) and scene_count == variant_count and not errors
     return {
-        "artifact": str(artifact_path),
+        "artifact": str(display_path),
         "case_id": inferred_case_id,
         "family_id": family_id or "",
         "subfamily_id": subfamily_id or "",
@@ -80,6 +112,9 @@ def replay_artifact_file(
         "scene_count": scene_count,
         "errors": errors,
         "warnings": warnings,
+        "input_data": input_data,
+        "expected": expected,
+        "stage_status": stage_status,
         "duration_s": round(time.time() - started, 3),
     }
 

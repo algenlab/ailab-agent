@@ -1,8 +1,10 @@
 # LLM 成功率修复包、失败归因与执行计划
 
+本文档保留早期 69-case 修复阶段的历史记录；当前 full-200、跨模型和最终质量结果统一见 `docs/EXPERIMENT_RESULTS.md`。
+
 本文档是 `docs/08_AAAI_EXPERIMENT_PLAN.md` 之后的下一轮执行计划。目标不是继续扩大 benchmark，而是在不放宽实验口径的前提下，把真实 LLM `algolab_full` 在固定 69 个 deterministic case 上的严格发布成功率尽可能拉到 100%。
 
-当前结论：
+当时阶段结论：
 
 - `algolab_full` 当前为 27 / 69，`pass_rate=0.391304347826087`。
 - `direct_html_baseline` 当前为 63 / 69，`pass_rate=0.9130434782608695`，但该通过率主要表示直接 HTML 能通过 browser smoke，不等价于 answer / process / demo / SceneGraph release gate。

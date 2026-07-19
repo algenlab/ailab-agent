@@ -23,7 +23,7 @@ from scripts.build_evaluation_manifest import build_manifest
 
 
 PYTHON = "/ssd1/liaokunpeng/agent-py310-cu/bin/python3"
-CONTAINER_QUALITY_CHECKS = "bash scripts/run_browser_smoke_container.sh python scripts/run_quality_checks.py"
+QUALITY_CHECKS = f"{PYTHON} scripts/run_quality_checks.py"
 BROWSER_SMOKE_CONTAINER = "bash scripts/run_browser_smoke_container.sh"
 
 
@@ -51,7 +51,7 @@ def environment_block() -> dict[str, Any]:
         "notes": [
             "Run commands from the project root.",
             "Use the pinned Python interpreter shown here for every Python command.",
-            "Run browser smoke and full quality checks through the Playwright container entrypoint.",
+            "Run lightweight local quality checks on the host; use the Playwright container only for explicit browser evidence.",
             "Deterministic checks do not require network or LLM credentials.",
         ],
     }
@@ -90,10 +90,9 @@ def model_config_block() -> dict[str, Any]:
 
 def command_block() -> dict[str, str]:
     return {
-        "deterministic_quality_check": CONTAINER_QUALITY_CHECKS,
+        "deterministic_quality_check": QUALITY_CHECKS,
         "browser_smoke_container": BROWSER_SMOKE_CONTAINER,
-        "host_offline_regression": f"{PYTHON} -m tests.offline_regression",
-        "host_benchmark_regression": f"{PYTHON} -m tests.benchmark_regression",
+        "host_current_regression": f"{PYTHON} -m tests.benchmark_regression",
         "build_evaluation_manifest": f"{PYTHON} scripts/build_evaluation_manifest.py --output-dir output/evaluation",
         "build_demo_dashboard": f"{PYTHON} scripts/build_demo_dashboard.py --output-dir output/dashboard --style both",
         "build_evaluation_report_deterministic": (
@@ -125,7 +124,7 @@ def benchmark_modes_block() -> dict[str, Any]:
     return {
         "deterministic": {
             "calls_llm": False,
-            "source": "tests/benchmark_cases.py",
+            "source": "benchmark/cases.py",
             "entrypoints": [
                 "scripts/run_quality_checks.py",
                 "scripts/build_evaluation_manifest.py",
@@ -230,7 +229,7 @@ def render_readme(package: dict[str, Any]) -> str:
         "",
         "## 确定性质量检查",
         "",
-        "deterministic benchmark 不调用 LLM，固定使用 `tests/benchmark_cases.py` 和现有 fixtures。",
+        "deterministic benchmark 不调用 LLM，固定使用 `benchmark/cases.py` 中的本地样例数据。",
         "",
         f"```bash\n{commands['deterministic_quality_check']}\n```",
         "",

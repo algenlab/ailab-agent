@@ -21,7 +21,7 @@ import gradio as gr
 from algolab.pipeline import artifact_summary, build_artifact
 from algolab.renderer.export import save_html
 from algolab.schemas.input import ProblemInput
-from tests.benchmark_cases import benchmark_cases
+from benchmark.cases import benchmark_cases
 
 
 OUTPUT_DIR = PROJECT_ROOT / "output"

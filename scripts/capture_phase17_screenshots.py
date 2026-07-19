@@ -13,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from algolab.compiler.scene_compiler import compile_scene
 from algolab.renderer.export import save_html
+from algolab.schemas.semantic_trace import SemanticTrace, SolutionVariant
+from algolab.schemas.validation import BuildArtifact, ReleaseGate, ValidationReport
 from scripts.build_demo_dashboard import build_dashboard
-from tests.fixtures import golden_visual_artifact
 
 
 DEFAULT_PHASE17_CASES = (
@@ -66,7 +68,7 @@ def capture_phase17_screenshots(
                         output_dir=output_dir,
                     )
                 )
-        interaction_html = save_html(golden_visual_artifact(), output_dir / "phase17_interaction_learning.html")
+        interaction_html = save_html(_interaction_learning_artifact(), output_dir / "phase17_interaction_learning.html")
         records.extend(_capture_interaction_sequence(browser, interaction_html, output_dir))
         browser.close()
 
@@ -151,6 +153,149 @@ def _capture_interaction_sequence(
     return records
 
 
+def _interaction_learning_artifact() -> BuildArtifact:
+    """Minimal fixture for browser-only interaction evidence."""
+
+    traces = {
+        "unique_paths": SemanticTrace.model_validate(
+            {
+                "algorithm": "不同路径",
+                "input_data": {"m": 2, "n": 2},
+                "result": 2,
+                "pseudocode": ["初始化边界", "dp[i][j] = dp[i-1][j] + dp[i][j-1]"],
+                "events": [
+                    {
+                        "step": 0,
+                        "op": "create",
+                        "targets": [{"id": "dp"}],
+                        "state": {"dp": [[1, 1], [1, 0]], "answer": None},
+                        "reason": "第一行和第一列都只有一种走法。",
+                        "teaching": {
+                            "what": "初始化 DP 边界",
+                            "why": "只能向右或向下移动，所以边界格子没有分支。",
+                            "invariant": "dp[i][j] 表示到达该格子的路径数。",
+                            "hint": "先看第一行和第一列。",
+                        },
+                    },
+                    {
+                        "step": 1,
+                        "op": "set",
+                        "targets": [{"id": "dp[1][1]"}],
+                        "deps": [{"id": "dp[0][1]"}, {"id": "dp[1][0]"}],
+                        "value": 2,
+                        "before": 0,
+                        "after": 2,
+                        "role": "answer",
+                        "state": {"dp": [[1, 1], [1, 2]], "answer": 2},
+                        "reason": "终点只能从上方或左方进入。",
+                        "teaching": {
+                            "what": "计算终点格子的路径数",
+                            "why": "所有到达终点的路径最后一步必然来自上方或左方。",
+                            "formula": "dp[1][1] = dp[0][1] + dp[1][0] = 1 + 1 = 2",
+                            "invariant": "每个已填格子都等于其上方和左方路径数之和。",
+                            "common_mistake": "不要把两个来源方向之外的格子也加进去。",
+                            "hint": "只看 dp[0][1] 和 dp[1][0]。",
+                        },
+                        "interaction": {
+                            "type": "input",
+                            "prompt": "dp[1][1] 应该是多少？",
+                            "answer": "2",
+                            "explanation": "上方 1 条路径，左方 1 条路径，相加为 2。",
+                            "wrong_explanation": "如果不是 2，通常是漏加了一个来源或多加了其他格子。",
+                        },
+                    },
+                ],
+            }
+        ),
+        "binary_search": SemanticTrace.model_validate(
+            {
+                "algorithm": "二分查找",
+                "input_data": {"nums": [1, 3, 5, 7], "target": 5},
+                "result": 2,
+                "pseudocode": ["取 mid", "比较 nums[mid] 和 target", "收缩区间"],
+                "events": [
+                    {
+                        "step": 0,
+                        "op": "create",
+                        "targets": [{"id": "nums"}],
+                        "state": {"nums": [1, 3, 5, 7], "left": 0, "right": 3, "target": 5},
+                        "reason": "搜索范围从整个有序数组开始。",
+                    },
+                    {
+                        "step": 1,
+                        "op": "compare",
+                        "targets": [{"id": "nums[1]"}],
+                        "deps": [{"id": "target"}],
+                        "value": "3 < 5",
+                        "state": {"nums": [1, 3, 5, 7], "left": 0, "right": 3, "mid": 1, "target": 5},
+                        "reason": "nums[mid] 小于 target，目标只能在右半边。",
+                        "teaching": {
+                            "what": "比较 mid 与 target",
+                            "why": "数组有序，mid 左侧都不可能等于更大的 target。",
+                            "invariant": "如果 target 存在，它仍在 [left, right] 内。",
+                            "common_mistake": "不要在 nums[mid] 偏小时继续保留左半边。",
+                            "hint": "比较 nums[1]=3 和 target=5。",
+                        },
+                        "interaction": {
+                            "type": "choice",
+                            "prompt": "下一步应该保留哪一边？",
+                            "options": ["保留左半边", "保留右半边"],
+                            "answer": "保留右半边",
+                            "explanation": "3 小于 5，目标只能在 mid 右侧。",
+                            "wrong_explanation": "保留左半边会丢掉可能包含 target 的右侧区间。",
+                            "option_explanations": {
+                                "保留左半边": "错误选项解释：左半边的值都不大于 nums[mid]=3，无法包含 target=5。"
+                            },
+                        },
+                    },
+                ],
+            }
+        ),
+    }
+    variants = [
+        SolutionVariant(
+            id="unique_paths",
+            name="不同路径",
+            strategy="用 DP 公式解释状态转移。",
+            time_complexity="O(mn)",
+            space_complexity="O(mn)",
+            code="def solve(input_data):\n    return 2",
+            tracker_code="def trace(input_data):\n    return {}",
+            result=traces["unique_paths"].result,
+            trace=traces["unique_paths"],
+        ),
+        SolutionVariant(
+            id="binary_search",
+            name="二分查找",
+            strategy="通过预测区间收缩方向检查理解。",
+            time_complexity="O(log n)",
+            space_complexity="O(1)",
+            code="def solve(input_data):\n    return 2",
+            tracker_code="def trace(input_data):\n    return {}",
+            result=traces["binary_search"].result,
+            trace=traces["binary_search"],
+        ),
+    ]
+    return BuildArtifact(
+        problem_title="交互学习检查点",
+        input_contract="覆盖公式展开和错误选项反馈。",
+        input_data={"fixture": "interaction_learning"},
+        variants=variants,
+        scenes={variant.id: compile_scene(traces[variant.id]) for variant in variants},
+        validation=ValidationReport(
+            checks=["interaction learning fixture"],
+            release_gate=ReleaseGate(
+                artifact_ready=True,
+                process_ready=True,
+                trace_ready=True,
+                visual_ready=True,
+                multi_solution_ready=True,
+                release_ready=True,
+            ),
+        ),
+    )
+
+
 def _capture_formula_and_regenerate_sequence(browser: Any, html_path: Path, output_dir: Path) -> list[dict[str, Any]]:
     errors: list[str] = []
     page = browser.new_page(viewport=VIEWPORTS["desktop"])
@@ -181,6 +326,12 @@ def _capture_formula_and_regenerate_sequence(browser: Any, html_path: Path, outp
                 errors=list(errors),
             )
         )
+        teaching_text = page.locator("#teaching").inner_text()
+        if "当前步骤" in teaching_text or "为什么" in teaching_text:
+            errors.append("teaching panel repeats step title/why text")
+        if page.locator("#interaction [data-learning-checkpoint]").count():
+            if "常见错误" in teaching_text or "提示" in teaching_text:
+                errors.append("teaching panel repeats hint/common mistake while interaction is present")
         if page.locator("#teaching .formula-expander summary").count():
             page.locator("#teaching .formula-expander summary").first.click()
             page.wait_for_timeout(120)
@@ -267,10 +418,23 @@ def _capture_wrong_option_feedback(browser: Any, html_path: Path, output_dir: Pa
             source = page.locator("#feedback").get_attribute("data-source")
             if "错误选项解释" not in feedback:
                 errors.append("wrong option feedback missing")
+            if feedback.count("错误选项解释") > 1:
+                errors.append("wrong option feedback repeats explanation prefix")
             if str(choice.get("explanation") or "") not in feedback:
                 errors.append("option explanation text missing")
             if source != "interaction.option_explanations":
                 errors.append(f"wrong feedback source: {source}")
+            frame_status = page.locator("#learning-log-frame").inner_text()
+            if "已提交" not in frame_status or "需要订正" not in frame_status:
+                errors.append(f"learning frame status missing wrong answer state: {frame_status}")
+            if page.locator("details[data-learning-log] summary").count():
+                page.locator("details[data-learning-log] summary").first.click()
+                page.wait_for_timeout(120)
+                preview = page.locator("#learning-log-preview").inner_text()
+                if "提交错误" not in preview:
+                    errors.append("learning log preview missing submit error event")
+            else:
+                errors.append("learning log details missing")
         return _record_screenshot(
             page,
             output_dir / "phase17_interaction_wrong_feedback_desktop.png",

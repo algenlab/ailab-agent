@@ -1,5 +1,5 @@
 """LLM API client wrapping OpenAI-compatible endpoint."""
-import json, os, re, time
+import json, os, re, threading, time
 from datetime import datetime
 from pathlib import Path
 from openai import OpenAI
@@ -12,7 +12,7 @@ BASE_URL = os.environ.get("ALGOLAB_LLM_BASE_URL") or DEFAULT_BASE_URL
 API_KEY = os.environ.get("ALGOLAB_LLM_API_KEY")
 
 _client = None
-_MODEL_CALL_LOG: list[dict] = []
+_MODEL_CALL_STATE = threading.local()
 
 def get_client() -> OpenAI:
     global _client
@@ -33,6 +33,13 @@ DEFAULT_API_RETRY_DELAY_S = 2.0
 
 def _model_name(model: str | None = None) -> str:
     return model or os.environ.get("ALGOLAB_LLM_MODEL") or api_settings().get("model") or DEFAULT_MODEL
+
+
+def _temperature_for_model(model: str, *, default: float) -> float:
+    normalized = str(model or "").strip().lower()
+    if normalized.startswith("kimi-"):
+        return 1.0
+    return default
 
 
 def _timeout_s() -> float:
@@ -187,18 +194,26 @@ class LLMJsonError(ValueError):
     """Raised when a model response cannot be parsed as JSON."""
 
 
+def _model_call_log() -> list[dict]:
+    calls = getattr(_MODEL_CALL_STATE, "calls", None)
+    if calls is None:
+        calls = []
+        _MODEL_CALL_STATE.calls = calls
+    return calls
+
+
 def clear_model_calls() -> None:
-    _MODEL_CALL_LOG.clear()
+    _model_call_log().clear()
 
 
 def record_model_call(model_call: dict) -> dict:
     call = dict(model_call)
-    _MODEL_CALL_LOG.append(call)
+    _model_call_log().append(call)
     return call
 
 
 def consume_model_calls() -> list[dict]:
-    calls = [dict(call) for call in _MODEL_CALL_LOG]
+    calls = [dict(call) for call in _model_call_log()]
     clear_model_calls()
     return calls
 
@@ -348,7 +363,9 @@ def chat_json_with_metadata(
         response = _create_chat_completion_with_retry(
             client,
             model=resolved_model, messages=messages,
-            response_format={"type": "json_object"}, temperature=0.2, max_tokens=_max_tokens(), timeout=_timeout_s())
+            response_format={"type": "json_object"},
+            temperature=_temperature_for_model(resolved_model, default=0.2),
+            max_tokens=_max_tokens(), timeout=_timeout_s())
         model_call = record_model_call(
             _llm_call_metadata(
                 kind=kind,
@@ -403,7 +420,8 @@ def chat_text_with_metadata(
     response = _create_chat_completion_with_retry(
         client,
         model=resolved_model, messages=[{"role":"system","content":system_prompt},{"role":"user","content":user_prompt}],
-        temperature=0.3, max_tokens=_max_tokens(), timeout=_timeout_s())
+        temperature=_temperature_for_model(resolved_model, default=0.3),
+        max_tokens=_max_tokens(), timeout=_timeout_s())
     model_call = record_model_call(
         _llm_call_metadata(
             kind=kind,

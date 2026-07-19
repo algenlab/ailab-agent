@@ -57,7 +57,7 @@ def collect_artifacts(artifact_dir: Path, glob_pattern: str, *, case_filters: se
 
 
 def load_problem_map(report: Path | None) -> dict[str, str]:
-    from tests.benchmark_cases import benchmark_cases
+    from benchmark.cases import benchmark_cases
 
     result: dict[str, str] = {
         case.id: case.problem
@@ -1069,9 +1069,15 @@ def generate_with_timeout_retries(
     timeout_retries: int,
 ) -> tuple[DirectVisualRenderResult, list[dict[str, Any]]]:
     attempts: list[dict[str, Any]] = []
-    total_attempts = max(1, int(timeout_retries) + 1)
+    max_timeout_retries = max(0, int(timeout_retries))
+    max_api_retries = max(0, _env_int("ALGOLAB_LLM_API_RETRIES", 0))
+    api_retry_delay_s = max(0.0, _env_float("ALGOLAB_LLM_API_RETRY_DELAY_S", 0.0))
+    timeout_failures = 0
+    api_failures = 0
+    attempt = 0
     last = DirectVisualRenderResult(creative_ok=False, errors=["no_generation_attempt"])
-    for attempt in range(1, total_attempts + 1):
+    while True:
+        attempt += 1
         result = generate_with_process_timeout(
             artifact,
             problem_description=problem_description,
@@ -1079,19 +1085,31 @@ def generate_with_timeout_retries(
             timeout_s=timeout_s,
             mode=mode,
         )
+        timed_out = _is_timeout_result(result)
+        retryable_api_error = _is_retryable_api_result(result)
         attempts.append(
             {
                 "attempt": attempt,
                 "creative_ok": result.creative_ok,
                 "errors": result.errors,
                 "warnings": result.warnings,
-                "timed_out": _is_timeout_result(result),
+                "timed_out": timed_out,
+                "retryable_api_error": retryable_api_error,
                 "model_calls": result.model_calls,
             }
         )
         last = result
-        if result.creative_ok or not _is_timeout_result(result):
+        if result.creative_ok:
             break
+        if timed_out and timeout_failures < max_timeout_retries:
+            timeout_failures += 1
+            continue
+        if retryable_api_error and api_failures < max_api_retries:
+            api_failures += 1
+            if api_retry_delay_s:
+                time.sleep(api_retry_delay_s)
+            continue
+        break
     return last, attempts
 
 
@@ -1193,6 +1211,38 @@ def _generate_for_mode(
 
 def _is_timeout_result(result: DirectVisualRenderResult) -> bool:
     return any("creative_timeout" in str(error) for error in result.errors)
+
+
+def _is_retryable_api_result(result: DirectVisualRenderResult) -> bool:
+    text = "\n".join(str(error) for error in result.errors).lower()
+    retryable_markers = [
+        "internalservererror",
+        "upstream service error",
+        "502001",
+        "error code: 502",
+        "bad gateway",
+        "serviceunavailable",
+        "gateway timeout",
+        "apiconnectionerror",
+        "apitimeouterror",
+        "ratelimiterror",
+        "rate limit",
+    ]
+    return any(marker in text for marker in retryable_markers)
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
 
 
 def main() -> int:

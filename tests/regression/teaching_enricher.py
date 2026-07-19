@@ -10,8 +10,13 @@ from algolab.generation.teaching_enricher import (
     compute_interaction_coverage,
     enrich_scene_teaching,
     select_teaching_events,
+    validate_teaching_contract,
 )
+from algolab.renderer.export import render_html
+from algolab.schemas.scene_graph import SceneGraph
 from algolab.schemas.semantic_trace import SemanticTrace
+from algolab.schemas.semantic_trace import SolutionVariant
+from algolab.schemas.validation import BuildArtifact, ReleaseGate, ValidationReport
 
 
 def _event(step: int, op: str, targets: list[str], state: dict, **kwargs) -> dict:
@@ -40,6 +45,39 @@ def _trace(events: list[dict]) -> SemanticTrace:
             "pseudocode": ["初始化距离", "松弛边", "返回答案"],
             "events": [dict(event, step=index) for index, event in enumerate(events)],
         }
+    )
+
+
+def _artifact_for_renderer(scene: SceneGraph, trace: SemanticTrace) -> BuildArtifact:
+    return BuildArtifact(
+        problem_title="教学检查点测试",
+        input_contract="输入 nums，返回 answer",
+        input_data=trace.input_data,
+        expected_result=trace.result,
+        verifier_result=trace.result,
+        variants=[
+            SolutionVariant(
+                id="main",
+                name="主解法",
+                strategy="跟踪关键变量并预测下一步",
+                time_complexity="O(n)",
+                space_complexity="O(1)",
+                code="def solve(input_data):\n    return input_data.get('answer')",
+                tracker_code="def trace(input_data):\n    return {}",
+                result=trace.result,
+                trace=trace,
+            )
+        ],
+        scenes={"main": scene},
+        validation=ValidationReport(
+            release_gate=ReleaseGate(
+                artifact_ready=True,
+                process_ready=True,
+                trace_ready=True,
+                visual_ready=True,
+                release_ready=True,
+            )
+        ),
     )
 
 
@@ -174,6 +212,21 @@ def test_teaching_prompt_requires_interactions_on_key_learning_frames_without_ha
     assert "不超过 40 个汉字" not in TEACHING_SYSTEM_PROMPT
 
 
+def test_teaching_prompt_requires_pedagogical_prediction_contract():
+    required_phrases = [
+        "预测检查点",
+        "学生应该先预测",
+        "hint 必须引导学生看 targets/deps/state",
+        "common_mistake 不能写成泛泛提醒",
+        "wrong_explanation 必须解释为什么错",
+        "答案帧也必须优先生成 checkpoint",
+        "option_explanations 优先覆盖每个错误选项",
+    ]
+
+    for phrase in required_phrases:
+        assert phrase in TEACHING_SYSTEM_PROMPT
+
+
 def test_compute_interaction_coverage_counts_key_learning_frames():
     trace = _trace(
         [
@@ -197,6 +250,148 @@ def test_compute_interaction_coverage_counts_key_learning_frames():
     assert report["answer_frame_interaction_present"] is True
     assert report["deps_frame_interaction_rate"] == 1.0
     assert report["missing_key_learning_steps"] == [2]
+
+
+def test_validate_teaching_contract_flags_missing_teaching_and_incomplete_checkpoint():
+    trace = _trace(
+        [
+            _event(0, "create", ["nums"], {"nums": [1, 2, 3]}),
+            _event(1, "compare", ["mid"], {"mid": 1}, deps=["target"], value="nums[mid] < target"),
+            _event(2, "set", ["answer"], {"answer": 2}, before=None, after=2, role="answer", value=2),
+        ]
+    )
+    scene = compile_scene(trace)
+    scene.frames[1].teaching = {}
+    scene.frames[1].interaction = {
+        "type": "choice",
+        "prompt": "下一步移动哪边？",
+        "options": ["左边", "右边"],
+        "answer": "中间",
+        "explanation": "",
+    }
+
+    warnings, checks = validate_teaching_contract(trace, scene)
+
+    assert any("step 1" in warning and "teaching.what/why" in warning for warning in warnings), warnings
+    assert any("step 1" in warning and "choice answer 必须来自 options" in warning for warning in warnings), warnings
+    assert any("step 1" in warning and "缺少错误反馈" in warning for warning in warnings), warnings
+    assert any("answer frame 缺少 prediction checkpoint" in warning for warning in warnings), warnings
+    assert any("teaching_contract" in check for check in checks), checks
+
+
+def test_validate_teaching_contract_accepts_grounded_prediction_checkpoint():
+    trace = _trace(
+        [
+            _event(0, "create", ["nums"], {"nums": [1, 2, 3]}),
+            _event(1, "compare", ["mid"], {"mid": 1, "target": 3}, deps=["target"], value="nums[mid] < target"),
+            _event(2, "set", ["answer"], {"answer": 2}, before=None, after=2, role="answer", value=2),
+        ]
+    )
+    scene = compile_scene(trace)
+    scene.frames[1].teaching = {
+        "what": "比较 mid 与 target",
+        "why": "mid 处的值小于 target，因此搜索右侧。",
+        "invariant": "目标若存在仍在闭区间内。",
+        "common_mistake": "不要把 mid 左侧继续保留。",
+        "hint": "观察 nums[mid] 和 target 的大小关系。",
+    }
+    scene.frames[1].interaction = {
+        "type": "choice",
+        "prompt": "下一步应该保留哪一侧？",
+        "options": ["左侧", "右侧"],
+        "answer": "右侧",
+        "explanation": "nums[mid] 小于 target，左侧和 mid 可以排除。",
+        "wrong_explanation": "选择左侧会丢掉可能包含 target 的右半区。",
+        "option_explanations": {"左侧": "左侧值更小，不能继续保留。"},
+    }
+    scene.frames[2].teaching = {
+        "what": "返回答案下标",
+        "why": "answer 已经写入最终下标。",
+        "common_mistake": "不要把数组值当作下标。",
+        "hint": "answer 表示位置。",
+    }
+    scene.frames[2].interaction = {
+        "type": "input",
+        "prompt": "最终 answer 是多少？",
+        "answer": "2",
+        "explanation": "当前 state 中 answer=2。",
+        "wrong_explanation": "这里要填下标，不是 nums[2] 的值。",
+    }
+
+    warnings, checks = validate_teaching_contract(trace, scene)
+
+    assert warnings == []
+    assert any("teaching_contract: key_learning_interaction_rate" in check for check in checks), checks
+
+
+def test_renderer_declares_prediction_checkpoint_hint_and_answer_controls():
+    trace = _trace(
+        [
+            _event(0, "create", ["nums"], {"nums": [1, 2], "answer": None}),
+            _event(1, "set", ["answer"], {"answer": 3}, role="answer", value=3),
+        ]
+    )
+    scene = compile_scene(trace)
+    scene.frames[1].teaching = {
+        "what": "写入最终答案",
+        "why": "当前答案已经可以从 state 中直接读出。",
+        "hint": "关注 answer 的值。",
+        "common_mistake": "不要把数组元素当作返回值。",
+    }
+    scene.frames[1].interaction = {
+        "type": "input",
+        "prompt": "当前 answer 应该是多少？",
+        "answer": "3",
+        "explanation": "state 中 answer=3。",
+        "wrong_explanation": "这里问的是 answer，不是 nums 中的某个位置。",
+    }
+
+    html = render_html(_artifact_for_renderer(scene, trace))
+
+    assert "预测检查点" in html
+    assert "先预测，再查看反馈" in html
+    assert "showInteractionHint" in html
+    assert "revealInteractionAnswer" in html
+    assert "data-learning-checkpoint" in html
+    assert "learningLog" in html
+    assert "logLearningEvent" in html
+    assert "exportLearningLog" in html
+    assert "data-learning-log" in html
+    assert "recordSkipIfNeeded" in html
+    assert "defaultVariantIndex" in html
+    assert "variantTeachingLoadScore" in html
+    assert "label:'当前步骤'" not in html
+    assert "label:'为什么'" not in html
+
+
+def test_renderer_student_mode_hides_debug_text_from_visible_page():
+    from scripts.run_external_eval_methods import visible_html_text
+
+    trace = _trace(
+        [
+            _event(0, "create", ["nums"], {"nums": [1, 2], "answer": None}),
+            _event(1, "set", ["answer"], {"answer": 3}, role="answer", value=3),
+        ]
+    )
+    scene = compile_scene(trace)
+
+    html = render_html(_artifact_for_renderer(scene, trace))
+    visible_text = visible_html_text(html)
+
+    assert "student-mode" in html
+    assert "debug-host" in html
+    assert "DEBUG_DRAWER_HTML" in html
+    assert "学习目标" in visible_text
+    assert "关键不变量" in visible_text
+    assert "主动练习与反馈" in visible_text
+    assert "实例任务" in visible_text
+    assert "预测检查点" in html
+    assert "学习日志会记录" in html
+    assert "Debug Drawer" not in visible_text
+    assert "raw validation report" not in visible_text
+    assert "raw state JSON" not in visible_text
+    assert "artifact JSON" not in visible_text
+    assert "shader compile failed" not in visible_text
 
 
 def test_trace_digest_limits_long_trace_but_keeps_answer_and_state_change_frames():

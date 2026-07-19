@@ -32,7 +32,7 @@ from algolab.verification.demo_readiness import DEMO_FAILURE_TYPES
 from algolab.verification.process_validator import process_failure_type_for_message
 from algolab.verification.repair_context import repair_failure_types, summarize_repair_failure_types
 from llm_client import _model_name, clear_model_calls, consume_model_calls, llm_config
-from tests.benchmark_cases import BenchmarkCase, BenchmarkInput, benchmark_cases
+from benchmark.cases import BenchmarkCase, BenchmarkInput, benchmark_cases
 
 
 LLM_FAMILY_SETS_PATH = ROOT / "benchmark" / "llm_family_sets.json"

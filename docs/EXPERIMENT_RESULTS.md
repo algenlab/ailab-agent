@@ -1,372 +1,722 @@
-# AlgoTutorGen 实验结果：方法、指标与证据总览
+# AlgoTutorGen 实验结果总览
 
-- **结果冻结窗口：** 2026-07-06 至 2026-07-14
-- **统一整理日期：** 2026-07-17
 - **主实验：** 200 个任务、23 个算法族，每题使用 sample index 0 形成配对观察
 - **完整稳健性集合：** 同一 200 个任务的 646 个具体样例
-- **机器可读证据：** `output/experiments/`、`output/external_baselines/`
+- **整理日期：** 2026-07-18
 
-## 0. 如何阅读这份结果
+> 本文只汇总已经冻结的最终实验结果，不展示过程性结果。重要结果前置在第 0 节；第 1 节解释指标；第 6 节集中报告理论定向实验。
 
-这份文档先回答两个最直接的问题：比较了哪些方法，以及它们在相同浏览器行为指标上分别通过了多少题。成本、泛化、消融、理论定向审计、教学质量和视觉质量放在后续独立章节，不再与主方法表混在一起。
+| 想查什么 | 对应章节 |
+| --- | --- |
+| 最重要的 Full-200、跨模型和 held-out 结果 | 第 0 节 |
+| 指标、预算和统计术语 | 第 1 节 |
+| 最终数据集与比较方法 | 第 2 节 |
+| 系统成本、BrowserRepair 和 HTMLCure | 第 3 节 |
+| 跨输入与长轨迹 | 第 4 节 |
+| 功能/教学/表示消融与 fault injection | 第 5 节 |
+| 理论定向实验 | 第 6 节 |
+| 教学和视觉代理评价 | 第 7 节 |
+| 外部方法、跨模型明细和 Judge 稳健性 | 第 8 节 |
+| 结果与主张边界 | 第 9 节 |
 
-主方法表统一使用 200 个任务的 sample index 0。所有数值都写成 `通过数/200（通过率）`。主表比较的是冻结产物在统一黑盒浏览器协议下的行为，不表示所有方法使用了相同模型调用预算；各方法的预算和生成条件在方法说明及成本章节中单独列出。
+## 0. 核心结果表（先看这里）
 
-`Machine OK` 是以下九项检查的合取，而不是平均分：
+先认识后续表格中的五种方法。它们面对相同的算法任务，但生成流程和模型调用预算并不完全相同。
 
-1. `Load`：页面成功加载且没有阻断行为的错误；
-2. `Answer`：页面可见最终答案与 expected 一致；
-3. `Interaction`：学习者交互控件可达；
-4. `Correct FB`：正确回答得到方向正确的反馈；
-5. `Wrong FB`：错误回答得到方向正确的反馈；
-6. `Hint`：提示按钮真实工作；
-7. `Show`：显示答案按钮真实工作；
-8. `Log`：提交行为进入学习日志；
-9. `Mutation-free`：教学操作不改变最终答案或算法事实。
+| 方法 | 通俗介绍 | 与其他方法的主要区别 |
+| --- | --- | --- |
+| **AlgoTutorGen（本文方法）** | 模型先生成可执行的算法方案，再实际运行得到逐步轨迹；轨迹通过检查后，由固定编译器和固定网页 Runtime 生成教学页面 | 算法状态、页面场景和教学交互分层生成，并在多个阶段执行机器检查 |
+| **Direct HTML** | 模型根据题目直接一次性编写完整 HTML、CSS 和 JavaScript 页面 | 没有独立的可执行轨迹、SceneGraph 编译和固定 Runtime，页面逻辑主要由模型自由生成 |
+| **WebGen-Agent** | 使用外部多步骤网页生成 agent 完成页面，再用本文相同的浏览器指标进行审计 | 比 Direct HTML 多了 agent 工作流，但最终仍是自由生成的网页代码 |
+| **Direct + HTMLCure** | 先取得 Direct HTML 页面，再交给 HTMLCure 判断并修复网页 | 属于生成后修复；正式结果使用 strict 口径，页面依赖外部资源也会判为失败 |
+| **Direct-BrowserRepair** | 根据浏览器检查结果反复重写整份自由 HTML | 1-call 条件尚未读取浏览器反馈；从第 2 次调用开始才进行反馈修复 |
 
-任何一项失败，该页面的 `Machine OK` 就是失败。这个指标衡量浏览器行为完整性，不衡量视觉偏好，也不证明学生真的学得更好。
+### 0.1 Full-200 基础可靠性
 
-## 1. 比较了哪些方法
+本节使用同一组 200 个任务的 sample index 0。`通过数/200（通过率）` 表示在 200 个页面中，有多少页面通过对应检查。
 
-| 方法 | 输入与起点 | 生成或修复方式 | 最终 Runtime | 主表采用的冻结条件 |
-|---|---|---|---|---|
-| **AlgoTutorGen（本文方法）** | 题目、输入、expected、可选策略 | LLM 生成可执行 spec；沙箱物化 SemanticTrace；经过结果、trace、过程连续性和 scene 门禁；再生成受限 teaching overlay | 确定性 SceneGraph compiler + 固定 Web Runtime | DeepSeek-V4-Pro selected-final；primary 为 195/200，5 个失败任务使用记录在案的 targeted retry |
+**Machine OK 首次定义：** 同一个页面必须同时通过九项浏览器行为检查：页面加载、答案正确、交互可达、正确反馈、错误反馈、提示、显示答案、学习日志和教学操作不改算法状态。它是九项的合取，不是平均分。`strict` 表示 HTML 文件本身必须不依赖外部资源；BrowserRepair `1-call` 只包含一次页面生成，尚未读取浏览器反馈。
+
+九项检查的具体判定规则如下。这里的“通过”均指浏览器自动审计通过，不是 LLM/VLM 主观评分。
+
+| 检查项 | 自动审计如何判定通过 | 不能直接推出什么 |
+| --- | --- | --- |
+| 页面加载（Load） | 页面主体非空，且没有阻断审计的脚本或页面错误 | 不代表答案或交互正确 |
+| 答案正确（Answer） | HTML 或浏览器页面中能找到与标准答案 `expected` 一致的最终答案 | 不代表算法轨迹和讲解全部正确 |
+| 交互可用（Interaction） | 能找到可见、可操作的学习者作答检查点 | 不代表反馈、提示和日志可用 |
+| 正确反馈（Correct FB） | 提交已知正确答案后出现可识别反馈 | 不评价反馈文字的教学质量 |
+| 错误反馈（Wrong FB） | 提交刻意构造的错误答案后出现可识别反馈 | 不代表提示或显示答案可用 |
+| 提示（Hint） | 点击提示后出现反馈内容或预期页面变化 | 不代表提示一定能提升学习效果 |
+| 显示答案（Show） | 点击显示答案后出现答案或反馈内容 | 不评价显示答案的教学时机 |
+| 学习日志（Log） | 操作后可见日志非空，且相较操作前发生变化 | 不代表日志适合长期学习分析 |
+| 教学操作不改答案（Mutation-free） | 提交、提示、显示答案等教学操作前后的受保护答案摘要保持不变 | 不等于对全部内部算法状态的形式化证明 |
+| 九项全部通过（Machine OK） | 同一页面上述九项全部为通过 | 不是九项通过率的平均值，也不是最低单项通过数 |
+
+五种方法的九项完整结果如下：
+
+| 方法 | Load | Answer | Interaction | Correct FB | Wrong FB | Hint | Show | Log | Mutation-free | Machine OK |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **AlgoTutorGen（最终结果）** | **200/200（100.0%）** | **200/200（100.0%）** | **200/200（100.0%）** | **199/200（99.5%）** | **198/200（99.0%）** | **200/200（100.0%）** | **200/200（100.0%）** | **200/200（100.0%）** | **200/200（100.0%）** | **198/200（99.0%）** |
+| Direct HTML | 188/200（94.0%） | **200/200（100.0%）** | 149/200（74.5%） | 120/200（60.0%） | 125/200（62.5%） | 132/200（66.0%） | 133/200（66.5%） | 135/200（67.5%） | 149/200（74.5%） | 98/200（49.0%） |
+| WebGen-Agent | 194/200（97.0%） | 169/200（84.5%） | 154/200（77.0%） | 74/200（37.0%） | 89/200（44.5%） | 136/200（68.0%） | 148/200（74.0%） | 109/200（54.5%） | 154/200（77.0%） | 45/200（22.5%） |
+| Direct + HTMLCure（strict） | 75/200（37.5%） | 75/200（37.5%） | 62/200（31.0%） | 52/200（26.0%） | 51/200（25.5%） | 53/200（26.5%） | 53/200（26.5%） | 59/200（29.5%） | 62/200（31.0%） | 40/200（20.0%） |
+| Direct-BrowserRepair（最多 1 次调用；无浏览器反馈） | 186/200（93.0%） | **200/200（100.0%）** | 155/200（77.5%） | 128/200（64.0%） | 133/200（66.5%） | 137/200（68.5%） | 138/200（69.0%） | 143/200（71.5%） | 155/200（77.5%） | 106/200（53.0%） |
+
+AlgoTutorGen 最终有 200/200 个任务通过生成与物化检查，其中 198/200 个页面进一步通过完整的九项浏览器行为检查。`Generation pass` 只说明产生了有效机器 artifact，不等于 Machine OK。
+
+AlgoTutorGen 与主 Direct HTML 的任务级配对统计如下。`pp` 是百分点；`95% CI` 是通过率差值的区间估计；`McNemar p` 检验同一任务上两种方法的通过/失败是否明显偏向一方：
+
+| 比较 | AlgoTutorGen | Direct HTML | 通过率差值 | 95% CI | 仅 AlgoTutorGen 通过 / 仅 Direct 通过 | McNemar p |
+| --- | --- | --- | --- | --- | --- | --- |
+| Machine OK | 198/200 | 98/200 | +50.0 pp | [43.0,57.0] | 101 / 1 | `4.06e-29` |
+
+**指标注释：**
+
+- **Load：** 页面能正常打开，并且没有阻断主要功能的错误。
+- **Answer：** 页面上显示的最终答案与标准答案 `expected` 一致；不代表算法每一步、轨迹或讲解都正确。
+- **Interaction：** 页面存在可达、可操作的学习者作答检查点；反馈、提示、显示答案和日志分别由后续独立指标检查。
+- **Machine OK：** 本文定义的九项浏览器行为检查全部通过；它不是各项分数的平均值，任何一项失败都会使该页面失败。
+
+**结果直读：** AlgoTutorGen 有 198/200 个页面同时通过九项检查；Direct HTML、WebGen-Agent、HTMLCure strict 和 BrowserRepair 1-call 分别为 98/200、45/200、40/200 和 106/200。Direct HTML 与 BrowserRepair 1-call 都能在 200/200 页面显示正确答案，但完整行为通过数明显低于答案通过数。
+
+最终两个 Machine OK 失败任务是 `stack_valid_parentheses_full_core`（Wrong FB 失败）和 `string_longest_common_prefix_full_core`（Correct FB、Wrong FB 失败）；两页的 Load、Answer、Interaction、Hint、Show、Log 和 Mutation-free 均通过。
+
+**主表口径：** 各方法的模型调用预算并不相同。BrowserRepair 的 1-call 条件尚未读取浏览器反馈；而且它与主 Direct 行不是逐题同一冻结页面，因此 106/200 对 98/200 不能直接解释为 repair 带来的提升。
+
+### 0.2 九项指标的失败交集
+
+下表按每个页面失败的九项数量重新分组。三列之和均为 200；“失败至少两项”表示同一页面存在多个失败，不能把各单项失败数直接相加。
+
+| 方法 | 九项全部通过 | 恰好失败一项 | 失败至少两项 |
+| --- | --- | --- | --- |
+| **AlgoTutorGen（最终结果）** | **198/200（99.0%）** | 1/200（0.5%） | 1/200（0.5%） |
+| Direct HTML | 98/200（49.0%） | 25/200（12.5%） | 77/200（38.5%） |
+| WebGen-Agent | 45/200（22.5%） | 36/200（18.0%） | 119/200（59.5%） |
+| Direct + HTMLCure（strict） | 40/200（20.0%） | 12/200（6.0%） | 148/200（74.0%） |
+| Direct-BrowserRepair（最多 1 次调用；无浏览器反馈） | 106/200（53.0%） | 25/200（12.5%） | 69/200（34.5%） |
+
+**结果直读：** AlgoTutorGen 的两个失败页面中，一个只失败一项，另一个失败两项。Direct HTML、WebGen-Agent、HTMLCure strict 和 BrowserRepair 1-call 分别有 77、119、148 和 69 个页面同时失败至少两项，因此 Machine OK 会低于任何单项通过数。
+
+### 0.3 更换生成模型后的最终结果
+
+本表只使用补跑完成后的最终结果。Direct 列是相同模型、相同 200 题上的冻结 Direct baseline。浏览器审计统一阻断外部资源，但两列不是相同模型调用次数或相同 token 预算。
+
+| 生成模型 | AlgoTutorGen 九项全部通过 | Direct 九项全部通过 | 通过率差值 | 95% 置信区间 | McNemar 配对检验 p 值 |
+| --- | --- | --- | --- | --- | --- |
+| DeepSeek-V4-Flash | 200/200（100.0%） | 118/200（59.0%） | +41.0 pp | [34.5,48.0] | `4.14e-25` |
+| GLM-5.2 | 196/200（98.0%） | 35/200（17.5%） | +80.5 pp | [75.0,86.0] | `2.81e-47` |
+| Kimi-K2.5 | 194/200（97.0%） | 87/200（43.5%） | +53.5 pp | [46.0,60.5] | `4.79e-30` |
+
+**指标注释：**
+
+- **通过率差值：** AlgoTutorGen 通过率减去 Direct 通过率；`pp` 表示“百分点”，不是相对百分比。
+- **95% 置信区间（95% CI）：** 对差值不确定范围的估计；本表三个区间都没有跨过 0。
+- **McNemar p：** 对同一批任务上的成对通过/失败结果做检验；p 值很小表示不一致任务明显偏向其中一方，但 p 值本身不表示差距有多大。
+
+**结果直读：** AlgoTutorGen 在 Flash、GLM 和 Kimi 上最终分别有 200、196 和 194 个页面通过 Machine OK，对应 Direct baseline 分别为 118、35 和 87 个。本文不再展示补跑前的固定预算结果。
+
+### 0.4 Held-out 新任务结果
+
+Held-out v1 包含 40 个未进入主实验的新任务，覆盖 15 个算法族。
+
+| 数据集 | AlgoTutorGen 生成通过（Generation pass） | AlgoTutorGen 九项全部通过 | Direct 生成通过 | Direct 九项全部通过 | Machine OK 差值 | 95% 置信区间 | McNemar p |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Held-out v1（40 题） | 39/40 | 39/40 | 40/40 | 18/40 | +52.5 pp | [37.5,67.5] | `9.54e-7` |
+
+**指标注释：**
+
+- **Generation pass：** 生成和物化阶段得到了有效 artifact；它不自动等于最终浏览器检查通过。
+- **Machine OK 差值：** 39/40 与 18/40 的通过率相差 52.5 个百分点。
+- **Held-out：** 这些任务没有进入主实验集合，但仍是一个固定的 40 题集合，不能代表全部开放域算法。
+
+**结果直读：** AlgoTutorGen 在 40 个新任务中有 39 个生成并通过完整浏览器检查，Direct 有 40 个生成成功、18 个通过完整检查。
+
+## 1. 指标与统计术语的通俗注释
+
+### 1.1 浏览器行为指标
+
+| 指标 | 通俗含义 | 不能直接推出什么 |
+| --- | --- | --- |
+| Load | 页面能打开，主要脚本和功能没有被错误阻断 | 不代表答案正确或交互完整 |
+| Answer | 页面可见最终答案与 `expected` 一致 | 不代表过程、反馈或按钮可用 |
+| Interaction | 学习者作答检查点可以找到并实际操作 | 不代表反馈、提示、显示答案或日志正确 |
+| Correct FB | 答对时给出正确方向的反馈 | 不评价反馈文字是否具有最佳教学质量 |
+| Wrong FB | 答错时给出正确方向的反馈 | 不代表提示或显示答案功能可用 |
+| Hint | 提示按钮能产生预期提示行为 | 不代表学生因此获得学习增益 |
+| Show | 显示答案按钮能正常工作 | 不评价学习效果 |
+| Log | 提交行为能进入学习日志 | 不代表日志内容适合长期学习分析 |
+| Mutation-free | 教学操作没有改写最终答案或算法事实 | 只覆盖已定义和已执行的操作检查 |
+| Machine OK | 上述九项全部通过 | 不是平均分，也不是视觉评分或真人学习效果 |
+
+### 1.2 成本与规模指标
+
+| 术语 | 通俗含义 | 读法 |
+| --- | --- | --- |
+| Generation pass | 生成和 materialization 阶段产生有效 artifact | 只说明生成链走通，不等于浏览器 Machine OK |
+| Materialization | 实际执行生成的 solver/tracker，并把结果变成可检查的语义轨迹和 artifact | 不是只检查文本格式 |
+| Self-contained | HTML 不依赖外部网络资源 | 不代表答案或交互正确 |
+| Fixed budget | 每题的候选数、修复轮数或调用上限固定 | 便于比较同一资源上限下的结果 |
+| Strict | 按全部合同直接判定，包括 self-contained 要求 | 引入外部资源也会导致失败 |
+| Blocked-external | 浏览器阻断外部请求后再测行为 | 只做敏感性分析，不会让文件本身变成 self-contained |
+| Artifact | 一次生成、执行和验证后保存的机器可读产物 | 它可以继续被编译、渲染和审计 |
+| Gate | 自动验收门，检查答案、轨迹、场景或浏览器合同 | 通过某一个 gate 不代表其他 gate 也通过 |
+| Held-out | 没有进入主实验生成集合的固定新任务 | 支持有限集合上的泛化检查，不等于开放域泛化 |
+| Stage1 / Stage2 | Stage1 负责可执行语义与固定 Runtime；Stage2 只增强展示层 | Stage2 结果不能替代 Stage1 correctness |
+| Fault injection | 人工向正常样本注入已定义错误，再看验证器能否拒绝 | 只覆盖注入的错误类型 |
+| LLM/VLM judge | 用语言模型或视觉语言模型按 rubric 给分或选 winner | 不是人工评审，也不进入算法 correctness gate |
+| 模型调用（calls） | 调用生成模型的总次数 | 越少通常表示模型调用开销越低 |
+| 总 tokens | 全部模型调用记录的 prompt 与 completion token 总量 | 不是货币成本；价格还取决于具体模型和计价 |
+| calls/task | 平均每题调用模型多少次 | 总调用数除以任务数 |
+| tokens/task | 平均每题消耗多少 token | `k` 表示千，例如 76.8k 约为 76,800 |
+| tokens/success | 全部任务总 token 除以成功任务数 | 包含失败尝试的消耗；越低通常越省 |
+| calls/success | 全部任务总调用数除以成功任务数 | 包含失败尝试；越低通常表示成功效率更高 |
+| Mean time to valid | 从开始到得到有效结果的平均时间 | 越低表示平均等待时间更短 |
+| Frames | 一个可视化页面包含的平均过程帧数 | 越多通常表示轨迹更长 |
+| HTML | 生成的单文件 HTML 平均体积 | 越大通常越影响传输和加载 |
+| Load time | 页面完成加载所需时间 | 越低越快 |
+| Step latency | 点击下一步等单次步进操作的响应延迟 | 越低越流畅 |
+| JS heap | 浏览器 JavaScript 堆内存占用 | 越低通常越省内存 |
+| N/A | 该指标不适用于该系统 | 不能当作失败或 0 分 |
+
+### 1.3 统计指标
+
+| 术语 | 通俗含义 | 读法 |
+| --- | --- | --- |
+| pp | 百分点 | 99% 与 49% 相差 50 pp |
+| 95% CI | 对差异可能范围的区间估计 | 差值区间不跨 0，表示观察到的方向较稳定 |
+| McNemar p | 同一任务上两个方法通过/失败的配对检验 | p 小表示不一致对明显偏向一方；不表示效应大小 |
+| Holm p | 对多次显著性检验做校正后的 p 值 | 用于降低多重比较造成的偶然显著 |
+| Rank-biserial | 配对等级效应量，范围约为 -1 到 1 | 正值偏向表中第一个方法；绝对值越大，方向性差异越强 |
+| Raw agreement | 两次评价直接给出相同 winner 的比例 | 越高表示排序越一致 |
+| Flip | 两次评价的 winner 发生改变的比例 | 越低表示排序越稳定 |
+| Cohen's kappa | 扣除随机一致后的评价者一致性 | 类别极不平衡时，可能与 raw agreement 看起来矛盾 |
+
+## 2. 最终数据集与比较方法
+
+### 2.1 最终数据规模与质量检查
+
+| 集合 | 任务数 | 具体样例数 | 算法族 | 主要用途 |
+| --- | --- | --- | --- | --- |
+| Full-200 主 benchmark | 200 | 200 个 sample index 0 | 23 | 任务级配对主实验 |
+| 完整 deterministic benchmark | 200 | 646 | 23 | 跨输入重放、release gate 和数据完整性检查 |
+| Held-out v1 | 40 | 40 个 sample index 0 | 15 | 固定新任务上的泛化检查 |
+
+主实验每个任务只使用一个 sample index 0，因此 200 行可以做任务级配对统计。646 个样例来自同一批 200 个任务，任务内样例彼此相关，不能当成 646 个独立新任务。
+
+| 最终数据质量检查 | 结果 | 通俗说明 |
+| --- | --- | --- |
+| Answer/process release gate | 646/646 | 每个具体样例的答案与基础过程检查均通过 |
+| Demo-ready | 200/200 | 每个任务都具备生成教学页面所需的完整字段 |
+| 教学字段完整性 | 200/200 | 学习目标、交互任务、常见误区、提示策略和 Stage2 brief 均已补齐 |
+| 题面与冻结字段检查 | 弱题面 0；locked-field error 0 | 最终题面均通过检查，测试输入、expected 和 oracle 等冻结字段未被误改 |
+
+### 2.2 比较方法与冻结口径
+
+| 方法 | 输入与起点 | 生成或修复方式 | 最终运行方式（Runtime） | 主表采用的冻结条件 |
+| --- | --- | --- | --- | --- |
+| **AlgoTutorGen（本文方法）** | 题目、输入、expected、可选策略 | LLM 生成可执行 spec；沙箱物化 SemanticTrace；经过结果、trace、过程连续性和 scene 门禁；再生成受限 teaching overlay | 确定性 SceneGraph compiler + 固定 Web Runtime | DeepSeek-V4-Pro 最终结果：generation 200/200、Machine OK 198/200 |
 | **Direct HTML** | 与本文方法相同的题目、输入和 expected | 一次自由生成完整 HTML/CSS/JavaScript；主条件没有浏览器反馈修复 | 模型自由生成 | 冻结 full-200 Direct baseline |
 | **WebGen-Agent** | 题目与页面要求 | 外部网页生成 agent 路径，多步生成网页 | agent 生成 | full-200 外部 baseline；统一离线浏览器审计 |
 | **Direct + HTMLCure** | Direct HTML 候选页 | HTMLCure 对页面进行修复并决定是否接受改写 | 修复后的自由 HTML | strict self-contained 条件；引入外部资源的页面按失败处理 |
-| **Direct-BrowserRepair pipeline** | Direct HTML 候选页 | 后续调用可读取通用浏览器反馈并整页重写 | 修复后的自由 HTML | 固定预算 1-call first-call control，因为它是该预算曲线的最佳结果；真正反馈重写从 call 2 开始 |
+| **Direct-BrowserRepair pipeline** | Direct HTML 候选页 | 后续调用可读取通用浏览器反馈并整页重写 | 修复后的自由 HTML | 独立固定预算实验；从 call 2 开始包含反馈重写 |
 
-Direct-to-SceneGraph、VerifiedTrace-to-LLM-HTML、no-repair、no-interaction 等是消融条件，不是完整方法，因此不放进这一方法表。
+**表格注释：**
 
-## 2. Full-200 主结果
+- **Runtime：** 最终在浏览器中负责显示和交互的运行代码。AlgoTutorGen 使用固定 Runtime，其余方法由模型或修复器生成自由 HTML。
+- **SemanticTrace：** 在沙箱中实际执行 solver/tracker 后得到的逐步算法状态记录。
+- **SceneGraph：** 从 SemanticTrace 确定性编译出的可视化场景数据，固定 Web Runtime 只消费这层数据。
+- **Gate：** 对答案、trace、过程连续性、scene 或浏览器行为执行的自动验收检查。
+- **Teaching overlay：** 只补充讲解和教学交互的受限层，不应修改答案或算法事实。
+- **冻结条件：** 主表实际采用的已保存实验条件，说明结果来自哪个预算和哪个最终候选。
 
-### 2.1 基础可靠性
+Direct-to-SceneGraph、VerifiedTrace-to-LLM-HTML、no-interaction 等是消融或派生条件，不是完整方法，因此不放进这一方法表。
 
-| 方法 | Load | Answer | Interaction | Machine OK |
-|---|---:|---:|---:|---:|
-| **AlgoTutorGen** | **200/200（100.0%）** | **200/200（100.0%）** | **200/200（100.0%）** | **198/200（99.0%）** |
-| Direct HTML | 188/200（94.0%） | **200/200（100.0%）** | 149/200（74.5%） | 98/200（49.0%） |
-| WebGen-Agent | 194/200（97.0%） | 169/200（84.5%） | 154/200（77.0%） | 45/200（22.5%） |
-| Direct + HTMLCure（strict） | 75/200（37.5%） | 75/200（37.5%） | 62/200（31.0%） | 40/200（20.0%） |
-| Direct-BrowserRepair（1-call first-call control） | 186/200（93.0%） | **200/200（100.0%）** | 155/200（77.5%） | 106/200（53.0%） |
+## 3. 修复策略与成本的直接结果
 
-### 2.2 教学交互行为
+### 3.1 模型调用与 token 使用量
 
-| 方法 | Correct FB | Wrong FB | Hint | Show | Log | Mutation-free |
-|---|---:|---:|---:|---:|---:|---:|
-| **AlgoTutorGen** | **199/200（99.5%）** | **198/200（99.0%）** | **200/200（100.0%）** | **200/200（100.0%）** | **200/200（100.0%）** | **200/200（100.0%）** |
-| Direct HTML | 120/200（60.0%） | 125/200（62.5%） | 132/200（66.0%） | 133/200（66.5%） | 135/200（67.5%） | 149/200（74.5%） |
-| WebGen-Agent | 74/200（37.0%） | 89/200（44.5%） | 136/200（68.0%） | 148/200（74.0%） | 109/200（54.5%） | 154/200（77.0%） |
-| Direct + HTMLCure（strict） | 52/200（26.0%） | 51/200（25.5%） | 53/200（26.5%） | 53/200（26.5%） | 59/200（29.5%） | 62/200（31.0%） |
-| Direct-BrowserRepair（1-call first-call control） | 128/200（64.0%） | 133/200（66.5%） | 137/200（68.5%） | 138/200（69.0%） | 143/200（71.5%） | 155/200（77.5%） |
+Stage1 与 Direct 页面生成成本：
 
-### 2.3 各方法主要损失在哪里
-
-- **AlgoTutorGen：** 200 个页面全部加载、显示正确答案并提供交互；最终 2 个失败都发生在反馈合同，完整通过为 198/200。优势不是“更会显示答案”，而是把答案、过程、界面和教学行为维持在同一条可验证链上。
-- **Direct HTML：** 200/200 都显示了正确答案，但 Load 降到 188、Interaction 降到 149，最终只有 98/200 同时满足九项合同。主要问题发生在浏览器程序和教学反馈的组合边界。
-- **WebGen-Agent：** Load 和 Interaction 分别为 194 与 154，但 Answer 只剩 169，Correct/Wrong Feedback 进一步降到 74/89，最终 Machine OK 为 45/200。多步 agent 生成没有自动消除答案、DOM 和反馈之间的耦合。
-- **HTMLCure：** strict 条件只有 40/200。126 个被接受的改写中有 125 个引入 Google Fonts，首先破坏了 self-contained 合同；即使阻断外部请求做敏感性分析，Machine OK 也只有 91/200。
-- **BrowserRepair pipeline：** 最佳固定预算是 1-call first-call control，Machine OK 为 106/200。它回溯到每题的初始生成页，而主 Direct 行使用主实验冻结页，两行不是逐页同一版本，因此不能把 106 对 98 解释成 repair gain。真正加入整页反馈重写后，2/3/5-call 分别降到 10、15、6；更多重写预算没有带来单调收益。
-
-AlgoTutorGen 相对 Direct HTML 的 Machine OK 高 50.0 个百分点，95% paired-bootstrap CI 为 `[43.0, 57.0]`。200 个配对任务中，101 个只有 AlgoTutorGen 通过，1 个只有 Direct 通过，exact McNemar `p=4.06e-29`。外部方法行用于补充方法背景；由于生成预算不同，不能把这张表解释为通用网页 agent 排名。
-
-## 3. 修复策略与成本
-
-### 3.1 AlgoTutorGen 用更多模型调用换取完整行为可靠性
-
-| 条件 | 模型调用 | 总 tokens | 平均 calls/task | 平均 tokens/task |
-|---|---:|---:|---:|---:|
-| AlgoTutorGen selected-final | 1,066 | 15,369,433 | 5.33 | 76.8k |
-| AlgoTutorGen 全部尝试与 retry | 1,151 | 16,870,557 | 5.76 | 84.4k |
+| 条件 | 模型调用总数 | token 总数 | 平均调用数/题（calls/task） | 平均 token/题（tokens/task） |
+| --- | --- | --- | --- | --- |
+| AlgoTutorGen 最终采用链路 | 1,066 | 15,369,433 | 5.33 | 76.8k |
 | Direct HTML | 222 | 4,385,641 | 1.11 | 21.9k |
 
-这些数字说明 AlgoTutorGen 用更高的生成、执行和验证成本换取更高的完整行为可靠性。实验没有冻结模型价格，因此不报告货币成本，也不能声称本文方法更便宜。
+其他生成与自动评价阶段：
 
-### 3.2 Direct-BrowserRepair 固定预算曲线
+| 阶段 | 模型调用总数 | token 总数 | 成本属于什么 |
+| --- | --- | --- | --- |
+| Stage2 最终采用链路 | 247 | 2,774,765 | 创意展示层最终页面生成 |
+| Stage2 strict scene-salience VLM | 200 | 492,701 | 辅助的真实场景显著性/算法可读性压力评价 |
+| 五方法统一教学与视觉盲评 | 1,001 | 3,565,397 | 999 个页面由 Gemini 评分，1 个页面按渲染失败最低分计入；另有 2 次格式重试 |
+| Completion-phase paired LLM reviews | 1,202 | 4,177,949 | 1,200 对教学消融与新增 judge 稳健性评价，另含 2 次格式重试 |
 
-| 固定调用上限 | Load | Answer | Interaction | Machine OK | 平均 tokens | 平均生成时间 |
-|---:|---:|---:|---:|---:|---:|---:|
+**指标注释：** 调用数表示实际请求模型的次数；token 表示模型输入和输出的计量单位。表中生成成本只统计最终采用链路；自动评价成本单独列出。由于没有冻结模型价格，不能从 token 直接换算统一货币成本。
+
+**结果直读：** AlgoTutorGen 最终采用链路平均每题使用 5.33 次调用和 76.8k tokens；Direct HTML 平均每题使用 1.11 次调用和 21.9k tokens。五方法统一教学与视觉评价覆盖 1,000 个页面，共产生 1,001 次模型调用，其中 2 次是格式重试。
+
+### 3.2 Direct-BrowserRepair 固定调用上限
+
+| 每题最多调用次数 | 页面加载 | 答案正确 | 交互可用 | 九项全部通过 | 平均 token/题 | 平均生成时间 |
+| --- | --- | --- | --- | --- | --- | --- |
 | 1 | 186/200 | 200/200 | 155/200 | **106/200** | 19.7k | 207.2 s |
 | 2 | 179/200 | 179/200 | 20/200 | 10/200 | 36.8k | 347.2 s |
 | 3 | 185/200 | 184/200 | 41/200 | 15/200 | 53.7k | 477.6 s |
 | 5 | 188/200 | 191/200 | 30/200 | 6/200 | 87.2k | 733.9 s |
 
-四行是独立 fixed-budget 条件，不是同一批页面的累计存活曲线。1-call 只使用冻结的初始生成页；2-call 才包含一次浏览器反馈重写。更多整页重写可能修复一个问题，同时破坏已经成立的答案、交互或反馈合同。
+**指标注释：** “每题最多调用次数”是独立的 fixed-budget 条件，不是同一页面逐轮累计后的存活数。1-call 只使用单次生成页；从 2-call 开始才包含浏览器反馈后的整页重写。平均生成时间以秒（s）计，越低表示平均等待越短。
+
+**结果直读：** 四个预算中，1-call 的 Machine OK 最高，为 106/200；2、3、5-call 分别为 10/200、15/200 和 6/200。调用上限增加时，平均 token 和平均生成时间均增加。
+
+修正资源解析后，四个预算共 1,000 个尝试均满足 self-contained 检查。该结果说明本实验中的自由整页反馈重写没有随预算单调改善，不能外推成所有 browser-repair 方法的普遍规律。
 
 ### 3.3 HTMLCure 的 strict 与 blocked-external 口径
 
-HTMLCure full-200 共生成 269 个候选，接受 126 个改写。strict 条件要求文件本身不依赖外部资源，Machine OK 为 40/200。将外部请求在浏览器中阻断后，行为敏感性结果为 91/200，McNemar `p=0.118`，仍未超过 Direct 的 98/200。blocked 条件不会让文件本身变成 self-contained，因此只作为敏感性分析。
+HTMLCure full-200 共生成 269 个候选，接受 126 个改写。strict 条件要求文件本身不依赖外部资源，Machine OK 从 Direct 的 98/200 降到 40/200；配对中 fail→pass 为 1，pass→fail 为 59，exact McNemar `p=1.06e-16`。126 个接受改写中有 125 个引入 Google Fonts。下表是在浏览器中阻断外部请求后的敏感性结果。
 
-| Blocked-external 指标 | Direct HTML | HTMLCure |
-|---|---:|---:|
-| Load | 188/200 | 200/200 |
-| Answer | 200/200 | 200/200 |
-| Interaction | 149/200 | 148/200 |
-| Correct feedback | 120/200 | 112/200 |
-| Wrong feedback | 125/200 | 120/200 |
-| Hint | 132/200 | 129/200 |
-| Show answer | 133/200 | 130/200 |
-| Learning log | 135/200 | 136/200 |
-| Machine OK | 98/200 | 91/200 |
+| 阻断外部请求后的指标 | Direct HTML | HTMLCure |
+| --- | --- | --- |
+| 页面加载（Load） | 188/200 | 200/200 |
+| 答案正确（Answer） | 200/200 | 200/200 |
+| 交互可用（Interaction） | 149/200 | 148/200 |
+| 正确回答反馈 | 120/200 | 112/200 |
+| 错误回答反馈 | 125/200 | 120/200 |
+| 提示可用 | 132/200 | 129/200 |
+| 显示答案可用 | 133/200 | 130/200 |
+| 学习日志可用 | 135/200 | 136/200 |
+| 教学操作不改算法状态（Mutation-free） | 149/200 | 148/200 |
+| 九项全部通过（Machine OK） | 98/200 | 91/200 |
 
-### 3.4 Local Resume 没有显著优于 Global Restart
+**指标注释：** `strict` 检查文件本身是否 self-contained；`blocked-external` 只是运行时阻断网络请求，再观察页面行为。blocked 条件不会把依赖外部资源的文件变成 self-contained，因此只能作为敏感性分析。
 
-当前 Local Resume 只保留 solution spec；repair 后仍重新执行 materialization，并重新生成 teaching，因此还不是完整 checkpoint recovery。
+**结果直读：** blocked-external 条件下，HTMLCure 的 Load 为 200/200、Machine OK 为 91/200；Direct 对应为 188/200 和 98/200。两者 Machine OK 的 McNemar `p=0.118`。
 
-| 模型 | 策略 | Success | Tokens/success | Calls/success | Mean time to valid | McNemar p |
-|---|---|---:|---:|---:|---:|---:|
-| Flash | Local Resume | 38/50 | 71,369 | 6.63 | 172.9 s | 0.4545 |
-| Flash | Global Restart | 42/50 | 62,256 | 5.50 | 194.2 s | 0.4545 |
-| GLM | Local Resume | 42/50 | 92,385 | 6.69 | 533.8 s | 1.0000 |
-| GLM | Global Restart | 43/50 | 96,186 | 6.65 | 558.2 s | 1.0000 |
+## 4. 其他稳健性、泛化与规模结果
 
-Flash 上 Global 的成功数和 token/success 数值更好；GLM 上 Local 稍省 token 和时间，但少成功一题。两组成功率差异都不显著。系统已经实现语义解耦和验证解耦，但还没有实现完整的计算恢复解耦。
+跨模型和 held-out 结果已经前置到第 0.3、0.4 节。本节保留同题换输入和长轨迹规模数据。
 
-## 4. 稳健性、泛化与规模边界
+### 4.1 同一任务更换输入
 
-### 4.1 同一任务换输入：626/646
+| 输入范围 | 结构化重放通过数 | 通过率 | 数据说明 |
+| --- | --- | --- | --- |
+| 主实验 sample index 0 | 200/200 | 100.00% | 每题的主输入 |
+| 额外输入 | 426/446 | 95.52% | 同一批任务的其他具体输入 |
+| 全部样例 | 626/646 | 96.90% | 主输入与额外输入合计 |
 
-冻结主实验的 solver/tracker 后，在全部 646 个样例上重放，626/646 通过（96.90%）。sample 0 为 200/200，额外输入为 426/446。20 个失败来自 solve/trace 边界、expected 归一化、target 引用以及空或断连输入。
+**指标注释：** 这里的“通过”表示冻结主实验的 solver/tracker/scene 链在新输入上结构化重放成功，不是浏览器 Machine OK。646 行来自同一批 200 个任务，任务内样例彼此相关，不能当作 646 个独立且均衡的新任务。
 
-646 行具有 case 内相关性，不能当成 646 个独立平衡任务与主表合并。这一结果说明结构化系统可以暴露额外输入上的错误，但没有消除生成代码的输入泛化问题。
+**结果直读：** 主输入通过 200/200，额外输入通过 426/446，合计通过 626/646。20 个失败来自 solve/trace 边界、expected 归一化、target 引用以及空或断连输入。
 
-### 4.2 更换生成模型：架构差距仍为正
+### 4.2 长轨迹规模
 
-下表统一使用 2 candidates × 2 repairs 的 fixed budget。
-
-| 模型 | AlgoTutorGen Machine OK | Direct Machine OK | 差值 | 95% CI | McNemar p |
-|---|---:|---:|---:|---:|---:|
-| DeepSeek-V4-Flash | 196/200（98.0%） | 118/200（59.0%） | +39.0 pp | [32.0,46.0] | `1.02e-20` |
-| GLM-5.2 | 170/200（85.0%） | 35/200（17.5%） | +67.5 pp | [60.0,74.5] | `1.48e-34` |
-| Kimi-K2.5 | 160/200（80.0%） | 87/200（43.5%） | +36.5 pp | [27.5,45.0] | `1.87e-13` |
-
-三种模型的差值都为正且配对显著，但 AlgoTutorGen 的绝对成功率从 98% 降到 80%。固定 Runtime 没有让上游模型能力变得无关。Failure-only 3×3 retry 后，Flash、GLM、Kimi 的 final-quality Machine OK 分别为 200/200、196/200、194/200；这些数字不能替代统一预算主表。
-
-### 4.3 Held-out 新任务：39/40 对 18/40
-
-Held-out v1 冻结 40 个新任务、15 个算法族。AlgoTutorGen generation 和 Machine OK 均为 39/40；Direct generation 为 40/40，Machine OK 为 18/40。差值为 +52.5 pp，95% CI `[37.5,67.5]`，McNemar `p=9.54e-7`。
-
-唯一 Stage1 失败 `heldout_bipartite_matching_size` 被严格 teaching-feedback warning 拒绝。后续 targeted retry 补齐的第 40 个 artifact 只用于表示保持和非干扰审计；原始 held-out 生成结果仍然是 39/40。这支持有限冻结集合上的泛化，不支持开放域算法的普遍成功率主张。
-
-### 4.4 长轨迹：逐帧完整状态复制不能无界扩展
-
-| Scale | 平均 frames | 平均 HTML | Load | Step latency | JS heap |
-|---|---:|---:|---:|---:|---:|
+| 规模（Scale） | 平均过程帧数（frames） | 平均 HTML 体积 | 平均加载时间 | 单步操作延迟 | JS 堆内存 |
+| --- | --- | --- | --- | --- | --- |
 | Small | 104.4 | 1.40 MB | 120 ms | 14.7 ms | 6.3 MB |
 | Medium | 543.3 | 23.25 MB | 1,933 ms | 45.4 ms | 59.1 MB |
 | Large | 1,636.7 | 160.42 MB | 8,354 ms | 101.3 ms | 185.6 MB |
 
-54/54 个样本完成 materialization，52/54 完成浏览器测量。KMP large 为 3,063 frames、581 MB；sliding-window unique large 为 5,533 frames、1.08 GB，两者都超过 60 秒加载预算。后续需要 frame virtualization、增量状态或压缩表示。
+**指标注释：** `frames` 是页面保存的算法过程状态数；HTML 体积以 MB 计；平均加载时间和单步延迟以毫秒（ms）计；JS heap 是浏览器 JavaScript 堆内存。除 frames 外，其余四项通常越低越好。每个规模各有 18 个样本：frames 和 HTML 平均值使用全部 18 个；Small、Medium 的浏览器指标各测得 18 个，Large 的加载、延迟和内存指标来自成功测量的 16 个样本。
 
-## 5. 为什么完整分解链有效
+**结果直读：** 从 Small 到 Large，平均帧数、HTML 体积、加载时间、步进延迟和内存占用均增加。54/54 个样本完成 materialization，52/54 完成浏览器测量。KMP large 为 3,063 frames、581 MB；sliding-window unique large 为 5,533 frames、1.08 GB，两者都超过 60 秒加载预算。
 
-### 5.1 约束是逐层存活的
+## 5. 消融、组件必要性与验证器故障实验
 
-依次要求 C1 答案、C2 加载、C3 交互、C4 双向反馈、C5 hint/show/log、C6 mutation-free 后，累计存活率如下：
+### 5.1 Full-200 功能消融
 
-| 方法 | C1 Answer | C2 Load | C3 Interaction | C4 Feedback | C5 Teaching support | C6 Noninterference |
-|---|---:|---:|---:|---:|---:|---:|
-| AlgoTutorGen | 100.0% | 100.0% | 100.0% | 99.0% | 99.0% | 99.0% |
-| Direct HTML | 100.0% | 94.0% | 74.5% | 54.0% | 49.0% | 49.0% |
+| 条件 | 九项全部通过（Machine OK） | 页面加载 | 答案正确 | 交互可用 | 条件说明 |
+| --- | --- | --- | --- | --- | --- |
+| Full | 198/200 | 200/200 | 200/200 | 200/200 | 完整系统 |
+| No teaching | 198/200 | 200/200 | 200/200 | 200/200 | 删除教学讲解，保留机器功能合同 |
+| No interaction | 0/200 | 200/200 | 200/200 | 0/200 | 删除学生作答和反馈交互 |
+| No teaching + interaction | 0/200 | 200/200 | 200/200 | 0/200 | 同时删除教学讲解与交互 |
+| No SceneGraph compiler | 0/200 | 200/200 | 100/200 | 0/200 | 跳过确定性 SceneGraph compiler，只保留退化 trace 展示 |
 
-Direct 的损失不是一次发生，而是在 Load、Interaction 和 Feedback 等组合边界逐层累积。AlgoTutorGen 在交互之前保持 100%，只在反馈处损失两个页面，之后不再继续坍塌。这是 constraint entanglement 的直接行为证据。
+**指标注释：** 每一行都继续按同一九项浏览器合同计算。No interaction 的 0/200 表示完整合同要求交互而该条件没有交互，不表示加载和答案也为 0。`No teaching` 与 Full 的 Machine OK 相同，是因为 Machine OK 不评价讲解文字质量。
 
-### 5.2 两个非退化消融排除简单解释
+**结果直读：** 删除教学文本不改变 Machine OK；移除交互或 SceneGraph compiler 后，完整合同降为 0/200。
 
-| 50 题条件 | Full | Ablation | 说明 |
-|---|---:|---:|---|
-| Direct-to-SceneGraph | 49/50 | 1/50 | 固定 Runtime 没有可执行 trace 与验证仍然不够 |
-| VerifiedTrace-to-LLM-HTML | 49/50 | 0/50 | 正确 trace 接自由 HTML 仍然无法维持完整教学行为 |
+### 5.2 教学质量消融
 
-Direct-to-SceneGraph 保留固定 Runtime，但让 LLM 跳过可执行语义轨迹直接写 SceneGraph。VerifiedTrace-to-LLM-HTML 提供正确 SemanticTrace，却让 LLM 自由生成最终 HTML，虽然 50/50 都显示答案，Machine OK 仍为 0/50。可靠性来自完整 refinement chain，而不是某一个单独模块。
+该实验使用匿名 LLM judge 比较完整系统与三个教学/交互消融版本，每个比较均为同一批 200 对页面。
 
-### 5.3 分解后的边界经过独立审计
+| 比较 | Full wins | Full overall | 消融 overall | Teaching-effectiveness 差值 | Holm 校正 p |
+| --- | --- | --- | --- | --- | --- |
+| Full vs No teaching | 200/200 | 4.941 | 2.200 | +3.285 | `4.95e-35` |
+| Full vs No interaction | 200/200 | 4.984 | 1.224 | +3.910 | `5.89e-41` |
+| Full vs No teaching + interaction | 200/200 | 4.994 | 1.196 | +3.960 | `1.41e-42` |
 
-| 被检查的性质 | 观察结果 | 最强可支持解释 |
-|---|---:|---|
-| Trace→Scene→Runtime 投影 | 294/294 artifacts，55,108/55,108 帧一致 | 已评估表示之间保持 canonical algorithm state |
-| 确定性重编译/重渲染 | 20 artifacts × 10 次，每个只有一个 projection/render hash | 测试环境中结果稳定 |
-| 定义的语义违规 | 2,198/2,198 被拒绝 | gate 识别 mutation suite 中定义的错误 |
-| 定义的语义保持变换 | 392/392 被接受 | 教学文字、视觉 metadata 和等价重排没有被误拒绝 |
-| 教学非干扰压力测试 | 240/240 页面，1,561,298 次动作，0 个观察到的违规 | 有限随机序列中未找到教学污染算法状态的反例 |
+**指标注释：** `overall` 和 `Teaching-effectiveness` 是 1–5 分的 LLM-judge 代理评分；三项 Teaching-effectiveness 比较的 matched-pairs rank-biserial 均为 1.0。它们说明代理评价明显偏向完整教学版本，不是真人学习效果。
 
-55,108 帧由主集合 9,421 帧、补齐审计用 held-out 集合 4,568 帧和 long-trace 集合 41,119 帧组成。这个结果支持 representation-level preservation，不证明源 trace 的每一步都符合独立算法语义，也不是像素级形式验证。392 个被接受的保持变换包括 195 个教学文字重写、195 个 visual metadata 修改和 2 个无序结果等价重排。mutation 结果只说明定义的 mutation suite 被完整区分，不是 universal validator soundness/completeness。
+### 5.3 非退化表示消融
 
-教学隔离实验还对 Flash 主集合的 372 个 SceneGraph variants 应用了原始、简洁、详细和随机合法 overlay，state hash 全部保持。非法 `final_answer`/`state` 写入被清洗；negative step 被 schema 拒绝；跨模型 GLM overlay 映射到 369 个场景后也全部保持 state hash。
+| 50 题条件 | 完整系统（Full） | 消融版本（Ablation） | 直接说明 |
+| --- | --- | --- | --- |
+| Direct-to-SceneGraph | 49/50 | 1/50 | 保留固定 Runtime，但让模型直接产出 SceneGraph，跳过可执行 trace 与验证 |
+| VerifiedTrace-to-LLM-HTML | 49/50 | 0/50 | 提供正确 trace，但最终仍由模型自由生成 HTML；50/50 页面显示正确答案 |
 
-浏览器随后在 main 200 与 held-out 40 共 240 个页面上运行 24,000 个随机动作序列，包括 435,859 个纯教学动作和 1,125,439 个导航/variant 动作。正确表述是“没有在有限 property-based 压力测试中找到反例”，不是“形式化证明永远 noninterfering”。
+**指标注释：** 表内数值是 Machine OK。0/50 不等于 0/50 显示错误答案；它表示没有页面同时满足全部九项浏览器合同。Direct-to-SceneGraph 的配对差为 +96 pp，95% CI `[90,100]`，McNemar `p=7.11e-15`。
 
-### 5.4 Full-200 功能消融与 fault injection
+**结果直读：** 只有固定 Runtime 或只有正确 trace 都不足以得到完整可靠页面；完整的 trace—scene—runtime refinement chain 才通过 49/50。
 
-| 条件 | Machine OK | 解释 |
-|---|---:|---|
-| Full | 198/200 | 完整系统 |
-| No repair | 193/200 | 5 个 primary 失败没有被救回 |
-| No teaching | 198/200 | Machine OK 不评价讲解文字质量 |
-| No interaction | 0/200 | 学习交互合同消失 |
-| No teaching + interaction | 0/200 | 同样发生功能坍塌 |
-| No SceneGraph compiler | 0/200 | trace-only fallback 无完整编译行为 |
+### 5.4 Fault injection
 
-fault injection 修复前接受 200/200 clean controls、拒绝 1,843/2,400 故障；补充顺序和引用完整性检查后仍接受 200/200 clean controls，并拒绝 2,246/2,400（93.58%）。单事件删除仍有 152/200 被接受，因为部分事件在当前合同下可以冗余。
+最终 validator 接受 200/200 个 clean controls，并拒绝 2,246/2,400 个注入故障（93.58%）。
 
-## 6. 教学与视觉指标是辅助证据
+| 注入故障类型 | 被拒绝 |
+| --- | --- |
+| Wrong solve result | 200/200 |
+| Wrong trace result | 200/200 |
+| Wrong trace input | 200/200 |
+| Empty trace events | 200/200 |
+| Wrong trace state | 200/200 |
+| Wrong interaction answer | 200/200 |
+| Missing trace target | 200/200 |
+| Empty SceneGraph objects | 200/200 |
+| Wrong expected result | 198/200 |
+| Deleted trace event | 48/200 |
+| Reordered trace events | 200/200 |
+| Missing SceneGraph reference | 200/200 |
 
-功能可靠不自动意味着讲解质量更高。以下指标用于补充教学和展示质量，不属于 Machine OK，也不构成真人学习效果证据。
+**指标注释：** `clean controls` 是未注入错误的正常 artifact；每个故障类型注入 200 次。单事件删除只有 48/200 被拒绝，是因为被删除的 explain、mark 或重复事件在当前语义合同下可能冗余。
 
-### 6.1 教学代理指标
+**与第 6.5 节的口径区别：** 本节使用全部 2,400 个注入样本。第 6.5 节排除 200 个语义不确定的 `trace_event_deleted` 样本，并把 2 个无序结果等价重排归入 semantics-preserving，因此语义违规分母为 2,198。两个分母不能混用。
 
-| 指标 | AlgoTutorGen | Direct HTML | 含义边界 |
-|---|---:|---:|---|
-| Naps engagement（0–5） | 1.990 | 1.480 | 可观察参与层级，不是学习增益 |
-| TRAKLA2-style core pass | 0.990 | 0.495 | 七项自动练习行为的合取，不是官方认证 |
-| LORI/MERLOT-informed overall（1–5） | 4.886 | 3.403 | 匿名 LLM judge 的学习资源代理评分 |
-| 匿名配对 winner | 193 | 6 | 另有 1 个 tie |
+## 6. 理论定向实验
 
-Judge 稳健性矩阵中，DeepSeek 顺序交换 winner agreement 为 95.5%，Gemini 为 97.5%，两个模型 frozen-order agreement 为 93.0%。winner 高度集中时 kappa 会受 prevalence effect 影响，因此 raw agreement 与 kappa 必须同时报告。
+本章集中整理 `plan/plan1.md` 对应的理论定向实验。理论公式由数学推导成立；下面的实验只检查定理假设在当前实现中是否近似成立、实现是否出现反例，以及理论模型能否解释实测结果。
 
-### 6.2 Stage2 Creative Visual
+### 6.1 理论主张与实验对应关系
 
-Stage2 只增强展示层，算法 correctness 仍由 Stage1 负责。`creative-ok` 表示页面通过浏览器 smoke 和严格布局审计，不表示算法答案正确或视觉上一定更受偏好。repair 后 200/200 页面 creative-ok，1,494 个审计帧最终 overlap、clipped 和 text occlusion 均为 0。
+| 理论主张 | 实验检查什么 | 直接结果 | 当前结论 |
+| --- | --- | --- | --- |
+| 定理 1：理想阶段局部恢复成本不高于全局重启 | 当前实现保留 solution spec 的 Local Resume 是否优于丢弃 spec 的 Global Restart | Flash 38/50 vs 42/50；GLM 42/50 vs 43/50，均无显著 Local 优势 | 当前实现不是完整 checkpoint recovery，理论关键前提不成立 |
+| 定理 2：局部表示契约可以组合保持算法状态 | Trace、SceneGraph、Runtime 的 canonical state 是否逐帧一致 | 294/294 artifacts、55,108/55,108 frames 一致 | 支持已评估表示上的 preservation，不证明源 trace 的独立算法正确性 |
+| 定理 3：教学状态不应污染算法事实状态 | 合法/非法 overlay 与随机教学动作是否改变算法状态 | 372 个主集合 variants、369 个跨模型 scenes 状态保持；1,561,298 次动作中 0 个观察违规 | 有限测试未找到反例，不等于形式证明 |
+| 命题 4：嵌套合同联合存活率等于条件存活率乘积 | C1—C6 的累计和条件存活率在哪一层下降 | AlgoTutorGen 下游存活接近 1；Direct、WebGen、BrowserRepair 等在交互和反馈层继续下降 | 支持“约束纠缠发生在多个义务共享一个自由页面状态”的诊断 |
+| 配套审计：契约应拒绝语义错误但接受无害变化 | semantic violations 与 semantics-preserving transformations 能否被区分 | 2,198/2,198 违规被拒绝，392/392 保持变换被接受 | 只覆盖定义的 mutation suite，不是 universal validator 证明 |
 
-| 视觉维度 | Stage2 | Direct | Holm p | Rank-biserial |
-|---|---:|---:|---:|---:|
-| 题面—视觉贴合 | 4.835 | 4.825 | 0.856 | -0.032 |
-| 算法状态可读性 | 4.385 | 4.505 | 0.059 | -0.236 |
-| 过程变化清晰度 | 4.320 | 4.400 | 0.326 | -0.146 |
-| 教学视觉设计 | 4.905 | 4.655 | `1.56e-5` | 0.624 |
+### 6.2 Local Resume vs Global Restart：负结果
 
-Holm 校正后只有“教学视觉设计”显著。Direct 在单截图的算法状态可读性和过程变化清晰度上数值略高，因此不能声称 Stage2 在所有视觉维度全面优于 Direct。
+两种策略使用同一组 50 个分层任务、同一模型、结构化输出空间、validator 和每题最多 3 次 policy decision。Local 保留当前 solution spec 并调用 repair；Global 丢弃 spec 后重新 generation。两者都会重新执行 materialization 和 teaching。
 
-## 7. 结论与主张边界
+#### 6.2.1 端到端结果与恢复成功率
 
-整组实验支持以下结论：
+| 模型 | 策略 | 最终成功 | Token/成功页 | Calls/成功页 | 平均 time-to-valid |
+| --- | --- | --- | --- | --- | --- |
+| DeepSeek-V4-Flash | Local Resume | 38/50（76.0%） | 71,369 | 6.63 | 172.9 s |
+| DeepSeek-V4-Flash | Global Restart | 42/50（84.0%） | 62,256 | 5.50 | 194.2 s |
+| GLM-5.2 | Local Resume | 42/50（84.0%） | 92,385 | 6.69 | 533.8 s |
+| GLM-5.2 | Global Restart | 43/50（86.0%） | 96,186 | 6.65 | 558.2 s |
 
-1. **正确答案是弱指标。** AlgoTutorGen、Direct 和 BrowserRepair 1-call first-call control 都能在 200/200 页面显示 expected，但 Machine OK 分别为 198、98 和 106。
-2. **自由 HTML 的主要损失发生在组合行为。** Direct、WebGen-Agent、HTMLCure 和 BrowserRepair 都在加载、交互或双向反馈处继续丢失。
-3. **完整 refinement chain 才是关键。** 正确 trace、固定 Runtime 或更多整页重写预算中的任一单项都不足。
-4. **分解边界可以被执行审计。** 已评估帧保持状态投影，定义的 mutation suite 能区分错误与无害变化，教学压力测试没有找到污染反例。
-5. **可靠性差距具有有限稳健性。** 跨模型和 held-out 结果保持正差，但绝对成功率仍受模型、输入和预算影响。
-6. **可靠性不是免费的。** AlgoTutorGen 使用更多模型调用和 tokens；长轨迹会造成 HTML 与内存膨胀；Local Resume 尚未实现理想 checkpoint recovery。
+**指标注释：** `Success` 是在预算内生成有效 Stage1 artifact，不是浏览器 Machine OK。`Token/成功页` 和 `Calls/成功页` 把最终失败任务的消耗也计入分子；`time-to-valid` 只在成功任务上统计首次得到有效 artifact 的时间。
 
-当前证据不支持以下表述：提高学生成绩、保持率或迁移能力；对任意算法全过程的形式化正确性证明；validator 对全部错误 universal soundness/completeness；Stage2 在全部视觉维度显著优于 Direct；100% first-try success；把 646 个样例视为独立平衡任务；把 40 个 held-out case 外推到开放域；或者声称 AlgoTutorGen 比 Direct 更便宜。
+#### 6.2.2 配对成功分布
 
-## 8. 详细查阅表
+| 模型 | 两者均成功 | 仅 Local 成功 | 仅 Global 成功 | 两者均失败 | Local−Global | McNemar exact p |
+| --- | --- | --- | --- | --- | --- | --- |
+| DeepSeek-V4-Flash | 32 | 6 | 10 | 2 | -8.0 pp | 0.4545 |
+| GLM-5.2 | 37 | 5 | 6 | 2 | -2.0 pp | 1.0000 |
 
-### 8.1 指标与统计术语
+**结果直读：** Flash 上 Global 多成功 4 题，GLM 上 Global 多成功 1 题；两组配对检验都没有发现显著的 Local 成功率优势。p 值不显著不能解释为两策略严格等价。
 
-| 术语 | 含义 | 读法 |
-|---|---|---|
-| Generation pass | 生成/materialization 阶段产生有效 artifact | 不等于最终浏览器 Machine OK |
-| Machine OK | 九项浏览器检查全部通过 | 是合取，不是平均分 |
-| Self-contained | HTML 不依赖外部网络资源 | 不代表答案或交互正确 |
-| Primary | 所有方法共享的固定预算条件 | 用于公平主比较 |
-| Selected-final / final-quality | 允许候选和 retry 后最终采用的 artifact | 不能冒充 first-try 结果 |
-| pp | 百分点 | 99% 与 49% 相差 50 pp |
-| 95% CI | 差异的区间估计 | 差值 CI 不跨 0 表示方向较稳定 |
-| McNemar p | 同一任务上两个方法通过/失败的配对检验 | p 小表示不一致对明显偏向一方，不代表效应大小 |
-| Holm p | 多重比较校正后的 p 值 | 降低多次检验带来的偶然显著 |
-| Rank-biserial | 配对等级效应量，约 -1 到 1 | 正值偏向表中第一个方法，绝对值越大差异越强 |
-| Raw agreement / flip | 两次 judge 的 winner 一致率/改变率 | agreement 高且 flip 低表示排序较稳 |
-| Cohen's kappa | 扣除随机一致后的评价者一致性 | 类别不平衡时可能与 raw agreement 看起来矛盾 |
-| Creative OK | 浏览器可运行且严格布局审计通过 | 不检查算法答案，也不等于主观视觉偏好 |
-| N/A | 指标对该系统不适用 | 不能当作失败或 0 分 |
+#### 6.2.3 Token 成本分解
 
-### 8.2 外部方法补充说明
+| 模型 | 策略 | Spec generation/repair token/成功页 | Teaching token/成功页 | 总 token/成功页 |
+| --- | --- | --- | --- | --- |
+| Flash | Local | 25,031 | 46,338 | 71,369 |
+| Flash | Global | 25,781 | 36,476 | 62,256 |
+| GLM | Local | 37,342 | 55,043 | 92,385 |
+| GLM | Global | 47,462 | 48,724 | 96,186 |
 
-- **WebGen-Agent：** 200/200 generation，Machine OK 45/200；family core 为 11/62，expansion 为 34/138。`tarjan_scc` 两次审计超时，保守计为失败。
-- **HTMLCure：** strict 结果见主表；blocked-external 结果只用于敏感性分析。
-- **EduVisAgent：** 冻结公开实现输出教学计划和逐 section UI-plan 文本，不输出可审计网页。按六个教学部分估算，200 题约需 7,600 次模型调用，但九项浏览器指标未定义，因此只作为相关工作，不进入数值主表。
-- **传统系统 exact-overlap：** Algorithm Visualizer N=3、Python Tutor N=2、LeetCode Solution Visualizer N=2 在各自支持范围内通过步骤导航、状态和终态检查，但依赖人工模板、在线服务或 adapter。unsupported case 与 tutoring-specific 指标为 N/A，不能记为失败。
+Local 在两个模型上都降低了 spec generation/repair 成本，但 repair 后重新 materialize 并重新调用 teaching。Flash 的 teaching 重算超过了 spec 节省量；GLM 的 spec 节省较大，所以总 token 略低，但成功率仍少 1 题。
 
-### 8.3 跨模型 final-quality 与候选预算
+#### 6.2.4 有限预算理论拟合
 
-| 模型 | Primary generation | Primary Machine OK | Final generation | Final Machine OK | Direct Machine OK |
-|---|---:|---:|---:|---:|---:|
-| Flash | 196/200 | 196/200 | 200/200 | 200/200 | 118/200 |
-| GLM | 172/200 | 170/200 | 198/200 | 196/200 | 35/200 |
-| Kimi | 160/200 | 160/200 | 195/200 | 194/200 | 87/200 |
+该拟合用同一批运行估计首轮/恢复概率和平均成本，是 in-sample explanatory fit，不是独立预测集。
 
-Primary 第一候选通过 451/600，第二候选额外救回 77 个，最终 generation 为 528/600。按 selected round 的观测下界，无修复为 315/600，至多一次修复为 447/600，至多两次修复为 528/600。推荐保留 2×2 作为公平主预算，3×3 只用于 failure-only final-quality。
+| 模型 | 策略 | 预测成功率 | 实测成功率 | 绝对误差 | Token/成功页相对误差 |
+| --- | --- | --- | --- | --- | --- |
+| Flash | Local | 76.89% | 76.00% | 0.89 pp | 0.26% |
+| Flash | Global | 85.72% | 84.00% | 1.72 pp | <0.01% |
+| GLM | Local | 83.15% | 84.00% | 0.85 pp | 0.23% |
+| GLM | Global | 87.06% | 86.00% | 1.06 pp | <0.01% |
 
-### 8.4 Judge 稳健性
+**理论边界：** 该负结果不否定理想 stage-local recovery 定理，而是说明当前实现违反“成功阶段可 checkpoint、失败只重试当前阶段、下游已验证工作不重算”的关键前提。
 
-| Judge / order | AlgoTutorGen wins | Direct wins | Ties |
-|---|---:|---:|---:|
-| DeepSeek frozen | 193 | 6 | 1 |
-| DeepSeek swapped | 194 | 4 | 2 |
-| Gemini frozen | 191 | 9 | 0 |
-| Gemini swapped | 190 | 10 | 0 |
+### 6.3 Trace→Scene→Runtime 语义保持与确定性
 
-DeepSeek 顺序交换 agreement 95.5%、flip 4.5%、kappa 0.289；Gemini 为 97.5%、2.5%、0.724；两个模型 frozen-order winner agreement 为 93.0%、kappa 0.092。
+统一投影比较 `trace.events[t].state → scene.frames[t].state → runtime frame().state`。布局坐标、CSS 和教学文字不进入 canonical algorithm state。
 
-### 8.5 人工数据状态
+| 数据集 | Artifact 全帧通过 | 等价 frames | Frame equivalence |
+| --- | --- | --- | --- |
+| Main 200 | 200/200 | 9,421/9,421 | 100.0% |
+| Held-out representation audit set | 40/40 | 4,568/4,568 | 100.0% |
+| Long-trace 54 | 54/54 | 41,119/41,119 | 100.0% |
+| **总计** | **294/294** | **55,108/55,108** | **100.0%** |
 
-| 项目 | 规模 | 状态 |
-|---|---:|---|
-| Machine evaluator calibration | 30 tasks × 4 methods = 120 blind pages | `pending_human_labels` |
-| Independent trace audit | 40 tasks、23 families、双人审核 | `pending_human_labels` |
-| Expert study | 3 experts × 30 blind pairs | `pending_human_data` |
-| Student study | 24 students × 12 trials | `pending_human_data` |
+20 个分层普通 artifact 分别重新编译和渲染 10 次；每个 artifact 只有一个 render hash，每个 compiled variant 只有一个 projection hash。
 
-`pending_human_labels` 表示材料和分析脚本已准备，但没有真实标注；`pending_human_data` 表示协议已准备，但没有真实参与者。现阶段不能报告 evaluator precision/recall、trace critical-error rate、专家偏好、SUS 或学习结果。
+**指标注释：** `Artifact 全帧通过` 表示该 artifact 的每一帧都通过状态投影比较。Held-out representation audit 使用 40 个可审计 artifact；第 0.4 节的 held-out 生成实验仍按其冻结口径报告 39/40。
 
-协议见 `docs/31_HUMAN_EXPERT_REVIEW_PROTOCOL.md` 和 `docs/32_STUDENT_USER_STUDY_PROTOCOL.md`。
+**解释边界：** 结果支持已评估 artifact 上的表示级语义保持和测试环境确定性，不证明 source trace 的每一步都符合独立算法语义，也不是像素级形式验证。
 
-## 9. 原始证据与复现索引
+### 6.4 Nested contract survival
 
-### 9.1 数据与统一审计
+合同层级固定为：C1 答案正确；C2 在 C1 基础上页面加载；C3 再要求交互可达；C4 再要求正确与错误双向反馈；C5 再要求 hint、show-answer 和 learning log；C6 最后要求教学操作不干扰算法状态。
 
-- Benchmark：`benchmark/README.md`
-- Main benchmark artifact：`output/experiments/algotutorgen_full_200_20260706/`
-- Final completion audit：`output/experiments/algotutorgen_plan_completion_20260713/final_completion_audit.json`
-- 论文数字账本：`latex/evidence-ledger.md`
+#### 6.4.1 累计存活率
 
-### 9.2 主方法行为结果
+累计存活率表示从 C1 开始一直满足到当前层的页面比例。
 
-- AlgoTutorGen / Direct HTML：`output/experiments/algotutorgen_full_200_20260706/semantic_eval_machine/interaction_semantic_eval_report.json`
-- WebGen-Agent：`output/external_baselines/webgen/audit_all200_sample0/report.json`
-- HTMLCure strict：`output/external_baselines/htmlcure_all200_sample0/behavior_audit/interaction_semantic_eval_report.json`
-- HTMLCure blocked：`output/external_baselines/htmlcure_all200_sample0/behavior_audit_external_blocked/interaction_semantic_eval_report.json`
-- HTMLCure paired analysis：`output/external_baselines/htmlcure_all200_sample0/htmlcure_full200_analysis.json`
-- Direct-BrowserRepair：`output/experiments/algotutorgen_plan_completion_20260713/direct_browser_repair_5/`
+| 方法/条件 | C1 | C2 | C3 | C4 | C5 | C6 |
+| --- | --- | --- | --- | --- | --- | --- |
+| AlgoTutorGen main | 100.0% | 100.0% | 100.0% | 99.0% | 99.0% | 99.0% |
+| Direct HTML main | 100.0% | 94.0% | 74.5% | 54.0% | 49.0% | 49.0% |
+| AlgoTutorGen Flash final | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% |
+| Direct Flash | 99.0% | 95.0% | 81.0% | 65.5% | 59.0% | 59.0% |
+| AlgoTutorGen GLM final | 99.0% | 99.0% | 99.0% | 98.0% | 98.0% | 98.0% |
+| Direct GLM | 100.0% | 91.0% | 53.0% | 38.0% | 17.5% | 17.5% |
+| AlgoTutorGen Kimi final | 97.5% | 97.5% | 97.5% | 97.0% | 97.0% | 97.0% |
+| Direct Kimi | 99.5% | 95.0% | 68.0% | 52.5% | 43.5% | 43.5% |
+| WebGen-Agent | 84.5% | 84.5% | 67.5% | 27.5% | 22.5% | 22.5% |
+| Direct-BrowserRepair-5 | 95.5% | 92.5% | 14.0% | 6.0% | 3.0% | 3.0% |
+| HTMLCure blocked-external | 100.0% | 100.0% | 74.0% | 49.5% | 45.5% | 45.5% |
 
-### 9.3 教学、视觉和统计
+#### 6.4.2 条件存活率
 
-- 外部评价方法：`output/experiments/algotutorgen_full_200_20260706/external_eval_methods/external_eval_methods_report.json`
-- Stage2：`output/experiments/algotutorgen_full_200_20260706/stage2_eval/stage2_visual_eval_report.json`
-- 配对统计：`output/experiments/algotutorgen_completion_20260713/statistics/`
-- Judge robustness：`output/experiments/algotutorgen_completion_20260713/judge_robustness/judge_robustness_report.json`
+条件存活率 `α_i` 的分母是已经通过上一层全部合同的页面。例如 `α4` 表示已经通过答案、加载和交互的页面中，还有多少同时通过双向反馈。
 
-### 9.4 消融、稳健性和 fault injection
+| 方法/条件 | α1 | α2 | α3 | α4 | α5 | α6 |
+| --- | --- | --- | --- | --- | --- | --- |
+| AlgoTutorGen main | 100.0% | 100.0% | 100.0% | 99.0% | 100.0% | 100.0% |
+| Direct HTML main | 100.0% | 94.0% | 79.3% | 72.5% | 90.7% | 100.0% |
+| AlgoTutorGen Flash final | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% |
+| Direct Flash | 99.0% | 96.0% | 85.3% | 80.9% | 90.1% | 100.0% |
+| AlgoTutorGen GLM final | 99.0% | 100.0% | 100.0% | 99.0% | 100.0% | 100.0% |
+| Direct GLM | 100.0% | 91.0% | 58.2% | 71.7% | 46.1% | 100.0% |
+| AlgoTutorGen Kimi final | 97.5% | 100.0% | 100.0% | 99.5% | 100.0% | 100.0% |
+| Direct Kimi | 99.5% | 95.5% | 71.6% | 77.2% | 82.9% | 100.0% |
+| WebGen-Agent | 84.5% | 100.0% | 79.9% | 40.7% | 81.8% | 100.0% |
+| Direct-BrowserRepair-5 | 95.5% | 96.9% | 15.1% | 42.9% | 50.0% | 100.0% |
+| HTMLCure blocked-external | 100.0% | 100.0% | 74.0% | 66.9% | 91.9% | 100.0% |
 
-- Completion summary：`output/experiments/algotutorgen_completion_20260713/completion_summary.json`
-- Browser ablations：`output/experiments/algotutorgen_completion_20260713/ablation_audits/`
-- Teaching pair reviews：`output/experiments/algotutorgen_completion_20260713/ablation_pair_reviews/`
-- Cross-input replay：`output/experiments/algotutorgen_completion_20260713/cross_input_replay/cross_input_replay_report.json`
-- Post-fix fault rerun：`output/experiments/algotutorgen_plan_completion_20260713/validator_fault_rerun/`
-- 非退化消融：`output/experiments/algotutorgen_plan_completion_20260713/nondegenerate_ablations/`
-- Multi-model summary：`output/experiments/algotutorgen_multimodel_full200_20260713/multimodel_summary.json`
-- Held-out：`output/experiments/algotutorgen_plan_completion_20260713/heldout_40/`
-- Long-trace：`output/experiments/algotutorgen_plan_completion_20260713/long_trace_scalability/long_trace_scalability_report.json`
+**结果直读：** AlgoTutorGen 的主要损失发生在最前面的 generation/answer 或极少数双向反馈边界；自由 HTML、agent 和 repair 条件在加载、交互与双向反馈处继续丢失。多数方法的 `α6=100%` 只表示已经通过 C5 的页面没有在当前 mutation-free 检查上继续下降，不表示全部页面通过。
 
-### 9.5 理论定向实验
+**理论边界：** 联合存活率等于条件存活率乘积是概率链式法则，不依赖各合同独立。实验贡献是定位损失边界，而不是提出新的概率定理。
 
-- 汇总目录：`output/experiments/theory_aligned_20260714/`
-- Semantic preservation：`output/experiments/theory_aligned_20260714/semantic_preservation_report.json`
-- Semantic mutation：`output/experiments/theory_aligned_20260714/semantic_mutation_report.json`
-- Nested contract：`output/experiments/theory_aligned_20260714/nested_contract_survival_report.json`
-- Overlay：`output/experiments/theory_aligned_20260714/cross_model_overlay_report.json`
-- Noninterference：`output/experiments/theory_aligned_20260714/noninterference_stress_report.json`
-- Retry Flash：`output/experiments/theory_aligned_20260714/retry_flash/local_vs_global_retry_report.json`
-- Retry GLM：`output/experiments/theory_aligned_20260714/retry_glm/local_vs_global_retry_report.json`
+### 6.5 Semantic mutation 契约辨别力
 
-### 9.6 Prompt、协议与论文
+| 变换类别 | 期望 | 直接结果 |
+| --- | --- | --- |
+| 定义的 semantic violations | Reject | 2,198/2,198 |
+| Teaching-text rewrites | Accept | 195/195 |
+| Visual-metadata changes | Accept | 195/195 |
+| Equivalent unordered-result reorderings | Accept | 2/2 |
+| **Semantics-preserving total** | **Accept** | **392/392** |
 
-- 完整 Prompt：`docs/20_ALGOTUTORGEN_PROMPT_APPENDIX.md`
-- 实验设计：`docs/16_ALGOTUTORGEN_EXPERIMENT_DESIGN.md`
-- 指标协议：`docs/14_AAAI_EXPERIMENT_METRICS_AND_PROTOCOL.md`
-- 人工协议：`docs/31_HUMAN_EXPERT_REVIEW_PROTOCOL.md`、`docs/32_STUDENT_USER_STUDY_PROTOCOL.md`
-- 论文主文：`latex/main.tex`
-- 补充材料：`latex/supplement.tex`
+第 5.4 节全部注入样本中的 `trace_event_deleted` 不直接视为真实语义破坏，因为被删除事件可能是冗余 explain/mark。两个原本像 `expected_result_wrong` 的接受样例来自无序集合式结果重排，经 case-aware oracle 判定语义等价后归为 preserving。
 
-本文档是 `docs/` 中唯一人工维护的实验结果总览。数字冲突时，优先使用 `output/` 的冻结机器结果，其次使用 `latex/evidence-ledger.md`；历史计划和设计稿只用于追溯。
+**解释边界：** 结果说明 validator 完整区分了本实验定义的有限 mutation suite，不代表对所有未来错误 universal soundness 或 completeness。
+
+### 6.6 Teaching overlay 隔离与跨模型复用
+
+| Overlay 条件 | 规模 | 直接结果 |
+| --- | --- | --- |
+| 冻结 overlay 重放 | 372 个 SceneGraph variants | 372/372 state hash 保持 |
+| Concise 合法 overlay | 372 | 372/372 保持 |
+| Detailed 合法 overlay | 372 | 372/372 保持 |
+| Schema-valid random-text overlay | 372 | 372/372 保持 |
+| 非法 `final_answer` / `state` 写入 | 372 | 372/372 被 sanitizer 清洗，state hash 保持 |
+| Negative step | 372 | 372/372 schema reject |
+| Nonexistent step | 372 | 372/372 contract warn/reject |
+| GLM cross-model overlay | 369 个可映射 scenes | 369/369 state hash 保持；169 完整应用，200 因 step 集差异部分应用 |
+
+**指标注释：** `state hash` 是 canonical algorithm state 的摘要。hash 保持表示教学文字和教学交互没有改写受保护算法事实；`step not found` 表示两模型 trace 的步骤集合不同，不是状态污染。非法字段结果是 sanitization，不应写成所有未知字段都由 schema 直接拒绝。
+
+### 6.7 Pedagogical noninterference property-based stress
+
+| 覆盖量 | 结果 |
+| --- | --- |
+| 唯一页面 | 240（main 200 + held-out audit 40） |
+| 随机动作序列 | 24,000 |
+| 总动作 | 1,561,298 |
+| 纯教学动作 | 435,859 |
+| 导航/variant 动作 | 1,125,439 |
+| 页面通过 | 240/240 |
+| Overlay artifacts 通过 | 240/240 |
+| 观察到的状态污染违规 | 0 |
+
+每页执行 100 条、每条 30–100 个动作的随机序列。纯教学动作要求 artifact hash、当前算法 state hash 和 step 均不变；导航与 variant 切换允许当前帧变化，但必须落到目标 verified frame，并保持完整 artifact hash 不变。
+
+**结果直读：** 在 1,561,298 次浏览器动作中没有找到教学状态污染算法事实状态的反例。
+
+**解释边界：** 这是大规模反例搜索，不是对全部未来浏览器执行的形式化 noninterference 证明。
+
+## 7. 教学与视觉辅助指标
+
+本节使用五种方法各自冻结的 Full-200 最终页面。Naps 和 TRAKLA2-style 由最终 HTML 与浏览器审计直接计算；教学与视觉分数由 `gemini-3-flash-preview` 在隐藏方法名称后按同一 rubric 评价。它们都是自动代理指标，不属于 Machine OK，也不构成真人学习效果证据。
+
+**指标首次说明：**
+
+- **Naps engagement（0–5）：** 自动判断页面支持的学习者参与层级：0 不可观看、1 观看、2 作答并获得双向反馈、3 修改输入并重跑、4 自己构造、5 展示或同伴分享。它不是页面质量分，也不是真实学生投入度。
+- **TRAKLA2-style（0–7）：** 检查页面运行、答案可见、操作可达、双向反馈、显示答案、学习日志和教学操作不改算法状态七项；`Core pass` 表示七项全部通过。它不是 TRAKLA2 官方认证，也不包含 Hint。
+- **教学 Overall（1–5）：** 内容质量、学习目标对齐、反馈适应、交互易用、展示设计、教学有效性和易用性七维均值。
+- **视觉 Overall（1–5）：** 题面—视觉贴合、算法状态可读性、过程变化清晰度和教学视觉设计四维均值。
+- **全维度 ≥3：** 同一页面的全部教学七维或视觉四维都不低于 3 分；它比只看平均分更严格。
+
+### 7.1 五方法核心教学与视觉结果
+
+| 方法 | Naps 均值（0–5） | TRAKLA2 Core pass | 教学 Overall（1–5） | 教学全维度 ≥3 | 视觉 Overall（1–5） | 视觉全维度 ≥3 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **AlgoTutorGen / Stage2** | **1.990** | **198/200** | **4.856** | **198/200** | **4.755** | **199/200** |
+| Direct HTML | 1.480 | 99/200 | 4.203 | 110/200 | 4.561 | 186/200 |
+| WebGen-Agent | 1.415 | 47/200 | 3.969 | 76/200 | 4.441 | 177/200 |
+| Direct + HTMLCure（strict） | 0.590 | 40/200 | 3.147 | 44/200 | 4.300 | 163/200 |
+| Direct-BrowserRepair（1-call） | 1.510 | 107/200 | 4.297 | 118/200 | 4.670 | 191/200 |
+
+**结果直读：** AlgoTutorGen / Stage2 在本节六个汇总指标上均为最高。BrowserRepair 1-call 的教学和视觉代理分高于主 Direct，但两者不是逐题同一冻结页面，不能把差值直接解释为一次 repair 的因果收益。
+
+### 7.2 教学代理指标明细
+
+#### 7.2.1 Naps 与 TRAKLA2-style 自动行为
+
+Naps 的层级数量按 `0 / 1 / 2 / 3 / 4 / 5` 顺序列出，即“不可观看 / 观看 / 作答 / 修改 / 构造 / 展示”。
+
+| 方法 | Naps 层级数量（0/1/2/3/4/5） | Naps 均值 | TRAKLA2 Core pass | TRAKLA2 平均满足项（0–7） |
+| --- | --- | --- | --- | --- |
+| **AlgoTutorGen / Stage2** | 0 / 2 / 198 / 0 / 0 / 0 | **1.990** | **198/200（99.0%）** | **6.990** |
+| Direct HTML | 12 / 80 / 108 / 0 / 0 / 0 | 1.480 | 99/200（49.5%） | 5.310 |
+| WebGen-Agent | 6 / 118 / 63 / 13 / 0 / 0 | 1.415 | 47/200（23.5%） | 4.965 |
+| Direct + HTMLCure（strict） | 125 / 32 / 43 / 0 / 0 / 0 | 0.590 | 40/200（20.0%） | 2.145 |
+| Direct-BrowserRepair（1-call） | 14 / 70 / 116 / 0 / 0 / 0 | 1.510 | 107/200（53.5%） | 5.465 |
+
+**结果直读：** WebGen-Agent 有 13 个页面达到“修改输入并重跑”层级，但双向反馈和完整自动练习组件通过数较低；AlgoTutorGen 的 198 个页面达到“作答并获得双向反馈”，且同样有 198 个页面通过 TRAKLA2-style 七项检查。
+
+#### 7.2.2 LORI/MERLOT-informed 教学盲评
+
+下表所有分数均为 1–5 分，越高表示代理评价越正面。`评分覆盖` 中的“VLM”表示截图由 Gemini 评分；“失败最低分”表示页面自身无法完成渲染，未修复 baseline，而是将全部维度按 1 分计入 200 页分母。
+
+| 方法 | 评分覆盖 | Overall | 内容质量 | 目标对齐 | 反馈适应 | 交互易用 | 展示设计 | 教学有效性 | 易用性 | 全七维 ≥3 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **AlgoTutorGen / Stage2** | 200 VLM | **4.856** | **4.945** | **4.900** | **4.960** | **4.975** | 4.385 | **4.935** | **4.895** | **198/200** |
+| Direct HTML | 200 VLM | 4.203 | 4.720 | 4.605 | 3.300 | 3.885 | 4.460 | 4.180 | 4.270 | 110/200 |
+| WebGen-Agent | 199 VLM + 1 失败最低分 | 3.969 | 4.600 | 4.685 | 2.660 | 3.560 | 4.425 | 3.805 | 4.050 | 76/200 |
+| Direct + HTMLCure（strict） | 200 VLM | 3.147 | 4.100 | 4.180 | 1.930 | 2.160 | 4.300 | 2.990 | 2.370 | 44/200 |
+| Direct-BrowserRepair（1-call） | 200 VLM | 4.297 | 4.795 | 4.685 | 3.435 | 3.985 | **4.490** | 4.370 | 4.320 | 118/200 |
+
+**指标注释：** 浏览器行为证据用于反馈、交互和功能判断，截图用于内容呈现与展示设计；方法名称不进入评分提示。WebGen-Agent 的 `tarjan_scc` 页面自身出现渲染死循环，按七个教学维度均为 1 分计入，而不是删除该失败页或修复后重评。
+
+### 7.3 五方法同 rubric 视觉盲评
+
+| 方法 | 评分覆盖 | Overall | 题面—视觉贴合 | 算法状态可读性 | 过程变化清晰度 | 教学视觉设计 | 全四维 ≥3 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **AlgoTutorGen / Stage2** | 200 VLM | **4.755** | **4.640** | 4.670 | **4.915** | **4.795** | **199/200** |
+| Direct HTML | 200 VLM | 4.561 | 4.455 | 4.605 | 4.660 | 4.525 | 186/200 |
+| WebGen-Agent | 199 VLM + 1 失败最低分 | 4.441 | 4.500 | 4.645 | 4.150 | 4.470 | 177/200 |
+| Direct + HTMLCure（strict） | 200 VLM | 4.300 | 4.350 | 4.445 | 4.050 | 4.355 | 163/200 |
+| Direct-BrowserRepair（1-call） | 200 VLM | 4.670 | 4.590 | **4.725** | 4.730 | 4.635 | 191/200 |
+
+**结果直读：** AlgoTutorGen / Stage2 的视觉 Overall、题面贴合、过程变化和教学视觉设计均值最高；BrowserRepair 1-call 的算法状态可读性均值最高。这里报告的是自动视觉代理评分，不是人工审美或学习效果结论。
+
+### 7.4 Stage2 单独展示层检查
+
+Stage2 只增强展示层，算法 correctness 仍由 Stage1 负责。下面两组结果只描述 AlgoTutorGen 的 Stage2 页面，不用于替代上面的五方法同口径比较。
+
+#### 7.4.1 浏览器与布局机器审计
+
+| 最终检查 | 直接结果 | 说明 |
+| --- | --- | --- |
+| Creative OK | 200/200 | 最终页面均同时通过 Stage2 浏览器与严格布局条件 |
+| Browser smoke | 200/200 | 最终页面均可在浏览器运行 |
+| Strict layout audit | 200/200 | 最终页面均通过严格布局检查 |
+| 实际审计帧 | 1,494 | 平均约 7.47 帧/页面 |
+| 非许可重叠 / 裁切 / 文字遮挡 | 0 / 0 / 0 | 最终页面上的三类布局错误计数 |
+
+**指标注释：** `Creative OK` 表示页面同时满足 Stage2 浏览器与严格布局条件；`Browser smoke` 检查页面可运行；严格布局审计检查非许可 overlap、clipped 和 text occlusion。它们都不检查算法答案，也不等于人工审美偏好。
+
+#### 7.4.2 辅助 strict scene-salience 压力审计
+
+这是一套比第 7.3 节更窄、更严格的辅助 rubric，要求页面具有清晰的真实场景映射；抽象算法页面即使算法状态可读，也可能在该指标上失败。
+
+| 辅助 VLM 指标 | 直接结果 | 平均分或构成 |
+| --- | --- | --- |
+| 有效响应 | 200/200 | 0 个调用失败 |
+| Strict scenario salience 通过 | 51/200 | 平均 2.645；通过阈值 3.5 |
+| Algorithm readability 通过 | 193/200 | 平均 4.235；通过阈值 3.0 |
+| 算法状态可见 | 196/200 | 4 个页面未识别到可见算法状态 |
+| Generic / non-generic visual | 107 / 93 | 107 个被判为通用算法图，93 个具有非通用场景视觉 |
+
+**结果直读：** 严格真实场景显著性只有 51/200，而算法可读性为 193/200。这说明 Stage2 更稳定地呈现了算法状态，但并非每个抽象算法都获得了强现实场景隐喻；因此该指标保留为辅助压力测试，不替代第 7.3 节的五方法四维比较。
+
+## 8. 外部方法、跨模型明细与 Judge 稳健性
+
+### 8.1 外部方法补充
+
+| 方法 | 可直接报告的结果 | 指标适用范围与说明 |
+| --- | --- | --- |
+| WebGen-Agent | 200/200 generation，Machine OK 45/200 | `tarjan_scc` 审计超时，保守计为失败 |
+| HTMLCure | strict Machine OK 40/200；blocked-external Machine OK 91/200 | blocked-external 只做敏感性分析 |
+| EduVisAgent | 冻结公开实现输出教学计划和逐 section UI-plan 文本；按六个教学部分估算，200 题约需 7,600 次模型调用 | 不输出可统一审计的网页，九项浏览器指标未定义，因此不进入数值主表 |
+| 传统系统 exact-overlap | Algorithm Visualizer N=3、Python Tutor N=2、LeetCode Solution Visualizer N=2；在各自支持范围内通过步骤导航、状态和终态检查 | 依赖人工模板、在线服务或 adapter；unsupported case 与 tutoring-specific 指标为 N/A，不能记为失败 |
+
+**指标注释：** `N` 是传统系统实际存在可比支持的任务数量，不是完整 200 题分母。
+
+传统系统 exact-overlap 的能力检查如下。各系统只在确实存在精确支持的少量任务上测试，因此不能把不同分母直接用于排名。
+
+| 系统与实际支持范围 | Load | Forward | Back/reset | Play/run | State | Code sync | Final | Input control | External-free |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Algorithm Visualizer，固定样例 N=3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 0/3 | 0/3 |
+| Python Tutor，精确 sample-0 N=2 | 2/2 | 2/2 | 2/2 | N/A | 2/2 | 2/2 | 2/2 | 2/2 | 0/2 |
+| LeetCode Solution Visualizer，适配后 N=2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 0/2 |
+
+**边界说明：** 预测判分、双向反馈、hint、show-answer 和 learning log 对这些系统没有统一定义，记为 N/A 而不是失败。候选审计共登记 11 个系统；除已执行的 WebGen-Agent 和 HTMLCure 外，没有新系统同时满足任意任务输入、可运行浏览器 artifact、无人值守 Full-200 和同一九项合同。
+
+### 8.2 跨模型最终结果明细
+
+| 模型 | AlgoTutorGen 最终 generation | AlgoTutorGen 最终 Machine OK | Direct generation | Direct Machine OK |
+| --- | --- | --- | --- | --- |
+| DeepSeek-V4-Flash | 200/200（100.0%） | 200/200（100.0%） | 198/200 | 118/200（59.0%） |
+| GLM-5.2 | 198/200（99.0%） | 196/200（98.0%） | 200/200 | 35/200（17.5%） |
+| Kimi-K2.5 | 195/200（97.5%） | 194/200（97.0%） | 200/200 | 87/200（43.5%） |
+
+**指标注释：** `generation` 表示生成和物化得到有效 artifact；`Machine OK` 表示九项浏览器行为全部通过。表中只保留补跑完成后的最终数据，不展示补跑前结果。Direct 使用相同模型和任务，但调用次数和 token 预算不同。
+
+以下是最终结果的九项机器指标，所有数值均以 200 为分母：
+
+| 模型 / 方法 | Load | Answer | Interaction | Correct FB | Wrong FB | Hint | Show | Log | Mutation-free | Machine OK |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Flash / AlgoTutorGen | 200 | 200 | 200 | 200 | 200 | 200 | 200 | 200 | 200 | 200 |
+| Flash / Direct | 190 | 198 | 164 | 142 | 146 | 153 | 154 | 145 | 164 | 118 |
+| GLM / AlgoTutorGen | 198 | 198 | 198 | 196 | 196 | 198 | 198 | 198 | 198 | 196 |
+| GLM / Direct | 182 | 200 | 107 | 82 | 88 | 60 | 88 | 80 | 107 | 35 |
+| Kimi / AlgoTutorGen | 195 | 195 | 195 | 194 | 194 | 195 | 195 | 195 | 195 | 194 |
+| Kimi / Direct | 190 | 199 | 137 | 119 | 111 | 125 | 117 | 125 | 137 | 87 |
+
+最终 Machine OK 的任务级配对分布：
+
+| 模型 | 仅 AlgoTutorGen 通过 | 仅 Direct 通过 | 两者都通过 | 两者都失败 |
+| --- | --- | --- | --- | --- |
+| Flash | 82 | 0 | 118 | 0 |
+| GLM | 162 | 1 | 34 | 3 |
+| Kimi | 109 | 2 | 85 | 4 |
+
+### 8.3 Judge 稳健性
+
+每一行都对同一批 200 对页面进行匿名模型评价。
+
+| Judge 与展示顺序 | AlgoTutorGen wins | Direct wins | Ties |
+| --- | --- | --- | --- |
+| DeepSeek-V4-Pro frozen | 193 | 6 | 1 |
+| DeepSeek-V4-Pro swapped | 194 | 4 | 2 |
+| gemini-3-flash-preview frozen | 191 | 9 | 0 |
+| gemini-3-flash-preview swapped | 190 | 10 | 0 |
+
+**指标注释：** `frozen` 使用原始展示顺序，`swapped` 交换两种方法的左右或先后顺序；`wins` 是文本 LLM judge 根据结构化页面证据选为更好页面的次数，`ties` 是平局次数。这里的 Gemini 不使用第 7.3 节的截图 VLM 口径。这是模型评价稳健性，不是人工评审一致性或 judge 正确性。
+
+**结果直读：** DeepSeek 顺序交换的 winner agreement 为 95.5%、flip 为 4.5%、kappa 为 0.289；Gemini 分别为 97.5%、2.5%、0.724；两个模型 frozen-order winner agreement 为 93.0%、kappa 为 0.092。
+
+## 9. 结果与主张边界
+
+最终结果支持以下结论：AlgoTutorGen 在 Full-200、三种替代生成模型和 held-out 集合上都保持较高的完整行为通过率；正确答案本身不足以代表页面可靠，主要差异出现在交互、双向反馈和状态隔离；完整的 trace—scene—runtime 链比单独保留正确 trace 或固定 Runtime 更可靠。理论定向实验还表明，当前实现保持了已评估表示的状态投影，并在有限 mutation suite 和 1,561,298 次随机动作中未发现状态污染反例。
+
+当前结果不能外推为学生学习效果、任意算法的形式化正确性、validator 的 universal soundness/completeness、开放域泛化或更低成本。五方法视觉表是自动代理评分，不能表述为人工审美结论；BrowserRepair 1-call 的算法状态可读性均值也高于 Stage2。人工校准、专家评审和学生实验尚未完成，因此本文不报告相应结果。

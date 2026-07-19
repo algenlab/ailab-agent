@@ -1,152 +1,29 @@
-"""Compatibility entry point for split benchmark regression tests."""
+"""Lightweight compatibility entry point for current regression checks.
+
+Historically this module aggregated every benchmark-era regression.  The active
+project direction now keeps daily checks focused on the teaching/interaction
+contract and leaves large benchmark sweeps to explicit experiment scripts.
+"""
 
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
+from collections.abc import Callable, Iterator
 
-from tests.regression.helpers import benchmark_coverage_artifact, materialize_case, spec_for_case
-from tests.regression.trace_contracts import *
-from tests.regression.object_resolver import *
-from tests.regression.typed_tracer_table import *
-from tests.regression.dsl_p0_p2_primitives import *
-from tests.regression.scene_edge_binding import *
-from tests.regression.graph_repair_guidance import *
-from tests.regression.data_structure_repair_guidance import *
-from tests.regression.failure_attribution import *
-from tests.regression.evaluation_metric_semantics import *
-from tests.regression.r7_residual_repair_guidance import *
-from tests.regression.phase13_families import *
-from tests.regression.benchmark_metadata import *
-from tests.regression.reports_and_gates import *
+from tests.regression import teaching_enricher
 
-def run_all():
-    test_shared_resolver_handles_basic_state_shapes()
-    test_table_helper_generates_valid_cell_refs_and_state()
-    test_table_helper_rejects_missing_cell_before_trace_validation()
-    test_dsl_map_counter_emit_valid_map_targets_and_scene_objects()
-    test_dsl_array_swap_and_range_highlight_use_existing_slice_targets()
-    test_dsl_range_structures_reuse_existing_range_visual_state_shapes()
-    test_dsl_flow_network_and_intervals_reuse_renderer_state_shapes()
-    test_phase13_long_files_are_split_without_changing_public_contracts()
-    test_phase12_dp_trace_contract_accepts_representative_subfamilies()
-    test_phase12_dp_trace_contract_rejects_missing_deps_init_answer_and_key_updates()
-    test_phase12_graph_trace_contract_accepts_representative_submodes()
-    test_phase12_graph_trace_contract_rejects_submode_process_errors()
-    test_phase12_family_trace_contract_accepts_string_tree_backtracking_and_structures()
-    test_phase12_family_trace_contract_rejects_missing_process_evidence()
-    test_r2_string_contract_accepts_submode_specific_structures()
-    test_r2_string_contract_rejects_submode_specific_missing_or_wrong_evidence()
-    test_graph_state_edge_generates_neighbor_node_for_binding()
-    test_linked_list_state_edge_generates_endpoint_nodes_for_binding()
-    test_bipartite_graph_state_edge_generates_right_side_node_for_binding()
-    test_missing_state_node_reference_still_warns()
-    test_weighted_graph_input_generates_endpoint_nodes_for_binding()
-    test_r4_dijkstra_repair_guidance_requires_relax_fields()
-    test_r4_kruskal_repair_guidance_requires_union_find_details()
-    test_r4_tarjan_repair_guidance_requires_component_pop_evidence()
-    test_r4_edmonds_karp_repair_guidance_requires_flow_update_evidence()
-    test_r5_dp_demo_key_step_guidance_requires_key_set_evidence()
-    test_r5_dp_answer_position_guidance_requires_answer_target_reference()
-    test_r5_complete_knapsack_guidance_requires_canonical_min_transition()
-    test_r5_complete_knapsack_guidance_requires_formula_on_every_dp_set()
-    test_r5_state_compression_guidance_requires_formula_and_expected_targets()
-    test_r5_trie_prefix_count_guidance_distinguishes_query_from_insert_count()
-    test_r5_trie_guidance_rejects_loose_count_index_targets()
-    test_r5_monotonic_stack_guidance_requires_answer_write_after_pop()
-    test_r5_monotonic_stack_guidance_requires_popped_and_current_deps()
-    test_r5_backtracking_guidance_requires_choose_record_undo_ops()
-    test_r5_backtracking_guidance_requires_recursion_tree_and_record_event()
-    test_r5_backtracking_demo_guidance_requires_enter_and_exit_frames()
-    test_r5_backtracking_guidance_rejects_answer_expected_event_token()
-    test_r5_sparse_table_guidance_requires_st_cell_set_events()
-    test_r5_sparse_table_guidance_requires_correct_min_values()
-    test_r6_classifies_failures_into_fixed_root_cause_enum()
-    test_r6_classifies_live_full_report_failure_shapes_without_overgeneralizing_generation()
-    test_r6_analyze_report_writes_json_markdown_and_csv_outputs()
-    test_r6_cli_accepts_report_and_output_dir_arguments()
-    test_r7_runtime_api_guidance_forbids_to_trace_result_and_private_add_stage()
-    test_r7_array_pointer_guidance_requires_submode_key_updates_and_compare_deps()
-    test_r7_binary_search_guidance_requires_closed_interval_template_without_state_jump()
-    test_r7_binary_answer_guidance_requires_initialization_phase_and_compare_before_every_move()
-    test_r7_dp_knapsack_guidance_requires_loop_keys_deps_and_direction()
-    test_r7_bounded_knapsack_guidance_allows_incremental_candidate_but_requires_final_max()
-    test_r7_string_sliding_window_guidance_uses_single_text_window_contract()
-    test_r7_tree_and_heap_residual_guidance_requires_current_node_and_heap_invariants()
-    test_r7_trace_size_guidance_focuses_on_single_event_state_budget()
-    test_r7_data_structure_guidance_covers_trie_linked_heap_union_find_and_range()
-    test_r7_scene_and_range_guidance_handles_trie_node_none_and_segment_tree_mark_evidence()
-    test_r7_scene_guidance_requires_state_struct_for_every_node_ref()
-    test_r7_trie_guidance_requires_char_target_or_state_for_each_path_step()
-    test_r7_range_contract_guidance_and_validator_recognize_update_event()
-    test_r7_invalid_target_guidance_rewrites_input_and_result_index_targets()
-    test_r7_linked_list_guidance_requires_next_prev_in_node_meta_and_state()
-    test_r7_linked_list_execution_guidance_initializes_next_node_name()
-    test_r7_family_contract_accepts_union_find_family_instead_of_unsupported()
-    test_r7_family_contract_accepts_data_structure_range_contract_instead_of_unsupported()
-    test_phase13_array_pointer_validator_rejects_process_errors_and_tracks_samples()
-    test_phase13_dp_validator_expands_family_core_samples_and_rejects_digit_dp_errors()
-    test_phase13_graph_validator_expands_core_shortest_mst_samples_and_rejects_process_errors()
-    test_phase13_string_validator_expands_core_samples_and_rejects_process_errors()
-    test_phase13_tree_backtracking_trie_heap_validator_expands_samples_and_rejects_process_errors()
-    test_phase13_hash_sorting_linked_list_greedy_validator_upgrades_profiles_and_rejects_process_errors()
-    test_phase13_math_geometry_range_advanced_graph_validator_upgrades_geometry_and_preserves_profiles()
-    test_phase13_process_registry_covers_all_benchmark_families()
-    test_benchmark_cases_are_multi_input_release_ready()
-    test_benchmark_cases_expose_phase10_metadata()
-    test_benchmark_cases_expose_phase11_oracle_metadata_and_independent_examples()
-    test_contract_tests_block_bad_solve()
-    test_llm_benchmark_request_uses_problem_and_expected()
-    test_llm_benchmark_sample_selection_and_failure_classification(Path(tempfile.gettempdir()))
-    test_llm_benchmark_model_usage_summary_records_tokens_by_kind()
-    test_llm_benchmark_family_split_selection_and_summary(Path(tempfile.gettempdir()))
-    test_phase15_unseen_family_cases_are_independent_and_reported(Path(tempfile.gettempdir()))
-    test_benchmark_report_summarizes_process_registry_failure_types(Path(tempfile.gettempdir()))
-    test_phase15_family_repair_context_and_prompt_distinguish_failure_categories()
-    test_demo_readiness_schema_passes_family_core_and_blocks_missing_demo_evidence()
-    test_demo_readiness_phase14_covers_each_strong_process_profile()
-    test_demo_readiness_phase14_family_rules_reject_group_specific_gaps()
-    test_demo_readiness_phase14_accepts_topological_sort_indegree_edge_deps()
-    test_r7_demo_readiness_accepts_declared_tree_dp_take_skip_transition_targets()
-    test_r7_demo_readiness_accepts_heap_contract_and_heap_zero_as_top_evidence()
-    test_demo_readiness_phase14_does_not_treat_bipartite_graph_as_binary_search()
-    test_demo_readiness_phase14_accepts_kruskal_mst_union_find_state()
-    test_demo_readiness_phase14_accepts_empty_pattern_string_short_path()
-    test_demo_readiness_phase14_accepts_pattern_longer_than_text_short_path()
-    test_r2_demo_readiness_uses_string_submode_specific_evidence()
-    test_demo_readiness_failure_types_enter_llm_and_evaluation_reports(Path(tempfile.gettempdir()))
-    test_llm_benchmark_phase_timing_helpers()
-    test_llm_json_and_spec_normalization_helpers()
-    test_llm_json_with_metadata_records_usage_present_and_missing()
-    test_llm_json_default_retries_allow_four_empty_responses_then_success()
-    test_existing_benchmark_html_report_helper(Path(tempfile.gettempdir()))
-    test_benchmark_html_checker_resolves_required_phase8_cases(Path(tempfile.gettempdir()))
-    test_demo_dashboard_selection_defaults_to_curated_showcase()
-    test_runtime_capabilities_prompt_context_is_json()
 
-    with tempfile.TemporaryDirectory() as d:
-        test_llm_client_reads_local_api_settings_without_committing_key(Path(d))
-        test_llm_client_retries_transient_api_499_json_call()
-        test_benchmark_aggregate_artifact(Path(d))
-        test_demo_dashboard_writes_bundle_and_index(Path(d))
-        test_demo_dashboard_groups_by_family_and_gate_layer(Path(d))
-        test_demo_dashboard_exposes_phase14_family_layer_statuses_and_reports(Path(d))
-        test_evaluation_manifest_covers_phase10_datasets(Path(d))
-        test_evaluation_manifest_exports_phase10_case_metadata_and_summaries(Path(d))
-        test_evaluation_report_exports_phase10_metrics_and_core_tables(Path(d))
-        test_evaluation_report_summarizes_baseline_ablation_conditions(Path(d))
-        test_r8_evaluation_keeps_direct_html_out_of_strict_correctness_gate()
-        test_r8_vlm_quality_fields_are_named_as_successful_screenshot_scores()
-        test_reproducibility_package_records_environment_commands_samples_and_modes(Path(d))
-        test_v1_release_gate_report_records_release_requirements(Path(d))
-        test_family_capabilities_registry_covers_existing_benchmark_families(Path(d))
-        test_family_release_gate_reports_layered_family_readiness_and_strong_fallback_failures(Path(d))
-        test_phase16_degradation_policy_enters_evaluation_reports_and_artifact_debug(Path(d))
-        test_phase16_core_family_sample_window_and_gates_are_ready()
-        test_phase16_expansion_family_samples_and_dashboard_pages_are_ready(Path(d))
-        test_property_benchmark_generates_seeded_robustness_report(Path(d))
-        test_boundary_case_registry_reports_family_core_coverage_and_strong_upgrade_gate(Path(d))
-    test_creative_renderer_contains_theme_controls_and_stage()
+def _teaching_tests() -> Iterator[tuple[str, Callable[[], None]]]:
+    for name in sorted(dir(teaching_enricher)):
+        if not name.startswith("test_"):
+            continue
+        candidate = getattr(teaching_enricher, name)
+        if callable(candidate):
+            yield name, candidate
+
+
+def run_all() -> None:
+    for _name, test in _teaching_tests():
+        test()
 
 
 if __name__ == "__main__":

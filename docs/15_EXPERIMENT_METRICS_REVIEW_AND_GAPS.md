@@ -1,5 +1,7 @@
 # AAAI 实验指标评估方案审查与缺口清单
 
+本文档是历史方法论审查，不是当前结果报告；已完成实验及已关闭缺口统一见 `docs/EXPERIMENT_RESULTS.md`。
+
 ## 0. 文档定位
 
 本文档是对 `docs/14_AAAI_EXPERIMENT_METRICS_AND_PROTOCOL.md`（以下简称 doc14）的**方法论审查**，目标是回答一个问题：
