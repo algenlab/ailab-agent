@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>两数之和 - 算法教程</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0e17;
+            --bg-card: #111827;
+            --bg-card2: #161c28;
+            --border: #1e2a3a;
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --green: #22c55e;
+            --green-glow: rgba(34, 197, 94, 0.35);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.3);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245, 158, 11, 0.3);
+            --purple: #a855f7;
+            --pink: #ec4899;
+            --radius: 14px;
+            --radius-sm: 8px;
+            --radius-xs: 5px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+            background: var(--bg-deep);
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(56, 189, 248, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 75% 60%, rgba(168, 85, 247, 0.05) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 90%, rgba(236, 72, 153, 0.04) 0%, transparent 50%);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 16px;
+        }
+
+        .app-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* HEADER */
+        .header {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(6px);
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -60px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            z-index: 1;
+        }
+        .header-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #e2e8f0 0%, #bae6fd 50%, #c4b5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .tag {
+            font-size: 0.8rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+        .tag-hash {
+            background: rgba(168, 85, 247, 0.18);
+            color: #c4b5fd;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .tag-array {
+            background: rgba(56, 189, 248, 0.15);
+            color: #7dd3fc;
+            border: 1px solid rgba(56, 189, 248, 0.28);
+        }
+        .answer-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 197, 94, 0.12);
+            border: 2px solid rgba(34, 197, 94, 0.4);
+            border-radius: 28px;
+            padding: 8px 18px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #4ade80;
+            z-index: 1;
+            letter-spacing: 0.02em;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.12);
+            animation: answerPulse 3s ease-in-out infinite;
+        }
+        @keyframes answerPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(34, 197, 94, 0.12);
+            }
+            50% {
+                box-shadow: 0 0 32px rgba(34, 197, 94, 0.24);
+            }
+        }
+        .answer-badge .icon-lock {
+            font-size: 1.1rem;
+        }
+
+        /* MAIN GRID */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                padding: 14px 16px;
+            }
+            .header-title {
+                font-size: 1.3rem;
+            }
+            .answer-badge {
+                font-size: 0.9rem;
+                padding: 6px 14px;
+            }
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+            transition: var(--transition);
+            position: relative;
+        }
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+        .card-header .icon {
+            font-size: 1.2rem;
+        }
+
+        /* CODE BLOCK */
+        .code-block {
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            color: #c9d1d9;
+            border: 1px solid #1a2332;
+            position: relative;
+        }
+        .code-block .keyword {
+            color: #ff7b72;
+        }
+        .code-block .function {
+            color: #d2a8ff;
+        }
+        .code-block .string {
+            color: #a5d6ff;
+        }
+        .code-block .number {
+            color: #79c0ff;
+        }
+        .code-block .comment {
+            color: #6e7681;
+        }
+        .code-block .builtin {
+            color: #ffa657;
+        }
+
+        /* VISUALIZATION */
+        .viz-section {
+            margin-bottom: 16px;
+        }
+        .viz-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .array-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .array-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 62px;
+            transition: all var(--transition);
+        }
+        .array-cell .cell-box {
+            width: 58px;
+            height: 58px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .cell-default {
+            background: #1a2332;
+            border-color: #263348;
+            color: #94a3b8;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .cell-current {
+            background: #1e293b;
+            border-color: #f59e0b;
+            color: #fcd34d;
+            box-shadow: 0 0 22px var(--amber-glow);
+            transform: translateY(-3px);
+            animation: cellGlow 1.2s ease-in-out infinite;
+        }
+        @keyframes cellGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 18px var(--amber-glow);
+            }
+            50% {
+                box-shadow: 0 0 34px rgba(245, 158, 11, 0.5);
+            }
+        }
+        .cell-found {
+            background: #0f2517;
+            border-color: #22c55e;
+            color: #4ade80;
+            box-shadow: 0 0 22px var(--green-glow);
+            transform: translateY(-2px);
+            animation: foundGlow 1s ease-in-out infinite;
+        }
+        @keyframes foundGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 18px var(--green-glow);
+            }
+            50% {
+                box-shadow: 0 0 36px rgba(34, 197, 94, 0.55);
+            }
+        }
+        .cell-index {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.03em;
+        }
+        .cell-arrow {
+            font-size: 0.7rem;
+            color: var(--accent);
+            animation: bounceDown 0.8s ease-in-out infinite;
+        }
+        @keyframes bounceDown {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(4px);
+            }
+        }
+        .hash-map-area {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            min-height: 54px;
+            align-items: center;
+        }
+        .hash-entry {
+            background: #1a1f2e;
+            border: 1.5px solid #334155;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #c4b5fd;
+            transition: all 0.35s ease;
+            animation: fadeInUp 0.4s ease-out;
+        }
+        .hash-entry.highlight {
+            border-color: #22c55e;
+            color: #4ade80;
+            background: #0a1f12;
+            box-shadow: 0 0 18px var(--green-glow);
+            animation: foundGlow 1s ease-in-out infinite, fadeInUp 0.4s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .hash-empty {
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        /* EXPLANATION */
+        .explanation-text {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            line-height: 1.7;
+            padding: 10px 14px;
+            background: var(--bg-card2);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--accent);
+            transition: all var(--transition);
+            min-height: 50px;
+        }
+
+        /* STATE SUMMARY */
+        .state-json {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 12px 15px;
+            color: #c9d1d9;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            border: 1px solid #1a2332;
+            overflow-x: auto;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .state-json .json-key {
+            color: #79c0ff;
+        }
+        .state-json .json-val {
+            color: #a5d6ff;
+        }
+        .state-json .json-num {
+            color: #ffa657;
+        }
+        .state-json .json-bool {
+            color: #ff7b72;
+        }
+
+        /* PREDICTION PANEL */
+        .prediction-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 12px;
+        }
+        .prediction-input {
+            background: #1a2332;
+            border: 2px solid #334155;
+            border-radius: 22px;
+            padding: 10px 16px;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            width: 160px;
+            transition: all var(--transition);
+            outline: none;
+            letter-spacing: 0.02em;
+        }
+        .prediction-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 18px var(--accent-glow);
+        }
+        .prediction-input::placeholder {
+            color: #4a5568;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            font-size: 0.8rem;
+        }
+        .btn {
+            padding: 10px 18px;
+            border-radius: 22px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            transition: all var(--transition);
+            white-space: nowrap;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: #0a0e17;
+            box-shadow: 0 4px 16px rgba(56, 189, 248, 0.3);
+        }
+        .btn-submit:hover {
+            box-shadow: 0 6px 24px rgba(56, 189, 248, 0.45);
+            transform: translateY(-2px);
+        }
+        .btn-hint {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+            border: 1.5px solid rgba(245, 158, 11, 0.35);
+        }
+        .btn-hint:hover {
+            background: rgba(245, 158, 11, 0.25);
+            box-shadow: 0 4px 16px var(--amber-glow);
+            transform: translateY(-2px);
+        }
+        .btn-show {
+            background: rgba(236, 72, 153, 0.13);
+            color: #f9a8d4;
+            border: 1.5px solid rgba(236, 72, 153, 0.3);
+        }
+        .btn-show:hover {
+            background: rgba(236, 72, 153, 0.22);
+            box-shadow: 0 4px 18px rgba(236, 72, 153, 0.3);
+            transform: translateY(-2px);
+        }
+        .btn-control {
+            background: #1e2a3a;
+            color: #cbd5e1;
+            border: 1.5px solid #334155;
+            font-size: 0.88rem;
+            padding: 10px 16px;
+            min-width: 44px;
+            justify-content: center;
+        }
+        .btn-control:hover {
+            background: #263348;
+            border-color: #4a5568;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+            transform: translateY(-1px);
+        }
+        .btn-control:active {
+            background: #1a2332;
+            transform: scale(0.94);
+        }
+        .btn-control.active-play {
+            background: rgba(34, 197, 94, 0.18);
+            border-color: #22c55e;
+            color: #4ade80;
+            box-shadow: 0 0 16px var(--green-glow);
+            animation: playGlow 2s ease-in-out infinite;
+        }
+        @keyframes playGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 12px var(--green-glow);
+            }
+            50% {
+                box-shadow: 0 0 28px rgba(34, 197, 94, 0.5);
+            }
+        }
+
+        .feedback-msg {
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 8px 14px;
+            border-radius: 20px;
+            animation: fadeInUp 0.35s ease-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .feedback-correct {
+            background: rgba(34, 197, 94, 0.14);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        .feedback-incorrect {
+            background: rgba(239, 68, 68, 0.14);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* CONTROLS BAR */
+        .controls-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+        }
+        .step-counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+        .slider-container {
+            flex: 1;
+            min-width: 100px;
+            display: flex;
+            align-items: center;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #1e3a5f 0%, #334155 100%);
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            border: 3px solid #0a0e17;
+            box-shadow: 0 0 16px var(--accent-glow);
+            transition: all var(--transition);
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 24px rgba(56, 189, 248, 0.55);
+        }
+
+        /* LEARNING LOG */
+        .log-panel {
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: var(--radius-sm);
+            background: var(--bg-card2);
+            padding: 8px;
+            border: 1px solid #1a2332;
+            scroll-behavior: smooth;
+        }
+        .log-entry {
+            padding: 7px 12px;
+            font-size: 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #94a3b8;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            animation: fadeInUp 0.3s ease-out;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #4a5568;
+            white-space: nowrap;
+            min-width: 52px;
+        }
+        .log-icon {
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 600px) {
+            body {
+                padding: 8px;
+            }
+            .card {
+                padding: 12px 14px;
+            }
+            .array-cell .cell-box {
+                width: 46px;
+                height: 46px;
+                font-size: 1rem;
+            }
+            .array-row {
+                gap: 6px;
+            }
+            .controls-bar {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.78rem;
+            }
+            .header-title {
+                font-size: 1.15rem;
+            }
+            .answer-badge {
+                font-size: 0.8rem;
+                padding: 5px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="header-title">⚡ 两数之和</h1>
+                <div class="header-tags">
+                    <span class="tag tag-hash">🗂 哈希表</span>
+                    <span class="tag tag-array">📊 数组</span>
+                </div>
+            </div>
+            <div class="answer-badge" id="answerBadge" title="权威最终答案 — 不变">
+                <span class="icon-lock">🔒</span> 答案: <strong>[0, 1]</strong>
+            </div>
+        </header>
+
+        <!-- MAIN GRID -->
+        <div class="main-grid">
+            <!-- LEFT COLUMN -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <!-- Code Card -->
+                <div class="card">
+                    <div class="card-header"><span class="icon">🐍</span> Python 实现</div>
+                    <div class="code-block">
+                        <span class="keyword">def</span> <span class="function">twoSum</span>(nums, target):<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;map = {}<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span> i, num <span class="keyword">in</span> <span
+                            class="builtin">enumerate</span>(nums):<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;complement = target - num<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> complement <span
+                            class="keyword">in</span> map:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                            class="keyword">return</span> [map[complement], i]<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map[num] = i<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> []<br>
+                        <br>
+                        <span class="comment"># Input: nums = [2, 7, 11, 15], target = 9</span><br>
+                        <span class="comment"># Output: [0, 1]</span>
+                    </div>
+                </div>
+
+                <!-- Prediction Card -->
+                <div class="card" id="predictionCard">
+                    <div class="card-header"><span class="icon">🎯</span> 学习者预测</div>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px;">
+                        输入你预测的两个索引（从 0 开始），用逗号分隔，例如: <span
+                            style="color:#fcd34d;font-family:'JetBrains Mono',monospace;">0,1</span>
+                    </p>
+                    <div class="prediction-area" id="predictionArea">
+                        <input type="text" class="prediction-input" id="predictionInput" placeholder="例如: 0,1"
+                        maxlength="12" aria-label="预测答案输入">
+                        <button class="btn btn-submit" id="btnSubmit" title="提交预测">✅ 提交预测</button>
+                        <button class="btn btn-hint" id="btnHint" title="获取提示">💡 提示</button>
+                        <button class="btn btn-show" id="btnShowAnswer" title="显示答案">👁 显示答案</button>
+                    </div>
+                    <div id="feedbackContainer" style="margin-top:10px;min-height:28px;"></div>
+                    <div id="hintDisplay" style="margin-top:8px;font-size:0.83rem;color:#fcd34d;min-height:20px;"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <!-- Visualization Card -->
+                <div class="card" id="vizCard">
+                    <div class="card-header"><span class="icon">🔬</span> 算法视图</div>
+                    <div class="viz-section">
+                        <div class="viz-label">📊 货位数组 NUMS</div>
+                        <div class="array-row" id="arrayVisualization">
+                            <!-- Dynamically filled -->
+                        </div>
+                    </div>
+                    <div class="viz-section" style="margin-top:14px;">
+                        <div class="viz-label">🗂 哈希表 MAP</div>
+                        <div class="hash-map-area" id="hashVisualization">
+                            <!-- Dynamically filled -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explanation Card -->
+                <div class="card" id="explanationCard">
+                    <div class="card-header"><span class="icon">💬</span> 讲解</div>
+                    <div class="explanation-text" id="explanationText">
+                        加载中...
+                    </div>
+                </div>
+
+                <!-- State Summary Card -->
+                <div class="card" id="stateCard">
+                    <div class="card-header"><span class="icon">📋</span> 状态摘要</div>
+                    <div class="state-json" id="stateSummary">
+                        <!-- Dynamically filled -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLS BAR -->
+        <div class="controls-bar" id="controlsBar">
+            <button class="btn btn-control" id="btnPrev" title="上一步 (← 键)">◀ 上一步</button>
+            <button class="btn btn-control" id="btnPlay" title="播放/暂停 (空格键)">▶ 播放</button>
+            <button class="btn btn-control" id="btnNext" title="下一步 (→ 键)">下一步 ▶</button>
+            <div class="slider-container">
+                <input type="range" id="stepSlider" min="1" max="5" value="1" step="1" title="拖动选择步骤">
+            </div>
+            <span class="step-counter" id="stepCounter">1 / 5</span>
+        </div>
+
+        <!-- LEARNING LOG -->
+        <div class="card" id="logCard">
+            <div class="card-header"><span class="icon">📝</span> 学习日志</div>
+            <div class="log-panel" id="learningLog">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+
+        <!-- Hidden answer reference (authoritative, never changes) -->
+        <div style="display:none;" aria-hidden="true" id="authoritativeAnswer">[0, 1]</div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ CONSTANTS ============
+            const FINAL_ANSWER = [0, 1];
+            const TOTAL_STEPS = 5;
+            const nums = [2, 7, 11, 15];
+            const target = 9;
+
+            // Step definitions
+            const stepData = [{
+                step: 1,
+                title: '初始化',
+                map: {},
+                i: null,
+                num: null,
+                complement: null,
+                found: false,
+                result: null,
+                desc: '算法开始。初始化空的哈希表 map = {}。准备遍历数组 nums = [2, 7, 11, 15]，目标值 target = 9。',
+                highlightIndex: null,
+                foundIndex: null,
+            }, {
+                step: 2,
+                title: '第1次迭代 (i=0)',
+                map: { 2: 0 },
+                i: 0,
+                num: 2,
+                complement: 7,
+                found: false,
+                result: null,
+                desc: 'i=0, num=2, 计算 complement = target - num = 9 - 2 = 7。哈希表中没有 7，所以将 {2: 0} 存入哈希表。继续遍历。',
+                highlightIndex: 0,
+                foundIndex: null,
+            }, {
+                step: 3,
+                title: '第2次迭代 (i=1) — 找到！',
+                map: { 2: 0 },
+                i: 1,
+                num: 7,
+                complement: 2,
+                found: true,
+                result: [0, 1],
+                desc: 'i=1, num=7, 计算 complement = 9 - 7 = 2。在哈希表中找到了 2！map[2] = 0，所以返回 [0, 1]。找到了！🎉',
+                highlightIndex: 1,
+                foundIndex: 0,
+            }, {
+                step: 4,
+                title: '验证结果',
+                map: { 2: 0 },
+                i: 1,
+                num: 7,
+                complement: 2,
+                found: true,
+                result: [0, 1],
+                verified: true,
+                desc: '验证：nums[0] + nums[1] = 2 + 7 = 9 = target。结果正确！索引 [0, 1] 对应的数字之和等于目标值 9。',
+                highlightIndex: 1,
+                foundIndex: 0,
+            }, {
+                step: 5,
+                title: '算法完成',
+                map: { 2: 0 },
+                i: 1,
+                num: 7,
+                complement: 2,
+                found: true,
+                result: [0, 1],
+                verified: true,
+                complete: true,
+                desc: '算法执行完毕。最终答案 [0, 1] 已确定。时间复杂度 O(n)，空间复杂度 O(n)。使用哈希表实现了高效的查找。',
+                highlightIndex: 1,
+                foundIndex: 0,
+            }];
+
+            // ============ STATE ============
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let hintsShown = 0;
+            const hintTexts = [
+                '💡 提示1：使用哈希表可以快速查找——对于每个数字 num，检查 target - num 是否已经在哈希表中。',
+                '💡 提示2：当 i=0 时，num=2，complement=7。7 不在哈希表中（哈希表为空），所以把 2 及其索引存入。',
+                '💡 提示3：当 i=1 时，num=7，complement=2。2 已经在哈希表中（索引为 0），所以答案是 [0, 1]！',
+            ];
+
+            // ============ DOM REFS ============
+            const $ = (id) => document.getElementById(id);
+            const arrayVis = $('arrayVisualization');
+            const hashVis = $('hashVisualization');
+            const explanationText = $('explanationText');
+            const stateSummary = $('stateSummary');
+            const stepSlider = $('stepSlider');
+            const stepCounter = $('stepCounter');
+            const btnPrev = $('btnPrev');
+            const btnPlay = $('btnPlay');
+            const btnNext = $('btnNext');
+            const learningLog = $('learningLog');
+            const predictionInput = $('predictionInput');
+            const btnSubmit = $('btnSubmit');
+            const btnHint = $('btnHint');
+            const btnShowAnswer = $('btnShowAnswer');
+            const feedbackContainer = $('feedbackContainer');
+            const hintDisplay = $('hintDisplay');
+            const answerBadge = $('answerBadge');
+
+            // ============ FUNCTIONS ============
+            function getTimestamp() {
+                const now = new Date();
+                return now.getHours().toString().padStart(2, '0') + ':' +
+                    now.getMinutes().toString().padStart(2, '0') + ':' +
+                    now.getSeconds().toString().padStart(2, '0');
+            }
+
+            function addLogEntry(icon, message) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML =
+                    `<span class="log-time">${getTimestamp()}</span><span class="log-icon">${icon}</span><span>${message}</span>`;
+                learningLog.appendChild(entry);
+                learningLog.scrollTop = learningLog.scrollHeight;
+            }
+
+            function renderArrayVisualization(step) {
+                const data = stepData[step - 1];
+                arrayVis.innerHTML = '';
+                nums.forEach((val, idx) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell';
+                    let boxClass = 'cell-default';
+                    let arrow = '';
+                    if (data.foundIndex === idx && data.highlightIndex !== idx) {
+                        boxClass = 'cell-found';
+                    } else if (data.highlightIndex === idx && data.found) {
+                        boxClass = 'cell-found';
+                    } else if (data.highlightIndex === idx && !data.found) {
+                        boxClass = 'cell-current';
+                        arrow = '<span class="cell-arrow">⬆</span>';
+                    } else if (data.foundIndex === idx && data.highlightIndex === idx) {
+                        boxClass = 'cell-found';
+                    } else if (step >= 4 && (idx === 0 || idx === 1)) {
+                        boxClass = 'cell-found';
+                    }
+                    cell.innerHTML = `
+                <div class="cell-box ${boxClass}">${val}</div>
+                <div class="cell-index">索引 ${idx}</div>
+                ${arrow}
+              `;
+                    arrayVis.appendChild(cell);
+                });
+            }
+
+            function renderHashVisualization(step) {
+                const data = stepData[step - 1];
+                hashVis.innerHTML = '';
+                const entries = Object.entries(data.map);
+                if (entries.length === 0) {
+                    hashVis.innerHTML = '<span class="hash-empty">∅ 空哈希表</span>';
+                    return;
+                }
+                entries.forEach(([key, val]) => {
+                    const entry = document.createElement('span');
+                    const keyNum = parseInt(key);
+                    let isHighlight = false;
+                    if (data.found && data.complement === keyNum) {
+                        isHighlight = true;
+                    }
+                    entry.className = 'hash-entry' + (isHighlight ? ' highlight' : '');
+                    entry.textContent = `{${key}: ${val}}`;
+                    hashVis.appendChild(entry);
+                });
+            }
+
+            function renderExplanation(step) {
+                const data = stepData[step - 1];
+                explanationText.textContent = data.desc;
+            }
+
+            function renderStateSummary(step) {
+                const data = stepData[step - 1];
+                const summaryObj = {
+                    step: data.step,
+                    title: data.title,
+                    map: data.map,
+                    i: data.i,
+                    num: data.num,
+                    complement: data.complement,
+                    found: data.found,
+                    result: data.result,
+                };
+                if (data.verified) summaryObj.verified = true;
+                if (data.complete) summaryObj.status = 'complete';
+                const json = JSON.stringify(summaryObj, null, 2);
+                // Simple syntax highlighting
+                const highlighted = json
+                    .replace(/"([^"]+)":/g,
+                        '<span class="json-key">"$1"</span>:')
+                    .replace(/: (true|false)/g, ': <span class="json-bool">$1</span>')
+                    .replace(/: (\d+)/g, ': <span class="json-num">$1</span>')
+                    .replace(/: "([^"]*)"/g, ': <span class="json-val">"$1"</span>')
+                    .replace(/: \[([^\]]*)\]/g, ': [<span class="json-num">$1</span>]');
+                stateSummary.innerHTML = highlighted;
+            }
+
+            function updateAllVisuals(step) {
+                renderArrayVisualization(step);
+                renderHashVisualization(step);
+                renderExplanation(step);
+                renderStateSummary(step);
+                stepSlider.value = step;
+                stepCounter.textContent = step + ' / ' + TOTAL_STEPS;
+                // Update play button state
+                if (isPlaying && step >= TOTAL_STEPS) {
+                    stopPlay();
+                }
+                if (!isPlaying) {
+                    btnPlay.innerHTML = '▶ 播放';
+                    btnPlay.classList.remove('active-play');
+                }
+            }
+
+            function goToStep(step) {
+                if (step < 1 || step > TOTAL_STEPS) return;
+                if (step === currentStep) return;
+                currentStep = step;
+                updateAllVisuals(currentStep);
+                const data = stepData[currentStep - 1];
+                addLogEntry('🔄', `切换到步骤 ${currentStep}: ${data.title}`);
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                btnPlay.innerHTML = '⏸ 暂停';
+                btnPlay.classList.add('active-play');
+                addLogEntry('▶', '开始自动播放');
+                if (currentStep >= TOTAL_STEPS) {
+                    currentStep = 1;
+                    updateAllVisuals(currentStep);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStep < TOTAL_STEPS) {
+                        currentStep++;
+                        updateAllVisuals(currentStep);
+                        const data = stepData[currentStep - 1];
+                        if (currentStep === TOTAL_STEPS) {
+                            stopPlay();
+                            addLogEntry('⏹', '自动播放完成');
+                        }
+                    } else {
+                        stopPlay();
+                    }
+                }, 1600);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                btnPlay.innerHTML = '▶ 播放';
+                btnPlay.classList.remove('active-play');
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                    addLogEntry('⏸', '暂停播放');
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT HANDLERS ============
+            btnPrev.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStep - 1);
+            });
+
+            btnNext.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStep + 1);
+            });
+
+            btnPlay.addEventListener('click', togglePlay);
+
+            stepSlider.addEventListener('input', () => {
+                stopPlay();
+                const newStep = parseInt(stepSlider.value);
+                if (newStep !== currentStep) {
+                    currentStep = newStep;
+                    updateAllVisuals(currentStep);
+                    const data = stepData[currentStep - 1];
+                    addLogEntry('🎚', `滑块移动到步骤 ${currentStep}: ${data.title}`);
+                }
+            });
+
+            // Prediction submit
+            btnSubmit.addEventListener('click', () => {
+                const raw = predictionInput.value.trim();
+                if (!raw) {
+                    feedbackContainer.innerHTML =
+                        '<span class="feedback-msg feedback-incorrect">⚠️ 请输入预测值，例如: 0,1</span>';
+                    return;
+                }
+                // Parse input
+                const parts = raw.split(',').map(s => s.trim());
+                if (parts.length !== 2) {
+                    feedbackContainer.innerHTML =
+                        '<span class="feedback-msg feedback-incorrect">❌ 格式错误，请输入两个数字用逗号分隔，例如: 0,1</span>';
+                    addLogEntry('❌', `预测提交: "${raw}" — 格式错误`);
+                    return;
+                }
+                const p0 = parseInt(parts[0]);
+                const p1 = parseInt(parts[1]);
+                if (isNaN(p0) || isNaN(p1)) {
+                    feedbackContainer.innerHTML =
+                        '<span class="feedback-msg feedback-incorrect">❌ 请输入有效的数字索引</span>';
+                    addLogEntry('❌', `预测提交: "${raw}" — 非数字`);
+                    return;
+                }
+                const isCorrect = (p0 === FINAL_ANSWER[0] && p1 === FINAL_ANSWER[1]);
+                if (isCorrect) {
+                    feedbackContainer.innerHTML =
+                        '<span class="feedback-msg feedback-correct">✅ 完全正确！答案是 [0, 1]，nums[0]+nums[1]=2+7=9 🎉</span>';
+                    addLogEntry('✅', `预测提交: [${p0}, ${p1}] — 正确！`);
+                    // Flash the answer badge
+                    answerBadge.style.transform = 'scale(1.08)';
+                    setTimeout(() => { answerBadge.style.transform = 'scale(1)'; }, 300);
+                } else {
+                    feedbackContainer.innerHTML =
+                        `<span class="feedback-msg feedback-incorrect">❌ 不正确。你预测的是 [${p0}, ${p1}]，请再试一次。</span>`;
+                    addLogEntry('❌', `预测提交: [${p0}, ${p1}] — 不正确`);
+                }
+            });
+
+            // Hint button
+            btnHint.addEventListener('click', () => {
+                if (hintsShown < hintTexts.length) {
+                    hintDisplay.textContent = hintTexts[hintsShown];
+                    hintsShown++;
+                    addLogEntry('💡', `显示提示 #${hintsShown}`);
+                } else {
+                    hintDisplay.textContent = '💡 已经没有更多提示了。答案是 [0, 1]，因为 nums[0]+nums[1]=2+7=9。';
+                    addLogEntry('💡', '所有提示已用完');
+                }
+            });
+
+            // Show answer button
+            btnShowAnswer.addEventListener('click', () => {
+                feedbackContainer.innerHTML =
+                    '<span class="feedback-msg feedback-correct">🔓 权威答案: <strong>[0, 1]</strong> — nums[0]=2, nums[1]=7, 2+7=9</span>';
+                hintDisplay.textContent = '📖 答案已显示：索引 [0, 1]，对应数字 2 和 7，和为 9。';
+                addLogEntry('👁', '显示答案: [0, 1]');
+                // Ensure answer badge remains unchanged
+                answerBadge.style.transform = 'scale(1.05)';
+                setTimeout(() => { answerBadge.style.transform = 'scale(1)'; }, 350);
+            });
+
+            // Keyboard support
+            document.addEventListener('keydown', (e) => {
+                // Don't capture if user is typing in input
+                if (document.activeElement === predictionInput) return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStep + 1);
+                } else if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // Prediction input: submit on Enter
+            predictionInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    btnSubmit.click();
+                }
+            });
+
+            // ============ INITIALIZATION ============
+            function initialize() {
+                // Render initial state
+                updateAllVisuals(1);
+                // Populate learning log with initial entry
+                learningLog.innerHTML = '';
+                addLogEntry('🚀', '页面已加载 — 两数之和算法教程准备就绪');
+                addLogEntry('📋', `输入数据: nums = [2, 7, 11, 15], target = 9`);
+                addLogEntry('🔒', `权威答案: [0, 1] (已锁定，不会更改)`);
+                // Ensure answer badge is correct
+                answerBadge.innerHTML = '<span class="icon-lock">🔒</span> 答案: <strong>[0, 1]</strong>';
+                // Clear feedback
+                feedbackContainer.innerHTML = '';
+                hintDisplay.textContent = '';
+                // Focus the document for keyboard navigation
+                document.body.focus();
+                console.log('✅ 两数之和算法教程初始化完成。使用 ← → 键导航步骤，空格键播放/暂停。');
+            }
+
+            // Run initialization
+            initialize();
+
+            // Expose for debugging
+            window.algoTutor = {
+                goToStep,
+                startPlay,
+                stopPlay,
+                togglePlay,
+                currentStep: () => currentStep,
+                isPlaying: () => isPlaying,
+            };
+        })();
+    </script>
+</body>
+</html>

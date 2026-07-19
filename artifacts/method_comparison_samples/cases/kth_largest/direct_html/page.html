@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数组中的第 K 个最大元素 - AlgoLab</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --surface2: #0f3460;
+            --accent: #e94560;
+            --gold: #f0c060;
+            --green: #4caf84;
+            --blue: #5b9bd5;
+            --orange: #f0a050;
+            --text: #e0e0e0;
+            --text2: #b0b0b0;
+            --border: #2a3050;
+            --red: #d94a5d;
+            --purple: #9b7fd4;
+            --skip: #8b6f5e;
+            --highlight-line: #ffeaa720;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            --transition: 0.2s ease;
+            --font-mono: 'Courier New', 'Source Code Pro', 'Consolas', monospace;
+            --font-sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px 10px 40px;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        #title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.02em;
+            margin-bottom: 2px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text2);
+            font-weight: 400;
+        }
+        .top-results {
+            display: flex;
+            gap: 18px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .top-result-box {
+            background: var(--surface2);
+            border-radius: var(--radius-sm);
+            padding: 10px 18px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .top-result-box .label {
+            font-size: 0.8rem;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        #top-result {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold);
+            font-family: var(--font-mono);
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            color: var(--text);
+            max-width: 400px;
+        }
+        #answer {
+            display: none;
+        }
+
+        /* Main grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 800px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            overflow-x: auto;
+            line-height: 1.7;
+            color: #c9d1d9;
+            white-space: pre;
+            border: 1px solid #1e2a3a;
+            min-height: 200px;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 6px;
+            border-radius: 3px;
+            transition: background var(--transition), color var(--transition);
+        }
+        #code .code-line.highlight {
+            background: #2d3b2d;
+            color: #ffd700;
+            font-weight: 700;
+        }
+        #code .code-line.highlight-alt {
+            background: #2a2535;
+            color: #c084fc;
+            font-weight: 700;
+        }
+
+        /* Canvas */
+        #canvas {
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 20px 16px;
+            border: 1px solid #1e2a3a;
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .canvas-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .canvas-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text2);
+            font-weight: 600;
+        }
+        .array-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .array-cell {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            font-family: var(--font-mono);
+            transition: all var(--transition);
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .array-cell.unvisited {
+            background: #1e2a35;
+            color: #7a8a9a;
+            border-color: #2a3a4a;
+        }
+        .array-cell.visiting {
+            background: #3d2a10;
+            color: #f0a050;
+            border-color: #f0a050;
+            box-shadow: 0 0 14px rgba(240, 160, 80, 0.5);
+            animation: pulse-border 1s ease-in-out infinite;
+        }
+        .array-cell.processed-kept {
+            background: #1a2e22;
+            color: #4caf84;
+            border-color: #4caf84;
+        }
+        .array-cell.processed-skipped {
+            background: #2e1f1a;
+            color: #b08070;
+            border-color: #6b5040;
+            text-decoration: line-through;
+        }
+        .array-cell.answer-highlight {
+            background: #2e2610;
+            color: #f0c060;
+            border-color: #f0c060;
+            box-shadow: 0 0 16px rgba(240, 192, 96, 0.6);
+        }
+        @keyframes pulse-border {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(240, 160, 80, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(240, 160, 80, 0.8);
+            }
+        }
+
+        /* Heap tree */
+        .heap-tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+        }
+        .heap-node {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.15rem;
+            font-family: var(--font-mono);
+            transition: all var(--transition);
+            position: relative;
+            z-index: 1;
+        }
+        .heap-node.root {
+            background: #1a3a1a;
+            color: #4caf84;
+            border: 3px solid #4caf84;
+            box-shadow: 0 0 12px rgba(76, 175, 132, 0.4);
+        }
+        .heap-node.root.answer-node {
+            background: #2e2610;
+            color: #f0c060;
+            border: 3px solid #f0c060;
+            box-shadow: 0 0 18px rgba(240, 192, 96, 0.7);
+        }
+        .heap-node.child {
+            background: #1a2530;
+            color: #7ab8e0;
+            border: 2px solid #4a7a9a;
+            font-size: 1rem;
+            width: 48px;
+            height: 48px;
+        }
+        .heap-node.replaced {
+            background: #2e1a1a;
+            color: #d94a5d;
+            border: 3px solid #d94a5d;
+            animation: fade-out-node 0.6s ease forwards;
+        }
+        @keyframes fade-out-node {
+            to {
+                opacity: 0.3;
+                transform: scale(0.85);
+            }
+        }
+        .heap-connector {
+            width: 2px;
+            height: 20px;
+            background: #4a7a9a;
+            position: relative;
+            z-index: 0;
+        }
+        .heap-empty {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 2px dashed #3a4a5a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5a6a7a;
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+        .heap-array-display {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text2);
+            background: #111820;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #2a3040;
+        }
+
+        /* Step info */
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        #step-desc {
+            font-size: 0.88rem;
+            color: var(--text2);
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            background: var(--surface2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            display: inline-block;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            border: 1px solid #1e2a3a;
+            color: #c9d1d9;
+            white-space: pre-wrap;
+            max-height: 160px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: #d0d0d0;
+            line-height: 1.6;
+            background: #1a1f2e;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            border-left: 3px solid var(--blue);
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            background: #111820;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            border: 1px solid #2a3040;
+            color: #b0c0d0;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #1a3a5a;
+            border-color: #5b9bd5;
+            box-shadow: 0 0 10px rgba(91, 155, 213, 0.3);
+        }
+        .btn:active {
+            transform: scale(0.96);
+            background: #0f2840;
+        }
+        .btn.accent {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .btn.accent:hover {
+            background: #d03a50;
+            box-shadow: 0 0 14px rgba(233, 68, 96, 0.5);
+        }
+        .btn.play-btn {
+            background: #1a3a1a;
+            border-color: #4caf84;
+            color: #4caf84;
+            font-size: 1rem;
+            min-width: 44px;
+            text-align: center;
+        }
+        .btn.play-btn:hover {
+            background: #1a4a2a;
+            box-shadow: 0 0 12px rgba(76, 175, 132, 0.4);
+        }
+        .btn.play-btn.playing {
+            background: #4caf84;
+            color: #fff;
+            animation: play-glow 0.8s ease-in-out infinite;
+        }
+        @keyframes play-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(76, 175, 132, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 22px rgba(76, 175, 132, 0.9);
+            }
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            min-width: 60px;
+            text-align: center;
+            color: #a0a0b0;
+        }
+        .tick:hover {
+            border-color: #5b9bd5;
+            background: #1a3050;
+            color: #fff;
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: #2a1520;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(233, 68, 96, 0.4);
+        }
+        .tick.completed {
+            border-color: #4caf84;
+            background: #1a2e22;
+            color: #a0d0b0;
+        }
+        .tick-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: inherit;
+            opacity: 0.8;
+        }
+
+        /* Checkpoint */
+        #checkpoint-area {
+            background: #1a1a2e;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            border: 2px solid #5b3d8a;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #checkpoint-area.visible {
+            display: flex;
+        }
+        .checkpoint-question {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .checkpoint-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #3a3a5a;
+            background: #1e1e35;
+            transition: all var(--transition);
+            color: #d0d0d0;
+            font-size: 0.85rem;
+        }
+        .checkpoint-option:hover {
+            border-color: #7b5daa;
+            background: #252540;
+        }
+        .checkpoint-option input[type="radio"] {
+            accent-color: #9b7fd4;
+            width: 16px;
+            height: 16px;
+        }
+        .checkpoint-option.correct-flash {
+            border-color: #4caf84 !important;
+            background: #1a3e2a !important;
+            color: #4caf84 !important;
+            font-weight: 700;
+        }
+        .checkpoint-option.wrong-flash {
+            border-color: #d94a5d !important;
+            background: #3e1a1a !important;
+            color: #d94a5d !important;
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-feedback {
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            min-height: 20px;
+            font-weight: 500;
+        }
+        .feedback-correct {
+            background: #1a3e2a;
+            color: #4caf84;
+            border: 1px solid #2a5a3a;
+        }
+        .feedback-wrong {
+            background: #3e1a1a;
+            color: #d94a5d;
+            border: 1px solid #5a2a2a;
+        }
+        .feedback-info {
+            background: #1a2530;
+            color: #7ab8e0;
+            border: 1px solid #2a4050;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            border: 1px solid #1e2a3a;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            color: #a0b0c0;
+            font-family: var(--font-mono);
+            line-height: 1.5;
+        }
+        #learning-log .log-entry {
+            padding: 2px 0;
+            border-bottom: 1px solid #1a2530;
+        }
+        #learning-log .log-entry.correct-log {
+            color: #4caf84;
+        }
+        #learning-log .log-entry.wrong-log {
+            color: #d94a5d;
+        }
+
+        /* Utility */
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .gap-sm {
+            gap: 6px;
+        }
+        .mt-sm {
+            margin-top: 6px;
+        }
+        .mt-md {
+            margin-top: 12px;
+        }
+        .full-width {
+            width: 100%;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .badge-green {
+            background: #1a3e2a;
+            color: #4caf84;
+        }
+        .badge-red {
+            background: #3e1a1a;
+            color: #d94a5d;
+        }
+        .badge-blue {
+            background: #1a2a3e;
+            color: #5b9bd5;
+        }
+        .badge-gold {
+            background: #2e2610;
+            color: #f0c060;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div id="title">数组中的第 K 个最大元素</div>
+            <div id="subtitle">LeetCode 215 · 小顶堆 · TopK 问题 · 容量为 k 的候选集维护</div>
+            <div class="top-results">
+                <div class="top-result-box">
+                    <span class="label">最终答案</span>
+                    <span id="top-result">5</span>
+                </div>
+                <div id="top-solution">使用容量为 <strong>k=2</strong> 的小顶堆，遍历数组时维护堆。堆大小不足 k 时直接加入；堆满时若当前元素大于堆顶则替换堆顶。遍历完成后堆顶即为第 k 大元素。</div>
+            </div>
+            <span id="answer" style="display:none;">5</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel">
+            <div class="flex-row" style="justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div class="flex-row gap-sm">
+                    <span class="panel-title" style="margin:0;">步骤导航</span>
+                    <span id="counter">1 / 8</span>
+                    <span id="op" class="badge badge-blue">INIT</span>
+                </div>
+                <div class="controls-row">
+                    <button class="btn" id="prev" title="上一步">◀ 上一步</button>
+                    <button class="btn play-btn" id="play" title="自动播放">▶</button>
+                    <button class="btn" id="next" title="下一步">下一步 ▶</button>
+                    <input type="range" id="range" min="1" max="8" value="1" title="快速跳转">
+                </div>
+            </div>
+            <!-- Timeline -->
+            <div id="timeline" class="mt-sm"></div>
+        </div>
+
+        <!-- Main content grid -->
+        <div class="content-grid">
+            <!-- Left column: Canvas + Code -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+                <!-- Canvas -->
+                <div class="panel">
+                    <span class="panel-title">算法可视化</span>
+                    <div id="canvas">
+                        <div class="canvas-section" id="array-section">
+                            <span class="canvas-label">📊 原始数组</span>
+                            <div class="array-row" id="array-row"></div>
+                        </div>
+                        <div class="canvas-section" id="heap-section">
+                            <span class="canvas-label">🪣 小顶堆（容量 k=2）</span>
+                            <div class="heap-tree" id="heap-tree"></div>
+                            <div class="heap-array-display" id="heap-array-display">堆内部: []</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Code -->
+                <div class="panel">
+                    <span class="panel-title">算法代码</span>
+                    <div id="code"></div>
+                </div>
+            </div>
+
+            <!-- Right column: Step info + Teaching + Evidence + Checkpoint -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+                <!-- Step info -->
+                <div class="panel">
+                    <span class="panel-title">当前步骤</span>
+                    <div id="step-title">初始化</div>
+                    <div id="step-desc">创建空的小顶堆，准备遍历数组。</div>
+                </div>
+                <!-- State -->
+                <div class="panel">
+                    <span class="panel-title">状态摘要 (JSON)</span>
+                    <div id="state"></div>
+                </div>
+                <!-- Teaching -->
+                <div class="panel">
+                    <span class="panel-title">教学讲解</span>
+                    <div id="teaching"></div>
+                </div>
+                <!-- Step Evidence -->
+                <div class="panel">
+                    <span class="panel-title">步骤证据</span>
+                    <div id="step-evidence"></div>
+                </div>
+                <!-- Checkpoint -->
+                <div id="checkpoint-area">
+                    <span class="panel-title" style="color:#9b7fd4;">🧠 Learner Checkpoint</span>
+                    <div class="checkpoint-question" id="checkpoint-question"></div>
+                    <div class="checkpoint-options" id="checkpoint-options"></div>
+                    <div class="checkpoint-btns">
+                        <button class="btn" id="checkpoint-submit">提交</button>
+                        <button class="btn" id="checkpoint-hint">💡 提示</button>
+                        <button class="btn" id="checkpoint-show-answer">显示答案</button>
+                    </div>
+                    <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+                </div>
+                <!-- Learning Log -->
+                <div class="panel">
+                    <span class="panel-title">学习日志</span>
+                    <div id="learning-log">尚无提交记录。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ DATA ============
+            const nums = [3, 2, 1, 5, 6, 4];
+            const k = 2;
+
+            const steps = [{
+                id: 1,
+                title: '初始化',
+                desc: '创建空的小顶堆（容量 k=2），准备遍历数组 nums = [3, 2, 1, 5, 6, 4]。',
+                op: 'INIT',
+                heap: [],
+                heapTop: null,
+                currentIndex: -1,
+                currentElement: null,
+                action: 'initialize',
+                actionDetail: '创建空堆',
+                codeLines: [0, 1],
+                highlightType: 'highlight',
+                teaching: '这是算法的起点。我们使用一个容量为 k=2 的<strong>小顶堆</strong>来维护"当前找到的最大的 k 个元素"。小顶堆的堆顶始终是堆中最小的元素——也就是这 k 个候选者中的"门槛"。当新元素大于这个门槛时，它就有资格进入堆。',
+                evidence: 'operation: initialize\nheap_before: null\nheap_after: []\ncapacity: 2\ninvariant: 堆中元素数量 ≤ k',
+                arrayStatus: ['unvisited', 'unvisited', 'unvisited', 'unvisited', 'unvisited', 'unvisited'],
+                visitingIndex: -1,
+                replacedNode: null,
+                checkpointActive: false,
+            }, {
+                id: 2,
+                title: '处理元素 3',
+                desc: 'nums[0] = 3。堆大小 0 < k=2，直接加入堆。堆变为 [3]，堆顶为 3。',
+                op: 'PUSH',
+                heap: [3],
+                heapTop: 3,
+                currentIndex: 0,
+                currentElement: 3,
+                action: 'push',
+                actionDetail: '堆未满，直接加入 3',
+                codeLines: [2, 3, 4],
+                highlightType: 'highlight',
+                teaching: '当前堆为空（大小 0 < k=2），所以元素 <strong>3</strong> 直接入堆。小顶堆会自动维护顺序——目前只有一个元素，堆顶就是 3。<br><br><strong>不变量：</strong>堆中保存着遍历到目前为止最大的 k 个元素（目前只有 1 个）。',
+                evidence: 'operation: push\nheap_before: []\nheap_after: [3]\nheap_top_before: null\nheap_top_after: 3\nreason: heap.length (0) < k (2)',
+                arrayStatus: ['processed-kept', 'unvisited', 'unvisited', 'unvisited', 'unvisited', 'unvisited'],
+                visitingIndex: 0,
+                replacedNode: null,
+                checkpointActive: false,
+            }, {
+                id: 3,
+                title: '处理元素 2',
+                desc: 'nums[1] = 2。堆大小 1 < k=2，加入堆并维护小顶堆性质。堆变为 [2, 3]，堆顶为 2。',
+                op: 'PUSH',
+                heap: [2, 3],
+                heapTop: 2,
+                currentIndex: 1,
+                currentElement: 2,
+                action: 'push',
+                actionDetail: '堆未满，加入 2，上浮维护',
+                codeLines: [2, 3, 4],
+                highlightType: 'highlight',
+                teaching: '堆大小仍不足 k，<strong>2</strong> 入堆。加入后堆内元素为 [2, 3]，小顶堆自动将较小值 2 置于堆顶。<br><br><strong>关键认知：</strong>堆顶 2 是当前找到的"第 2 大"元素的候选——它实际上是已遍历元素中第 2 大的（3 最大，2 次之）。',
+                evidence: 'operation: push\nheap_before: [3]\nheap_after: [2, 3]\nheap_top_before: 3\nheap_top_after: 2\nreason: heap.length (1) < k (2)\nsorting maintained min-heap property',
+                arrayStatus: ['processed-kept', 'processed-kept', 'unvisited', 'unvisited', 'unvisited', 'unvisited'],
+                visitingIndex: 1,
+                replacedNode: null,
+                checkpointActive: false,
+            }, {
+                id: 4,
+                title: '处理元素 1 — 被跳过',
+                desc: 'nums[2] = 1。堆大小 = k=2 且 1 < 堆顶 2，不加入。堆保持 [2, 3]。',
+                op: 'SKIP',
+                heap: [2, 3],
+                heapTop: 2,
+                currentIndex: 2,
+                currentElement: 1,
+                action: 'skip',
+                actionDetail: '1 < 堆顶 2，无资格入堆',
+                codeLines: [2, 5],
+                highlightType: 'highlight-alt',
+                teaching: '堆已满（大小 = k=2），且当前元素 <strong>1</strong> 小于堆顶 <strong>2</strong>。这意味着 1 不可能成为前 k 大的元素——它比堆中最小的候选者还小。<br><br><strong>常见误区：</strong>初学者可能会想"万一后面需要 1 呢？"但第 k 大只需要最大的 k 个元素，比门槛小的元素永远不会是答案。',
+                evidence: 'operation: compare_and_skip\nheap_before: [2, 3]\nheap_after: [2, 3] (unchanged)\ncurrent_element: 1\nheap_top: 2\ncondition: 1 < 2 → skip\nreason: element too small to enter top-k',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'unvisited', 'unvisited',
+                    'unvisited'
+                ],
+                visitingIndex: 2,
+                replacedNode: null,
+                checkpointActive: false,
+            }, {
+                id: 5,
+                title: '处理元素 5 — 替换堆顶',
+                desc: 'nums[3] = 5。堆大小 = k=2 且 5 > 堆顶 2，弹出堆顶 2，加入 5。堆变为 [3, 5]，堆顶为 3。',
+                op: 'REPLACE_TOP',
+                heap: [3, 5],
+                heapTop: 3,
+                currentIndex: 3,
+                currentElement: 5,
+                action: 'replace_top',
+                actionDetail: '5 > 2，弹出 2，加入 5',
+                codeLines: [2, 5, 6, 7, 8],
+                highlightType: 'highlight-alt',
+                teaching: '这是<strong>关键操作</strong>！堆已满，但当前元素 <strong>5</strong> 大于堆顶 <strong>2</strong>。这意味着 5 比堆中最小的候选者更大，有资格取代它。弹出 2，加入 5，维护小顶堆后新堆顶为 3。<br><br><strong>不变量保持：</strong>堆始终包含已遍历元素中最大的 k 个。现在已遍历 [3,2,1,5]，最大的 2 个是 {5, 3}，堆正确反映了这一点。',
+                evidence: 'operation: replace_top\nheap_before: [2, 3]\nheap_after: [3, 5]\npopped: 2\ninserted: 5\nheap_top_before: 2\nheap_top_after: 3\ncondition: 5 > 2 → replace',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept', 'unvisited',
+                    'unvisited'
+                ],
+                visitingIndex: 3,
+                replacedNode: 2,
+                checkpointActive: true,
+                checkpointData: {
+                    question: '当前堆为 [2, 3]（堆顶=2），现在处理元素 5。5 > 2，堆已满（k=2）。应该执行什么操作？',
+                    options: [
+                        { label: 'A', text: '直接将 5 加入堆 → 堆变成 [2, 3, 5]（超过容量 k=2）', value: 'A' },
+                        { label: 'B', text: '弹出堆顶 2，将 5 加入堆 → 堆变成 [3, 5]，新堆顶为 3', value: 'B' },
+                        { label: 'C', text: '忽略元素 5，保持堆 [2, 3] 不变', value: 'C' },
+                        { label: 'D', text: '清空堆，重新放入 3 和 5 → 堆变成 [3, 5]', value: 'D' },
+                    ],
+                    correctAnswer: 'B',
+                    hint: '堆的容量只有 k=2，已满。但 5 比堆顶 2 大——想想"淘汰最弱的候选者"这个思路。',
+                    correctFeedback: '✅ 正确！堆已满时，如果新元素大于堆顶（当前第 k 大的门槛），就需要弹出堆顶（最小的候选者）并加入新元素。这是小顶堆 TopK 算法的核心操作。',
+                    wrongFeedback: {
+                        'A': '❌ 错误。堆的容量只有 k=2，不能容纳 3 个元素。这会破坏"维护 k 个最大元素"的不变量。',
+                        'C': '❌ 错误。5 比堆顶 2 大，意味着 5 应该取代 2 成为前 k 大的候选者。忽略 5 会导致丢失正确答案。',
+                        'D': '❌ 不够高效。不需要清空整个堆，只需要替换堆顶即可——这正是小顶堆的优势所在，时间复杂度 O(log k)。',
+                    },
+                },
+            }, {
+                id: 6,
+                title: '处理元素 6 — 再次替换堆顶',
+                desc: 'nums[4] = 6。堆大小 = k=2 且 6 > 堆顶 3，弹出堆顶 3，加入 6。堆变为 [5, 6]，堆顶为 5。',
+                op: 'REPLACE_TOP',
+                heap: [5, 6],
+                heapTop: 5,
+                currentIndex: 4,
+                currentElement: 6,
+                action: 'replace_top',
+                actionDetail: '6 > 3，弹出 3，加入 6',
+                codeLines: [2, 5, 6, 7, 8],
+                highlightType: 'highlight-alt',
+                teaching: '又一次替换操作！当前元素 <strong>6</strong> 大于堆顶 <strong>3</strong>，所以弹出 3，加入 6。新堆 [5, 6] 的堆顶变为 5。<br><br>注意：现在堆顶 5 就是已遍历元素 [3,2,1,5,6] 中第 2 大的元素（最大是 6，第 2 大是 5）。这与排序结果一致。',
+                evidence: 'operation: replace_top\nheap_before: [3, 5]\nheap_after: [5, 6]\npopped: 3\ninserted: 6\nheap_top_before: 3\nheap_top_after: 5\ncondition: 6 > 3 → replace',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept',
+                    'processed-kept', 'unvisited'
+                ],
+                visitingIndex: 4,
+                replacedNode: 3,
+                checkpointActive: false,
+            }, {
+                id: 7,
+                title: '处理元素 4 — 被跳过',
+                desc: 'nums[5] = 4。堆大小 = k=2 且 4 < 堆顶 5，不加入。堆保持 [5, 6]。',
+                op: 'SKIP',
+                heap: [5, 6],
+                heapTop: 5,
+                currentIndex: 5,
+                currentElement: 4,
+                action: 'skip',
+                actionDetail: '4 < 堆顶 5，无资格入堆',
+                codeLines: [2, 5],
+                highlightType: 'highlight-alt',
+                teaching: '最后一个元素 <strong>4</strong> 小于堆顶 <strong>5</strong>，被跳过。此时堆 [5, 6] 包含了整个数组中最大的 2 个元素。<br><br>排序验证：数组排序后为 [1,2,3,4,5,6]，第 2 大是 5。堆顶正是 5。✅',
+                evidence: 'operation: compare_and_skip\nheap_before: [5, 6]\nheap_after: [5, 6] (unchanged)\ncurrent_element: 4\nheap_top: 5\ncondition: 4 < 5 → skip',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept',
+                    'processed-kept', 'processed-skipped'
+                ],
+                visitingIndex: 5,
+                replacedNode: null,
+                checkpointActive: false,
+            }, {
+                id: 8,
+                title: '答案确认 — 返回堆顶',
+                desc: '遍历完成。堆顶 5 即为数组第 2 大的元素。返回 5。',
+                op: 'RETURN',
+                heap: [5, 6],
+                heapTop: 5,
+                currentIndex: -1,
+                currentElement: null,
+                action: 'return_answer',
+                actionDetail: '返回堆顶 5',
+                codeLines: [9],
+                highlightType: 'highlight',
+                teaching: '🎉 算法完成！遍历全部 6 个元素后，小顶堆中保留了最大的 2 个元素 [5, 6]。堆顶 <strong>5</strong> 是其中最小的——也就是整个数组第 2 大的元素。<br><br><strong>总结：</strong>容量为 k 的小顶堆天然适合 TopK 问题。堆顶始终是"当前第 k 大"，时间复杂度 O(n log k)，空间复杂度 O(k)。',
+                evidence: 'operation: return_answer\nfinal_heap: [5, 6]\nheap_top: 5\nresult: 5\nverification: sorted array = [1,2,3,4,5,6], 2nd largest = 5 ✓',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept',
+                    'processed-kept', 'processed-skipped'
+                ],
+                visitingIndex: -1,
+                replacedNode: null,
+                checkpointActive: false,
+            }];
+
+            const totalSteps = steps.length;
+
+            // Code lines
+            const codeLines = [
+                'function findKthLargest(nums, k) {',
+                '  const heap = [];                 // 小顶堆',
+                '  for (let i = 0; i < nums.length; i++) {',
+                '    if (heap.length < k) {         // 堆未满',
+                '      heap.push(nums[i]);          // 直接加入',
+                '      heap.sort((a,b) => a - b);   // 维护小顶堆',
+                '    } else if (nums[i] > heap[0]) { // 堆满且元素>堆顶',
+                '      heap.shift();                // 弹出堆顶',
+                '      heap.push(nums[i]);          // 加入新元素',
+                '      heap.sort((a,b) => a - b);   // 维护小顶堆',
+                '    }',
+                '  }',
+                '  return heap[0];                  // 堆顶=第k大',
+                '}',
+            ];
+
+            // ============ DOM REFS ============
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const counterEl = $('#counter');
+            const opEl = $('#op');
+            const stepTitleEl = $('#step-title');
+            const stepDescEl = $('#step-desc');
+            const canvasEl = $('#canvas');
+            const codeEl = $('#code');
+            const timelineEl = $('#timeline');
+            const teachingEl = $('#teaching');
+            const stateEl = $('#state');
+            const stepEvidenceEl = $('#step-evidence');
+            const answerEl = $('#answer');
+            const topResultEl = $('#top-result');
+            const prevBtn = $('#prev');
+            const nextBtn = $('#next');
+            const playBtn = $('#play');
+            const rangeEl = $('#range');
+            const checkpointArea = $('#checkpoint-area');
+            const checkpointQuestion = $('#checkpoint-question');
+            const checkpointOptions = $('#checkpoint-options');
+            const checkpointSubmit = $('#checkpoint-submit');
+            const checkpointHint = $('#checkpoint-hint');
+            const checkpointShowAnswer = $('#checkpoint-show-answer');
+            const checkpointFeedback = $('#checkpoint-feedback');
+            const learningLogEl = $('#learning-log');
+            const arrayRowEl = $('#array-row');
+            const heapTreeEl = $('#heap-tree');
+            const heapArrayDisplayEl = $('#heap-array-display');
+
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let learningLogEntries = [];
+            let checkpointSubmitted = false;
+            let checkpointRevealed = false;
+
+            // ============ ANSWER ============
+            answerEl.textContent = '5';
+            topResultEl.textContent = '5';
+
+            // ============ BUILD TIMELINE ============
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                steps.forEach((s, i) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.dataset.step = i + 1;
+                    tick.innerHTML = `
+                <span class="tick-label">步骤 ${i + 1}</span>
+                <span class="tick-op">${s.op}</span>
+              `;
+                    tick.addEventListener('click', () => {
+                        stopPlay();
+                        goToStep(i);
+                    });
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            function updateTimelineActive() {
+                const ticks = $$('#timeline .tick');
+                ticks.forEach((t, i) => {
+                    t.classList.remove('active', 'completed');
+                    if (i === currentStepIndex) t.classList.add('active');
+                    else if (i < currentStepIndex) t.classList.add('completed');
+                });
+            }
+
+            // ============ BUILD CODE ============
+            function buildCode() {
+                codeEl.innerHTML = '';
+                codeLines.forEach((line, i) => {
+                    const span = document.createElement('span');
+                    span.className = 'code-line';
+                    span.dataset.line = i;
+                    span.textContent = line;
+                    codeEl.appendChild(span);
+                });
+            }
+
+            function updateCodeHighlight() {
+                const step = steps[currentStepIndex];
+                const allLines = $$('#code .code-line');
+                allLines.forEach(l => {
+                    l.classList.remove('highlight', 'highlight-alt');
+                });
+                step.codeLines.forEach(lineIdx => {
+                    if (lineIdx < allLines.length) {
+                        allLines[lineIdx].classList.add(step.highlightType || 'highlight');
+                    }
+                });
+            }
+
+            // ============ BUILD CANVAS ============
+            function updateCanvas() {
+                const step = steps[currentStepIndex];
+
+                // Array row
+                arrayRowEl.innerHTML = '';
+                nums.forEach((num, i) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell ' + (step.arrayStatus[i] || 'unvisited');
+                    if (i === step.visitingIndex && step.visitingIndex >= 0) {
+                        cell.className = 'array-cell visiting';
+                    }
+                    if (step.id === 8 && num === 5 && i === 3) {
+                        cell.classList.add('answer-highlight');
+                    }
+                    if (step.id === 8 && num === 6 && i === 4) {
+                        cell.classList.add('processed-kept');
+                    }
+                    cell.textContent = num;
+                    if (step.arrayStatus[i] === 'processed-skipped') {
+                        cell.style.textDecoration = 'line-through';
+                    }
+                    arrayRowEl.appendChild(cell);
+                });
+
+                // Heap tree
+                heapTreeEl.innerHTML = '';
+                const heap = step.heap;
+                if (heap.length === 0) {
+                    const emptyNode = document.createElement('div');
+                    emptyNode.className = 'heap-empty';
+                    emptyNode.textContent = '空';
+                    heapTreeEl.appendChild(emptyNode);
+                } else if (heap.length === 1) {
+                    const root = document.createElement('div');
+                    root.className = 'heap-node root';
+                    if (step.id === 8) root.classList.add('answer-node');
+                    root.textContent = heap[0];
+                    heapTreeEl.appendChild(root);
+                } else if (heap.length >= 2) {
+                    const root = document.createElement('div');
+                    root.className = 'heap-node root';
+                    if (step.id === 8) root.classList.add('answer-node');
+                    root.textContent = heap[0];
+                    heapTreeEl.appendChild(root);
+
+                    const connector = document.createElement('div');
+                    connector.className = 'heap-connector';
+                    heapTreeEl.appendChild(connector);
+
+                    const childContainer = document.createElement('div');
+                    childContainer.style.display = 'flex';
+                    childContainer.style.gap = '12px';
+                    childContainer.style.justifyContent = 'center';
+
+                    for (let i = 1; i < heap.length; i++) {
+                        const child = document.createElement('div');
+                        child.className = 'heap-node child';
+                        if (step.replacedNode !== null && heap[i] === step.replacedNode && step.action ===
+                            'replace_top') {
+                            child.classList.add('replaced');
+                        }
+                        child.textContent = heap[i];
+                        childContainer.appendChild(child);
+                    }
+                    heapTreeEl.appendChild(childContainer);
+                }
+
+                // Heap array display
+                heapArrayDisplayEl.textContent = '堆内部: [' + step.heap.join(', ') + ']';
+                if (step.heapTop !== null) {
+                    heapArrayDisplayEl.textContent += ' | 堆顶: ' + step.heapTop;
+                }
+            }
+
+            // ============ UPDATE ALL ============
+            function updateAll() {
+                const step = steps[currentStepIndex];
+                counterEl.textContent = (currentStepIndex + 1) + ' / ' + totalSteps;
+                opEl.textContent = step.op;
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                teachingEl.innerHTML = step.teaching;
+                stateEl.textContent = JSON.stringify({
+                    heap: step.heap,
+                    heapTop: step.heapTop,
+                    currentIndex: step.currentIndex,
+                    currentElement: step.currentElement,
+                    action: step.action,
+                    step: step.id,
+                }, null, 2);
+                stepEvidenceEl.textContent = step.evidence;
+                updateCodeHighlight();
+                updateCanvas();
+                updateTimelineActive();
+                rangeEl.value = currentStepIndex + 1;
+
+                // Checkpoint
+                if (step.checkpointActive) {
+                    checkpointArea.classList.add('visible');
+                    checkpointSubmitted = false;
+                    checkpointRevealed = false;
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.className = 'checkpoint-feedback';
+                    const cd = step.checkpointData;
+                    checkpointQuestion.textContent = cd.question;
+                    checkpointOptions.innerHTML = '';
+                    cd.options.forEach(opt => {
+                        const label = document.createElement('label');
+                        label.className = 'checkpoint-option';
+                        label.innerHTML =
+                            `<input type="radio" name="checkpoint-answer" value="${opt.value}"> <span>${opt.label}. ${opt.text}</span>`;
+                        checkpointOptions.appendChild(label);
+                    });
+                    // Reset option styles
+                    $$('.checkpoint-option').forEach(o => {
+                        o.classList.remove('correct-flash', 'wrong-flash');
+                    });
+                    // Store checkpoint data
+                    checkpointArea.dataset.correctAnswer = cd.correctAnswer;
+                    checkpointArea.dataset.correctFeedback = cd.correctFeedback;
+                    checkpointArea.dataset.wrongFeedback = JSON.stringify(cd.wrongFeedback || {});
+                    checkpointArea.dataset.hint = cd.hint;
+                } else {
+                    checkpointArea.classList.remove('visible');
+                }
+
+                // Enable/disable buttons
+                prevBtn.disabled = (currentStepIndex === 0);
+                nextBtn.disabled = (currentStepIndex === totalSteps - 1);
+                rangeEl.max = totalSteps;
+                rangeEl.value = currentStepIndex + 1;
+            }
+
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                updateAll();
+            }
+
+            // ============ PLAY ============
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸';
+                playBtn.classList.add('playing');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶';
+                playBtn.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT LISTENERS ============
+            prevBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            nextBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+            });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                goToStep(val - 1);
+            });
+
+            // Checkpoint submit
+            checkpointSubmit.addEventListener('click', () => {
+                if (checkpointSubmitted) return;
+                const selected = document.querySelector('input[name="checkpoint-answer"]:checked');
+                if (!selected) {
+                    checkpointFeedback.textContent = '⚠️ 请先选择一个选项再提交。';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-info';
+                    return;
+                }
+                const userAnswer = selected.value;
+                const correctAnswer = checkpointArea.dataset.correctAnswer;
+                const isCorrect = (userAnswer === correctAnswer);
+                checkpointSubmitted = true;
+                checkpointRevealed = true;
+
+                // Flash options
+                const allOptions = $$('.checkpoint-option');
+                allOptions.forEach(opt => {
+                    const radio = opt.querySelector('input');
+                    if (radio && radio.value === correctAnswer) {
+                        opt.classList.add('correct-flash');
+                    }
+                    if (radio && radio.value === userAnswer && !isCorrect) {
+                        opt.classList.add('wrong-flash');
+                    }
+                });
+
+                // Feedback
+                if (isCorrect) {
+                    checkpointFeedback.textContent = checkpointArea.dataset.correctFeedback;
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                } else {
+                    const wrongMap = JSON.parse(checkpointArea.dataset.wrongFeedback || '{}');
+                    checkpointFeedback.textContent = wrongMap[userAnswer] || '❌ 答案不正确。';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-wrong';
+                }
+
+                // Log
+                const logEntry = {
+                    step: currentStepIndex + 1,
+                    stepTitle: steps[currentStepIndex].title,
+                    userAnswer: userAnswer,
+                    correctAnswer: correctAnswer,
+                    isCorrect: isCorrect,
+                    timestamp: new Date().toLocaleTimeString(),
+                };
+                learningLogEntries.push(logEntry);
+                updateLearningLog();
+            });
+
+            checkpointHint.addEventListener('click', () => {
+                const hint = checkpointArea.dataset.hint || '暂无提示。';
+                checkpointFeedback.textContent = '💡 提示：' + hint;
+                checkpointFeedback.className = 'checkpoint-feedback feedback-info';
+            });
+
+            checkpointShowAnswer.addEventListener('click', () => {
+                checkpointRevealed = true;
+                const correctAnswer = checkpointArea.dataset.correctAnswer;
+                checkpointFeedback.textContent = '🔍 正确答案是 ' + correctAnswer + '。' + (checkpointArea.dataset
+                    .correctFeedback || '');
+                checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                // Flash correct option
+                const allOptions = $$('.checkpoint-option');
+                allOptions.forEach(opt => {
+                    const radio = opt.querySelector('input');
+                    if (radio && radio.value === correctAnswer) {
+                        opt.classList.add('correct-flash');
+                    }
+                });
+                if (!checkpointSubmitted) {
+                    checkpointSubmitted = true;
+                    const logEntry = {
+                        step: currentStepIndex + 1,
+                        stepTitle: steps[currentStepIndex].title,
+                        userAnswer: '(revealed)',
+                        correctAnswer: correctAnswer,
+                        isCorrect: false,
+                        timestamp: new Date().toLocaleTimeString(),
+                        revealed: true,
+                    };
+                    learningLogEntries.push(logEntry);
+                    updateLearningLog();
+                }
+            });
+
+            function updateLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    learningLogEl.textContent = '尚无提交记录。';
+                    return;
+                }
+                learningLogEl.innerHTML = '';
+                learningLogEntries.forEach((entry, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry ' + (entry.isCorrect ? 'correct-log' : 'wrong-log');
+                    const icon = entry.isCorrect ? '✅' : (entry.revealed ? '👁️' : '❌');
+                    div.textContent =
+                        `[${entry.timestamp}] 步骤${entry.step} ${entry.stepTitle} | 选择: ${entry.userAnswer} | 正确: ${entry.correctAnswer} ${icon}`;
+                    learningLogEl.appendChild(div);
+                });
+                learningLogEl.scrollTop = learningLogEl.scrollHeight;
+            }
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                buildTimeline();
+                buildCode();
+                goToStep(0);
+                rangeEl.min = 1;
+                rangeEl.max = totalSteps;
+                rangeEl.value = 1;
+                answerEl.textContent = '5';
+                topResultEl.textContent = '5';
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

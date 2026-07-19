@@ -1,0 +1,108 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "dijkstra_shortest_path",
+  "algorithm_id": "dijkstra_shortest_path",
+  "title": "Dijkstra 最短路",
+  "family": "最短路 / MST",
+  "difficulty": "medium",
+  "problem": "城市应急调度中心维护一张非负耗时的有向道路网 weighted_graph，每个节点表示路口，每条边权表示从一个路口到另一个路口的通行时间。给定救援车辆出发路口 start，返回它到所有可达路口的最短通行时间。",
+  "strategy": "最小堆按当前候选距离弹出节点，用非负权边松弛邻居。",
+  "input_contract": "输入 weighted_graph 邻接表和 start。",
+  "time_complexity": "O((V+E) log V)",
+  "space_complexity": "O(V)",
+  "learning_objectives": [
+    "追踪堆中节点和距离的变化，理解松弛操作如何逐步逼近最短路径",
+    "根据当前加权图状态预测下一个将被弹出的节点",
+    "验证算法执行过程中的距离单调性与堆的不变性"
+  ],
+  "required_views": [
+    "graph",
+    "heap",
+    "map"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！因为 B 的当前距离最小，算法会优先处理它。",
+      "feedback_wrong": "请观察堆顶元素和当前各节点的已知距离，注意弹出的是最小距离节点。",
+      "id": "task_1",
+      "oracle": "从堆中选择距离最小的节点，应为 B (距离 1)。",
+      "prompt": "当前堆为 [(1, 'B'), (4, 'C')]，距离记录：A:0, B:1, C:4。请问下一步将从堆中弹出哪个节点？",
+      "stage2_affordance": "步进按钮前，要求学生点击图形中的节点预测弹出目标。",
+      "trace_anchor": [
+        "state.heap",
+        "state.dist"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "答对了！已弹出节点的距离是确定的，后续松弛不会改变它。",
+      "feedback_wrong": "请关注堆弹出操作的本质含义：弹出时节点距离即为全局最优。",
+      "id": "task_2",
+      "oracle": "正确选项是 B。已弹出节点确定最短距离，不再更新；A 和 C 并不总是成立。",
+      "prompt": "在执行过程中，下列哪个陈述是始终成立的不变式？A) 堆的大小等于未处理的节点数 B) 已弹出节点的最短距离不再更新 C) 所有节点的当前距离都是最终最短路径",
+      "stage2_affordance": "点击状态窗口中的某个不变式选项，系统高亮验证结果。",
+      "trace_anchor": [
+        "state.dist",
+        "state.heap"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确！修改输入后需重新计算路径。",
+      "feedback_wrong": "检查新图中各边权值，并使用参考求解器重新计算。",
+      "id": "task_3",
+      "oracle": "根据修改后的图，B->C 的唯一路径为 B->A->C，权值 2+2=4，因此结果为 4。",
+      "prompt": "如果将 start 改为 'B'，且边 (A, C) 的权值从 5 改为 2，请预测从 B 到 C 的最短时间。",
+      "stage2_affordance": "提供输入修改面板，可直接编辑 start 和边的权值，然后重新运行。",
+      "trace_anchor": [
+        "start",
+        "weighted_graph"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释合理。这是 Dijkstra 算法通过松弛逐步逼近最优解的核心步骤。",
+      "feedback_wrong": "请对比新旧距离值，并回顾松弛操作的触发条件。",
+      "id": "task_4",
+      "oracle": "因为通过 B 到 C 的新路径比 C 的当前已知距离更短，松弛操作将其替换为更小值。",
+      "prompt": "步骤 3：弹出节点 B (距离 2)，发现 B->C 权 1，候选距离 3，而当前 C 距离为 5，因此更新 C 距离为 3。请解释为什么会触发这次距离更新。",
+      "stage2_affordance": "点击图形中的边，显示弹出节点和邻居的详细信息，并高亮权重比较。",
+      "trace_anchor": [
+        "state.current",
+        "state.neighbor",
+        "state.weight"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": {
+      "A": 0,
+      "B": 2,
+      "C": 3
+    },
+    "index": 0,
+    "input_data": {
+      "start": "A",
+      "weighted_graph": {
+        "A": [
+          [
+            "B",
+            2
+          ],
+          [
+            "C",
+            5
+          ]
+        ],
+        "B": [
+          [
+            "C",
+            1
+          ]
+        ],
+        "C": []
+      }
+    }
+  }
+}

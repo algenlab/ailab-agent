@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>有序数组两数之和 - AlgoLab 教学</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --surface: #fff;
+            --primary: #2c3e7b;
+            --accent: #e8833a;
+            --success: #2d9d5a;
+            --danger: #c0392b;
+            --warning: #d4a017;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --border: #dde3ea;
+            --code-bg: #1e2332;
+            --code-text: #e0e4f0;
+            --highlight-line: #3a4560;
+            --highlight-current: #ffb347;
+            --l-pointer: #4a90d9;
+            --r-pointer: #e0556a;
+            --answer-green: #3cb371;
+            --excluded: #e8e8e8;
+            --tick-active: #2c3e7b;
+            --tick-inactive: #c5cdd8;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.12);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.25s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .page-wrapper {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 18px 20px 40px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary);
+        }
+        #title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0 0 4px 0;
+            letter-spacing: -0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .result-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--success);
+            background: #eafaf2;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            letter-spacing: 0.3px;
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: #f0f4f8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        #answer {
+            font-size: 0.85rem;
+            color: #777;
+            background: #fafafa;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px dashed #ccc;
+            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+            letter-spacing: 0.2px;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .panel-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #888;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        /* Code panel */
+        #code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Fira Code', monospace;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            white-space: pre;
+            position: relative;
+            border: 1px solid #2a3040;
+            min-height: 200px;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 10px;
+            margin: 0 -10px;
+            border-radius: 3px;
+            transition: background 0.2s, color 0.2s;
+            cursor: default;
+        }
+        #code .code-line.highlight {
+            background: var(--highlight-line);
+            color: #fff;
+            font-weight: 600;
+            border-left: 3px solid var(--highlight-current);
+            padding-left: 7px;
+        }
+        #code .code-line.highlight-answer {
+            background: #1e3d2f;
+            color: #7ee8a8;
+            font-weight: 600;
+            border-left: 3px solid var(--answer-green);
+            padding-left: 7px;
+        }
+
+        /* Canvas area */
+        #canvas {
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            position: relative;
+            padding: 10px 0;
+        }
+        .array-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .array-cell {
+            position: relative;
+            width: 62px;
+            height: 72px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.3rem;
+            transition: all var(--transition);
+            border: 3px solid transparent;
+            cursor: default;
+            background: #f5f6f8;
+            color: #444;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .array-cell .cell-index {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: #999;
+            position: absolute;
+            bottom: 4px;
+            letter-spacing: 0.3px;
+        }
+        .array-cell.pointer-L {
+            border-color: var(--l-pointer);
+            background: #e8f2fc;
+            color: #1a3a5c;
+            box-shadow: 0 0 0 5px rgba(74, 144, 217, 0.15);
+            transform: translateY(-4px);
+            z-index: 2;
+        }
+        .array-cell.pointer-R {
+            border-color: var(--r-pointer);
+            background: #fde8ec;
+            color: #5c1a2a;
+            box-shadow: 0 0 0 5px rgba(224, 85, 106, 0.15);
+            transform: translateY(-4px);
+            z-index: 2;
+        }
+        .array-cell.pointer-both {
+            border-color: var(--answer-green);
+            background: #e2f7ed;
+            color: #1a4a2a;
+            box-shadow: 0 0 0 7px rgba(60, 179, 113, 0.2);
+            transform: translateY(-4px);
+            z-index: 3;
+            animation: pulse-green 1.2s ease-in-out infinite;
+        }
+        .array-cell.excluded-left {
+            background: #fafafa;
+            color: #bbb;
+            border-color: #eee;
+            opacity: 0.6;
+        }
+        .array-cell.excluded-right {
+            background: #fafafa;
+            color: #bbb;
+            border-color: #eee;
+            opacity: 0.6;
+        }
+        .array-cell.neutral {
+            background: #f9fafb;
+            border-color: #e8ecf1;
+            color: #555;
+        }
+        @keyframes pulse-green {
+            0%,
+            100% {
+                box-shadow: 0 0 0 7px rgba(60, 179, 113, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(60, 179, 113, 0.05);
+            }
+        }
+        .pointer-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.4px;
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        .pointer-label.label-L {
+            background: var(--l-pointer);
+            color: #fff;
+        }
+        .pointer-label.label-R {
+            background: var(--r-pointer);
+            color: #fff;
+        }
+        .sum-display {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            background: #fffdf5;
+            border: 2px dashed #e0d5a0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+            text-align: center;
+        }
+        .sum-display.match {
+            border-color: var(--answer-green);
+            background: #eafaf2;
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.3px;
+            transition: all var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #3a4f9e;
+            box-shadow: var(--shadow-lg);
+        }
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-accent:hover {
+            background: #d4742d;
+            box-shadow: var(--shadow-lg);
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        .btn-outline:hover {
+            background: #f0f3fa;
+        }
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            border-radius: 14px;
+        }
+        .btn-xs {
+            padding: 3px 8px;
+            font-size: 0.7rem;
+            border-radius: 10px;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--primary);
+            min-width: 50px;
+            text-align: center;
+            letter-spacing: 0.5px;
+            background: #f0f4fa;
+            padding: 6px 12px;
+            border-radius: 16px;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            height: 6px;
+        }
+        #op {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--accent);
+            background: #fef9f4;
+            padding: 4px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+            margin-bottom: 8px;
+            justify-content: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 2px solid var(--tick-inactive);
+            background: #fff;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: inherit;
+            font-size: 0.78rem;
+            min-width: 70px;
+            text-align: center;
+            color: #777;
+        }
+        .tick:hover {
+            border-color: #aab;
+            background: #fafbfc;
+            box-shadow: var(--shadow);
+        }
+        .tick.active {
+            border-color: var(--tick-active);
+            background: #eef2fb;
+            color: var(--primary);
+            font-weight: 700;
+            box-shadow: 0 0 0 4px rgba(44, 62, 123, 0.08);
+            transform: translateY(-2px);
+        }
+        .tick.active .tick-label {
+            color: var(--primary);
+            font-weight: 700;
+        }
+        .tick.active .tick-op {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .tick-label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+            color: #555;
+            transition: color var(--transition);
+        }
+        .tick-op {
+            font-size: 0.68rem;
+            color: #888;
+            letter-spacing: 0.2px;
+            transition: color var(--transition);
+        }
+        .tick.done {
+            border-color: #bcc8d8;
+            background: #fafbfc;
+            color: #777;
+        }
+        .tick.done .tick-label {
+            color: #666;
+        }
+
+        /* Info panels */
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        @media (max-width: 800px) {
+            .info-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        #state {
+            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.78rem;
+            background: #fafbfc;
+            border: 1px solid #e5e9f0;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            color: #444;
+            max-height: 150px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: #555;
+            background: #fdfdff;
+            border-left: 3px solid #c0c8d8;
+            padding: 8px 12px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            line-height: 1.5;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: #333;
+            line-height: 1.6;
+            padding: 8px 0;
+        }
+        #teaching strong {
+            color: var(--primary);
+        }
+        #teaching .highlight-note {
+            background: #fffde8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        #teaching .common-error {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* Checkpoint */
+        .checkpoint-container {
+            background: #fdfcff;
+            border: 2px solid #e0ddf0;
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 10px;
+            box-shadow: var(--shadow);
+        }
+        .checkpoint-question {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #3a3050;
+            margin-bottom: 10px;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .checkpoint-option {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid #d5d5e5;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            font-family: inherit;
+            color: #444;
+        }
+        .checkpoint-option:hover {
+            border-color: #b0b0cc;
+            background: #f8f8ff;
+        }
+        .checkpoint-option.selected {
+            border-color: var(--primary);
+            background: #eef2fb;
+            font-weight: 700;
+            color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(44, 62, 123, 0.08);
+        }
+        .checkpoint-feedback {
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-top: 6px;
+            line-height: 1.5;
+            display: none;
+        }
+        .checkpoint-feedback.correct {
+            background: #e6f7ee;
+            color: #1e6b3a;
+            border: 1px solid #b7e4c9;
+            display: block;
+        }
+        .checkpoint-feedback.incorrect {
+            background: #fdecea;
+            color: #8b1a1a;
+            border: 1px solid #f0c4c4;
+            display: block;
+        }
+        .checkpoint-feedback.reveal {
+            background: #fffdf0;
+            color: #6b5a1a;
+            border: 1px solid #e8dca0;
+            display: block;
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: #fafbfc;
+            border: 1px solid #e5e9f0;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: #555;
+            line-height: 1.5;
+        }
+        #learning-log .log-entry {
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        #learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-icon {
+            font-weight: 700;
+            font-size: 0.85rem;
+            min-width: 20px;
+        }
+        .log-icon.correct-icon {
+            color: var(--success);
+        }
+        .log-icon.wrong-icon {
+            color: var(--danger);
+        }
+        .log-icon.info-icon {
+            color: #888;
+        }
+        .log-time {
+            color: #aaa;
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+
+        /* Footer */
+        .footer-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #bbb;
+            margin-top: 20px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Transition helper */
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0.6;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .array-cell {
+                width: 46px;
+                height: 56px;
+                font-size: 1rem;
+            }
+            .array-cell .cell-index {
+                font-size: 0.55rem;
+                bottom: 2px;
+            }
+            .pointer-label {
+                font-size: 0.6rem;
+                top: -16px;
+            }
+            #code {
+                font-size: 0.72rem;
+                padding: 10px 8px;
+            }
+            .btn {
+                font-size: 0.75rem;
+                padding: 6px 10px;
+            }
+            .tick {
+                padding: 6px 8px;
+                font-size: 0.68rem;
+                min-width: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <div class="header">
+            <h1 id="title">有序数组两数之和</h1>
+            <p id="subtitle">LeetCode 167 风格 · 左右双指针 · 升序数组 nums = [1, 2, 4, 6, 10] · target = 8</p>
+            <div class="result-row">
+                <span id="top-result">✅ 结果：[1, 3]</span>
+                <span id="top-solution">💡 nums[1]=2 + nums[3]=6 = 8</span>
+                <span id="answer">[1, 3]</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button id="prev" class="btn btn-outline btn-sm" title="上一步">◀ 上一步</button>
+            <button id="play" class="btn btn-accent btn-sm" title="自动播放">▶ 播放</button>
+            <button id="next" class="btn btn-primary btn-sm" title="下一步">下一步 ▶</button>
+            <input type="range" id="range" min="1" max="5" value="1" step="1" title="步骤滑块">
+            <span id="counter">1 / 5</span>
+            <span id="op">🔧 初始化</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline">
+            <button class="tick active" data-step="1">
+                <span class="tick-label">初始化</span><span class="tick-op">设置双指针</span>
+            </button>
+            <button class="tick" data-step="2">
+                <span class="tick-label">比较</span><span class="tick-op">sum&gt;target, R--</span>
+            </button>
+            <button class="tick" data-step="3">
+                <span class="tick-label">比较</span><span class="tick-op">sum&lt;target, L++</span>
+            </button>
+            <button class="tick" data-step="4">
+                <span class="tick-label">匹配</span><span class="tick-op">sum==target</span>
+            </button>
+            <button class="tick" data-step="5">
+                <span class="tick-label">返回</span><span class="tick-op">return [1,3]</span>
+            </button>
+        </div>
+
+        <!-- Main grid: Code + Canvas -->
+        <div class="main-grid">
+            <div class="panel">
+                <div class="panel-label">📝 算法代码</div>
+                <div id="code">
+                    <span class="code-line" data-line="1">function twoSum(nums, target) {</span>
+                    <span class="code-line" data-line="2">  let L = 0, R = nums.length - 1;</span>
+                    <span class="code-line" data-line="3">  while (L &lt; R) {</span>
+                    <span class="code-line" data-line="4">    let sum = nums[L] + nums[R];</span>
+                    <span class="code-line" data-line="5">    if (sum === target) {</span>
+                    <span class="code-line" data-line="6">      return [L, R];</span>
+                    <span class="code-line" data-line="7">    } else if (sum &lt; target) {</span>
+                    <span class="code-line" data-line="8">      L++;</span>
+                    <span class="code-line" data-line="9">    } else {</span>
+                    <span class="code-line" data-line="10">      R--;</span>
+                    <span class="code-line" data-line="11">    }</span>
+                    <span class="code-line" data-line="12">  }</span>
+                    <span class="code-line" data-line="13">  return [];</span>
+                    <span class="code-line" data-line="14">}</span>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-label">🎯 算法视图</div>
+                <div id="canvas">
+                    <div class="array-row" id="array-row">
+                        <!-- Dynamically filled -->
+                    </div>
+                    <div class="sum-display" id="sum-display">sum = ?</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info row: step details + state -->
+        <div class="info-row">
+            <div class="panel">
+                <div id="step-title">步骤 1：初始化双指针</div>
+                <div id="step-desc">左指针 L 指向数组起始位置 0，右指针 R 指向数组末尾位置 4</div>
+                <div id="op" style="display:inline-block;margin-bottom:6px;">🔧 初始化</div>
+                <div class="panel-label" style="margin-top:6px;">📋 当前状态 JSON</div>
+                <div id="state">{"L": 0, "R": 4, "nums[L]": 1, "nums[R]": 10, "sum": 11, "target": 8}</div>
+            </div>
+            <div class="panel">
+                <div class="panel-label">📖 步骤证据</div>
+                <div id="step-evidence">
+                    <strong>operation:</strong> initialize<br>
+                    <strong>targets:</strong> L=0 (值1), R=4 (值10)<br>
+                    <strong>before:</strong> 未初始化<br>
+                    <strong>after:</strong> L=0, R=4, sum=11
+                </div>
+                <div class="panel-label" style="margin-top:8px;">👨‍🏫 教学讲解</div>
+                <div id="teaching">
+                    <strong>为什么用双指针？</strong>因为数组是<strong>升序排列</strong>的。左指针指向最小元素，右指针指向最大元素。计算两数之和后，根据与 target 的比较，可以<strong>确定性地</strong>决定移动哪个指针——这是双指针法的核心优势。
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="checkpoint-container" id="checkpoint-container">
+            <div class="checkpoint-question" id="checkpoint-question">📝 学习检查点：当 sum = 11 > target = 8 时，应该移动哪个指针？</div>
+            <div class="checkpoint-options" id="checkpoint-options">
+                <button class="checkpoint-option" data-choice="A">A) 左指针 L 右移</button>
+                <button class="checkpoint-option" data-choice="B">B) 右指针 R 左移</button>
+                <button class="checkpoint-option" data-choice="C">C) 两个指针都移动</button>
+            </div>
+            <div class="checkpoint-btns">
+                <button class="btn btn-primary btn-xs" id="checkpoint-submit">✓ 提交</button>
+                <button class="btn btn-outline btn-xs" id="checkpoint-hint">💡 提示</button>
+                <button class="btn btn-outline btn-xs" id="checkpoint-reveal">👁 显示答案</button>
+            </div>
+            <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+        </div>
+
+        <!-- Learning log -->
+        <div class="panel" style="margin-top:10px;">
+            <div class="panel-label">📜 学习日志</div>
+            <div id="learning-log">
+                <div class="log-entry"><span class="log-icon info-icon">ℹ</span><span>页面加载完成，准备学习「有序数组两数之和」算法。</span><span class="log-time">--</span></div>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            AlgoLab-style 教学页 · 双指针算法 · 本地交互版
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ DATA ============
+            const nums = [1, 2, 4, 6, 10];
+            const target = 8;
+            const finalAnswer = [1, 3]; // 0-based indices
+
+            // Ensure #answer shows the final answer from the start
+            const answerEl = document.getElementById('answer');
+            answerEl.textContent = JSON.stringify(finalAnswer);
+
+            // Step definitions (1-based index for display)
+            const stepsData = [{
+                // Step 1: Initialize
+                L: 0,
+                R: 4,
+                sum: 11,
+                action: 'init',
+                comparison: null,
+                tickLabel: '初始化',
+                tickOp: '设置双指针',
+                stepTitle: '步骤 1：初始化双指针',
+                stepDesc: '左指针 L 指向数组起始位置 0，右指针 R 指向数组末尾位置 4。计算 nums[0] + nums[4] = 1 + 10 = 11。',
+                opText: '🔧 初始化',
+                stateJSON: '{"L": 0, "R": 4, "nums[L]": 1, "nums[R]": 10, "sum": 11, "target": 8}',
+                evidence: '<strong>operation:</strong> initialize<br><strong>targets:</strong> L=0 (值1), R=4 (值10)<br><strong>before:</strong> 未初始化<br><strong>after:</strong> L=0, R=4, sum=11',
+                teaching: '<strong>为什么用双指针？</strong>因为数组是<strong>升序排列</strong>的。左指针指向最小元素，右指针指向最大元素。计算两数之和后，根据与 target 的比较，可以<strong>确定性地</strong>决定移动哪个指针——这是双指针法的核心优势。<br><br>📌 <span class="highlight-note">不变量：</span>在每一步中，如果存在解，它一定在 [L, R] 区间内。',
+                highlightLines: [1, 2, 3, 4],
+                highlightAnswerLines: [],
+                pointerL: 0,
+                pointerR: 4,
+                foundIndices: null,
+                excludedLeftOf: null,
+                excludedRightOf: null,
+                checkpoint: {
+                    question: '📝 学习检查点：初始化后 sum = 11，比 target = 8 大。根据升序数组的特性，接下来应该移动哪个指针？',
+                    options: [
+                        { choice: 'A', text: 'A) 左指针 L 右移（增大和）' },
+                        { choice: 'B', text: 'B) 右指针 R 左移（减小和）' },
+                        { choice: 'C', text: 'C) 随机移动一个' }
+                    ],
+                    correctChoice: 'B',
+                    hint: '当前和 11 > 8，需要减小和。在升序数组中，移动哪个指针能减小两数之和？',
+                    answerExplanation: '右指针 R 指向的是当前区间最大元素，将其左移会指向更小的元素，从而减小两数之和。这是双指针法的关键决策。',
+                    correctFeedback: '✅ 正确！sum > target 时需要减小和，右指针左移（R--）可以指向更小的元素。',
+                    incorrectFeedback: '❌ 不对。当前 sum=11 > target=8，需要<strong>减小</strong>和。在升序数组中，右指针左移才能减小和（指向更小元素），而左指针右移会增大和。常见误区：混淆指针移动方向与和的变化关系。'
+                }
+            }, {
+                // Step 2: Compare and move R
+                L: 0,
+                R: 3,
+                sum: 7,
+                action: 'moveR',
+                comparison: '>',
+                prevR: 4,
+                tickLabel: '比较',
+                tickOp: 'sum>target, R--',
+                stepTitle: '步骤 2：比较并移动右指针',
+                stepDesc: 'sum = 11 > target = 8，需要更小的和。右指针左移：R = 3。现在 nums[0] + nums[3] = 1 + 6 = 7。',
+                opText: '🔽 比较 & R--',
+                stateJSON: '{"L": 0, "R": 3, "nums[L]": 1, "nums[R]": 6, "sum": 7, "comparison": ">", "target": 8, "action": "R--", "prevR": 4}',
+                evidence: '<strong>operation:</strong> compare_and_move_R<br><strong>targets:</strong> sum=11 > target=8 → 需要减小和<br><strong>before:</strong> R=4 (值10), sum=11<br><strong>after:</strong> R=3 (值6), sum=7',
+                teaching: '<strong>为什么移动 R？</strong>当前 sum=11 <strong>大于</strong> target=8。在升序数组中，要<strong>减小</strong>两数之和，唯一的方法是让右指针左移（指向更小的元素）。如果移动左指针，和只会更大。<br><br>⚠️ <span class="common-error">常见错误：</span>初学者可能会想"增大左指针来补偿"——这在升序数组中恰好相反！左指针右移会<strong>增大</strong>和。',
+                highlightLines: [4, 9, 10],
+                highlightAnswerLines: [],
+                pointerL: 0,
+                pointerR: 3,
+                foundIndices: null,
+                excludedLeftOf: null,
+                excludedRightOf: 5, // indices >=5 are excluded (none in this array)
+                checkpoint: {
+                    question: '📝 学习检查点：移动R后，sum=7 < target=8。现在应该移动哪个指针？',
+                    options: [
+                        { choice: 'A', text: 'A) 左指针 L 右移（增大和）' },
+                        { choice: 'B', text: 'B) 右指针 R 继续左移（减小和）' },
+                        { choice: 'C', text: 'C) 两个指针都移动' }
+                    ],
+                    correctChoice: 'A',
+                    hint: '当前和 7 < 8，需要增大和。L 指向最小元素，移动 L 可以增大和。',
+                    answerExplanation: 'sum < target 时需要增大和，左指针右移（L++）可以指向更大的元素。',
+                    correctFeedback: '✅ 正确！sum < target 时需要增大和，左指针右移（L++）指向更大的元素。',
+                    incorrectFeedback: '❌ 不对。当前 sum=7 < target=8，需要<strong>增大</strong>和。右指针继续左移只会让和更小。正确做法是左指针右移。记住：L++增大和，R--减小和。'
+                }
+            }, {
+                // Step 3: Compare and move L
+                L: 1,
+                R: 3,
+                sum: 8,
+                action: 'moveL',
+                comparison: '<',
+                prevL: 0,
+                tickLabel: '比较',
+                tickOp: 'sum<target, L++',
+                stepTitle: '步骤 3：比较并移动左指针',
+                stepDesc: 'sum = 7 < target = 8，需要更大的和。左指针右移：L = 1。现在 nums[1] + nums[3] = 2 + 6 = 8。',
+                opText: '🔼 比较 & L++',
+                stateJSON: '{"L": 1, "R": 3, "nums[L]": 2, "nums[R]": 6, "sum": 8, "comparison": "<", "target": 8, "action": "L++", "prevL": 0}',
+                evidence: '<strong>operation:</strong> compare_and_move_L<br><strong>targets:</strong> sum=7 < target=8 → 需要增大和<br><strong>before:</strong> L=0 (值1), sum=7<br><strong>after:</strong> L=1 (值2), sum=8',
+                teaching: '<strong>为什么移动 L？</strong>当前 sum=7 <strong>小于</strong> target=8。在升序数组中，要<strong>增大</strong>两数之和，需要让左指针右移（指向更大的元素）。移动右指针只会让和更小。<br><br>📌 <span class="highlight-note">关键洞察：</span>每次比较后，我们排除的不是一个元素，而是<strong>一侧的所有可能性</strong>——这就是双指针 O(n) 复杂度的来源。',
+                highlightLines: [4, 7, 8],
+                highlightAnswerLines: [],
+                pointerL: 1,
+                pointerR: 3,
+                foundIndices: null,
+                excludedLeftOf: 1, // indices <1 are excluded
+                excludedRightOf: 5,
+                checkpoint: {
+                    question: '📝 学习检查点：现在 sum=8 == target=8，算法应该做什么？',
+                    options: [
+                        { choice: 'A', text: 'A) 继续移动指针寻找其他解' },
+                        { choice: 'B', text: 'B) 返回当前 L 和 R 的下标 [1, 3]' },
+                        { choice: 'C', text: 'C) 重置指针重新搜索' }
+                    ],
+                    correctChoice: 'B',
+                    hint: '题目只需要找到一对满足条件的元素。sum == target 意味着什么？',
+                    answerExplanation: '当 sum === target 时，我们找到了答案，直接返回 [L, R]。',
+                    correctFeedback: '✅ 正确！sum == target 时我们找到了答案，返回 [1, 3]。',
+                    incorrectFeedback: '❌ 题目只要求返回一对满足条件的下标。sum==target 时应该立即返回结果。继续移动可能会错过当前解或做无用功。'
+                }
+            }, {
+                // Step 4: Found match
+                L: 1,
+                R: 3,
+                sum: 8,
+                action: 'found',
+                comparison: '==',
+                tickLabel: '匹配',
+                tickOp: 'sum==target',
+                stepTitle: '步骤 4：找到匹配对',
+                stepDesc: 'sum = 8 == target = 8，找到目标对！nums[1]=2 和 nums[3]=6 的和正好是 8。',
+                opText: '🎯 找到答案',
+                stateJSON: '{"L": 1, "R": 3, "nums[L]": 2, "nums[R]": 6, "sum": 8, "target": 8, "found": true, "result": [1, 3]}',
+                evidence: '<strong>operation:</strong> found_answer<br><strong>targets:</strong> sum=8 == target=8<br><strong>before:</strong> L=1, R=3, sum=8<br><strong>after:</strong> 确认匹配，准备返回 [1, 3]',
+                teaching: '<strong>🎉 找到了！</strong>nums[1]=2 加上 nums[3]=6 正好等于 8。双指针法在 <strong>O(n)</strong> 时间内找到了答案。注意整个过程中每个元素最多被访问一次。<br><br>📌 <span class="highlight-note">不变量验证：</span>在每一步中，如果存在解，它确实一直在 [L, R] 区间内——我们从未排除过可能的解。',
+                highlightLines: [4, 5, 6],
+                highlightAnswerLines: [5, 6],
+                pointerL: 1,
+                pointerR: 3,
+                foundIndices: [1, 3],
+                excludedLeftOf: 1,
+                excludedRightOf: 5,
+                checkpoint: null
+            }, {
+                // Step 5: Return result
+                L: 1,
+                R: 3,
+                sum: 8,
+                action: 'return',
+                comparison: '==',
+                tickLabel: '返回',
+                tickOp: 'return [1,3]',
+                stepTitle: '步骤 5：返回结果',
+                stepDesc: '返回下标对 [1, 3]，即 nums[1]=2 和 nums[3]=6。算法完成。',
+                opText: '✅ 返回结果',
+                stateJSON: '{"result": [1, 3], "verified": "2 + 6 = 8", "algorithm": "two-pointer", "complexity": "O(n)"}',
+                evidence: '<strong>operation:</strong> return_result<br><strong>targets:</strong> 返回 [1, 3]<br><strong>before:</strong> 找到匹配对<br><strong>after:</strong> 算法终止，输出 [1, 3]',
+                teaching: '<strong>总结：</strong>双指针法利用了数组的<strong>升序特性</strong>，每次比较后能排除一侧的所有元素，从而实现 O(n) 的时间复杂度。空间复杂度为 O(1)。<br><br>📌 <span class="highlight-note">核心不变量：</span>解始终在 [L, R] 区间内。每次移动指针都不会丢失可能的解。<br><br>🔍 <strong>拓展思考：</strong>如果数组中有多对解呢？如果要求返回所有解呢？如果数组不是严格升序而是非降序呢？',
+                highlightLines: [5, 6],
+                highlightAnswerLines: [5, 6],
+                pointerL: 1,
+                pointerR: 3,
+                foundIndices: [1, 3],
+                excludedLeftOf: 1,
+                excludedRightOf: 5,
+                checkpoint: null
+            }];
+
+            const totalSteps = stepsData.length; // N = 5
+            let currentStepIndex = 0; // 0-based, corresponds to step 1 in display
+
+            // ============ DOM REFS ============
+            const codeEl = document.getElementById('code');
+            const canvasEl = document.getElementById('canvas');
+            const arrayRowEl = document.getElementById('array-row');
+            const sumDisplayEl = document.getElementById('sum-display');
+            const stepTitleEl = document.getElementById('step-title');
+            const stepDescEl = document.getElementById('step-desc');
+            const opEl = document.getElementById('op');
+            const stateEl = document.getElementById('state');
+            const stepEvidenceEl = document.getElementById('step-evidence');
+            const teachingEl = document.getElementById('teaching');
+            const counterEl = document.getElementById('counter');
+            const rangeEl = document.getElementById('range');
+            const timelineEl = document.getElementById('timeline');
+            const prevBtn = document.getElementById('prev');
+            const playBtn = document.getElementById('play');
+            const nextBtn = document.getElementById('next');
+            const checkpointQuestionEl = document.getElementById('checkpoint-question');
+            const checkpointOptionsEl = document.getElementById('checkpoint-options');
+            const checkpointFeedbackEl = document.getElementById('checkpoint-feedback');
+            const checkpointSubmitBtn = document.getElementById('checkpoint-submit');
+            const checkpointHintBtn = document.getElementById('checkpoint-hint');
+            const checkpointRevealBtn = document.getElementById('checkpoint-reveal');
+            const learningLogEl = document.getElementById('learning-log');
+            const topResultEl = document.getElementById('top-result');
+            const topSolutionEl = document.getElementById('top-solution');
+
+            let selectedCheckpointChoice = null;
+            let checkpointAnswered = false; // per step
+            let playInterval = null;
+            let isPlaying = false;
+
+            // ============ FUNCTIONS ============
+            function renderAll() {
+                const stepData = stepsData[currentStepIndex];
+                const displayStepNum = currentStepIndex + 1;
+
+                // Counter
+                counterEl.textContent = displayStepNum + ' / ' + totalSteps;
+
+                // Range
+                rangeEl.value = displayStepNum;
+
+                // Op
+                opEl.textContent = stepData.opText;
+
+                // Step title & desc
+                stepTitleEl.textContent = stepData.stepTitle;
+                stepDescEl.textContent = stepData.stepDesc;
+
+                // State JSON
+                stateEl.textContent = stepData.stateJSON;
+
+                // Step evidence
+                stepEvidenceEl.innerHTML = stepData.evidence;
+
+                // Teaching
+                teachingEl.innerHTML = stepData.teaching;
+
+                // Top result & solution (update to reflect current understanding)
+                if (stepData.action === 'found' || stepData.action === 'return') {
+                    topResultEl.textContent = '✅ 结果：[1, 3]';
+                    topSolutionEl.textContent = '💡 nums[1]=2 + nums[3]=6 = 8';
+                } else if (stepData.action === 'init') {
+                    topResultEl.textContent = '🔍 计算中…';
+                    topSolutionEl.textContent = '💡 正在寻找两数之和为 8 的元素对';
+                } else {
+                    topResultEl.textContent = '🔍 计算中…';
+                    topSolutionEl.textContent = '💡 当前和 = ' + stepData.sum + '，target = ' + target;
+                }
+
+                // Timeline ticks
+                const allTicks = timelineEl.querySelectorAll('.tick');
+                allTicks.forEach((tick, idx) => {
+                    tick.classList.remove('active', 'done');
+                    if (idx === currentStepIndex) {
+                        tick.classList.add('active');
+                    } else if (idx < currentStepIndex) {
+                        tick.classList.add('done');
+                    }
+                });
+
+                // Code highlighting
+                const codeLines = codeEl.querySelectorAll('.code-line');
+                codeLines.forEach(line => {
+                    line.classList.remove('highlight', 'highlight-answer');
+                });
+                stepData.highlightLines.forEach(lineNum => {
+                    const targetLine = codeEl.querySelector(`.code-line[data-line="${lineNum}"]`);
+                    if (targetLine) {
+                        targetLine.classList.add('highlight');
+                    }
+                });
+                stepData.highlightAnswerLines.forEach(lineNum => {
+                    const targetLine = codeEl.querySelector(`.code-line[data-line="${lineNum}"]`);
+                    if (targetLine) {
+                        targetLine.classList.remove('highlight');
+                        targetLine.classList.add('highlight-answer');
+                    }
+                });
+
+                // Canvas - build array row
+                arrayRowEl.innerHTML = '';
+                nums.forEach((val, idx) => {
+                    const cell = document.createElement('div');
+                    cell.classList.add('array-cell');
+                    cell.innerHTML = '<span class="cell-value">' + val + '</span><span class="cell-index">[' +
+                        idx + ']</span>';
+
+                    // Determine cell styling
+                    const foundSet = stepData.foundIndices;
+                    const lPtr = stepData.pointerL;
+                    const rPtr = stepData.pointerR;
+                    const exclLeft = stepData.excludedLeftOf;
+                    const exclRight = stepData.excludedRightOf;
+
+                    if (foundSet && foundSet.includes(idx)) {
+                        cell.classList.add('pointer-both');
+                        const label = document.createElement('span');
+                        label.classList.add('pointer-label');
+                        label.style.cssText =
+                            'background:#3cb371;color:#fff;top:-22px;left:50%;transform:translateX(-50%);position:absolute;font-size:0.6rem;padding:2px 6px;border-radius:8px;white-space:nowrap;';
+                        label.textContent = '✓ 答案';
+                        cell.appendChild(label);
+                    } else if (idx === lPtr && idx === rPtr && !foundSet) {
+                        cell.classList.add('pointer-both');
+                    } else if (idx === lPtr) {
+                        cell.classList.add('pointer-L');
+                        const label = document.createElement('span');
+                        label.classList.add('pointer-label', 'label-L');
+                        label.textContent = 'L';
+                        cell.appendChild(label);
+                    } else if (idx === rPtr) {
+                        cell.classList.add('pointer-R');
+                        const label = document.createElement('span');
+                        label.classList.add('pointer-label', 'label-R');
+                        label.textContent = 'R';
+                        cell.appendChild(label);
+                    } else if (exclLeft !== null && idx < exclLeft) {
+                        cell.classList.add('excluded-left');
+                    } else if (exclRight !== null && idx >= exclRight) {
+                        cell.classList.add('excluded-right');
+                    } else {
+                        cell.classList.add('neutral');
+                    }
+                    arrayRowEl.appendChild(cell);
+                });
+
+                // Sum display
+                if (stepData.action === 'found' || stepData.action === 'return') {
+                    sumDisplayEl.textContent = '🎯 sum = ' + stepData.sum + ' == target = ' + target +
+                        '  → 找到答案！';
+                    sumDisplayEl.classList.add('match');
+                } else if (stepData.comparison === '>') {
+                    sumDisplayEl.textContent = '📊 sum = ' + stepData.sum + ' > target = ' + target +
+                        ' → 需要减小和，移动 R';
+                    sumDisplayEl.classList.remove('match');
+                } else if (stepData.comparison === '<') {
+                    sumDisplayEl.textContent = '📊 sum = ' + stepData.sum + ' < target = ' + target +
+                        ' → 需要增大和，移动 L';
+                    sumDisplayEl.classList.remove('match');
+                } else {
+                    sumDisplayEl.textContent = '📊 sum = ' + stepData.sum + ' | target = ' + target +
+                        ' → 开始比较';
+                    sumDisplayEl.classList.remove('match');
+                }
+
+                // Reset checkpoint for this step
+                resetCheckpointForStep(stepData);
+            }
+
+            function resetCheckpointForStep(stepData) {
+                checkpointAnswered = false;
+                selectedCheckpointChoice = null;
+                checkpointFeedbackEl.textContent = '';
+                checkpointFeedbackEl.className = 'checkpoint-feedback';
+                checkpointFeedbackEl.style.display = 'none';
+
+                const cp = stepData.checkpoint;
+                if (cp) {
+                    checkpointQuestionEl.textContent = cp.question;
+                    checkpointOptionsEl.innerHTML = '';
+                    cp.options.forEach(opt => {
+                        const btn = document.createElement('button');
+                        btn.classList.add('checkpoint-option');
+                        btn.setAttribute('data-choice', opt.choice);
+                        btn.textContent = opt.text;
+                        btn.addEventListener('click', function() {
+                            if (checkpointAnswered) return;
+                            // Deselect all
+                            checkpointOptionsEl.querySelectorAll('.checkpoint-option').forEach(
+                                b => b.classList.remove('selected'));
+                            btn.classList.add('selected');
+                            selectedCheckpointChoice = opt.choice;
+                        });
+                        checkpointOptionsEl.appendChild(btn);
+                    });
+                    checkpointSubmitBtn.disabled = false;
+                    checkpointHintBtn.disabled = false;
+                    checkpointRevealBtn.disabled = false;
+                    checkpointSubmitBtn.style.opacity = '1';
+                    checkpointHintBtn.style.opacity = '1';
+                    checkpointRevealBtn.style.opacity = '1';
+                } else {
+                    checkpointQuestionEl.textContent = '📝 本步骤无检查点（请浏览教学讲解）';
+                    checkpointOptionsEl.innerHTML = '';
+                    checkpointFeedbackEl.textContent = '';
+                    checkpointFeedbackEl.className = 'checkpoint-feedback';
+                    checkpointFeedbackEl.style.display = 'none';
+                    selectedCheckpointChoice = null;
+                    checkpointAnswered = true;
+                    checkpointSubmitBtn.disabled = true;
+                    checkpointHintBtn.disabled = true;
+                    checkpointRevealBtn.disabled = true;
+                    checkpointSubmitBtn.style.opacity = '0.5';
+                    checkpointHintBtn.style.opacity = '0.5';
+                    checkpointRevealBtn.style.opacity = '0.5';
+                }
+            }
+
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                checkpointAnswered = false;
+                selectedCheckpointChoice = null;
+                renderAll();
+                // Add fade-in effect to canvas
+                canvasEl.classList.remove('fade-in');
+                void canvasEl.offsetWidth;
+                canvasEl.classList.add('fade-in');
+            }
+
+            function goNext() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function goPrev() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸ 暂停';
+                playBtn.classList.remove('btn-accent');
+                playBtn.classList.add('btn-primary');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ 播放';
+                playBtn.classList.remove('btn-primary');
+                playBtn.classList.add('btn-accent');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            function addLogEntry(iconClass, iconChar, message) {
+                const entry = document.createElement('div');
+                entry.classList.add('log-entry');
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+                    now.getMinutes().toString().padStart(2, '0') + ':' +
+                    now.getSeconds().toString().padStart(2, '0');
+                entry.innerHTML = '<span class="log-icon ' + iconClass + '">' + iconChar +
+                    '</span><span>' + message + '</span><span class="log-time">' + timeStr + '</span>';
+                learningLogEl.appendChild(entry);
+                learningLogEl.scrollTop = learningLogEl.scrollHeight;
+            }
+
+            function handleCheckpointSubmit() {
+                const stepData = stepsData[currentStepIndex];
+                const cp = stepData.checkpoint;
+                if (!cp || checkpointAnswered) return;
+
+                if (!selectedCheckpointChoice) {
+                    checkpointFeedbackEl.textContent = '⚠️ 请先选择一个选项再提交。';
+                    checkpointFeedbackEl.className = 'checkpoint-feedback reveal';
+                    checkpointFeedbackEl.style.display = 'block';
+                    return;
+                }
+
+                checkpointAnswered = true;
+                const isCorrect = (selectedCheckpointChoice === cp.correctChoice);
+
+                if (isCorrect) {
+                    checkpointFeedbackEl.textContent = cp.correctFeedback;
+                    checkpointFeedbackEl.className = 'checkpoint-feedback correct';
+                    checkpointFeedbackEl.style.display = 'block';
+                    addLogEntry('correct-icon', '✅',
+                        '步骤' + (currentStepIndex + 1) + ' 检查点：回答正确！选择' + selectedCheckpointChoice +
+                        '。' + cp.correctFeedback.replace(/<[^>]*>/g, ''));
+                } else {
+                    checkpointFeedbackEl.textContent = cp.incorrectFeedback;
+                    checkpointFeedbackEl.className = 'checkpoint-feedback incorrect';
+                    checkpointFeedbackEl.style.display = 'block';
+                    addLogEntry('wrong-icon', '❌',
+                        '步骤' + (currentStepIndex + 1) + ' 检查点：回答错误。选择' + selectedCheckpointChoice +
+                        '，正确答案是' + cp.correctChoice + '。' + cp.incorrectFeedback.replace(/<[^>]*>/g, ''));
+                }
+                checkpointSubmitBtn.disabled = true;
+                checkpointSubmitBtn.style.opacity = '0.5';
+                checkpointHintBtn.disabled = true;
+                checkpointHintBtn.style.opacity = '0.5';
+                checkpointRevealBtn.disabled = true;
+                checkpointRevealBtn.style.opacity = '0.5';
+            }
+
+            function handleCheckpointHint() {
+                const stepData = stepsData[currentStepIndex];
+                const cp = stepData.checkpoint;
+                if (!cp || checkpointAnswered) return;
+                checkpointFeedbackEl.textContent = '💡 提示：' + cp.hint;
+                checkpointFeedbackEl.className = 'checkpoint-feedback reveal';
+                checkpointFeedbackEl.style.display = 'block';
+                addLogEntry('info-icon', '💡', '步骤' + (currentStepIndex + 1) + ' 请求提示：' + cp.hint);
+            }
+
+            function handleCheckpointReveal() {
+                const stepData = stepsData[currentStepIndex];
+                const cp = stepData.checkpoint;
+                if (!cp || checkpointAnswered) return;
+                checkpointAnswered = true;
+                checkpointFeedbackEl.textContent = '👁 答案：' + cp.answerExplanation;
+                checkpointFeedbackEl.className = 'checkpoint-feedback reveal';
+                checkpointFeedbackEl.style.display = 'block';
+                addLogEntry('info-icon', '👁',
+                    '步骤' + (currentStepIndex + 1) + ' 显示答案：正确答案是' + cp.correctChoice + '。' + cp
+                    .answerExplanation);
+                checkpointSubmitBtn.disabled = true;
+                checkpointSubmitBtn.style.opacity = '0.5';
+                checkpointHintBtn.disabled = true;
+                checkpointHintBtn.style.opacity = '0.5';
+                checkpointRevealBtn.disabled = true;
+                checkpointRevealBtn.style.opacity = '0.5';
+            }
+
+            // ============ EVENT LISTENERS ============
+            prevBtn.addEventListener('click', goPrev);
+            nextBtn.addEventListener('click', goNext);
+            playBtn.addEventListener('click', togglePlay);
+
+            rangeEl.addEventListener('input', function() {
+                const val = parseInt(rangeEl.value);
+                if (val >= 1 && val <= totalSteps) {
+                    stopPlay();
+                    goToStep(val - 1);
+                }
+            });
+
+            // Timeline ticks
+            timelineEl.addEventListener('click', function(e) {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                const stepVal = parseInt(tick.getAttribute('data-step'));
+                if (stepVal >= 1 && stepVal <= totalSteps) {
+                    stopPlay();
+                    goToStep(stepVal - 1);
+                }
+            });
+
+            // Checkpoint buttons
+            checkpointSubmitBtn.addEventListener('click', handleCheckpointSubmit);
+            checkpointHintBtn.addEventListener('click', handleCheckpointHint);
+            checkpointRevealBtn.addEventListener('click', handleCheckpointReveal);
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    stopPlay();
+                    goNext();
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    stopPlay();
+                    goPrev();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ============ INITIAL RENDER ============
+            goToStep(0);
+            addLogEntry('info-icon', 'ℹ', '页面加载完成，准备学习「有序数组两数之和」双指针算法。共 ' + totalSteps +
+                ' 个步骤。');
+            // Update the initial log entry
+            const firstLogEntry = learningLogEl.querySelector('.log-entry');
+            if (firstLogEntry) {
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+                    now.getMinutes().toString().padStart(2, '0') + ':' +
+                    now.getSeconds().toString().padStart(2, '0');
+                firstLogEntry.querySelector('.log-time').textContent = timeStr;
+            }
+
+            console.log('AlgoLab-style 教学页已就绪 · 有序数组两数之和 · 双指针算法');
+            console.log('题目：nums =', JSON.stringify(nums), ', target =', target);
+            console.log('期望答案：', JSON.stringify(finalAnswer));
+            console.log('总步骤数：', totalSteps);
+            console.log('使用 ← → 方向键切换步骤，空格键播放/暂停');
+        })();
+    </script>
+</body>
+</html>

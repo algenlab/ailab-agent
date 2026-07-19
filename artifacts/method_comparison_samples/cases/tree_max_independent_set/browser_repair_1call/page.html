@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>树形DP — 最大独立集</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface2: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text2: #475569;
+            --text3: #64748b;
+            --accent: #3b82f6;
+            --accent2: #2563eb;
+            --gold: #f59e0b;
+            --green: #10b981;
+            --green2: #059669;
+            --red: #ef4444;
+            --red2: #dc2626;
+            --purple: #8b5cf6;
+            --orange: #f97316;
+            --cyan: #06b6d4;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.2s ease;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-left {
+            flex: 1 1 auto;
+            min-width: 200px;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text2);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+        .result-badge {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #92400e;
+            white-space: nowrap;
+        }
+        .result-badge .label {
+            font-weight: 500;
+            font-size: 0.8rem;
+            color: #b45309;
+            margin-right: 4px;
+        }
+        #top-result {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+        }
+        #top-solution {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #065f46;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+        }
+        #top-solution::before {
+            content: '答案: ';
+            font-weight: 500;
+            font-size: 0.8rem;
+            color: #047857;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 16px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 12px 16px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text2);
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-header .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+        .panel-body {
+            padding: 16px;
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 0;
+            margin: 0;
+            overflow-x: auto;
+            counter-reset: codeline;
+            position: relative;
+            min-height: 280px;
+        }
+        #code .code-line {
+            display: block;
+            padding: 3px 12px 3px 48px;
+            position: relative;
+            border-left: 3px solid transparent;
+            transition: all var(--transition);
+            cursor: default;
+            border-radius: 0 4px 4px 0;
+            margin: 1px 0;
+        }
+        #code .code-line::before {
+            counter-increment: codeline;
+            content: counter(codeline);
+            position: absolute;
+            left: 4px;
+            width: 34px;
+            text-align: right;
+            color: #64748b;
+            font-size: 0.75rem;
+            user-select: none;
+        }
+        #code .code-line.highlight {
+            background: rgba(59, 130, 246, 0.25);
+            border-left-color: #3b82f6;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        #code .code-line.highlight::before {
+            color: #93c5fd;
+        }
+        #code .code-line.processed {
+            background: rgba(16, 185, 129, 0.12);
+            border-left-color: #10b981;
+            color: #a7f3d0;
+        }
+        #code .code-line.processed::before {
+            color: #6ee7b7;
+        }
+        #code .keyword {
+            color: #c084fc;
+            font-weight: 600;
+        }
+        #code .func {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        #code .string {
+            color: #fbbf24;
+        }
+        #code .comment {
+            color: #64748b;
+            font-style: italic;
+        }
+        #code .number {
+            color: #fb923c;
+        }
+
+        /* Canvas panel */
+        #canvas {
+            min-height: 380px;
+            background: #fefefe;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 20px;
+            border-radius: 0;
+        }
+        .tree-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+        .tree-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 40px;
+            position: relative;
+        }
+        .tree-row.row-0 {
+            gap: 0;
+        }
+        .tree-row.row-1 {
+            gap: 80px;
+        }
+        .tree-row.row-2 {
+            gap: 44px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .tree-node-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .tree-node {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 3px solid #cbd5e1;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.35s ease;
+            position: relative;
+            z-index: 2;
+            cursor: default;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+        .tree-node .node-id {
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: 500;
+            line-height: 1;
+        }
+        .tree-node .node-val {
+            font-size: 0.95rem;
+            color: #1e293b;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .tree-node.current-node {
+            border-color: #f59e0b !important;
+            background: #fffbeb !important;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.2) !important;
+            animation: pulse-gold 1.2s ease-in-out infinite;
+        }
+        .tree-node.child-node {
+            border-color: #3b82f6 !important;
+            background: #eff6ff !important;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.13) !important;
+        }
+        .tree-node.done-node {
+            border-color: #10b981 !important;
+            background: #ecfdf5 !important;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
+        }
+        .tree-node.root-answer {
+            border-color: #8b5cf6 !important;
+            background: #faf5ff !important;
+            box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.25) !important;
+            animation: pulse-purple 1s ease-in-out infinite;
+        }
+        @keyframes pulse-gold {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(245, 158, 11, 0.05);
+            }
+        }
+        @keyframes pulse-purple {
+            0%,
+            100% {
+                box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 18px rgba(139, 92, 246, 0.05);
+            }
+        }
+        .tree-edge-indicator {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-align: center;
+            line-height: 1;
+            padding: 2px 0;
+            user-select: none;
+        }
+        .dp-table-wrap {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .dp-table-wrap h4 {
+            padding: 10px 14px;
+            margin: 0;
+            font-size: 0.85rem;
+            color: #475569;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+        }
+        .dp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+        .dp-table th {
+            background: #e2e8f0;
+            padding: 8px 12px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.8rem;
+            border-bottom: 2px solid #cbd5e1;
+        }
+        .dp-table td {
+            padding: 8px 12px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .dp-table tr.row-active {
+            background: #fffbeb;
+        }
+        .dp-table tr.row-done {
+            background: #f0fdf4;
+        }
+        .dp-table td.cell-highlight {
+            background: #fef3c7;
+            font-weight: 700;
+            color: #92400e;
+            border-radius: 4px;
+            box-shadow: inset 0 0 0 2px #f59e0b;
+        }
+        .dp-table td.cell-computed {
+            background: #dbeafe;
+            font-weight: 600;
+            color: #1e40af;
+        }
+        .dp-table td.cell-default {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* State & teaching panels */
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            max-height: 180px;
+            overflow-y: auto;
+            line-height: 1.5;
+            margin: 0;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.7;
+        }
+        #teaching strong {
+            color: #1e40af;
+        }
+        #teaching .highlight-val {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: #92400e;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: #475569;
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 10px 14px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            line-height: 1.5;
+            font-family: var(--font-mono);
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            white-space: nowrap;
+            user-select: none;
+            font-family: var(--font-sans);
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .btn.accent:hover {
+            background: var(--accent2);
+            border-color: var(--accent2);
+        }
+        .btn.play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            border: 2px solid #3b82f6;
+            background: #eff6ff;
+            color: #3b82f6;
+            flex-shrink: 0;
+        }
+        .btn.play-btn:hover {
+            background: #dbeafe;
+        }
+        .btn.play-btn.playing {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        #range {
+            flex: 1 1 120px;
+            min-width: 80px;
+            accent-color: #3b82f6;
+            height: 8px;
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            color: #1e293b;
+            min-width: 55px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 0;
+            align-items: center;
+        }
+        .tick {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 2px solid #e2e8f0;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-size: 0.78rem;
+            font-family: var(--font-sans);
+            gap: 2px;
+            min-width: 64px;
+            text-align: center;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+        .tick.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            font-weight: 600;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .tick.done {
+            border-color: #10b981;
+            background: #f0fdf4;
+            color: #065f46;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #475569;
+            line-height: 1;
+        }
+        .tick.active .tick-label {
+            color: #1e40af;
+        }
+        .tick.done .tick-label {
+            color: #047857;
+        }
+        .tick .tick-op {
+            font-size: 0.7rem;
+            color: #64748b;
+            line-height: 1;
+        }
+        .tick.active .tick-op {
+            color: #3b82f6;
+        }
+        .tick.done .tick-op {
+            color: #059669;
+        }
+
+        /* Checkpoint */
+        .checkpoint-box {
+            background: #fffdf5;
+            border: 2px solid #f59e0b;
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 12px;
+            transition: all 0.3s ease;
+        }
+        .checkpoint-box h4 {
+            color: #92400e;
+            margin: 0 0 8px 0;
+            font-size: 0.9rem;
+        }
+        .checkpoint-box .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .checkpoint-box .opt-btn {
+            padding: 8px 14px;
+            border-radius: 16px;
+            border: 2px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            transition: all var(--transition);
+            user-select: none;
+        }
+        .checkpoint-box .opt-btn:hover {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .checkpoint-box .opt-btn.selected {
+            border-color: #f59e0b;
+            background: #fef3c7;
+            font-weight: 600;
+        }
+        .checkpoint-box .opt-btn.correct-flash {
+            border-color: #10b981 !important;
+            background: #d1fae5 !important;
+            animation: flash-green 0.6s ease;
+        }
+        .checkpoint-box .opt-btn.wrong-flash {
+            border-color: #ef4444 !important;
+            background: #fee2e2 !important;
+            animation: flash-red 0.6s ease;
+        }
+        @keyframes flash-green {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.08);
+            }
+        }
+        @keyframes flash-red {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            30% {
+                transform: translateX(-6px);
+            }
+            60% {
+                transform: translateX(6px);
+            }
+        }
+        .checkpoint-box .feedback-area {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            display: none;
+        }
+        .checkpoint-box .feedback-area.show {
+            display: block;
+        }
+        .checkpoint-box .feedback-area.correct {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .checkpoint-box .feedback-area.wrong {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .checkpoint-box .btn-sm {
+            padding: 6px 12px;
+            border-radius: 14px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            margin-right: 6px;
+        }
+        .checkpoint-box .btn-sm:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #475569;
+            line-height: 1.6;
+        }
+        #learning-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px dotted #e2e8f0;
+        }
+        #learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        #learning-log .log-time {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            margin-right: 6px;
+        }
+        #learning-log .log-correct {
+            color: #059669;
+            font-weight: 600;
+        }
+        #learning-log .log-wrong {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #065f46;
+        }
+
+        /* Connector lines for tree */
+        .tree-connectors {
+            position: relative;
+            height: 22px;
+            width: 100%;
+            pointer-events: none;
+        }
+        .tree-connectors svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .connector-svg {
+            overflow: visible;
+        }
+        .connector-svg line {
+            stroke: #cbd5e1;
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+        .connector-svg line.active-conn {
+            stroke: #f59e0b;
+            stroke-width: 2.5;
+            stroke-dasharray: 6 3;
+            animation: dash-flow 0.8s linear infinite;
+        }
+        @keyframes dash-flow {
+            to {
+                stroke-dashoffset: -18;
+            }
+        }
+
+        /* Step title/desc */
+        #step-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .flex-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .tree-row.row-1 {
+                gap: 40px;
+            }
+            .tree-row.row-2 {
+                gap: 20px;
+            }
+            .tree-node {
+                width: 42px;
+                height: 42px;
+                font-size: 0.7rem;
+            }
+            .tree-node .node-val {
+                font-size: 0.75rem;
+            }
+            .tree-node .node-id {
+                font-size: 0.6rem;
+            }
+            #code {
+                font-size: 0.7rem;
+                padding: 10px;
+            }
+            #code .code-line {
+                padding-left: 36px;
+            }
+            #code .code-line::before {
+                width: 26px;
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div id="title">树形 DP — 最大独立集</div>
+                <div id="subtitle">后序遍历 · dp_take / dp_skip 子树聚合</div>
+            </div>
+            <div class="header-right">
+                <div class="result-badge"><span class="label">当前最优</span><span id="top-result">—</span></div>
+                <div id="top-solution">14</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Code Panel -->
+            <div class="panel">
+                <div class="panel-header"><span class="dot"></span>算法实现</div>
+                <pre id="code"></pre>
+            </div>
+
+            <!-- Canvas Panel -->
+            <div class="panel">
+                <div class="panel-header"><span class="dot" style="background:#10b981;"></span>算法可视化</div>
+                <div id="canvas"></div>
+            </div>
+
+            <!-- State & Evidence -->
+            <div class="panel">
+                <div class="panel-header"><span class="dot" style="background:#8b5cf6;"></span>当前状态 (JSON)</div>
+                <pre id="state"></pre>
+            </div>
+
+            <!-- Teaching & Step Evidence -->
+            <div class="panel">
+                <div class="panel-header"><span class="dot" style="background:#f59e0b;"></span>讲解与证据</div>
+                <div class="panel-body">
+                    <div class="flex-row" style="margin-bottom:8px;">
+                        <strong id="step-title" style="font-size:1rem;"></strong>
+                        <span id="step-desc"></span>
+                    </div>
+                    <div id="teaching" style="margin-bottom:10px;"></div>
+                    <div id="step-evidence"></div>
+                    <div id="checkpoint-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button id="prev" class="btn" title="上一步">◀ 上一步</button>
+            <button id="play" class="btn play-btn" title="播放/暂停">▶</button>
+            <button id="next" class="btn" title="下一步">下一步 ▶</button>
+            <input type="range" id="range" min="1" max="6" value="1" step="1" title="步骤滑块">
+            <span id="counter">1 / 6</span>
+        </div>
+
+        <!-- Timeline -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);">
+            <div style="font-weight:600;font-size:0.85rem;color:#64748b;margin-bottom:8px;">步骤时间线</div>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="panel" style="margin-top:0;">
+            <div class="panel-header"><span class="dot" style="background:#06b6d4;"></span>学习日志</div>
+            <div id="learning-log" style="padding:10px 14px;font-size:0.82rem;color:#475569;max-height:140px;overflow-y:auto;">等待交互...</div>
+        </div>
+
+        <!-- Hidden answer element -->
+        <span id="answer" style="display:none;">14</span>
+    </div>
+
+    <script>
+        (function() {
+            // ============ DATA ============
+            const treeData = {
+                nodes: [
+                    { id: "1", value: 3 },
+                    { id: "2", value: 2 },
+                    { id: "3", value: 1 },
+                    { id: "4", value: 10 },
+                    { id: "5", value: 1 }
+                ],
+                edges: [
+                    ["1", "2"],
+                    ["1", "3"],
+                    ["2", "4"],
+                    ["2", "5"]
+                ]
+            };
+
+            // Build adjacency and children map (rooted at 1)
+            const adj = {};
+            const nodeVal = {};
+            treeData.nodes.forEach(n => {
+                adj[n.id] = [];
+                nodeVal[n.id] = n.value;
+            });
+            treeData.edges.forEach(([u, v]) => {
+                adj[u].push(v);
+                adj[v].push(u);
+            });
+
+            // Root at "1", build parent-child
+            const children = {};
+            const parent = {};
+            const visited = new Set();
+
+            function buildTree(u, p) {
+                parent[u] = p;
+                children[u] = [];
+                visited.add(u);
+                (adj[u] || []).forEach(v => {
+                    if (v !== p) {
+                        children[u].push(v);
+                        buildTree(v, u);
+                    }
+                });
+            }
+            buildTree("1", null);
+
+            // Post-order: 4, 5, 2, 3, 1
+            const postOrder = [];
+
+            function getPostOrder(u) {
+                (children[u] || []).forEach(v => getPostOrder(v));
+                postOrder.push(u);
+            }
+            getPostOrder("1");
+            // postOrder is now ["4","5","2","3","1"]
+
+            const N_STEPS = 6;
+            const dp_take = {};
+            const dp_skip = {};
+            // Initialize all to null
+            treeData.nodes.forEach(n => { dp_take[n.id] = null;
+                dp_skip[n.id] = null; });
+
+            // Step definitions
+            const steps = [];
+            // Step 1: Init
+            steps.push({
+                title: '初始化 DP 表',
+                desc: '创建 dp_take 和 dp_skip，识别后序遍历顺序',
+                tickLabel: '初始化',
+                tickOp: '创建DP表',
+                processNode: null,
+                highlightLines: [1, 2, 3, 4, 5, 6],
+                dpTakeSnap: { ...dp_take },
+                dpSkipSnap: { ...dp_skip },
+                teaching: '首先为树中每个节点创建 <span class="highlight-val">dp_take[u]</span> 和 <span class="highlight-val">dp_skip[u]</span>。dp_take[u] 表示<strong>选择节点 u</strong> 时子树的最优值；dp_skip[u] 表示<strong>不选择节点 u</strong> 时子树的最优值。后序遍历顺序为：<strong>4 → 5 → 2 → 3 → 1</strong>（先处理叶子，再处理内部节点，最后处理根）。',
+                evidence: '操作：初始化 | 目标：所有节点 | 状态：dp_take 和 dp_skip 全部为 null（未计算）',
+                checkpoint: null
+            });
+
+            // Step 2: Process leaf 4
+            {
+                const snapTake = { ...dp_take };
+                const snapSkip = { ...dp_skip };
+                snapTake["4"] = 10;
+                snapSkip["4"] = 0;
+                steps.push({
+                    title: '处理叶子节点 4',
+                    desc: 'dp_take[4] = value[4] = 10, dp_skip[4] = 0',
+                    tickLabel: '叶子节点',
+                    tickOp: '处理节点4',
+                    processNode: "4",
+                    highlightLines: [7, 8, 9, 10],
+                    dpTakeSnap: snapTake,
+                    dpSkipSnap: snapSkip,
+                    teaching: '节点 <strong>4</strong> 是<strong>叶子节点</strong>（没有子节点）。<br>• <span class="highlight-val">dp_take[4] = value[4] = 10</span>（选择节点4，没有子节点需要排除）<br>• <span class="highlight-val">dp_skip[4] = 0</span>（不选节点4，也没有子节点可贡献）<br>叶子节点是 DP 的<strong>基础情形</strong>。',
+                    evidence: '操作：处理叶子节点 | 目标：节点4 | 前状态：dp_take[4]=null, dp_skip[4]=null | 后状态：dp_take[4]=10, dp_skip[4]=0',
+                    checkpoint: null
+                });
+            }
+
+            // Step 3: Process leaf 5
+            {
+                const snapTake = { ...steps[steps.length - 1].dpTakeSnap };
+                const snapSkip = { ...steps[steps.length - 1].dpSkipSnap };
+                snapTake["5"] = 1;
+                snapSkip["5"] = 0;
+                steps.push({
+                    title: '处理叶子节点 5',
+                    desc: 'dp_take[5] = value[5] = 1, dp_skip[5] = 0',
+                    tickLabel: '叶子节点',
+                    tickOp: '处理节点5',
+                    processNode: "5",
+                    highlightLines: [7, 8, 9, 10],
+                    dpTakeSnap: snapTake,
+                    dpSkipSnap: snapSkip,
+                    teaching: '节点 <strong>5</strong> 也是<strong>叶子节点</strong>。<br>• <span class="highlight-val">dp_take[5] = value[5] = 1</span><br>• <span class="highlight-val">dp_skip[5] = 0</span><br>与节点4的处理方式完全一致。注意叶子节点的 dp_skip 始终为 0。',
+                    evidence: '操作：处理叶子节点 | 目标：节点5 | 前状态：dp_take[5]=null, dp_skip[5]=null | 后状态：dp_take[5]=1, dp_skip[5]=0',
+                    checkpoint: null
+                });
+            }
+
+            // Step 4: Process leaf 3
+            {
+                const snapTake = { ...steps[steps.length - 1].dpTakeSnap };
+                const snapSkip = { ...steps[steps.length - 1].dpSkipSnap };
+                snapTake["3"] = 1;
+                snapSkip["3"] = 0;
+                steps.push({
+                    title: '处理叶子节点 3',
+                    desc: 'dp_take[3] = value[3] = 1, dp_skip[3] = 0',
+                    tickLabel: '叶子节点',
+                    tickOp: '处理节点3',
+                    processNode: "3",
+                    highlightLines: [7, 8, 9, 10],
+                    dpTakeSnap: snapTake,
+                    dpSkipSnap: snapSkip,
+                    teaching: '节点 <strong>3</strong> 是根节点1的另一个子节点，也是<strong>叶子节点</strong>。<br>• <span class="highlight-val">dp_take[3] = 1</span><br>• <span class="highlight-val">dp_skip[3] = 0</span><br>现在所有叶子节点（4、5、3）都已处理完毕，可以开始聚合内部节点。',
+                    evidence: '操作：处理叶子节点 | 目标：节点3 | 前状态：dp_take[3]=null, dp_skip[3]=null | 后状态：dp_take[3]=1, dp_skip[3]=0',
+                    checkpoint: null
+                });
+            }
+
+            // Step 5: Process internal node 2
+            {
+                const snapTake = { ...steps[steps.length - 1].dpTakeSnap };
+                const snapSkip = { ...steps[steps.length - 1].dpSkipSnap };
+                // dp_take[2] = value[2] + dp_skip[4] + dp_skip[5] = 2 + 0 + 0 = 2
+                // dp_skip[2] = max(dp_take[4],dp_skip[4]) + max(dp_take[5],dp_skip[5]) = max(10,0)+max(1,0)=11
+                snapTake["2"] = 2;
+                snapSkip["2"] = 11;
+                steps.push({
+                    title: '聚合内部节点 2',
+                    desc: 'dp_take[2]=2, dp_skip[2]=11（子节点4,5已就绪）',
+                    tickLabel: '内部节点',
+                    tickOp: '聚合节点2',
+                    processNode: "2",
+                    highlightLines: [11, 12, 13, 14, 15, 16],
+                    dpTakeSnap: snapTake,
+                    dpSkipSnap: snapSkip,
+                    teaching: '现在处理<strong>内部节点 2</strong>（值=2，子节点为4和5）。<br>• <span class="highlight-val">dp_take[2] = value[2] + dp_skip[4] + dp_skip[5] = 2 + 0 + 0 = 2</span>（选择节点2 → 必须跳过子节点4和5）<br>• <span class="highlight-val">dp_skip[2] = max(dp_take[4], dp_skip[4]) + max(dp_take[5], dp_skip[5]) = max(10,0) + max(1,0) = 11</span>（不选节点2 → 子节点可自由选或不选，取最优）<br><strong>关键洞察：</strong>不选节点2时，子节点4贡献10（选择4），子节点5贡献1（选择5），合计11，远大于选节点2的2。',
+                    evidence: '操作：聚合内部节点 | 目标：节点2 | 依赖：dp_take[4]=10, dp_skip[4]=0, dp_take[5]=1, dp_skip[5]=0 | 计算：dp_take[2]=2+0+0=2, dp_skip[2]=max(10,0)+max(1,0)=11',
+                    checkpoint: {
+                        question: '节点2的 dp_skip[2] 值是多少？',
+                        options: ['2', '10', '11', '12'],
+                        correct: 2,
+                        explanation_correct: '正确！dp_skip[2] = max(dp_take[4], dp_skip[4]) + max(dp_take[5], dp_skip[5]) = max(10,0) + max(1,0) = 10 + 1 = 11。不选节点2时，最优策略是选择节点4（贡献10）和节点5（贡献1）。',
+                        explanation_wrong: '再想想：dp_skip[2] = max(dp_take[4], dp_skip[4]) + max(dp_take[5], dp_skip[5]) = max(10,0) + max(1,0) = 10 + 1 = 11。常见错误是直接把子节点值相加（10+1=11正好对），或者忘记取max而直接用dp_take值。'
+                    }
+                });
+            }
+
+            // Step 6: Process root node 1
+            {
+                const snapTake = { ...steps[steps.length - 1].dpTakeSnap };
+                const snapSkip = { ...steps[steps.length - 1].dpSkipSnap };
+                // dp_take[1] = value[1] + dp_skip[2] + dp_skip[3] = 3 + 11 + 0 = 14
+                // dp_skip[1] = max(dp_take[2],dp_skip[2]) + max(dp_take[3],dp_skip[3]) = max(2,11)+max(1,0)=11+1=12
+                snapTake["1"] = 14;
+                snapSkip["1"] = 12;
+                steps.push({
+                    title: '处理根节点 1 — 得出最终答案',
+                    desc: 'dp_take[1]=14, dp_skip[1]=12 → 答案=14',
+                    tickLabel: '根节点',
+                    tickOp: '计算最终答案',
+                    processNode: "1",
+                    highlightLines: [11, 12, 13, 14, 15, 16, 17, 18],
+                    dpTakeSnap: snapTake,
+                    dpSkipSnap: snapSkip,
+                    teaching: '最后处理<strong>根节点 1</strong>（值=3，子节点为2和3）。<br>• <span class="highlight-val">dp_take[1] = value[1] + dp_skip[2] + dp_skip[3] = 3 + 11 + 0 = 14</span><br>• <span class="highlight-val">dp_skip[1] = max(dp_take[2], dp_skip[2]) + max(dp_take[3], dp_skip[3]) = max(2,11) + max(1,0) = 11 + 1 = 12</span><br><strong>最终答案 = max(dp_take[1], dp_skip[1]) = max(14, 12) = <span class="highlight-val">14</span></strong><br>选择节点1（根）+ 节点4 + 节点5 = 3+10+1=14，这是全局最优解。',
+                    evidence: '操作：处理根节点 | 目标：节点1 | 依赖：dp_take[2]=2, dp_skip[2]=11, dp_take[3]=1, dp_skip[3]=0 | 计算：dp_take[1]=3+11+0=14, dp_skip[1]=max(2,11)+max(1,0)=12 | 最终答案：max(14,12)=14',
+                    checkpoint: {
+                        question: '整棵树的最大独立集权重是多少？',
+                        options: ['12', '13', '14', '16'],
+                        correct: 2,
+                        explanation_correct: '正确！最终答案 = max(dp_take[1], dp_skip[1]) = max(14, 12) = 14。最优选择是节点1、4、5（3+10+1=14），它们互不相邻。',
+                        explanation_wrong: '再算一遍：dp_take[1]=3+dp_skip[2]+dp_skip[3]=3+11+0=14；dp_skip[1]=max(2,11)+max(1,0)=12。最终max(14,12)=14。常见错误是忘记对子节点取max，或混淆dp_take和dp_skip的聚合公式。'
+                    }
+                });
+            }
+
+            // Update global dp state to final for snapshots
+            // Actually we use step snapshots
+
+            // ============ RENDER CODE ============
+            const codeLines = [
+                'function solve(root):',
+                '    // dp_take[u]: 选择节点 u 的最优值',
+                '    // dp_skip[u]: 不选择节点 u 的最优值',
+                '    dp_take = {}, dp_skip = {}',
+                '',
+                '    function dfs(u):',
+                '        if u is leaf:                    // 叶子节点',
+                '            dp_take[u] = value[u]        // 基础情形',
+                '            dp_skip[u] = 0',
+                '            return',
+                '        for child in children[u]:        // 后序遍历',
+                '            dfs(child)',
+                '        // 选择 u：必须跳过所有子节点',
+                '        dp_take[u] = value[u] + Σ dp_skip[child]',
+                '        // 不选 u：子节点可自由选择',
+                '        dp_skip[u] = Σ max(dp_take[child], dp_skip[child])',
+                '',
+                '    dfs(root)',
+                '    return max(dp_take[root], dp_skip[root])'
+            ];
+
+            function renderCode(highlightIndices) {
+                const codeEl = document.getElementById('code');
+                let html = '';
+                codeLines.forEach((line, i) => {
+                    const lineNum = i + 1;
+                    let cls = 'code-line';
+                    if (highlightIndices && highlightIndices.includes(lineNum)) {
+                        cls += ' highlight';
+                    }
+                    // Simple syntax highlighting
+                    let displayLine = line
+                        .replace(/\/\/.*/g, m => '<span class="comment">' + m + '</span>')
+                        .replace(/\b(function|return|if|for|in|of|let|const|var)\b/g,
+                            m => '<span class="keyword">' + m + '</span>')
+                        .replace(/\b(dp_take|dp_skip|value|children|dfs|solve|max|root)\b/g,
+                            m => '<span class="func">' + m + '</span>')
+                        .replace(/\b(\d+)\b/g, m => '<span class="number">' + m + '</span>')
+                        .replace(/\b(null|true|false)\b/g,
+                            m => '<span class="keyword">' + m + '</span>');
+                    html += '<span class="' + cls + '">' + displayLine + '</span>\n';
+                });
+                codeEl.innerHTML = html;
+            }
+
+            // ============ RENDER CANVAS ============
+            function renderCanvas(stepData) {
+                const canvas = document.getElementById('canvas');
+                const node = stepData.processNode;
+                const dpTakeSnap = stepData.dpTakeSnap;
+                const dpSkipSnap = stepData.dpSkipSnap;
+                const allNodeIds = ["1", "2", "3", "4", "5"];
+
+                // Determine node classes
+                function getNodeClass(nid) {
+                    if (stepData.title.includes('最终答案') && nid === '1') return 'root-answer';
+                    if (nid === node) return 'current-node';
+                    // Check if this node is a child of the current processing node
+                    if (node && children[node] && children[node].includes(nid) && dpTakeSnap[nid] !== null)
+                        return 'child-node';
+                    if (dpTakeSnap[nid] !== null && nid !== node && !(node && children[node] && children[node].includes(
+                            nid))) return 'done-node';
+                    return '';
+                }
+
+                // Build tree HTML
+                // Row 0: node 1
+                // Row 1: node 2, node 3
+                // Row 2: node 4, node 5 (under node 2)
+                function nodeHTML(nid) {
+                    const cls = getNodeClass(nid);
+                    const v = nodeVal[nid];
+                    return '<div class="tree-node-wrap">' +
+                        '<div class="tree-node ' + cls + '" data-nid="' + nid + '">' +
+                        '<span class="node-id">#' + nid + '</span>' +
+                        '<span class="node-val">' + v + '</span>' +
+                        '</div>' +
+                        '</div>';
+                }
+
+                let treeHTML = '<div class="tree-visual">';
+                treeHTML += '<div class="tree-row row-0">' + nodeHTML("1") + '</div>';
+                treeHTML +=
+                    '<div class="tree-edge-indicator" style="font-size:0.75rem;color:#94a3b8;">↙&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↘</div>';
+                treeHTML += '<div class="tree-row row-1">' + nodeHTML("2") + nodeHTML("3") + '</div>';
+                treeHTML +=
+                    '<div class="tree-edge-indicator" style="font-size:0.7rem;color:#94a3b8;padding-left:40px;">↙&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↘</div>';
+                treeHTML += '<div class="tree-row row-2">' + nodeHTML("4") + nodeHTML("5") + '</div>';
+                treeHTML += '</div>';
+
+                // DP Table
+                let tableHTML = '<div class="dp-table-wrap"><h4>📊 DP 状态表</h4>';
+                tableHTML += '<table class="dp-table"><thead><tr><th>节点</th><th>value</th><th>dp_take</th><th>dp_skip</th><th>状态</th></tr></thead><tbody>';
+
+                allNodeIds.forEach(nid => {
+                    const vt = dpTakeSnap[nid];
+                    const vs = dpSkipSnap[nid];
+                    const isCurrent = nid === node;
+                    const isDone = vt !== null && !isCurrent;
+                    let rowCls = '';
+                    if (isCurrent) rowCls = 'row-active';
+                    else if (isDone) rowCls = 'row-done';
+                    const takeCls = isCurrent ? 'cell-highlight' : (vt !== null ? 'cell-computed' :
+                        'cell-default');
+                    const skipCls = isCurrent ? 'cell-highlight' : (vs !== null ? 'cell-computed' :
+                        'cell-default');
+                    const takeDisplay = vt !== null ? vt : '—';
+                    const skipDisplay = vs !== null ? vs : '—';
+                    const statusIcon = isCurrent ? '🟡 处理中' : (isDone ? '✅ 已完成' : '⬜ 待处理');
+                    tableHTML += '<tr class="' + rowCls + '">' +
+                        '<td><strong>#' + nid + '</strong></td>' +
+                        '<td>' + nodeVal[nid] + '</td>' +
+                        '<td class="' + takeCls + '">' + takeDisplay + '</td>' +
+                        '<td class="' + skipCls + '">' + skipDisplay + '</td>' +
+                        '<td>' + statusIcon + '</td>' +
+                        '</tr>';
+                });
+                tableHTML += '</tbody></table></div>';
+
+                canvas.innerHTML = treeHTML + tableHTML;
+            }
+
+            // ============ RENDER STATE ============
+            function renderState(stepData, stepIndex) {
+                const stateEl = document.getElementById('state');
+                const obj = {
+                    step: stepIndex + 1,
+                    total_steps: N_STEPS,
+                    title: stepData.title,
+                    current_node: stepData.processNode,
+                    post_order: ["4", "5", "2", "3", "1"],
+                    dp_take: stepData.dpTakeSnap,
+                    dp_skip: stepData.dpSkipSnap
+                };
+                if (stepIndex === N_STEPS - 1) {
+                    obj.final_answer = 14;
+                    obj.optimal_selection = ['1', '4', '5'];
+                }
+                stateEl.textContent = JSON.stringify(obj, null, 2);
+            }
+
+            // ============ RENDER TEACHING & EVIDENCE ============
+            function renderTeaching(stepData) {
+                document.getElementById('teaching').innerHTML = stepData.teaching;
+                document.getElementById('step-evidence').textContent = stepData.evidence;
+                document.getElementById('step-title').textContent = stepData.title;
+                document.getElementById('step-desc').textContent = stepData.desc;
+            }
+
+            // ============ RENDER CHECKPOINT ============
+            let checkpointState = {}; // track per step
+
+            function renderCheckpoint(stepData, stepIndex) {
+                const container = document.getElementById('checkpoint-container');
+                const cp = stepData.checkpoint;
+                if (!cp) {
+                    container.innerHTML = '';
+                    return;
+                }
+                const ckKey = 'ck_step_' + stepIndex;
+                if (!checkpointState[ckKey]) {
+                    checkpointState[ckKey] = {
+                        selected: null,
+                        submitted: false,
+                        shownAnswer: false,
+                        hintUsed: false
+                    };
+                }
+                const ckState = checkpointState[ckKey];
+                let html = '<div class="checkpoint-box">';
+                html += '<h4>🧠 学习检测点</h4>';
+                html += '<p style="margin:0 0 8px;font-size:0.88rem;color:#475569;">' + cp.question + '</p>';
+                html += '<div class="options" id="ck-options-' + stepIndex + '">';
+                cp.options.forEach((opt, i) => {
+                    let optCls = 'opt-btn';
+                    if (ckState.submitted && i === cp.correct) optCls += ' correct-flash';
+                    if (ckState.submitted && ckState.selected === i && i !== cp.correct) optCls +=
+                        ' wrong-flash';
+                    if (ckState.selected === i && !ckState.submitted) optCls += ' selected';
+                    html += '<button class="' + optCls + '" data-opt="' + i + '" ' + (ckState.submitted ?
+                        'disabled' : '') + '>' + opt + '</button>';
+                });
+                html += '</div>';
+                html += '<div>';
+                html += '<button class="btn-sm" id="ck-submit-' + stepIndex + '" ' + (ckState.submitted ?
+                    'disabled' : '') + '>✅ 提交</button>';
+                html += '<button class="btn-sm" id="ck-hint-' + stepIndex + '">💡 提示</button>';
+                html += '<button class="btn-sm" id="ck-show-' + stepIndex + '">👁 显示答案</button>';
+                html += '</div>';
+                html += '<div class="feedback-area' + (ckState.submitted || ckState.shownAnswer ? ' show ' : '') + (ckState
+                    .submitted ? (ckState.selected === cp.correct ? ' correct' : ' wrong') : '') + '" id="ck-feedback-' +
+                    stepIndex + '">';
+                if (ckState.submitted) {
+                    html += (ckState.selected === cp.correct ? '✅ ' + cp.explanation_correct : '❌ ' + cp
+                        .explanation_wrong);
+                } else if (ckState.shownAnswer) {
+                    html += '💡 正确答案是：<strong>' + cp.options[cp.correct] + '</strong> — ' + cp.explanation_correct;
+                } else {
+                    html += '等待提交...';
+                }
+                html += '</div>';
+                html += '</div>';
+                container.innerHTML = html;
+
+                // Bind events
+                setTimeout(() => {
+                    const optBtns = document.querySelectorAll('#ck-options-' + stepIndex + ' .opt-btn');
+                    optBtns.forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            if (ckState.submitted) return;
+                            optBtns.forEach(b => b.classList.remove('selected'));
+                            this.classList.add('selected');
+                            ckState.selected = parseInt(this.dataset.opt);
+                        });
+                    });
+                    const submitBtn = document.getElementById('ck-submit-' + stepIndex);
+                    if (submitBtn) {
+                        submitBtn.addEventListener('click', function() {
+                            if (ckState.selected === null || ckState.submitted) return;
+                            ckState.submitted = true;
+                            logCheckpoint(stepIndex, cp, ckState.selected);
+                            renderCheckpoint(stepData, stepIndex);
+                        });
+                    }
+                    const hintBtn = document.getElementById('ck-hint-' + stepIndex);
+                    if (hintBtn) {
+                        hintBtn.addEventListener('click', function() {
+                            ckState.hintUsed = true;
+                            const fb = document.getElementById('ck-feedback-' + stepIndex);
+                            fb.classList.add('show');
+                            fb.className = 'feedback-area show';
+                            fb.innerHTML =
+                                '💡 提示：仔细阅读 dp_skip 的聚合公式 — 对每个子节点取 <strong>max(dp_take[child], dp_skip[child])</strong>，然后求和。';
+                            addLogEntry('💡 步骤' + (stepIndex + 1) + ' 使用了提示');
+                        });
+                    }
+                    const showBtn = document.getElementById('ck-show-' + stepIndex);
+                    if (showBtn) {
+                        showBtn.addEventListener('click', function() {
+                            ckState.shownAnswer = true;
+                            ckState.submitted = true;
+                            const fb = document.getElementById('ck-feedback-' + stepIndex);
+                            fb.classList.add('show');
+                            fb.className = 'feedback-area show';
+                            fb.innerHTML = '💡 正确答案是：<strong>' + cp.options[cp.correct] +
+                                '</strong> — ' + cp.explanation_correct;
+                            addLogEntry('👁 步骤' + (stepIndex + 1) + ' 查看了答案：' + cp.options[cp
+                                .correct]);
+                            renderCheckpoint(stepData, stepIndex);
+                        });
+                    }
+                }, 50);
+            }
+
+            function logCheckpoint(stepIndex, cp, selected) {
+                const isCorrect = selected === cp.correct;
+                const resultText = isCorrect ? '✅ 正确' : '❌ 错误';
+                const detail = '步骤' + (stepIndex + 1) + ' 检测点：' + resultText + ' — 选择了「' + cp.options[selected] + '」，正确答案是「' +
+                    cp.options[cp.correct] + '」';
+                addLogEntry(detail);
+            }
+
+            function addLogEntry(msg) {
+                const logEl = document.getElementById('learning-log');
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2,
+                    '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+                const entryHTML = '<div class="log-entry"><span class="log-time">[' + timeStr + ']</span> ' + msg + '</div>';
+                if (logEl.textContent === '等待交互...') {
+                    logEl.innerHTML = entryHTML;
+                } else {
+                    logEl.innerHTML += entryHTML;
+                }
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+
+            // ============ TOP RESULT ============
+            function updateTopResult(stepData, stepIndex) {
+                const topResult = document.getElementById('top-result');
+                if (stepIndex === N_STEPS - 1) {
+                    topResult.textContent = '14 (最终)';
+                } else if (stepData.processNode && stepData.dpTakeSnap[stepData.processNode] !== null) {
+                    const n = stepData.processNode;
+                    topResult.textContent = '节点' + n + ': take=' + stepData.dpTakeSnap[n] + ', skip=' + stepData
+                        .dpSkipSnap[n];
+                } else {
+                    topResult.textContent = '初始化中...';
+                }
+            }
+
+            // ============ TIMELINE ============
+            function renderTimeline(activeIndex) {
+                const timeline = document.getElementById('timeline');
+                let html = '';
+                steps.forEach((s, i) => {
+                    let cls = 'tick';
+                    if (i === activeIndex) cls += ' active';
+                    if (i < activeIndex) cls += ' done';
+                    html += '<button class="' + cls + '" data-step="' + i + '">';
+                    html += '<span class="tick-label">' + s.tickLabel + '</span>';
+                    html += '<span class="tick-op">' + s.tickOp + '</span>';
+                    html += '</button>';
+                });
+                timeline.innerHTML = html;
+                // Bind clicks
+                timeline.querySelectorAll('.tick').forEach(tick => {
+                    tick.addEventListener('click', function() {
+                        const si = parseInt(this.dataset.step);
+                        goToStep(si);
+                    });
+                });
+            }
+
+            // ============ NAVIGATION ============
+            let currentStepIndex = 0;
+            let playInterval = null;
+            let isPlaying = false;
+
+            function goToStep(index) {
+                if (index < 0 || index >= N_STEPS) return;
+                currentStepIndex = index;
+                const stepData = steps[index];
+                renderCode(stepData.highlightLines);
+                renderCanvas(stepData);
+                renderState(stepData, index);
+                renderTeaching(stepData);
+                renderCheckpoint(stepData, index);
+                renderTimeline(index);
+                updateTopResult(stepData, index);
+                updateCounter(index);
+                updateRange(index);
+                updatePlayButton();
+                document.getElementById('step-title').textContent = stepData.title;
+                document.getElementById('step-desc').textContent = stepData.desc;
+            }
+
+            function updateCounter(index) {
+                document.getElementById('counter').textContent = (index + 1) + ' / ' + N_STEPS;
+            }
+
+            function updateRange(index) {
+                document.getElementById('range').value = index + 1;
+            }
+
+            function updatePlayButton() {
+                const playBtn = document.getElementById('play');
+                if (isPlaying) {
+                    playBtn.textContent = '⏸';
+                    playBtn.classList.add('playing');
+                } else {
+                    playBtn.textContent = '▶';
+                    playBtn.classList.remove('playing');
+                }
+            }
+
+            function stopPlay() {
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+                isPlaying = false;
+                updatePlayButton();
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                updatePlayButton();
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < N_STEPS - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= N_STEPS - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT BINDINGS ============
+            document.getElementById('prev').addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            document.getElementById('next').addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < N_STEPS - 1) goToStep(currentStepIndex + 1);
+            });
+            document.getElementById('play').addEventListener('click', togglePlay);
+            document.getElementById('range').addEventListener('input', function() {
+                stopPlay();
+                const val = parseInt(this.value) - 1;
+                goToStep(val);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    if (currentStepIndex < N_STEPS - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                // Set answer
+                document.getElementById('answer').textContent = '14';
+                document.getElementById('top-solution').textContent = '14';
+                // Initialize learning log
+                document.getElementById('learning-log').textContent = '等待交互...';
+                // Go to step 0
+                goToStep(0);
+                // Ensure counter shows 1/N
+                updateCounter(0);
+                updateRange(0);
+                renderTimeline(0);
+            }
+
+            init();
+            console.log('树形DP最大独立集 — 教学页面已就绪。总共 ' + N_STEPS + ' 个步骤。');
+        })();
+    </script>
+</body>
+</html>

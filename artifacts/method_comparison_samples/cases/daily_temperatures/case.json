@@ -1,0 +1,107 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "daily_temperatures",
+  "algorithm_id": "daily_temperatures",
+  "title": "每日温度",
+  "family": "栈 / 队列 / 单调栈",
+  "difficulty": "medium",
+  "problem": "农业温室有一串未来每日温度预报 temperatures，管理员想知道每一天之后还要等几天才会出现更高温度，以便安排自动通风和遮阳策略。如果之后都不会升温，则该位置为 0。",
+  "strategy": "维护温度单调递减的下标栈，遇到更高温度时弹栈并写答案。",
+  "input_contract": "输入 temperatures 数组。",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "理解单调栈中存储的下标对应温度值保持严格递减，并能通过 trace 验证这一状态不变式。",
+    "根据当前温度和栈顶温度，预测下一步是弹栈写答案还是压栈。",
+    "在给定输入 temperatures 下，手动模拟弹出顺序并写出 answer 数组的最终值。"
+  ],
+  "required_views": [
+    "array",
+    "stack"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！因为 75 > 74，所以弹出下标 1，并记录 answer[1]=1。",
+      "feedback_wrong": "再观察一下：当前温度 75°C 是否大于栈顶下标对应的温度？比较 75 和 74。",
+      "id": "task_1",
+      "oracle": "根据 trace，当 temperatures[i] > temperatures[stack[-1]] 时弹栈，否则压栈。可自动比对预期操作。",
+      "prompt": "当前处理到温度 75°C（下标 2），栈内已有下标 0 和 1（对应 73°C、74°C），下一步会执行什么操作？请选择：A. 弹出栈顶并写入 answer；B. 压入当前下标。",
+      "stage2_affordance": "点击「下一步」按钮，动画高亮当前比较的两个温度柱，并展示弹栈动作。",
+      "trace_anchor": [
+        "state.stack",
+        "temperatures[stack[-1]]",
+        "temperatures[i]"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错！单调递减栈是本题的核心不变式。",
+      "feedback_wrong": "回顾一下 trace，栈顶是最小温度值吗？观察压入和弹出时温度的相对大小。",
+      "id": "task_2",
+      "oracle": "正确答案是 A，可验证栈内相邻元素温度值是否保持递减关系。",
+      "prompt": "在整个扫描过程中，关于栈的状态，以下哪项是正确的？A. 栈内温度值单调递减；B. 栈内温度值单调递增；C. 栈内下标对应温度随机排列。",
+      "stage2_affordance": "在栈视图中，用颜色深浅表示温度高低，辅助观察递减特性。",
+      "trace_anchor": [
+        "stack",
+        "temperatures[stack[:]]",
+        "invariant"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "你预测对了！因为 71°C 高于栈顶，会引发弹栈并写入新的等待天数。",
+      "feedback_wrong": "注意：修改后该温度可能立即触发弹栈，尝试思考它和后续温度的关系。",
+      "id": "task_3",
+      "oracle": "增加该温度后，其右侧更高温度天数的计算会改变，可用 verifier 对比新预期值。",
+      "prompt": "修改 temperatures 数组中的第 4 天温度由 69°C 改为 71°C，预测 answer 中的第 4 天等待天数会如何变化？请拖动滑块调整。",
+      "stage2_affordance": "拖动滑块修改 temperatures[3] 的值，实时观察 answer 数组数值变化和栈视图的即时响应。",
+      "trace_anchor": [
+        "temperatures[3]",
+        "index=3",
+        "answer[3]"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "你理解得很透彻！这正是 while 循环的作用——不断弹出比当前温度低的栈顶，以维护单调递减。",
+      "feedback_wrong": "观察 trace 中的 while 循环，它连续比较当前温度与栈顶，只要栈顶温度低就弹出，所以可能会弹出多个。",
+      "id": "task_4",
+      "oracle": "检查学生的解释是否包含：当前温度 72°C 高于栈顶两个温度，因此循环弹出直到栈空或栈顶温度更高。可用关键字匹配或 LLM 判断。",
+      "prompt": "在 trace 中，处理温度 72°C（下标 5）时，先后弹出了下标 3（71°C）和 4（69°C），请解释为什么弹出两个下标？",
+      "stage2_affordance": "点击播放按钮观看慢动作：栈内元素逐个弹出，被弹出的下标以动画形式飞向 answer 数组对应位置，并高亮温度值。",
+      "trace_anchor": [
+        "step",
+        "state.stack",
+        "temperatures[5]",
+        "temperatures[3]",
+        "temperatures[4]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      1,
+      1,
+      4,
+      2,
+      1,
+      1,
+      0,
+      0
+    ],
+    "index": 0,
+    "input_data": {
+      "temperatures": [
+        73,
+        74,
+        75,
+        71,
+        69,
+        72,
+        76,
+        73
+      ]
+    }
+  }
+}

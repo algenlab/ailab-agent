@@ -1,0 +1,94 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "insertion_sort",
+  "algorithm_id": "insertion_sort",
+  "title": "插入排序",
+  "family": "排序",
+  "difficulty": "medium",
+  "problem": "在音乐播放器应用中，你获得了歌曲喜爱度评分列表 nums，请使用插入排序方法将其升序排列，返回排序后的列表，以便按评分从低到高播放歌曲。",
+  "strategy": "逐步维护有序前缀，把当前元素插入正确位置。",
+  "input_contract": "输入 nums 数组。",
+  "time_complexity": "O(n^2)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "理解插入排序中已排序前缀 nums[0..i-1] 的维护过程",
+    "掌握 key 变量如何暂存待插入元素并与左侧比较",
+    "根据 trace 中 state.nums 变化预测下一步插入位置"
+  ],
+  "required_views": [
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确，你预测了元素右移后的状态。",
+      "feedback_wrong": "观察比较 key=3 和 nums[1]=5，5>3 所以将5右移，更新 nums。",
+      "id": "task_1",
+      "oracle": "从 trace 下一步中获取 state.nums，判断回答中数组是否与之一致（应为 [2,5,5,1]）。",
+      "prompt": "当前 nums = [2,5,3,1]，i=2，key=3，j=1。执行一次比较并移动后，nums 的状态如何？",
+      "stage2_affordance": "拖动当前高亮卡片到正确位置，模拟插入。",
+      "trace_anchor": [
+        "state.nums",
+        "state.key",
+        "state.i",
+        "state.j"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错，已排序前缀是算法核心不变式。",
+      "feedback_wrong": "观察 trace 中每一步 i 之前的部分，是不是已经升序排列？",
+      "id": "task_2",
+      "oracle": "回答需明确指出前缀 nums[0..i-1] 在每轮开始前是有序的。",
+      "prompt": "插入排序中，哪部分数组始终保持有序？请引用 state 中的索引说明。",
+      "stage2_affordance": "高亮已排序前缀区域。",
+      "trace_anchor": [
+        "state.i",
+        "state.nums"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "这样确实增加了插入时的移动步数。",
+      "feedback_wrong": "考虑修改已排序前缀或待插入元素的值，扩大它们之间的差距。",
+      "id": "task_3",
+      "oracle": "将第一个元素改为更大值（如9），或将第二个元素改为更小值（如-5），使得 key 与左侧比较时需要更多移位。检查修改后数组第一次插入的移动次数是否大于原输入。",
+      "prompt": "原输入 nums = [4,2,7,1]，若想使第一次插入时移动次数增多，该如何修改一个元素？",
+      "stage2_affordance": "在数组编辑框中直接修改元素值。",
+      "trace_anchor": [
+        "nums"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "正是，比 key 大的元素被右移，为插入腾出空间。",
+      "feedback_wrong": "注意 trace 中 key 的值和左侧比较元素的大小关系。",
+      "id": "task_4",
+      "oracle": "检查回答是否提到 key=4，j=1，nums[j]=7>4，因此将7右移至位置2。",
+      "prompt": "trace 中一步 nums 从 [3,7,4,2] 变为 [3,7,7,2]，这步发生了什么？",
+      "stage2_affordance": "逐步播放动画，显示比较和移动过程。",
+      "trace_anchor": [
+        "state.nums",
+        "state.key",
+        "state.j"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      1,
+      2,
+      3,
+      5
+    ],
+    "index": 0,
+    "input_data": {
+      "nums": [
+        5,
+        2,
+        3,
+        1
+      ]
+    }
+  }
+}

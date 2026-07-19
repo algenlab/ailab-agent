@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速幂取模 - AlgoLab 教学页</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #2c5ea8;
+            --primary-light: #e8f0fb;
+            --primary-dark: #1a3d6d;
+            --accent: #e8832b;
+            --accent-light: #fff3e8;
+            --accent-dark: #c56a1a;
+            --success: #2a804f;
+            --success-light: #eaf7ef;
+            --success-dark: #1b5e35;
+            --danger: #c0392b;
+            --danger-light: #fdecea;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --border: #dde3ea;
+            --code-bg: #1e2433;
+            --code-text: #d4d9e6;
+            --highlight-line: #3b4b6b;
+            --highlight-current: #ffd54f;
+            --canvas-highlight: #ff9800;
+            --canvas-depend: #2196f3;
+            --canvas-answer: #4caf50;
+            --canvas-neutral: #9e9e9e;
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.15);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-lg: 16px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', 'Menlo',
+                monospace;
+            --font-sans: 'Inter', 'Noto Sans SC', 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8edf3 30%, #f5f7fa 60%, #eef2f7 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -200px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(44, 94, 168, 0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -150px;
+            left: -150px;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(232, 131, 43, 0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-container {
+            max-width: 1140px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            box-shadow: var(--shadow-lg);
+            border-left: 6px solid var(--primary);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(44, 94, 168, 0.03) 100%);
+            pointer-events: none;
+        }
+        .header:hover {
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-1px);
+        }
+        .header-left h1 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.03em;
+            margin: 0;
+            line-height: 1.2;
+        }
+        #title {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, #4a7fc4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            transition: all 0.3s;
+        }
+        .badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+        .badge-family {
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px solid #d0dff2;
+        }
+        .badge-strategy {
+            background: var(--accent-light);
+            color: var(--accent);
+            border: 1px solid #f5d8b8;
+        }
+        #top-result {
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--success);
+            background: var(--success-light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            border: 2px solid #b7dfc5;
+            letter-spacing: 0.04em;
+            animation: answer-glow 3s ease-in-out infinite;
+        }
+        @keyframes answer-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(42, 128, 79, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(42, 128, 79, 0.4);
+            }
+        }
+        #top-solution {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            max-width: 260px;
+            text-align: right;
+            line-height: 1.3;
+            font-weight: 500;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 850px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid transparent;
+            position: relative;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: #e8ecf2;
+            transform: translateY(-1px);
+        }
+        .card-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--primary);
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        #code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            font-size: 0.84rem;
+            line-height: 1.8;
+            overflow-x: auto;
+            white-space: pre;
+            position: relative;
+            min-height: 190px;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        #code .code-line {
+            display: block;
+            padding: 3px 10px;
+            margin: 0 -10px;
+            border-radius: 4px;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: default;
+            position: relative;
+        }
+        #code .code-line.highlight {
+            background: var(--highlight-line);
+            color: #e8ecf5;
+            font-weight: 500;
+        }
+        #code .code-line.highlight-active {
+            background: #5a4a20;
+            color: var(--highlight-current);
+            font-weight: 700;
+            box-shadow: inset 4px 0 0 var(--highlight-current);
+            animation: code-pulse 0.6s ease-in-out;
+        }
+        @keyframes code-pulse {
+            0%,
+            100% {
+                box-shadow: inset 4px 0 0 var(--highlight-current);
+            }
+            50% {
+                box-shadow: inset 4px 0 0 #fff, 0 0 12px rgba(255, 213, 79, 0.5);
+            }
+        }
+        .code-keyword {
+            color: #c792ea;
+        }
+        .code-func {
+            color: #82aaff;
+        }
+        .code-number {
+            color: #f78c6c;
+        }
+        .code-comment {
+            color: #6a7d93;
+            font-style: italic;
+        }
+
+        #canvas {
+            min-height: 210px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 0;
+            position: relative;
+        }
+        .state-card {
+            background: #fafbfc;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            text-align: center;
+            min-width: 95px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            font-family: var(--font-mono);
+            cursor: default;
+        }
+        .state-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+        .state-card .card-var {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .state-card .card-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .state-card.target-current {
+            border-color: var(--canvas-highlight);
+            background: #fff8f0;
+            box-shadow: 0 0 0 5px rgba(255, 152, 0, 0.12);
+            animation: pulse-border 1.2s ease-in-out infinite;
+        }
+        .state-card.target-depend {
+            border-color: var(--canvas-depend);
+            background: #f5f9ff;
+            box-shadow: 0 0 0 5px rgba(33, 150, 243, 0.1);
+        }
+        .state-card.target-answer {
+            border-color: var(--canvas-answer);
+            background: #f5fdf7;
+            box-shadow: 0 0 0 5px rgba(76, 175, 80, 0.12);
+            animation: answer-card-glow 2s ease-in-out infinite;
+        }
+        @keyframes answer-card-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 0 5px rgba(76, 175, 80, 0.12);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(76, 175, 80, 0.04), 0 0 30px rgba(76, 175, 80, 0.2);
+            }
+        }
+        .state-card.target-neutral {
+            border-color: #dde3ea;
+            opacity: 0.75;
+        }
+        @keyframes pulse-border {
+            0%,
+            100% {
+                box-shadow: 0 0 0 5px rgba(255, 152, 0, 0.12);
+            }
+            50% {
+                box-shadow: 0 0 0 13px rgba(255, 152, 0, 0.03);
+            }
+        }
+        @keyframes pop-in {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.08);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .state-card.val-changed {
+            animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .binary-display {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 8px;
+        }
+        .binary-display .bit {
+            display: inline-block;
+            width: 30px;
+            height: 34px;
+            line-height: 34px;
+            text-align: center;
+            border-radius: 5px;
+            background: #e8ecf1;
+            font-weight: 700;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9rem;
+        }
+        .binary-display .bit.active-bit {
+            background: var(--accent);
+            color: #fff;
+            font-weight: 800;
+            box-shadow: 0 3px 12px rgba(232, 131, 43, 0.4);
+            animation: bit-flash 0.6s ease-in-out;
+        }
+        @keyframes bit-flash {
+            0%,
+            100% {
+                box-shadow: 0 3px 12px rgba(232, 131, 43, 0.4);
+            }
+            50% {
+                box-shadow: 0 3px 24px rgba(232, 131, 43, 0.7);
+                transform: scale(1.15);
+            }
+        }
+        .binary-display .bit.processed-bit {
+            background: #b0bec5;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #f5f6f8;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            color: #333;
+            max-height: 130px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid #eef1f5;
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            background: #fefdf5;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            color: #5a4a20;
+            border-left: 4px solid var(--accent);
+            max-height: 110px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        #teaching {
+            font-size: 0.88rem;
+            line-height: 1.75;
+            color: var(--text);
+            background: #fdfdff;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #eef1f5;
+            min-height: 65px;
+        }
+
+        #step-title {
+            font-weight: 800;
+            font-size: 1.15rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+        .btn {
+            padding: 9px 18px;
+            border-radius: 22px;
+            border: 2px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 50%;
+            transition: all 0.5s;
+            transform: translate(-50%, -50%);
+        }
+        .btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        .btn:hover {
+            background: #f5f7fa;
+            border-color: #bcc4d0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .btn:active {
+            transform: scale(0.95);
+            background: #eef1f5;
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(20%);
+        }
+        .btn.active-btn {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 3px 12px rgba(44, 94, 168, 0.35);
+        }
+        .btn.play-btn {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+            font-weight: 700;
+            min-width: 90px;
+        }
+        .btn.play-btn:hover {
+            background: #23703f;
+            border-color: #23703f;
+            box-shadow: 0 4px 16px rgba(42, 128, 79, 0.35);
+        }
+        .btn.play-btn.paused {
+            background: #fff;
+            color: var(--success);
+            border-color: var(--success);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            color: var(--primary);
+            min-width: 55px;
+            text-align: center;
+            background: var(--primary-light);
+            padding: 7px 14px;
+            border-radius: 18px;
+            border: 1px solid #d0dff2;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 7px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #dde3ea 0%, #c8d4e2 100%);
+            outline: none;
+            cursor: pointer;
+            flex: 1;
+            min-width: 80px;
+            max-width: 220px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            box-shadow: 0 4px 16px rgba(44, 94, 168, 0.4);
+        }
+
+        #timeline {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+            align-items: center;
+        }
+        .tick {
+            padding: 10px 15px;
+            border-radius: 22px;
+            border: 2px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            min-width: 75px;
+            text-align: center;
+            font-family: var(--font-sans);
+            position: relative;
+        }
+        .tick:hover {
+            border-color: #a0b0c0;
+            background: #fafbfc;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .tick.active-tick {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 6px 20px rgba(44, 94, 168, 0.4);
+            transform: translateY(-3px);
+            animation: tick-active-pulse 2s ease-in-out infinite;
+        }
+        @keyframes tick-active-pulse {
+            0%,
+            100% {
+                box-shadow: 0 6px 20px rgba(44, 94, 168, 0.4);
+            }
+            50% {
+                box-shadow: 0 6px 30px rgba(44, 94, 168, 0.6);
+            }
+        }
+        .tick.active-tick .tick-label,
+        .tick.active-tick .tick-op {
+            color: #fff;
+        }
+        .tick.completed-tick {
+            background: #eaf2fb;
+            border-color: #b8cee8;
+            color: #3a5f8a;
+        }
+        .tick.completed-tick::after {
+            content: ' ✓';
+            font-size: 0.7rem;
+            color: var(--success);
+            font-weight: 700;
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: inherit;
+        }
+        .tick-op {
+            font-size: 0.68rem;
+            opacity: 0.85;
+            color: inherit;
+            letter-spacing: 0.02em;
+        }
+
+        .checkpoint-section {
+            background: linear-gradient(135deg, #fffdf7 0%, #fffef9 100%);
+            border: 3px dashed #e0c97f;
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            margin-top: 12px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: checkpoint-appear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes checkpoint-appear {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .checkpoint-section.hidden-checkpoint {
+            display: none;
+        }
+        .checkpoint-question {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #6b4e0a;
+            margin-bottom: 10px;
+            background: #fffef5;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--accent);
+        }
+        .checkpoint-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkpoint-input-row input {
+            padding: 10px 14px;
+            border-radius: 22px;
+            border: 2px solid #d5c38b;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            width: 130px;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.25s;
+            background: #fffef9;
+        }
+        .checkpoint-input-row input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(232, 131, 43, 0.12);
+            background: #fff;
+        }
+        .checkpoint-feedback {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-height: 24px;
+            transition: all 0.35s;
+            line-height: 1.5;
+        }
+        .feedback-correct {
+            background: var(--success-light);
+            color: var(--success);
+            border: 2px solid #b7dfc5;
+            animation: feedback-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes feedback-pop {
+            0% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .feedback-wrong {
+            background: var(--danger-light);
+            color: var(--danger);
+            border: 2px solid #f0c4c0;
+            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-8px);
+            }
+            40% {
+                transform: translateX(8px);
+            }
+            60% {
+                transform: translateX(-5px);
+            }
+            80% {
+                transform: translateX(5px);
+            }
+        }
+        .feedback-hint {
+            background: #fffbe6;
+            color: #7a6400;
+            border: 2px solid #f0e5a0;
+        }
+        .btn-hint {
+            background: #fffbe6;
+            border-color: #e0d58b;
+            color: #6b5a0a;
+            font-size: 0.78rem;
+            padding: 7px 13px;
+        }
+        .btn-hint:hover {
+            background: #fff8d6;
+            border-color: #d4c560;
+        }
+        .btn-show-answer {
+            background: #fdecea;
+            border-color: #e8b4b0;
+            color: #8b2a20;
+            font-size: 0.78rem;
+            padding: 7px 13px;
+        }
+        .btn-show-answer:hover {
+            background: #fce4e2;
+            border-color: #d99890;
+        }
+        .btn-submit {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            font-weight: 700;
+            padding: 10px 18px;
+            font-size: 0.85rem;
+            letter-spacing: 0.04em;
+        }
+        .btn-submit:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 16px rgba(44, 94, 168, 0.4);
+        }
+
+        .learning-log {
+            background: #fafbfc;
+            border: 1px solid #eef1f5;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            max-height: 175px;
+            overflow-y: auto;
+            font-size: 0.77rem;
+            font-family: var(--font-mono);
+            color: #555;
+            line-height: 1.6;
+        }
+        .learning-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px dotted #eee;
+            transition: all 0.3s;
+        }
+        .learning-log .log-entry:first-child {
+            animation: log-slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes log-slide-in {
+            0% {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .log-time {
+            color: #999;
+            font-size: 0.7rem;
+        }
+        .log-correct {
+            color: var(--success);
+            font-weight: 700;
+        }
+        .log-wrong {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 800;
+            color: var(--success);
+            font-size: 0.95rem;
+            background: var(--success-light);
+            padding: 5px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            border: 2px solid #b7dfc5;
+        }
+        .answer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            padding: 2px 8px;
+        }
+
+        #op {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 0.9rem;
+            background: var(--accent-light);
+            padding: 5px 12px;
+            border-radius: 14px;
+            display: inline-block;
+            letter-spacing: 0.03em;
+            border: 1px solid #f5d8b8;
+        }
+
+        .celebration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+        }
+        .celebration-overlay.active {
+            display: block;
+            animation: celebration-fade 0.5s ease-out;
+        }
+        @keyframes celebration-fade {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            animation: confetti-fall linear forwards;
+        }
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(110vh) rotate(720deg) scale(0.3);
+                opacity: 0;
+            }
+        }
+        .completion-toast {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #2a804f 0%, #3a9d60 100%);
+            color: #fff;
+            padding: 16px 28px;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 0.04em;
+            z-index: 10000;
+            box-shadow: 0 10px 40px rgba(42, 128, 79, 0.5);
+            animation: toast-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), toast-out 0.5s 3s ease-in forwards;
+            pointer-events: none;
+            display: none;
+        }
+        @keyframes toast-in {
+            0% {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes toast-out {
+            0% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-60px);
+            }
+        }
+
+        @media (max-width: 650px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 16px 18px;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            #timeline {
+                justify-content: center;
+            }
+            .tick {
+                min-width: 55px;
+                padding: 7px 9px;
+                font-size: 0.7rem;
+            }
+            .state-card {
+                min-width: 68px;
+                padding: 11px 13px;
+            }
+            .state-card .card-val {
+                font-size: 1.3rem;
+            }
+            #code {
+                font-size: 0.7rem;
+                padding: 12px 14px;
+            }
+            .card {
+                padding: 14px 16px;
+            }
+            .checkpoint-input-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .checkpoint-input-row input {
+                width: 100%;
+            }
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Celebration overlay -->
+    <div class="celebration-overlay" id="celebration-overlay"></div>
+    <div class="completion-toast" id="completion-toast">🎉 恭喜！你已完成快速幂取模算法的学习！</div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1 id="title">快速幂取模</h1>
+                <p id="subtitle">base=3, exponent=5, mod=13 → 计算 3⁵ mod 13</p>
+            </div>
+            <div class="header-right">
+                <span class="badge badge-family">📐 数学与位运算</span>
+                <span class="badge badge-strategy">🔢 二进制拆分 · 平方表</span>
+                <span id="top-result">9</span>
+                <span id="top-solution">指数5₁₀=101₂，遇1乘入，平方递推</span>
+            </div>
+        </div>
+
+        <!-- Answer (裸JSON) -->
+        <div class="answer-row" style="padding:0 4px;">
+            <span style="font-weight:700;">📦 最终答案裸JSON：</span>
+            <span id="answer">9</span>
+            <span style="font-size:0.75rem;color:#888;">（权威答案，交互期间不变）</span>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left column: Code + Canvas -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <!-- Code -->
+                <div class="card">
+                    <div class="card-title">📜 算法代码</div>
+                    <div id="code">
+                        <span class="code-line" data-line="1"><span class="code-keyword">function</span> <span class="code-func">solve</span>(base, exponent, mod) {</span>
+                        <span class="code-line" data-line="2">  <span class="code-keyword">let</span> result = <span class="code-number">1</span>;</span>
+                        <span class="code-line" data-line="3">  base = base % mod;</span>
+                        <span class="code-line" data-line="4">  <span class="code-keyword">while</span> (exponent > <span class="code-number">0</span>) {</span>
+                        <span class="code-line" data-line="5">    <span class="code-keyword">if</span> (exponent % <span class="code-number">2</span> === <span class="code-number">1</span>)</span>
+                        <span class="code-line" data-line="6">      result = (result * base) % mod;</span>
+                        <span class="code-line" data-line="7">    base = (base * base) % mod;</span>
+                        <span class="code-line" data-line="8">    exponent = Math.<span class="code-func">floor</span>(exponent / <span class="code-number">2</span>);</span>
+                        <span class="code-line" data-line="9">  }</span>
+                        <span class="code-line" data-line="10">  <span class="code-keyword">return</span> result;</span>
+                        <span class="code-line" data-line="11">}</span>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="card">
+                    <div class="card-title">🎨 算法视图 — 当前状态对象</div>
+                    <div id="canvas">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div style="margin-top:10px;text-align:center;">
+                        <span id="op" style="font-size:0.85rem;">初始化变量</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right column: Step info + Teaching + Checkpoint -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <!-- Step title & desc -->
+                <div class="card">
+                    <div class="card-title">📍 当前步骤</div>
+                    <div id="step-title">步骤 1：初始化</div>
+                    <div id="step-desc">设置 result=1，base 取模，准备二进制迭代</div>
+                    <div style="margin-top:8px;">
+                        <span style="font-weight:600;font-size:0.8rem;">🏷 操作标签：</span><span id="op-secondary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent);">init</span>
+                    </div>
+                </div>
+
+                <!-- State JSON -->
+                <div class="card">
+                    <div class="card-title">📋 状态摘要 (JSON)</div>
+                    <div id="state">{"result":1,"base":3,"exponent":5,"mod":13,"phase":"init"}</div>
+                </div>
+
+                <!-- Teaching -->
+                <div class="card">
+                    <div class="card-title">💡 教学讲解</div>
+                    <div id="teaching">快速幂的核心思想是将指数拆成二进制表示。5 的二进制是 <strong>101</strong>，即 5=4+1=2²+2⁰。我们初始化 <code>result=1</code> 作为乘法起点，<code>base</code> 存储当前底数（会不断平方），<code>exponent</code> 记录剩余指数。循环检查 exponent 的二进制最低位，遇到 1 就将当前 base 乘入 result。</div>
+                </div>
+
+                <!-- Step evidence -->
+                <div class="card">
+                    <div class="card-title">🧾 步骤证据</div>
+                    <div id="step-evidence">operation: init | targets: [result, base, exponent] | before: null | after: {result:1, base:3, exponent:5}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkpoint (always in DOM, visibility controlled) -->
+        <div class="card checkpoint-section hidden-checkpoint" id="checkpoint-section">
+            <div class="card-title">🎯 Learner Checkpoint — 检验理解</div>
+            <div class="checkpoint-question" id="checkpoint-question">
+                当前 exponent=1（奇数，二进制最低位为1），base=3，result=3。执行 <code>result = (result × base) % 13</code> 后，result 的值是多少？
+            </div>
+            <div class="checkpoint-input-row">
+                <input type="number" id="checkpoint-input" placeholder="输入数字" value="" autocomplete="off">
+                <button class="btn btn-submit" id="checkpoint-submit">✅ 提交</button>
+                <button class="btn btn-hint" id="checkpoint-hint">💡 提示</button>
+                <button class="btn btn-show-answer" id="checkpoint-show-answer">👁 显示答案</button>
+            </div>
+            <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+            <div style="margin-top:14px;">
+                <div style="font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--primary);margin-bottom:8px;border-bottom:2px solid var(--primary-light);padding-bottom:6px;">📝 学习日志</div>
+                <div class="learning-log" id="learning-log">
+                    <span style="color:#999;">尚无提交记录。</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="上一步">◀ 上一步</button>
+                <button class="btn play-btn paused" id="play" title="自动播放">▶ 播放</button>
+                <button class="btn" id="next" title="下一步">下一步 ▶</button>
+                <button class="btn" id="reset-btn" title="回到第一步">🔄 重置</button>
+                <span id="counter">1 / 5</span>
+                <input type="range" id="range" min="1" max="5" value="1" step="1" title="拖动切换步骤">
+                <span style="font-size:0.78rem;color:var(--text-secondary);">拖动滑块</span>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-title">⏱ 步骤时间线</div>
+            <div id="timeline">
+                <button class="tick active-tick" data-step="1">
+                    <span class="tick-label">初始化</span><span class="tick-op">设置变量</span>
+                </button>
+                <button class="tick" data-step="2">
+                    <span class="tick-label">迭代1</span><span class="tick-op">exp=5(奇)→乘入</span>
+                </button>
+                <button class="tick" data-step="3">
+                    <span class="tick-label">迭代2</span><span class="tick-op">exp=2(偶)→平方</span>
+                </button>
+                <button class="tick" data-step="4">
+                    <span class="tick-label">迭代3</span><span class="tick-op">exp=1(奇)→乘入</span>
+                </button>
+                <button class="tick" data-step="5">
+                    <span class="tick-label">完成</span><span class="tick-op">返回结果9</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ STEP DATA ============
+            const totalSteps = 5;
+            const steps = [{
+                index: 1,
+                title: '步骤 1：初始化',
+                desc: '设置 result=1，base 取模，准备二进制迭代',
+                op: 'init',
+                opLabel: '🚀 初始化变量',
+                stateJSON: '{"result":1,"base":3,"exponent":5,"mod":13,"phase":"init"}',
+                teaching: '快速幂的核心思想是将指数拆成二进制表示。5 的二进制是 <strong>101</strong>，即 5 = 4 + 1 = 2² + 2⁰。我们初始化 <code>result=1</code> 作为乘法起点，<code>base=3%13=3</code> 存储当前底数（会不断平方），<code>exponent=5</code> 记录剩余指数。循环将检查 exponent 的二进制最低位。',
+                evidence: 'operation: init | targets: [result, base, exponent] | before: null | after: {result:1, base:3, exponent:5}',
+                codeLines: [1, 2, 3],
+                codeHighlightActive: [2, 3],
+                canvasCards: [
+                    { varName: 'result', val: '1', cssClass: 'target-neutral' },
+                    { varName: 'base', val: '3', cssClass: 'target-depend' },
+                    { varName: 'exponent', val: '5', cssClass: 'target-current' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '101', highlightIndex: -1, label: '二进制: 101 (待处理)' },
+                checkpointVisible: false,
+            }, {
+                index: 2,
+                title: '步骤 2：迭代 1 — exponent=5（奇数）',
+                desc: 'exp%2=1，乘入 base；base 平方；exp 右移为 2',
+                op: 'multiply & square',
+                opLabel: '🔥 奇数位→乘入+平方',
+                stateJSON: '{"result":3,"base":9,"exponent":2,"mod":13,"phase":"iterate","expParity":"odd"}',
+                teaching: '<strong>exponent=5 是奇数</strong>（二进制 101 的最低位是 <strong>1</strong>），触发乘入操作：<code>result = (1 × 3) % 13 = 3</code>。然后 <code>base = (3 × 3) % 13 = 9</code>（平方），<code>exponent = floor(5/2) = 2</code>（右移一位）。注意：无论奇偶，base 都要平方、exponent 都要右移；区别仅在于奇数时多一步乘入。',
+                evidence: 'operation: multiply+square | targets: [result, base, exponent] | before: {result:1, base:3, exp:5} | after: {result:3, base:9, exp:2} | reason: exp%2==1 → result=(1*3)%13=3; base=(3²)%13=9; exp=5>>1=2',
+                codeLines: [4, 5, 6, 7, 8],
+                codeHighlightActive: [5, 6],
+                canvasCards: [
+                    { varName: 'result', val: '3', cssClass: 'target-current' },
+                    { varName: 'base', val: '9', cssClass: 'target-depend' },
+                    { varName: 'exponent', val: '2', cssClass: 'target-depend' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '101', highlightIndex: 2,
+                    label: '二进制: 10<span style="color:#e8832b;font-weight:700;">1</span> ← 最低位=1(奇数)' },
+                checkpointVisible: false,
+            }, {
+                index: 3,
+                title: '步骤 3：迭代 2 — exponent=2（偶数）',
+                desc: 'exp%2=0，跳过乘入；base 平方为 3；exp 右移为 1',
+                op: 'square only',
+                opLabel: '🟢 偶数位→仅平方',
+                stateJSON: '{"result":3,"base":3,"exponent":1,"mod":13,"phase":"iterate","expParity":"even"}',
+                teaching: '<strong>exponent=2 是偶数</strong>（二进制 10 的最低位是 <strong>0</strong>），<em>不执行乘入</em>，result 保持 3 不变。但 base 仍然平方：<code>base = (9 × 9) % 13 = 81 % 13 = 3</code>（因为 13×6=78，81-78=3）。exponent 右移：<code>2 >> 1 = 1</code>。<strong>常见误区</strong>：有人误以为偶数位也要乘入，导致多乘。实际上只有遇到 1 位才乘入。',
+                evidence: 'operation: square_only | targets: [base, exponent] | before: {base:9, exp:2} | after: {base:3, exp:1} | reason: exp%2==0 → result不变; base=(9²)%13=81%13=3; exp=2>>1=1',
+                codeLines: [4, 7, 8],
+                codeHighlightActive: [7, 8],
+                canvasCards: [
+                    { varName: 'result', val: '3', cssClass: 'target-neutral' },
+                    { varName: 'base', val: '3', cssClass: 'target-current' },
+                    { varName: 'exponent', val: '1', cssClass: 'target-depend' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '10', highlightIndex: 1,
+                    label: '二进制: 1<span style="color:#9e9e9e;font-weight:700;">0</span> ← 最低位=0(偶数)' },
+                checkpointVisible: false,
+            }, {
+                index: 4,
+                title: '步骤 4：迭代 3 — exponent=1（奇数）',
+                desc: 'exp%2=1，乘入 base=3；result 变为 9；exp 右移为 0',
+                op: 'multiply & square',
+                opLabel: '🔥 奇数位→乘入+平方',
+                stateJSON: '{"result":9,"base":9,"exponent":0,"mod":13,"phase":"iterate","expParity":"odd"}',
+                teaching: '<strong>exponent=1 是奇数</strong>（二进制 1 的最低位是 <strong>1</strong>），触发最后一次乘入：<code>result = (3 × 3) % 13 = 9</code>。然后 base 平方：<code>(3×3)%13=9</code>，exponent 右移为 0。循环即将结束。注意这里 result 从 3 变成 9，这是关键的状态转移。',
+                evidence: 'operation: multiply+square | targets: [result, base, exponent] | before: {result:3, base:3, exp:1} | after: {result:9, base:9, exp:0} | reason: exp%2==1 → result=(3*3)%13=9; base=(3²)%13=9; exp=1>>1=0',
+                codeLines: [4, 5, 6, 7, 8],
+                codeHighlightActive: [5, 6],
+                canvasCards: [
+                    { varName: 'result', val: '9', cssClass: 'target-current target-answer' },
+                    { varName: 'base', val: '9', cssClass: 'target-depend' },
+                    { varName: 'exponent', val: '0', cssClass: 'target-depend' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '1', highlightIndex: 0,
+                    label: '二进制: <span style="color:#e8832b;font-weight:700;">1</span> ← 最低位=1(奇数)' },
+                checkpointVisible: true,
+            }, {
+                index: 5,
+                title: '步骤 5：完成 — 返回最终答案 ✅',
+                desc: 'exponent=0，循环结束，返回 result=9',
+                op: 'return',
+                opLabel: '🏆 返回结果',
+                stateJSON: '{"result":9,"base":9,"exponent":0,"mod":13,"phase":"complete","finalAnswer":9}',
+                teaching: '<strong>exponent 已为 0，循环结束。</strong>返回 result=<strong>9</strong>。验证：3⁵ = 3×3×3×3×3 = 243，243 ÷ 13 = 18 余 9（13×18=234，243-234=9）。✓ 算法正确！快速幂仅用了 <strong>3 次循环迭代</strong>（对应二进制位数），而非朴素算法的 5 次乘法。时间复杂度 O(log exponent)。🎉',
+                evidence: 'operation: return | targets: [result] | final: 9 | verification: 3^5=243, 243%13=9 ✓',
+                codeLines: [10],
+                codeHighlightActive: [10],
+                canvasCards: [
+                    { varName: 'result', val: '9 ✓', cssClass: 'target-answer' },
+                    { varName: 'base', val: '9', cssClass: 'target-neutral' },
+                    { varName: 'exponent', val: '0', cssClass: 'target-neutral' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '—', highlightIndex: -1, label: '二进制已处理完毕 ✓' },
+                checkpointVisible: false,
+            }];
+
+            let currentStepIndex = 1;
+            let playInterval = null;
+            let isPlaying = false;
+            let prevCardVals = {};
+            let completionShown = false;
+
+            // ============ DOM REFS ============
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $prev = document.getElementById('prev');
+            const $next = document.getElementById('next');
+            const $play = document.getElementById('play');
+            const $resetBtn = document.getElementById('reset-btn');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $opSecondary = document.getElementById('op-secondary');
+            const $canvas = document.getElementById('canvas');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $timeline = document.getElementById('timeline');
+            const $code = document.getElementById('code');
+            const $answer = document.getElementById('answer');
+            const $topResult = document.getElementById('top-result');
+            const $checkpointSection = document.getElementById('checkpoint-section');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $checkpointInput = document.getElementById('checkpoint-input');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHintBtn = document.getElementById('checkpoint-hint');
+            const $checkpointShowAnswer = document.getElementById('checkpoint-show-answer');
+            const $learningLog = document.getElementById('learning-log');
+            const $checkpointQuestion = document.getElementById('checkpoint-question');
+            const $celebrationOverlay = document.getElementById('celebration-overlay');
+            const $completionToast = document.getElementById('completion-toast');
+
+            const allTicks = $timeline.querySelectorAll('.tick');
+            const allCodeLines = $code.querySelectorAll('.code-line');
+
+            $answer.textContent = '9';
+            $topResult.textContent = '9';
+
+            // ============ CONFETTI ============
+            function spawnConfetti() {
+                const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff922b', '#845ef7',
+                    '#ff6b9d', '#00d2ff', '#f06595', '#20c997'
+                ];
+                const overlay = $celebrationOverlay;
+                overlay.innerHTML = '';
+                overlay.classList.add('active');
+                for (let i = 0; i < 120; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.top = -(Math.random() * 40) + 'px';
+                    confetti.style.width = (Math.random() * 10 + 6) + 'px';
+                    confetti.style.height = (Math.random() * 10 + 6) + 'px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDuration = (Math.random() * 2.5 + 2) + 's';
+                    confetti.style.animationDelay = Math.random() * 1.5 + 's';
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '3px';
+                    overlay.appendChild(confetti);
+                }
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    overlay.innerHTML = '';
+                }, 4000);
+            }
+
+            function showCompletionToast() {
+                $completionToast.style.display = 'block';
+                $completionToast.style.animation = 'toast-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), toast-out 0.5s 3.5s ease-in forwards';
+                setTimeout(() => {
+                    $completionToast.style.display = 'none';
+                }, 4200);
+            }
+
+            // ============ UPDATE FUNCTION ============
+            function updateStep(stepIndex) {
+                if (stepIndex < 1) stepIndex = 1;
+                if (stepIndex > totalSteps) stepIndex = totalSteps;
+                const prevIndex = currentStepIndex;
+                currentStepIndex = stepIndex;
+
+                const stepData = steps[stepIndex - 1];
+
+                $counter.textContent = stepIndex + ' / ' + totalSteps;
+                $range.value = stepIndex;
+                $stepTitle.textContent = stepData.title;
+                $stepDesc.textContent = stepData.desc;
+                $op.textContent = stepData.opLabel;
+                $opSecondary.textContent = stepData.op;
+                $state.textContent = stepData.stateJSON;
+                $teaching.innerHTML = stepData.teaching;
+                $stepEvidence.textContent = stepData.evidence;
+
+                // Store previous card values for animation detection
+                const newCardVals = {};
+                stepData.canvasCards.forEach(c => { newCardVals[c.varName] = c.val; });
+
+                renderCanvas(stepData, prevIndex !== stepIndex, prevCardVals, newCardVals);
+                prevCardVals = { ...newCardVals };
+
+                // Timeline ticks
+                allTicks.forEach(tick => {
+                    const tickStep = parseInt(tick.getAttribute('data-step'), 10);
+                    tick.classList.remove('active-tick', 'completed-tick');
+                    if (tickStep === stepIndex) {
+                        tick.classList.add('active-tick');
+                    } else if (tickStep < stepIndex) {
+                        tick.classList.add('completed-tick');
+                    }
+                });
+
+                // Code highlight
+                allCodeLines.forEach(line => {
+                    const lineNum = parseInt(line.getAttribute('data-line'), 10);
+                    line.classList.remove('highlight', 'highlight-active');
+                    if (stepData.codeLines.includes(lineNum)) {
+                        line.classList.add('highlight');
+                    }
+                    if (stepData.codeHighlightActive.includes(lineNum)) {
+                        line.classList.add('highlight-active');
+                        line.classList.remove('highlight');
+                    }
+                });
+
+                // Checkpoint visibility
+                if (stepData.checkpointVisible) {
+                    $checkpointSection.classList.remove('hidden-checkpoint');
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = 'checkpoint-feedback';
+                    $checkpointInput.value = '';
+                    $checkpointInput.focus();
+                    $checkpointQuestion.innerHTML =
+                        '当前 exponent=1（奇数，二进制最低位为1），base=3，result=3。执行 <code>result = (result × base) % 13</code> 后，result 的值是多少？';
+                } else {
+                    $checkpointSection.classList.add('hidden-checkpoint');
+                }
+
+                // Completion detection
+                if (stepIndex === totalSteps && !completionShown) {
+                    completionShown = true;
+                    spawnConfetti();
+                    showCompletionToast();
+                }
+                if (stepIndex < totalSteps) {
+                    completionShown = false;
+                }
+
+                // Button states
+                $prev.disabled = (stepIndex <= 1);
+                $next.disabled = (stepIndex >= totalSteps);
+                if (stepIndex >= totalSteps && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function renderCanvas(stepData, isStepChange, prevVals, newVals) {
+                $canvas.innerHTML = '';
+                const cards = stepData.canvasCards;
+
+                const cardsContainer = document.createElement('div');
+                cardsContainer.style.cssText =
+                    'display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;width:100%;';
+
+                cards.forEach(card => {
+                    const cardEl = document.createElement('div');
+                    let cssClass = card.cssClass || '';
+                    if (isStepChange && prevVals && newVals && prevVals[card.varName] !== newVals[
+                            card.varName]) {
+                        cssClass += ' val-changed';
+                    }
+                    cardEl.className = 'state-card ' + cssClass;
+                    cardEl.innerHTML = `
+                <div class="card-var">${card.varName}</div>
+                <div class="card-val">${card.val}</div>
+              `;
+                    cardsContainer.appendChild(cardEl);
+                });
+
+                $canvas.appendChild(cardsContainer);
+
+                // Binary display
+                if (stepData.binaryInfo) {
+                    const binDiv = document.createElement('div');
+                    binDiv.style.cssText =
+                        'width:100%;text-align:center;margin-top:12px;padding:10px;background:#f9fafb;border-radius:8px;border:1px solid #eef1f5;';
+                    const binLabel = document.createElement('div');
+                    binLabel.style.cssText =
+                        'font-size:0.73rem;color:#777;margin-bottom:6px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;';
+                    binLabel.textContent = '🔢 指数二进制表示';
+                    binDiv.appendChild(binLabel);
+
+                    const binDisplay = document.createElement('div');
+                    binDisplay.className = 'binary-display';
+                    const binaryStr = stepData.binaryInfo.binary;
+                    const highlightIdx = stepData.binaryInfo.highlightIndex;
+
+                    if (binaryStr === '—') {
+                        binDisplay.innerHTML =
+                            '<span style="color:#999;font-weight:600;">已处理完毕 ✓</span>';
+                    } else {
+                        for (let i = 0; i < binaryStr.length; i++) {
+                            const bitSpan = document.createElement('span');
+                            bitSpan.className = 'bit';
+                            bitSpan.textContent = binaryStr[i];
+                            if (i === highlightIdx) {
+                                bitSpan.classList.add('active-bit');
+                            } else if (highlightIdx >= 0 && i > highlightIdx) {
+                                bitSpan.classList.add('processed-bit');
+                            }
+                            binDisplay.appendChild(bitSpan);
+                        }
+                    }
+                    binDiv.appendChild(binDisplay);
+
+                    const binInfoLabel = document.createElement('div');
+                    binInfoLabel.style.cssText =
+                        'font-size:0.7rem;color:#888;margin-top:4px;font-style:italic;';
+                    binInfoLabel.innerHTML = stepData.binaryInfo.label;
+                    binDiv.appendChild(binInfoLabel);
+
+                    $canvas.appendChild(binDiv);
+                }
+            }
+
+            // ============ PLAY CONTROLS ============
+            function startPlay() {
+                if (playInterval) clearInterval(playInterval);
+                isPlaying = true;
+                $play.textContent = '⏸ 暂停';
+                $play.classList.remove('paused');
+                $play.classList.add('active-btn');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps) {
+                        updateStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+                isPlaying = false;
+                $play.textContent = '▶ 播放';
+                $play.classList.add('paused');
+                $play.classList.remove('active-btn');
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= totalSteps) {
+                        updateStep(1);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT LISTENERS ============
+            $prev.addEventListener('click', () => {
+                if (isPlaying) stopPlay();
+                updateStep(currentStepIndex - 1);
+            });
+
+            $next.addEventListener('click', () => {
+                if (isPlaying) stopPlay();
+                updateStep(currentStepIndex + 1);
+            });
+
+            $play.addEventListener('click', togglePlay);
+
+            $resetBtn.addEventListener('click', () => {
+                if (isPlaying) stopPlay();
+                completionShown = false;
+                updateStep(1);
+            });
+
+            $range.addEventListener('input', () => {
+                if (isPlaying) stopPlay();
+                const val = parseInt($range.value, 10);
+                updateStep(val);
+            });
+
+            // Timeline tick clicks
+            allTicks.forEach(tick => {
+                tick.addEventListener('click', () => {
+                    if (isPlaying) stopPlay();
+                    const stepVal = parseInt(tick.getAttribute('data-step'), 10);
+                    updateStep(stepVal);
+                });
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'number') return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    updateStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    updateStep(currentStepIndex + 1);
+                } else if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    updateStep(1);
+                } else if (e.key === 'End') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    updateStep(totalSteps);
+                }
+            });
+
+            // ============ CHECKPOINT LOGIC ============
+            function addLogEntry(message, cssClass) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                entry.innerHTML = '<span class="log-time">[' + timeStr + ']</span> <span class="' + cssClass +
+                    '">' + message + '</span>';
+                $learningLog.appendChild(entry);
+                const placeholder = $learningLog.querySelector('span[style]');
+                if (placeholder && $learningLog.children.length > 1) {
+                    placeholder.remove();
+                }
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function handleCheckpointSubmit() {
+                const userAnswer = $checkpointInput.value.trim();
+                if (userAnswer === '') {
+                    $checkpointFeedback.textContent = '⚠ 请输入一个数字后再提交。';
+                    $checkpointFeedback.className = 'checkpoint-feedback feedback-wrong';
+                    addLogEntry('提交失败：输入为空', 'log-wrong');
+                    return;
+                }
+                const numAnswer = parseInt(userAnswer, 10);
+                const correctAnswer = 9;
+
+                if (isNaN(numAnswer)) {
+                    $checkpointFeedback.textContent = '⚠ 请输入有效的整数。';
+                    $checkpointFeedback.className = 'checkpoint-feedback feedback-wrong';
+                    addLogEntry('提交失败：非数字输入 "' + userAnswer + '"', 'log-wrong');
+                    return;
+                }
+
+                if (numAnswer === correctAnswer) {
+                    $checkpointFeedback.textContent =
+                        '✅ 正确！(3 × 3) % 13 = 9 % 13 = 9。你理解了奇数位乘入操作，result 从 3 更新为 9。干得漂亮！🎉';
+                    $checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                    addLogEntry('提交: ' + numAnswer + ' — ✅ 正确！(3×3)%13=9', 'log-correct');
+                } else {
+                    let hintMsg = '';
+                    if (numAnswer === 27) {
+                        hintMsg =
+                            '你可能用了 base 更新前的值 9（3×9=27），但当前 base 是 3，应该用 3×3。注意 base 在本次迭代开始时还是 3。';
+                    } else if (numAnswer === 3) {
+                        hintMsg = '你可能没有执行乘入操作。exp=1 是奇数，必须将 base 乘入 result。';
+                    } else if (numAnswer === 0) {
+                        hintMsg = '模运算结果不可能是 0（3×3=9，9<13，所以 9%13=9）。';
+                    } else if (numAnswer === 1) {
+                        hintMsg = 'result 初始值是 1，但经过两次奇数乘入后已经不是 1 了。回顾前面的步骤。';
+                    } else {
+                        hintMsg = '再想想：(result × base) % mod = (3 × 3) % 13 = ? 先算 3×3=9，9<13，所以结果就是 9。';
+                    }
+                    $checkpointFeedback.textContent = '❌ 错误。' + hintMsg;
+                    $checkpointFeedback.className = 'checkpoint-feedback feedback-wrong';
+                    addLogEntry('提交: ' + numAnswer + ' — ❌ 错误。' + hintMsg, 'log-wrong');
+                }
+            }
+
+            $checkpointSubmit.addEventListener('click', handleCheckpointSubmit);
+            $checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleCheckpointSubmit();
+                }
+            });
+
+            $checkpointHintBtn.addEventListener('click', () => {
+                $checkpointFeedback.textContent =
+                    '💡 提示：当前 result=3，base=3，mod=13。公式是 result = (result × base) % mod。先算 3×3=9，9 小于 13，所以取模后还是 9。';
+                $checkpointFeedback.className = 'checkpoint-feedback feedback-hint';
+                addLogEntry('查看了提示 💡', 'log-wrong');
+            });
+
+            $checkpointShowAnswer.addEventListener('click', () => {
+                $checkpointFeedback.textContent = '👁 正确答案是：9。因为 (3 × 3) % 13 = 9 % 13 = 9。';
+                $checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                $checkpointInput.value = '9';
+                addLogEntry('查看了答案: 9 👁', 'log-correct');
+            });
+
+            // ============ INITIALIZE ============
+            updateStep(1);
+            $answer.textContent = '9';
+            $topResult.textContent = '9';
+            prevCardVals = {};
+            steps[0].canvasCards.forEach(c => { prevCardVals[c.varName] = c.val; });
+
+            console.log('🚀 AlgoLab 快速幂取模教学页已就绪。');
+            console.log('📐 题目：base=3, exponent=5, mod=13 → 期望输出：9');
+            console.log('📊 共 ' + totalSteps + ' 个教学步骤，含 1 个 learner checkpoint。');
+            console.log('⌨ 使用 ← → 方向键或按钮切换步骤，空格键播放/暂停，Home/End 跳转首尾。');
+            console.log('🎯 在步骤4会展示学习者 checkpoint，请预测结果并提交验证。');
+        })();
+    </script>
+</body>
+</html>

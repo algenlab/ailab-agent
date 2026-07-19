@@ -1,0 +1,91 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "reverse_linked_list",
+  "algorithm_id": "reverse_linked_list",
+  "title": "反转链表",
+  "family": "链表与缓存",
+  "difficulty": "medium",
+  "problem": "假设你正在开发一个浏览器，用户访问了一系列网页，用一个列表 values 记录访问的网址ID。浏览器需要生成后退历史路径，即把访问顺序反转，使得用户可以从当前页逐步回到最早访问的页。给定列表 values，按顺序表示访问的网页ID，请实现算法返回反转后的列表，即后退的顺序。",
+  "strategy": "维护 prev/current/next，逐个把 current.next 指向 prev。",
+  "input_contract": "输入 values 数组，按顺序表示链表节点值。",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "理解迭代反转单链表中 prev、curr、next 三个指针的状态变化",
+    "根据 trace 预测下一步指针指向并解释原因",
+    "识别反转过程中链表节点连接的不变式，并用于调试"
+  ],
+  "required_views": [
+    "tree"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！curr.next 总是指向 prev 完成反转。",
+      "feedback_wrong": "再观察一下 curr、prev 和 next 在反转步骤中的角色，通常 curr.next 会指向前一个节点。",
+      "id": "task_1",
+      "oracle": "根据算法逻辑，下一步 curr.next 应指向 prev，即值为 1。",
+      "prompt": "当前 trace 中 curr 指向值为 2 的节点，prev 指向值为 1 的节点，next 指向值为 3 的节点。请预测下一步 curr.next 会指向哪个值？",
+      "stage2_affordance": "用户可以点击 curr 节点上的箭头，手动更改指向。",
+      "trace_anchor": [
+        "state.curr",
+        "state.prev",
+        "state.next"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "对，prev 和 curr 分段维护链表结构。",
+      "feedback_wrong": "看看相邻两步之间 prev 和 curr 如何移动，它们始终维护正确顺序。",
+      "id": "task_2",
+      "oracle": "prev 始终是已反转部分的头节点，curr 始终是未反转部分的第一个节点。",
+      "prompt": "在反转链表的迭代过程中，无论哪一步，哪个语句始终是真？请从 trace 中找出一个不变量。",
+      "stage2_affordance": "高亮显示已反转部分（prev 开头的链）和未反转部分（curr 开头的链）。",
+      "trace_anchor": [
+        "state.prev",
+        "state.curr"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确！删除节点后反转列表相应变化。",
+      "feedback_wrong": "提示：删除中间节点后，链表依然保持原顺序，反转只是逆序。",
+      "id": "task_3",
+      "oracle": "删除节点2，新 values 为 [1,3]，反转后应为 [3,1]。",
+      "prompt": "原 values 为 [1,2,3]，反转后为 [3,2,1]。在 Stage2 沙箱中删除中间节点 2，观察新链表的变化。删除后反转结果是什么？",
+      "stage2_affordance": "在 Stage2 可直接编辑 values 数组，实时观察链表和反转结果。",
+      "trace_anchor": [
+        "values"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释得很好，curr.next 指向 prev 是关键。",
+      "feedback_wrong": "再回顾反转链表的核心操作就是逐个改变节点 next 指向，当前节点指向前一个节点。",
+      "id": "task_4",
+      "oracle": "目的是将当前节点的下一个指针指向它前面的节点，实现局部反转。",
+      "prompt": "在步骤 2，trace 显示操作'curr.next = prev'。请解释这一步的目的。",
+      "stage2_affordance": "演示动画，逐步展示指针改变。",
+      "trace_anchor": [
+        "state.curr",
+        "state.prev",
+        "state.next"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      3,
+      2,
+      1
+    ],
+    "index": 0,
+    "input_data": {
+      "values": [
+        1,
+        2,
+        3
+      ]
+    }
+  }
+}

@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速幂取模 - AlgoLab 教学页</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --card-bg: #ffffff;
+            --primary: #2c5ea8;
+            --primary-light: #e8f0fb;
+            --accent: #e8832b;
+            --accent-light: #fff3e8;
+            --success: #2a804f;
+            --success-light: #eaf7ef;
+            --danger: #c0392b;
+            --danger-light: #fdecea;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --border: #dde3ea;
+            --code-bg: #1e2433;
+            --code-text: #d4d9e6;
+            --highlight-line: #3b4b6b;
+            --highlight-current: #ffd54f;
+            --canvas-highlight: #ff9800;
+            --canvas-depend: #2196f3;
+            --canvas-answer: #4caf50;
+            --canvas-neutral: #9e9e9e;
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.1);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .header-left h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.02em;
+            margin: 0;
+            line-height: 1.2;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        .badge-family {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .badge-strategy {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        #top-result {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--success);
+            background: var(--success-light);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            max-width: 260px;
+            text-align: right;
+            line-height: 1.3;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .card-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary);
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 8px;
+        }
+
+        /* Code block */
+        #code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+            position: relative;
+            min-height: 180px;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.3s, color 0.3s;
+            cursor: default;
+        }
+        #code .code-line.highlight {
+            background: var(--highlight-line);
+            color: #fff;
+            font-weight: 600;
+        }
+        #code .code-line.highlight-active {
+            background: #5a4a20;
+            color: var(--highlight-current);
+            font-weight: 700;
+            box-shadow: inset 3px 0 0 var(--highlight-current);
+        }
+        .code-keyword {
+            color: #c792ea;
+        }
+        .code-func {
+            color: #82aaff;
+        }
+        .code-number {
+            color: #f78c6c;
+        }
+        .code-comment {
+            color: #6a7d93;
+            font-style: italic;
+        }
+
+        /* Canvas area */
+        #canvas {
+            min-height: 200px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 0;
+            position: relative;
+        }
+        .state-card {
+            background: #fafbfc;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            text-align: center;
+            min-width: 90px;
+            transition: all 0.35s;
+            position: relative;
+            font-family: var(--font-mono);
+        }
+        .state-card .card-var {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .state-card .card-val {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            transition: color 0.3s, transform 0.3s;
+        }
+        .state-card.target-current {
+            border-color: var(--canvas-highlight);
+            background: #fff8f0;
+            box-shadow: 0 0 0 4px rgba(255, 152, 0, 0.12);
+            animation: pulse-border 1.2s ease-in-out infinite;
+        }
+        .state-card.target-depend {
+            border-color: var(--canvas-depend);
+            background: #f5f9ff;
+            box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+        }
+        .state-card.target-answer {
+            border-color: var(--canvas-answer);
+            background: #f5fdf7;
+            box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.12);
+        }
+        .state-card.target-neutral {
+            border-color: #ccc;
+            opacity: 0.7;
+        }
+        @keyframes pulse-border {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(255, 152, 0, 0.12);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(255, 152, 0, 0.03);
+            }
+        }
+        .binary-display {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 6px;
+        }
+        .binary-display .bit {
+            display: inline-block;
+            width: 28px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            border-radius: 4px;
+            background: #e8ecf1;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .binary-display .bit.active-bit {
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(232, 131, 43, 0.35);
+        }
+        .binary-display .bit.processed-bit {
+            background: #b0bec5;
+            color: #fff;
+        }
+
+        /* State JSON */
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: #f5f6f8;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            color: #333;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #fefdf5;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            color: #5a4a20;
+            border-left: 3px solid var(--accent);
+            max-height: 100px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Teaching */
+        #teaching {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text);
+            background: #fdfdff;
+            padding: 12px 15px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #eef1f5;
+            min-height: 60px;
+        }
+
+        /* Step title and desc */
+        #step-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        .btn:hover {
+            background: #f5f7fa;
+            border-color: #bcc4d0;
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: scale(0.96);
+            background: #eef1f5;
+        }
+        .btn.active-btn {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(44, 94, 168, 0.3);
+        }
+        .btn.play-btn {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+            font-weight: 700;
+        }
+        .btn.play-btn:hover {
+            background: #23703f;
+            border-color: #23703f;
+        }
+        .btn.play-btn.paused {
+            background: #fff;
+            color: var(--success);
+            border-color: var(--success);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            color: var(--primary);
+            min-width: 50px;
+            text-align: center;
+            background: var(--primary-light);
+            padding: 6px 12px;
+            border-radius: 16px;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #dde3ea;
+            outline: none;
+            cursor: pointer;
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+            transition: transform 0.15s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 6px 0;
+            align-items: center;
+        }
+        .tick {
+            padding: 8px 13px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 70px;
+            text-align: center;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            border-color: #a0b0c0;
+            background: #fafbfc;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+        }
+        .tick.active-tick {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 3px 12px rgba(44, 94, 168, 0.35);
+            transform: translateY(-2px);
+        }
+        .tick.active-tick .tick-label,
+        .tick.active-tick .tick-op {
+            color: #fff;
+        }
+        .tick.completed-tick {
+            background: #eaf2fb;
+            border-color: #b8cee8;
+            color: #3a5f8a;
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.04em;
+            color: inherit;
+        }
+        .tick-op {
+            font-size: 0.68rem;
+            opacity: 0.8;
+            color: inherit;
+            letter-spacing: 0.02em;
+        }
+
+        /* Checkpoint */
+        .checkpoint-section {
+            background: #fffdf7;
+            border: 2px dashed #e0c97f;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        .checkpoint-section.hidden-checkpoint {
+            display: none;
+        }
+        .checkpoint-question {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #6b4e0a;
+            margin-bottom: 8px;
+        }
+        .checkpoint-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkpoint-input-row input {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 2px solid #d5c38b;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            width: 120px;
+            text-align: center;
+            font-weight: 600;
+            transition: border-color 0.2s;
+        }
+        .checkpoint-input-row input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(232, 131, 43, 0.1);
+        }
+        .checkpoint-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-height: 20px;
+            transition: all 0.3s;
+        }
+        .feedback-correct {
+            background: var(--success-light);
+            color: var(--success);
+            border: 1px solid #b7dfc5;
+        }
+        .feedback-wrong {
+            background: var(--danger-light);
+            color: var(--danger);
+            border: 1px solid #f0c4c0;
+        }
+        .feedback-hint {
+            background: #fffbe6;
+            color: #7a6400;
+            border: 1px solid #f0e5a0;
+        }
+        .btn-hint {
+            background: #fffbe6;
+            border-color: #e0d58b;
+            color: #6b5a0a;
+            font-size: 0.78rem;
+            padding: 6px 12px;
+        }
+        .btn-show-answer {
+            background: #fdecea;
+            border-color: #e8b4b0;
+            color: #8b2a20;
+            font-size: 0.78rem;
+            padding: 6px 12px;
+        }
+        .btn-submit {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            font-weight: 700;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: #fafbfc;
+            border: 1px solid #eef1f5;
+            border-radius: var(--radius-sm);
+            padding: 12px 15px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            color: #555;
+            line-height: 1.5;
+        }
+        .learning-log .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px dotted #eee;
+        }
+        .log-time {
+            color: #999;
+            font-size: 0.7rem;
+        }
+        .log-correct {
+            color: var(--success);
+            font-weight: 600;
+        }
+        .log-wrong {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* Answer (hidden-ish but present) */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--success);
+            font-size: 0.9rem;
+            background: var(--success-light);
+            padding: 4px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .answer-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Op display */
+        #op {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 0.9rem;
+            background: var(--accent-light);
+            padding: 4px 10px;
+            border-radius: 12px;
+            display: inline-block;
+            letter-spacing: 0.02em;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            #timeline {
+                justify-content: center;
+            }
+            .tick {
+                min-width: 55px;
+                padding: 6px 8px;
+                font-size: 0.7rem;
+            }
+            .state-card {
+                min-width: 65px;
+                padding: 10px 12px;
+            }
+            .state-card .card-val {
+                font-size: 1.2rem;
+            }
+            #code {
+                font-size: 0.72rem;
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1 id="title">快速幂取模</h1>
+                <p id="subtitle">base=3, exponent=5, mod=13 → 计算 3⁵ mod 13</p>
+            </div>
+            <div class="header-right">
+                <span class="badge badge-family">数学与位运算</span>
+                <span class="badge badge-strategy">二进制拆分 · 平方表</span>
+                <span id="top-result">9</span>
+                <span id="top-solution">指数5₁₀=101₂，遇1乘入，平方递推</span>
+            </div>
+        </div>
+
+        <!-- Answer (裸JSON) -->
+        <div class="answer-row" style="padding:0 4px;">
+            <span style="font-weight:600;">最终答案裸JSON：</span>
+            <span id="answer">9</span>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left column: Code + Canvas -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <!-- Code -->
+                <div class="card">
+                    <div class="card-title">📜 算法代码</div>
+                    <div id="code">
+                        <span class="code-line" data-line="1"><span class="code-keyword">function</span> <span class="code-func">solve</span>(base, exponent, mod) {</span>
+                        <span class="code-line" data-line="2">  <span class="code-keyword">let</span> result = <span class="code-number">1</span>;</span>
+                        <span class="code-line" data-line="3">  base = base % mod;</span>
+                        <span class="code-line" data-line="4">  <span class="code-keyword">while</span> (exponent > <span class="code-number">0</span>) {</span>
+                        <span class="code-line" data-line="5">    <span class="code-keyword">if</span> (exponent % <span class="code-number">2</span> === <span class="code-number">1</span>)</span>
+                        <span class="code-line" data-line="6">      result = (result * base) % mod;</span>
+                        <span class="code-line" data-line="7">    base = (base * base) % mod;</span>
+                        <span class="code-line" data-line="8">    exponent = Math.<span class="code-func">floor</span>(exponent / <span class="code-number">2</span>);</span>
+                        <span class="code-line" data-line="9">  }</span>
+                        <span class="code-line" data-line="10">  <span class="code-keyword">return</span> result;</span>
+                        <span class="code-line" data-line="11">}</span>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <div class="card">
+                    <div class="card-title">🎨 算法视图 — 当前状态对象</div>
+                    <div id="canvas">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div style="margin-top:8px;text-align:center;">
+                        <span id="op" style="font-size:0.85rem;">初始化变量</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right column: Step info + Teaching + Checkpoint -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <!-- Step title & desc -->
+                <div class="card">
+                    <div class="card-title">📍 当前步骤</div>
+                    <div id="step-title">步骤 1：初始化</div>
+                    <div id="step-desc">设置 result=1，base 取模，准备二进制迭代</div>
+                    <div style="margin-top:6px;">
+                        <span style="font-weight:600;font-size:0.8rem;">操作标签：</span><span id="op-secondary" style="font-family:var(--font-mono);font-size:0.82rem;color:var(--accent);">init</span>
+                    </div>
+                </div>
+
+                <!-- State JSON -->
+                <div class="card">
+                    <div class="card-title">📋 状态摘要 (JSON)</div>
+                    <div id="state">{"result":1,"base":3,"exponent":5,"mod":13,"phase":"init"}</div>
+                </div>
+
+                <!-- Teaching -->
+                <div class="card">
+                    <div class="card-title">💡 教学讲解</div>
+                    <div id="teaching">快速幂的核心思想是将指数拆成二进制表示。5 的二进制是 101，即 5=4+1=2²+2⁰。我们初始化 result=1 作为乘法起点，base 存储当前底数（会不断平方），exponent 记录剩余指数。循环检查 exponent 的二进制最低位，遇到 1 就将当前 base 乘入 result。</div>
+                </div>
+
+                <!-- Step evidence -->
+                <div class="card">
+                    <div class="card-title">🧾 步骤证据</div>
+                    <div id="step-evidence">operation: init | targets: [result, base, exponent] | before: null | after: {result:1, base:3, exponent:5}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="上一步">◀ 上一步</button>
+                <button class="btn play-btn paused" id="play" title="自动播放">▶ 播放</button>
+                <button class="btn" id="next" title="下一步">下一步 ▶</button>
+                <span id="counter">1 / 5</span>
+                <input type="range" id="range" min="1" max="5" value="1" step="1" title="拖动切换步骤">
+                <span style="font-size:0.8rem;color:var(--text-secondary);">拖动滑块</span>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-title">⏱ 步骤时间线</div>
+            <div id="timeline">
+                <button class="tick active-tick" data-step="1">
+                    <span class="tick-label">初始化</span><span class="tick-op">设置变量</span>
+                </button>
+                <button class="tick" data-step="2">
+                    <span class="tick-label">迭代1</span><span class="tick-op">exp=5(奇)→乘入</span>
+                </button>
+                <button class="tick" data-step="3">
+                    <span class="tick-label">迭代2</span><span class="tick-op">exp=2(偶)→平方</span>
+                </button>
+                <button class="tick" data-step="4">
+                    <span class="tick-label">迭代3</span><span class="tick-op">exp=1(奇)→乘入</span>
+                </button>
+                <button class="tick" data-step="5">
+                    <span class="tick-label">完成</span><span class="tick-op">返回结果9</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="card checkpoint-section hidden-checkpoint" id="checkpoint-section">
+            <div class="card-title">🎯 Learner Checkpoint — 检验理解</div>
+            <div class="checkpoint-question" id="checkpoint-question">
+                当前 exponent=1（奇数，二进制最低位为1），base=3，result=3。执行 <code>result = (result × base) % 13</code> 后，result 的值是多少？
+            </div>
+            <div class="checkpoint-input-row">
+                <input type="number" id="checkpoint-input" placeholder="输入数字" value="">
+                <button class="btn btn-submit" id="checkpoint-submit">提交</button>
+                <button class="btn btn-hint" id="checkpoint-hint">💡 提示</button>
+                <button class="btn btn-show-answer" id="checkpoint-show-answer">👁 显示答案</button>
+            </div>
+            <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+            <div style="margin-top:10px;">
+                <div class="card-title" style="font-size:0.75rem;">📝 学习日志</div>
+                <div class="learning-log" id="learning-log">
+                    <span style="color:#999;">尚无提交记录。</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ STEP DATA ============
+            const totalSteps = 5;
+            const steps = [{
+                index: 1,
+                title: '步骤 1：初始化',
+                desc: '设置 result=1，base 取模，准备二进制迭代',
+                op: 'init',
+                opLabel: '初始化变量',
+                stateJSON: '{"result":1,"base":3,"exponent":5,"mod":13,"phase":"init"}',
+                teaching: '快速幂的核心思想是将指数拆成二进制表示。5 的二进制是 <strong>101</strong>，即 5 = 4 + 1 = 2² + 2⁰。我们初始化 <code>result=1</code> 作为乘法起点，<code>base=3%13=3</code> 存储当前底数（会不断平方），<code>exponent=5</code> 记录剩余指数。循环将检查 exponent 的二进制最低位。',
+                evidence: 'operation: init | targets: [result, base, exponent] | before: null | after: {result:1, base:3, exponent:5}',
+                codeLines: [1, 2, 3],
+                codeHighlightActive: [2, 3],
+                canvasCards: [
+                    { varName: 'result', val: '1', cssClass: 'target-neutral' },
+                    { varName: 'base', val: '3', cssClass: 'target-depend' },
+                    { varName: 'exponent', val: '5', cssClass: 'target-current' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '101', highlightIndex: -1, label: '二进制: 101 (待处理)' },
+                checkpointVisible: false,
+            }, {
+                index: 2,
+                title: '步骤 2：迭代 1 — exponent=5（奇数）',
+                desc: 'exp%2=1，乘入 base；base 平方；exp 右移为 2',
+                op: 'multiply & square',
+                opLabel: '奇数位→乘入+平方',
+                stateJSON: '{"result":3,"base":9,"exponent":2,"mod":13,"phase":"iterate","expParity":"odd"}',
+                teaching: '<strong>exponent=5 是奇数</strong>（二进制 101 的最低位是 <strong>1</strong>），触发乘入操作：<code>result = (1 × 3) % 13 = 3</code>。然后 <code>base = (3 × 3) % 13 = 9</code>（平方），<code>exponent = floor(5/2) = 2</code>（右移一位）。注意：无论奇偶，base 都要平方、exponent 都要右移；区别仅在于奇数时多一步乘入。',
+                evidence: 'operation: multiply+square | targets: [result, base, exponent] | before: {result:1, base:3, exp:5} | after: {result:3, base:9, exp:2} | reason: exp%2==1 → result=(1*3)%13=3; base=(3²)%13=9; exp=5>>1=2',
+                codeLines: [4, 5, 6, 7, 8],
+                codeHighlightActive: [5, 6],
+                canvasCards: [
+                    { varName: 'result', val: '3', cssClass: 'target-current' },
+                    { varName: 'base', val: '9', cssClass: 'target-depend' },
+                    { varName: 'exponent', val: '2', cssClass: 'target-depend' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '101', highlightIndex: 2, label: '二进制: 10<span style="color:#e8832b;font-weight:700;">1</span> ← 最低位=1(奇数)' },
+                checkpointVisible: false,
+            }, {
+                index: 3,
+                title: '步骤 3：迭代 2 — exponent=2（偶数）',
+                desc: 'exp%2=0，跳过乘入；base 平方为 3；exp 右移为 1',
+                op: 'square only',
+                opLabel: '偶数位→仅平方',
+                stateJSON: '{"result":3,"base":3,"exponent":1,"mod":13,"phase":"iterate","expParity":"even"}',
+                teaching: '<strong>exponent=2 是偶数</strong>（二进制 10 的最低位是 <strong>0</strong>），<em>不执行乘入</em>，result 保持 3 不变。但 base 仍然平方：<code>base = (9 × 9) % 13 = 81 % 13 = 3</code>（因为 13×6=78，81-78=3）。exponent 右移：<code>2 >> 1 = 1</code>。<strong>常见误区</strong>：有人误以为偶数位也要乘入，导致多乘。实际上只有遇到 1 位才乘入。',
+                evidence: 'operation: square_only | targets: [base, exponent] | before: {base:9, exp:2} | after: {base:3, exp:1} | reason: exp%2==0 → result不变; base=(9²)%13=81%13=3; exp=2>>1=1',
+                codeLines: [4, 7, 8],
+                codeHighlightActive: [7, 8],
+                canvasCards: [
+                    { varName: 'result', val: '3', cssClass: 'target-neutral' },
+                    { varName: 'base', val: '3', cssClass: 'target-current' },
+                    { varName: 'exponent', val: '1', cssClass: 'target-depend' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '10', highlightIndex: 1, label: '二进制: 1<span style="color:#9e9e9e;font-weight:700;">0</span> ← 最低位=0(偶数)' },
+                checkpointVisible: false,
+            }, {
+                index: 4,
+                title: '步骤 4：迭代 3 — exponent=1（奇数）',
+                desc: 'exp%2=1，乘入 base=3；result 变为 9；exp 右移为 0',
+                op: 'multiply & square',
+                opLabel: '奇数位→乘入+平方',
+                stateJSON: '{"result":9,"base":9,"exponent":0,"mod":13,"phase":"iterate","expParity":"odd"}',
+                teaching: '<strong>exponent=1 是奇数</strong>（二进制 1 的最低位是 <strong>1</strong>），触发最后一次乘入：<code>result = (3 × 3) % 13 = 9</code>。然后 base 平方：<code>(3×3)%13=9</code>，exponent 右移为 0。循环即将结束。注意这里 result 从 3 变成 9，这是关键的状态转移。',
+                evidence: 'operation: multiply+square | targets: [result, base, exponent] | before: {result:3, base:3, exp:1} | after: {result:9, base:9, exp:0} | reason: exp%2==1 → result=(3*3)%13=9; base=(3²)%13=9; exp=1>>1=0',
+                codeLines: [4, 5, 6, 7, 8],
+                codeHighlightActive: [5, 6],
+                canvasCards: [
+                    { varName: 'result', val: '9', cssClass: 'target-current target-answer' },
+                    { varName: 'base', val: '9', cssClass: 'target-depend' },
+                    { varName: 'exponent', val: '0', cssClass: 'target-depend' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '1', highlightIndex: 0, label: '二进制: <span style="color:#e8832b;font-weight:700;">1</span> ← 最低位=1(奇数)' },
+                checkpointVisible: true,
+            }, {
+                index: 5,
+                title: '步骤 5：完成 — 返回最终答案',
+                desc: 'exponent=0，循环结束，返回 result=9',
+                op: 'return',
+                opLabel: '返回结果',
+                stateJSON: '{"result":9,"base":9,"exponent":0,"mod":13,"phase":"complete","finalAnswer":9}',
+                teaching: '<strong>exponent 已为 0，循环结束。</strong>返回 result=<strong>9</strong>。验证：3⁵ = 3×3×3×3×3 = 243，243 ÷ 13 = 18 余 9（13×18=234，243-234=9）。✓ 算法正确！快速幂仅用了 <strong>3 次循环迭代</strong>（对应二进制位数），而非朴素算法的 5 次乘法。时间复杂度 O(log exponent)。',
+                evidence: 'operation: return | targets: [result] | final: 9 | verification: 3^5=243, 243%13=9 ✓',
+                codeLines: [10],
+                codeHighlightActive: [10],
+                canvasCards: [
+                    { varName: 'result', val: '9 ✓', cssClass: 'target-answer' },
+                    { varName: 'base', val: '9', cssClass: 'target-neutral' },
+                    { varName: 'exponent', val: '0', cssClass: 'target-neutral' },
+                    { varName: 'mod', val: '13', cssClass: 'target-neutral' },
+                ],
+                binaryInfo: { binary: '—', highlightIndex: -1, label: '二进制已处理完毕' },
+                checkpointVisible: false,
+            }];
+
+            let currentStepIndex = 1; // 1-based
+            let playInterval = null;
+            let isPlaying = false;
+
+            // ============ DOM REFS ============
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $prev = document.getElementById('prev');
+            const $next = document.getElementById('next');
+            const $play = document.getElementById('play');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $opSecondary = document.getElementById('op-secondary');
+            const $canvas = document.getElementById('canvas');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $timeline = document.getElementById('timeline');
+            const $code = document.getElementById('code');
+            const $answer = document.getElementById('answer');
+            const $topResult = document.getElementById('top-result');
+            const $checkpointSection = document.getElementById('checkpoint-section');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $checkpointInput = document.getElementById('checkpoint-input');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHint = document.getElementById('checkpoint-hint');
+            const $checkpointShowAnswer = document.getElementById('checkpoint-show-answer');
+            const $learningLog = document.getElementById('learning-log');
+            const $checkpointQuestion = document.getElementById('checkpoint-question');
+
+            const allTicks = $timeline.querySelectorAll('.tick');
+            const allCodeLines = $code.querySelectorAll('.code-line');
+
+            // Ensure #answer always shows bare JSON "9"
+            $answer.textContent = '9';
+            $topResult.textContent = '9';
+
+            // ============ UPDATE FUNCTION ============
+            function updateStep(stepIndex) {
+                // Clamp
+                if (stepIndex < 1) stepIndex = 1;
+                if (stepIndex > totalSteps) stepIndex = totalSteps;
+                currentStepIndex = stepIndex;
+
+                const stepData = steps[stepIndex - 1];
+
+                // Counter
+                $counter.textContent = stepIndex + ' / ' + totalSteps;
+
+                // Range
+                $range.value = stepIndex;
+
+                // Step title & desc
+                $stepTitle.textContent = stepData.title;
+                $stepDesc.textContent = stepData.desc;
+
+                // Op
+                $op.textContent = stepData.opLabel;
+                $opSecondary.textContent = stepData.op;
+
+                // State JSON
+                $state.textContent = stepData.stateJSON;
+
+                // Teaching
+                $teaching.innerHTML = stepData.teaching;
+
+                // Step evidence
+                $stepEvidence.textContent = stepData.evidence;
+
+                // Canvas
+                renderCanvas(stepData);
+
+                // Timeline ticks
+                allTicks.forEach(tick => {
+                    const tickStep = parseInt(tick.getAttribute('data-step'), 10);
+                    tick.classList.remove('active-tick', 'completed-tick');
+                    if (tickStep === stepIndex) {
+                        tick.classList.add('active-tick');
+                    } else if (tickStep < stepIndex) {
+                        tick.classList.add('completed-tick');
+                    }
+                });
+
+                // Code highlight
+                allCodeLines.forEach(line => {
+                    const lineNum = parseInt(line.getAttribute('data-line'), 10);
+                    line.classList.remove('highlight', 'highlight-active');
+                    if (stepData.codeLines.includes(lineNum)) {
+                        line.classList.add('highlight');
+                    }
+                    if (stepData.codeHighlightActive.includes(lineNum)) {
+                        line.classList.add('highlight-active');
+                        line.classList.remove('highlight');
+                    }
+                });
+
+                // Checkpoint visibility
+                if (stepData.checkpointVisible) {
+                    $checkpointSection.classList.remove('hidden-checkpoint');
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = 'checkpoint-feedback';
+                    $checkpointInput.value = '';
+                    // Update checkpoint question for step 4
+                    $checkpointQuestion.innerHTML =
+                        '当前 exponent=1（奇数，二进制最低位为1），base=3，result=3。执行 <code>result = (result × base) % 13</code> 后，result 的值是多少？';
+                } else {
+                    $checkpointSection.classList.add('hidden-checkpoint');
+                }
+
+                // Update button states
+                $prev.disabled = (stepIndex <= 1);
+                $next.disabled = (stepIndex >= totalSteps);
+                if (stepIndex >= totalSteps && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function renderCanvas(stepData) {
+                $canvas.innerHTML = '';
+                const cards = stepData.canvasCards;
+
+                // Container for cards
+                const cardsContainer = document.createElement('div');
+                cardsContainer.style.cssText =
+                    'display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;width:100%;';
+
+                cards.forEach(card => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'state-card ' + (card.cssClass || '');
+                    cardEl.innerHTML = `
+                <div class="card-var">${card.varName}</div>
+                <div class="card-val">${card.val}</div>
+              `;
+                    cardsContainer.appendChild(cardEl);
+                });
+
+                $canvas.appendChild(cardsContainer);
+
+                // Binary display
+                if (stepData.binaryInfo) {
+                    const binDiv = document.createElement('div');
+                    binDiv.style.cssText =
+                        'width:100%;text-align:center;margin-top:10px;padding:8px;background:#f9fafb;border-radius:8px;';
+                    const binLabel = document.createElement('div');
+                    binLabel.style.cssText =
+                        'font-size:0.75rem;color:#777;margin-bottom:4px;font-weight:600;letter-spacing:0.04em;';
+                    binLabel.textContent = '指数二进制表示';
+                    binDiv.appendChild(binLabel);
+
+                    const binDisplay = document.createElement('div');
+                    binDisplay.className = 'binary-display';
+                    const binaryStr = stepData.binaryInfo.binary;
+                    const highlightIdx = stepData.binaryInfo.highlightIndex;
+
+                    if (binaryStr === '—') {
+                        binDisplay.innerHTML = '<span style="color:#999;">已处理完毕</span>';
+                    } else {
+                        for (let i = 0; i < binaryStr.length; i++) {
+                            const bitSpan = document.createElement('span');
+                            bitSpan.className = 'bit';
+                            bitSpan.textContent = binaryStr[i];
+                            if (i === highlightIdx) {
+                                bitSpan.classList.add('active-bit');
+                            } else if (highlightIdx >= 0 && i > highlightIdx) {
+                                bitSpan.classList.add('processed-bit');
+                            }
+                            binDisplay.appendChild(bitSpan);
+                        }
+                    }
+                    binDiv.appendChild(binDisplay);
+
+                    const binInfoLabel = document.createElement('div');
+                    binInfoLabel.style.cssText =
+                        'font-size:0.72rem;color:#888;margin-top:3px;font-style:italic;';
+                    binInfoLabel.innerHTML = stepData.binaryInfo.label;
+                    binDiv.appendChild(binInfoLabel);
+
+                    $canvas.appendChild(binDiv);
+                }
+            }
+
+            // ============ PLAY CONTROLS ============
+            function startPlay() {
+                if (playInterval) clearInterval(playInterval);
+                isPlaying = true;
+                $play.textContent = '⏸ 暂停';
+                $play.classList.remove('paused');
+                $play.classList.add('active-btn');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps) {
+                        updateStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+                isPlaying = false;
+                $play.textContent = '▶ 播放';
+                $play.classList.add('paused');
+                $play.classList.remove('active-btn');
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // If at end, restart from step 1
+                    if (currentStepIndex >= totalSteps) {
+                        updateStep(1);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT LISTENERS ============
+            $prev.addEventListener('click', () => {
+                if (isPlaying) stopPlay();
+                updateStep(currentStepIndex - 1);
+            });
+
+            $next.addEventListener('click', () => {
+                if (isPlaying) stopPlay();
+                updateStep(currentStepIndex + 1);
+            });
+
+            $play.addEventListener('click', togglePlay);
+
+            $range.addEventListener('input', () => {
+                if (isPlaying) stopPlay();
+                const val = parseInt($range.value, 10);
+                updateStep(val);
+            });
+
+            // Timeline tick clicks
+            allTicks.forEach(tick => {
+                tick.addEventListener('click', () => {
+                    if (isPlaying) stopPlay();
+                    const stepVal = parseInt(tick.getAttribute('data-step'), 10);
+                    updateStep(stepVal);
+                });
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    updateStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    updateStep(currentStepIndex + 1);
+                } else if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ============ CHECKPOINT LOGIC ============
+            function addLogEntry(message, cssClass) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                entry.innerHTML = '<span class="log-time">[' + timeStr + ']</span> <span class="' + cssClass +
+                    '">' + message + '</span>';
+                $learningLog.appendChild(entry);
+                // Remove placeholder if present
+                const placeholder = $learningLog.querySelector('span[style]');
+                if (placeholder && $learningLog.children.length > 1) {
+                    placeholder.remove();
+                }
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function handleCheckpointSubmit() {
+                const userAnswer = $checkpointInput.value.trim();
+                if (userAnswer === '') {
+                    $checkpointFeedback.textContent = '⚠ 请输入一个数字。';
+                    $checkpointFeedback.className = 'checkpoint-feedback feedback-wrong';
+                    return;
+                }
+                const numAnswer = parseInt(userAnswer, 10);
+                const correctAnswer = 9;
+
+                if (numAnswer === correctAnswer) {
+                    $checkpointFeedback.textContent =
+                        '✅ 正确！(3 × 3) % 13 = 9 % 13 = 9。你理解了奇数位乘入操作，result 从 3 更新为 9。';
+                    $checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                    addLogEntry('提交: ' + numAnswer + ' — ✅ 正确！(3×3)%13=9', 'log-correct');
+                } else {
+                    let hintMsg = '';
+                    if (numAnswer === 27) {
+                        hintMsg = '你可能用了 base 更新前的值 9（3×9=27），但当前 base 是 3，应该用 3×3。注意 base 在本次迭代开始时还是 3。';
+                    } else if (numAnswer === 3) {
+                        hintMsg = '你可能没有执行乘入操作。exp=1 是奇数，必须将 base 乘入 result。';
+                    } else if (numAnswer === 0) {
+                        hintMsg = '模运算结果不可能是 0（3×3=9，9<13，所以 9%13=9）。';
+                    } else if (numAnswer === 1) {
+                        hintMsg = 'result 初始值是 1，但经过两次奇数乘入后已经不是 1 了。';
+                    } else {
+                        hintMsg = '再想想：(result × base) % mod = (3 × 3) % 13 = ?';
+                    }
+                    $checkpointFeedback.textContent = '❌ 错误。' + hintMsg;
+                    $checkpointFeedback.className = 'checkpoint-feedback feedback-wrong';
+                    addLogEntry('提交: ' + numAnswer + ' — ❌ 错误。' + hintMsg, 'log-wrong');
+                }
+            }
+
+            $checkpointSubmit.addEventListener('click', handleCheckpointSubmit);
+            $checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleCheckpointSubmit();
+                }
+            });
+
+            $checkpointHint.addEventListener('click', () => {
+                $checkpointFeedback.textContent =
+                    '💡 提示：当前 result=3，base=3，mod=13。公式是 result = (result × base) % mod。先算 3×3=9，9 小于 13，所以取模后还是 9。';
+                $checkpointFeedback.className = 'checkpoint-feedback feedback-hint';
+                addLogEntry('查看了提示', 'log-wrong');
+            });
+
+            $checkpointShowAnswer.addEventListener('click', () => {
+                $checkpointFeedback.textContent = '👁 正确答案是：9。因为 (3 × 3) % 13 = 9 % 13 = 9。';
+                $checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                $checkpointInput.value = '9';
+                addLogEntry('查看了答案: 9', 'log-correct');
+            });
+
+            // ============ INITIALIZE ============
+            updateStep(1);
+            $answer.textContent = '9';
+            $topResult.textContent = '9';
+
+            console.log('AlgoLab 快速幂取模教学页已就绪。');
+            console.log('题目：base=3, exponent=5, mod=13 → 期望输出：9');
+            console.log('共 ' + totalSteps + ' 个教学步骤，含 1 个 learner checkpoint。');
+            console.log('使用 ← → 方向键或按钮切换步骤，空格键播放/暂停。');
+        })();
+    </script>
+</body>
+</html>

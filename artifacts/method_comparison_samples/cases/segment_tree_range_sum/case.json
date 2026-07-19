@@ -1,0 +1,101 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "segment_tree_range_sum",
+  "algorithm_id": "segment_tree_range_sum",
+  "title": "线段树区间和",
+  "family": "区间结构",
+  "difficulty": "medium",
+  "problem": "物流中心每小时记录一次包裹重量（单位：千克），存储在数组 nums 中。运营人员需要查询从时间点 query[0] 到 query[1] 之间的包裹总重量（闭区间），然后根据收到的修正信息 update=[pos,value] 将第 pos 小时的重量修改为 value，再重新查询同一区间的总重量。请使用线段树计算并返回修正前的区间总重量 before 和修正后的区间总重量 after。输入包含 nums 数组、query 区间和 update 操作，输出为包含 before 和 after 的对象。",
+  "strategy": "线段树节点 meta 记录覆盖区间与区间和，查询区间沿覆盖节点求和，更新路径从叶子回溯维护父节点。",
+  "input_contract": "输入 nums 数组、query 闭区间和 update 单点赋值。",
+  "time_complexity": "O(log n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "掌握线段树节点中区间与和的表示（如 meta 中的 l, r, sum）",
+    "理解单点更新时从叶子节点到根节点的回溯更新过程",
+    "能根据节点覆盖情况判断区间求和的分治策略"
+  ],
+  "required_views": [
+    "tree",
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！部分重叠必须分解到左右子节点分别查询。",
+      "feedback_wrong": "注意当前节点区间 [0,1] 与查询区间 [1,3] 只有右半部分重叠，所以左右子节点都需要考虑。",
+      "id": "task_1",
+      "oracle": "检查 trace 中该节点触发的子节点调用顺序，答案应包含 seg_0_0 和 seg_1_1（或相应的区间表示），可模糊匹配",
+      "prompt": "线段树查询区间 query=[1,3] 时，当前访问节点 seg_0_1（覆盖 [0,1]，部分重叠），请问下一步应该访问哪两个子节点？",
+      "stage2_affordance": "在树视图上高亮当前节点，并单击子节点可展开查看。",
+      "trace_anchor": [
+        "state.node",
+        "state.query"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "完全正确！父节点 sum 总是子节点 sum 之和。",
+      "feedback_wrong": "观察节点 sum 的标签，思考父节点 sum 是如何由子节点计算得出的。",
+      "id": "task_2",
+      "oracle": "答案应为 seg_0_3.sum = seg_0_1.sum + seg_2_3.sum，允许使用变量名或具体数值，只要体现等式即可",
+      "prompt": "构建完成后，节点 seg_0_3 的 sum 为 12，其左子 seg_0_1 sum=3，右子 seg_2_3 sum=9，请写出三者之间满足的等式。",
+      "stage2_affordance": "展示树节点上的数值，并允许学生点击节点查看子节点关系。",
+      "trace_anchor": [
+        "state.node.sum",
+        "state.left.sum",
+        "state.right.sum"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "改得对！新值9会使区间和变为15。",
+      "feedback_wrong": "修正前总和是10，想把总和变为15，差值是5，那么需要 nums[2] 增加多少？注意原值4。",
+      "id": "task_3",
+      "oracle": "计算：before=10，更新 index2 的值，after = before - 4 + new_val = 15 => new_val=9。学生回答 9 则判定正确。",
+      "prompt": "原题中 update=[2,6] 会把 nums[2] 从 4 改为 6，区间 [1,3] 的修正后和为 12。如果希望修正后区间和变成 15，应该把 update 的 value 改为多少？",
+      "stage2_affordance": "提供滑块或输入框修改 update 的 value，数组视图和树视图实时更新总和。",
+      "trace_anchor": [
+        "input.update.value",
+        "expected.after"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "没错！长度为1的区间和就是该位置的元素值。",
+      "feedback_wrong": "回忆叶子节点的定义：当 l == r 时，节点代表单个元素，那么它的和应该是什么？",
+      "id": "task_4",
+      "oracle": "学生需提到叶子节点区间 [3,3] 只包含一个元素，所以其和就是 nums[3]（值为5），允许关键词如“叶子”“单元素”“直接取值”",
+      "prompt": "构建线段树的叶子节点 seg_3_3 时，它的 sum 为什么等于 nums[3]？请用具体数组中的数值解释。",
+      "stage2_affordance": "在数组视图上高亮 nums[3]，并通过连线显示它映射到叶子节点 seg_3_3。",
+      "trace_anchor": [
+        "state.node.meta.l",
+        "state.node.meta.r",
+        "input.nums[3]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": {
+      "after": 12,
+      "before": 10
+    },
+    "index": 0,
+    "input_data": {
+      "nums": [
+        2,
+        1,
+        4,
+        5
+      ],
+      "query": [
+        1,
+        3
+      ],
+      "update": [
+        2,
+        6
+      ]
+    }
+  }
+}

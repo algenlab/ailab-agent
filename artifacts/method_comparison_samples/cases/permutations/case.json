@@ -1,0 +1,119 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "permutations",
+  "algorithm_id": "permutations",
+  "title": "全排列",
+  "family": "回溯 / 递归",
+  "difficulty": "medium",
+  "problem": "你是一位安全专家，面对一个密码锁，它由一组不重复的数字组成（输入数组 nums）。你需要生成所有可能的开锁数字序列（即 nums 的全排列），以便遍历尝试。请输出所有排列的列表。",
+  "strategy": "用 path 保存当前选择，递归选择未使用数字，返回时撤销选择。",
+  "input_contract": "输入 nums 数组。",
+  "time_complexity": "O(n! n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "描述回溯搜索中 path 和 used 数组的状态变化",
+    "根据当前 path 与 used 预测下一步选择",
+    "识别排列生成过程中的不变式（如 path 长度与递归深度关系）"
+  ],
+  "required_views": [
+    "array",
+    "recursion_tree"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！下一个未使用的数字是 2。",
+      "feedback_wrong": "请检查 used 数组，找到第一个 False 位置的数字。",
+      "id": "task_1",
+      "oracle": "根据算法顺序，下一步应选择第一个未使用的数字 2；可比较学生回答是否为 2。",
+      "prompt": "回溯搜索中，当前 path 为 [1]，used 为 [True, False, False]，nums = [1,2,3]。预测下一个加入 path 的数字。",
+      "stage2_affordance": "在递归树视图中点击对应节点高亮下一步。",
+      "trace_anchor": [
+        "state.path",
+        "state.used"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "是的，path 长度等于已使用的数字数量，也等于递归深度。",
+      "feedback_wrong": "对比 used 数组中 True 的个数和 path 的长度。",
+      "id": "task_2",
+      "oracle": "接受答案包含“已选择数字的个数”或“used 中 True 的数量”或“递归深度”。",
+      "prompt": "在生成全排列的过程中，path 的长度永远等于什么？",
+      "stage2_affordance": "高亮显示 path 和 used 数组的对应关系。",
+      "trace_anchor": [
+        "state.path",
+        "state.depth"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "没错，used 基于索引，逻辑不变。",
+      "feedback_wrong": "回溯依赖索引位置而非值，因此仍可直接处理。",
+      "id": "task_3",
+      "oracle": "回答提及基于下标，算法无需改变即可处理任意可比较类型。",
+      "prompt": "如果输入数组 nums 变为 ['a', 'b', 'c']（字符），回溯算法使用 used 基于下标，需要调整吗？",
+      "stage2_affordance": "拖拽改变数组元素类型，观察算法运行。",
+      "trace_anchor": [
+        "state.nums",
+        "state.used"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "正确，这是回溯的撤销步骤。",
+      "feedback_wrong": "查看递归树，注意从叶子返回后路径和标记的变化。",
+      "id": "task_4",
+      "oracle": "描述回溯撤销选中的数字 3，path 退回 [1,2]，used 释放 3。",
+      "prompt": "对 nums=[1,2,3] 完成排列 [1,2,3] 后，执行 path.pop() 和 used[2]=False。解释此状态转移。",
+      "stage2_affordance": "在递归树中点击边，高亮弹出的数字。",
+      "trace_anchor": [
+        "state.path",
+        "state.used",
+        "state.ans"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        1,
+        3,
+        2
+      ],
+      [
+        2,
+        1,
+        3
+      ],
+      [
+        2,
+        3,
+        1
+      ],
+      [
+        3,
+        1,
+        2
+      ],
+      [
+        3,
+        2,
+        1
+      ]
+    ],
+    "index": 0,
+    "input_data": {
+      "nums": [
+        1,
+        2,
+        3
+      ]
+    }
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "articulation_bridges",
+  "algorithm_id": "articulation_bridges",
+  "title": "割点和桥",
+  "family": "图高级",
+  "difficulty": "medium",
+  "problem": "在一个城市的通信网络中，每个交换站对应一个节点，光纤连接对应无向边。给定邻接表表示的图graph，你需要找出所有割点（关键交换站）和桥（唯一光纤），输出格式为包含articulation（割点列表）和bridges（桥的边列表）的对象。",
+  "strategy": "DFS 维护 dfn/low/parent；low[child] > dfn[u] 判定桥，low[child] >= dfn[u] 判定割点。",
+  "input_contract": "输入无向图邻接表 graph。",
+  "time_complexity": "O(V+E)",
+  "space_complexity": "O(V)",
+  "learning_objectives": [
+    "掌握 dfn 和 low 数组在回溯过程中的更新规则",
+    "根据当前 dfn/low 状态预测 DFS 下一步探索的节点",
+    "理解 low[child] > dfn[u] 与 low[child] >= dfn[u] 的差别"
+  ],
+  "required_views": [
+    "graph",
+    "map",
+    "dfn_table",
+    "low_table"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！DFS 优先访问未探索的邻居。",
+      "feedback_wrong": "观察哪个邻居的 dfn 尚未定义，那将是下一步。",
+      "id": "task_1",
+      "oracle": "检查学生回答是否为未访问的邻居，且从 trace 中下一步确实是访问该邻居的代码行",
+      "prompt": "当前 DFS 访问了节点 B，其 dfn[B]=2, low[B]=2，邻居有 C 和 D。下一步会访问哪个节点？为什么？",
+      "stage2_affordance": "点击节点查看其 dfn 状态，并高亮未访问的邻居。",
+      "trace_anchor": [
+        "state.dfn",
+        "state.graph"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "很好，low 永远不会超过 dfn，因为它记录的是通过后代边能回到的最早祖先。",
+      "feedback_wrong": "查看任意时刻的 low[u] 值，它总是小于或等于 dfn[u]。",
+      "id": "task_2",
+      "oracle": "oracle 检查回答是否包含 low[u] <= dfn[u]，并给出具体例子",
+      "prompt": "在执行 DFS 的过程中，dfn[u] 和 low[u] 之间的关系有什么不变性？请举例。",
+      "stage2_affordance": "双点击表格高亮 dfn 和 low 的数值关系。",
+      "trace_anchor": [
+        "state.low",
+        "state.dfn"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确！新边使 E 有了另一条路，不再是桥。",
+      "feedback_wrong": "试试在图中实际添加边，观察 low[E] 的变化。",
+      "id": "task_3",
+      "oracle": "添加边后重新运行 verifier，检查 bridges 中是否还包含 [D,E]",
+      "prompt": "若在原图 graph 中添加一条边 (C,E)，原来的桥 (D,E) 还会是桥吗？请修改并观察。",
+      "stage2_affordance": "拖拽添加新边，视图实时更新桥列表。",
+      "trace_anchor": [
+        "graph",
+        "state.bridges"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "没错！子节点 A 的 low[1] 为 1，所以 low[B] 取最小值。",
+      "feedback_wrong": "查看上一步是哪个子节点回溯到了 B，并比较他们的 low 值。",
+      "id": "task_4",
+      "oracle": "检查学生是否指出由于子节点 A（或某个具体节点）的 low 值更小，导致回溯更新",
+      "prompt": "回溯到节点 B 时，low[B] 从 2 更新为 1，请问这是由哪个子节点导致的？并解释更新原因。",
+      "stage2_affordance": "回溯步骤时高亮低值传递路径。",
+      "trace_anchor": [
+        "state.trace",
+        "state.low"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": {
+      "articulation": [
+        "B",
+        "D"
+      ],
+      "bridges": [
+        [
+          "D",
+          "E"
+        ],
+        [
+          "A",
+          "B"
+        ]
+      ]
+    },
+    "index": 0,
+    "input_data": {
+      "graph": {
+        "A": [
+          "B"
+        ],
+        "B": [
+          "A",
+          "C",
+          "D"
+        ],
+        "C": [
+          "B",
+          "D"
+        ],
+        "D": [
+          "B",
+          "C",
+          "E"
+        ],
+        "E": [
+          "D"
+        ]
+      }
+    }
+  }
+}

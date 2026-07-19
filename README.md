@@ -121,6 +121,10 @@ bash scripts/run_browser_smoke_container.sh
 - 复杂图、递归树、线段树、几何类问题还需要扩展 scene compiler 的视觉形态。
 - 页面美学还需要 Playwright 截图回归和布局阈值检查。
 
+## 五方法产物样例
+
+[五方法产物对比样例库](artifacts/method_comparison_samples/README.md)从 23 个算法家族中各选一个典型案例，并列保存 AlgoTutorGen / Stage2、Direct HTML、WebGen-Agent、Direct + HTMLCure（strict）和 Direct-BrowserRepair（1-call）的真实页面或源码、截图与审计摘要。
+
 ## 系统说明
 
 完整架构、流程、门禁、覆盖范围和排查方式见：
@@ -142,6 +146,7 @@ algolab/
 cli.py                  # 命令行入口
 app.py                  # Gradio 入口
 llm_client.py           # OpenAI-compatible LLM 客户端
+artifacts/              # 可提交的实验产物抽样与横向比较
 output/                 # 生成产物
 ```
 

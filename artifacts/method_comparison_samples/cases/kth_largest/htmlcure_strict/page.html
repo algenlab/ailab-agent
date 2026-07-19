@@ -1,0 +1,2302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数组中的第 K 个最大元素 - AlgoLab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --bg2: #161b22;
+            --surface: #1c2333;
+            --surface2: #21283a;
+            --accent: #f85149;
+            --accent2: #ff6b6b;
+            --gold: #f0c060;
+            --gold2: #ffd780;
+            --green: #3fb950;
+            --green2: #56d364;
+            --blue: #58a6ff;
+            --blue2: #79c0ff;
+            --orange: #f0883e;
+            --orange2: #ffa657;
+            --text: #e6edf3;
+            --text2: #8b949e;
+            --text3: #6e7681;
+            --border: #30363d;
+            --border2: #484f58;
+            --red: #f85149;
+            --purple: #a371f7;
+            --purple2: #bc8cff;
+            --skip: #8b6f5e;
+            --highlight-line: #ffeaa720;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 5px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 30% 20%, rgba(88, 166, 255, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 60%, rgba(163, 113, 247, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 80%, rgba(240, 192, 96, 0.03) 0%, transparent 60%);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px 10px 40px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .main-container {
+            max-width: 1150px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(240, 192, 96, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        #title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.03em;
+            margin-bottom: 2px;
+            font-family: var(--font-sans);
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text2);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+        }
+        .top-results {
+            display: flex;
+            gap: 18px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .top-result-box {
+            background: var(--surface2);
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all var(--transition);
+        }
+        .top-result-box:hover {
+            border-color: var(--gold);
+            box-shadow: 0 0 20px rgba(240, 192, 96, 0.25);
+            transform: translateY(-2px);
+        }
+        .top-result-box .label {
+            font-size: 0.75rem;
+            color: var(--text2);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+        }
+        #top-result {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: var(--gold);
+            font-family: var(--font-mono);
+            text-shadow: 0 0 30px rgba(240, 192, 96, 0.5);
+            animation: answer-glow 2s ease-in-out infinite;
+        }
+        @keyframes answer-glow {
+            0%,
+            100% {
+                text-shadow: 0 0 20px rgba(240, 192, 96, 0.4);
+            }
+            50% {
+                text-shadow: 0 0 40px rgba(240, 192, 96, 0.8), 0 0 60px rgba(240, 192, 96, 0.3);
+            }
+        }
+        #top-solution {
+            font-size: 0.88rem;
+            color: var(--text);
+            max-width: 420px;
+            line-height: 1.5;
+        }
+        #answer {
+            display: none;
+        }
+        .badge-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            border: 1px solid;
+        }
+        .badge-algo {
+            background: #1a1a3e;
+            color: #a371f7;
+            border-color: #3a2a5e;
+        }
+        .badge-topk {
+            background: #1a2e1a;
+            color: #3fb950;
+            border-color: #2a4a2a;
+        }
+        .badge-heap {
+            background: #2e1a1a;
+            color: #f0883e;
+            border-color: #4a2a1a;
+        }
+
+        /* Main grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 850px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            #title {
+                font-size: 1.5rem;
+            }
+            #top-result {
+                font-size: 1.8rem;
+            }
+            .header {
+                padding: 16px 18px;
+            }
+        }
+        @media (max-width: 500px) {
+            body {
+                padding: 8px 4px 30px;
+            }
+            .main-container {
+                gap: 10px;
+            }
+            #title {
+                font-size: 1.3rem;
+            }
+            .array-cell {
+                width: 38px;
+                height: 38px;
+                font-size: 0.85rem;
+            }
+            .heap-node {
+                width: 42px;
+                height: 42px;
+                font-size: 0.9rem;
+            }
+            .heap-node.child {
+                width: 36px;
+                height: 36px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .panel:hover {
+            border-color: var(--border2);
+        }
+        .panel.celebration-panel {
+            animation: panel-celebrate 0.6s ease-out;
+        }
+        @keyframes panel-celebrate {
+            0% {
+                box-shadow: 0 0 0 rgba(240, 192, 96, 0);
+                border-color: var(--border);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(240, 192, 96, 0.5);
+                border-color: var(--gold);
+            }
+            100% {
+                box-shadow: var(--shadow);
+                border-color: var(--border);
+            }
+        }
+        .panel-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .panel-title .icon-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: inline-block;
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            overflow-x: auto;
+            line-height: 1.75;
+            color: #c9d1d9;
+            white-space: pre;
+            border: 1px solid #1e2a3a;
+            min-height: 200px;
+            counter-reset: line;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        #code .code-line::before {
+            counter-increment: line;
+            content: counter(line);
+            display: inline-block;
+            width: 24px;
+            color: #484f58;
+            text-align: right;
+            margin-right: 12px;
+            font-size: 0.7rem;
+            user-select: none;
+        }
+        #code .code-line.highlight {
+            background: #1a3a1a;
+            color: #ffd700;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 #3fb950;
+        }
+        #code .code-line.highlight-alt {
+            background: #1a1a35;
+            color: #bc8cff;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 #a371f7;
+        }
+        #code .code-line.flash-line {
+            animation: flash-code-line 0.5s ease;
+        }
+        @keyframes flash-code-line {
+            0%,
+            100% {
+                background: transparent;
+            }
+            50% {
+                background: #ffeaa730;
+            }
+        }
+
+        /* Canvas / Visualization */
+        #canvas {
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 20px 16px;
+            border: 1px solid #1e2a3a;
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+            position: relative;
+            overflow: hidden;
+        }
+        #canvas::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(88, 166, 255, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .canvas-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        .canvas-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text2);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .array-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .array-cell {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-xs);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.15rem;
+            font-family: var(--font-mono);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            position: relative;
+            cursor: default;
+        }
+        .array-cell.unvisited {
+            background: #1e2a35;
+            color: #7a8a9a;
+            border-color: #2a3a4a;
+        }
+        .array-cell.visiting {
+            background: #3d2a10;
+            color: #f0a050;
+            border-color: #f0a050;
+            box-shadow: 0 0 18px rgba(240, 160, 80, 0.6);
+            animation: pulse-border 0.8s ease-in-out infinite;
+            transform: scale(1.08);
+            z-index: 2;
+        }
+        .array-cell.processed-kept {
+            background: #1a2e22;
+            color: #4caf84;
+            border-color: #4caf84;
+        }
+        .array-cell.processed-skipped {
+            background: #2e1f1a;
+            color: #b08070;
+            border-color: #6b5040;
+            text-decoration: line-through;
+            opacity: 0.75;
+        }
+        .array-cell.answer-highlight {
+            background: #2e2610;
+            color: #f0c060;
+            border-color: #f0c060;
+            box-shadow: 0 0 22px rgba(240, 192, 96, 0.7);
+            animation: answer-cell-glow 1.2s ease-in-out infinite;
+            font-size: 1.3rem;
+        }
+        @keyframes answer-cell-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 16px rgba(240, 192, 96, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 32px rgba(240, 192, 96, 0.9), 0 0 50px rgba(240, 192, 96, 0.4);
+            }
+        }
+        @keyframes pulse-border {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(240, 160, 80, 0.4);
+                transform: scale(1.08);
+            }
+            50% {
+                box-shadow: 0 0 24px rgba(240, 160, 80, 0.85);
+                transform: scale(1.13);
+            }
+        }
+        .array-cell.cell-pop-in {
+            animation: cell-pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes cell-pop-in {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Heap tree */
+        .heap-tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+        }
+        .heap-node {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            font-family: var(--font-mono);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 1;
+        }
+        .heap-node.root {
+            background: #1a3a1a;
+            color: #4caf84;
+            border: 3px solid #4caf84;
+            box-shadow: 0 0 14px rgba(76, 175, 132, 0.45);
+        }
+        .heap-node.root.answer-node {
+            background: #2e2610;
+            color: #f0c060;
+            border: 3px solid #f0c060;
+            box-shadow: 0 0 22px rgba(240, 192, 96, 0.75);
+            animation: answer-node-glow 1s ease-in-out infinite;
+        }
+        @keyframes answer-node-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 18px rgba(240, 192, 96, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(240, 192, 96, 0.9), 0 0 55px rgba(240, 192, 96, 0.4);
+            }
+        }
+        .heap-node.child {
+            background: #1a2530;
+            color: #7ab8e0;
+            border: 2px solid #4a7a9a;
+            font-size: 1rem;
+            width: 50px;
+            height: 50px;
+        }
+        .heap-node.replaced {
+            background: #2e1a1a;
+            color: #d94a5d;
+            border: 3px solid #d94a5d;
+            animation: fade-out-node 0.6s ease forwards;
+        }
+        @keyframes fade-out-node {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 0.2;
+                transform: scale(0.8);
+            }
+        }
+        .heap-node.node-pop-in {
+            animation: node-pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes node-pop-in {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .heap-connector {
+            width: 2px;
+            height: 22px;
+            background: linear-gradient(to bottom, #4a7a9a, #3a5a7a);
+            position: relative;
+            z-index: 0;
+            border-radius: 1px;
+        }
+        .heap-empty {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px dashed #3a4a5a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5a6a7a;
+            font-size: 0.8rem;
+            font-style: italic;
+            animation: empty-pulse 2s ease-in-out infinite;
+        }
+        @keyframes empty-pulse {
+            0%,
+            100% {
+                border-color: #3a4a5a;
+            }
+            50% {
+                border-color: #5a6a7a;
+            }
+        }
+        .heap-array-display {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text2);
+            background: #111820;
+            padding: 6px 14px;
+            border-radius: 4px;
+            border: 1px solid #2a3040;
+            letter-spacing: 0.03em;
+        }
+
+        /* Step info */
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        #step-desc {
+            font-size: 0.88rem;
+            color: var(--text2);
+            line-height: 1.5;
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: all var(--transition);
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            background: var(--surface2);
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            display: inline-block;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            border: 1px solid #1e2a3a;
+            color: #c9d1d9;
+            white-space: pre-wrap;
+            max-height: 160px;
+            overflow-y: auto;
+            line-height: 1.55;
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: #d0d0d0;
+            line-height: 1.65;
+            background: #1a1f2e;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            border-left: 3px solid var(--blue);
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.74rem;
+            background: #111820;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            border: 1px solid #2a3040;
+            color: #b0c0d0;
+            white-space: pre-wrap;
+            line-height: 1.55;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 9px 18px;
+            border-radius: 22px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            outline: none;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+        .btn:hover::after {
+            opacity: 1;
+        }
+        .btn:hover {
+            background: #1a3050;
+            border-color: #58a6ff;
+            box-shadow: 0 0 14px rgba(88, 166, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: scale(0.95);
+            background: #0f2840;
+            transition: all 0.1s ease;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(30%);
+        }
+        .btn.accent {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            font-weight: 700;
+        }
+        .btn.accent:hover {
+            background: #e03a40;
+            box-shadow: 0 0 18px rgba(248, 81, 73, 0.55);
+        }
+        .btn.green-btn {
+            background: #1a3a1a;
+            border-color: #3fb950;
+            color: #3fb950;
+        }
+        .btn.green-btn:hover {
+            background: #1a4a2a;
+            box-shadow: 0 0 14px rgba(63, 185, 80, 0.45);
+        }
+        .btn.purple-btn {
+            background: #1a1a35;
+            border-color: #a371f7;
+            color: #a371f7;
+        }
+        .btn.purple-btn:hover {
+            background: #252545;
+            box-shadow: 0 0 14px rgba(163, 113, 247, 0.45);
+        }
+        .btn.play-btn {
+            background: #1a3a1a;
+            border-color: #3fb950;
+            color: #3fb950;
+            font-size: 1.05rem;
+            min-width: 46px;
+            text-align: center;
+            border-radius: 50%;
+            width: 46px;
+            height: 46px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn.play-btn:hover {
+            background: #1a4a2a;
+            box-shadow: 0 0 16px rgba(63, 185, 80, 0.5);
+        }
+        .btn.play-btn.playing {
+            background: #3fb950;
+            color: #fff;
+            animation: play-glow 0.7s ease-in-out infinite;
+            border-color: #56d364;
+        }
+        @keyframes play-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 26px rgba(63, 185, 80, 0.9), 0 0 40px rgba(63, 185, 80, 0.4);
+            }
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        #range::-webkit-slider-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(248, 81, 73, 0.4);
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            min-width: 62px;
+            text-align: center;
+            color: #a0a0b0;
+            outline: none;
+            position: relative;
+        }
+        .tick:hover {
+            border-color: #58a6ff;
+            background: #1a3050;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: #2a1520;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(248, 81, 73, 0.45);
+            font-weight: 700;
+        }
+        .tick.completed {
+            border-color: #3fb950;
+            background: #1a2e22;
+            color: #a0d0b0;
+        }
+        .tick-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .tick-op {
+            font-size: 0.63rem;
+            color: inherit;
+            opacity: 0.85;
+            font-family: var(--font-mono);
+        }
+        .tick .tick-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.6;
+        }
+        .tick.active .tick-dot {
+            opacity: 1;
+            animation: dot-blink 0.6s ease-in-out infinite;
+        }
+        @keyframes dot-blink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Checkpoint */
+        #checkpoint-area {
+            background: #1a1a30;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            border: 2px solid #4a3560;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all var(--transition);
+            position: relative;
+        }
+        #checkpoint-area.checkpoint-active {
+            border-color: #a371f7;
+            box-shadow: 0 0 20px rgba(163, 113, 247, 0.3);
+            animation: checkpoint-pulse 2s ease-in-out infinite;
+        }
+        @keyframes checkpoint-pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 16px rgba(163, 113, 247, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(163, 113, 247, 0.5);
+            }
+        }
+        .checkpoint-question {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .checkpoint-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #3a3a5a;
+            background: #1e1e38;
+            transition: all var(--transition);
+            color: #d0d0d0;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .checkpoint-option:hover {
+            border-color: #7b5daa;
+            background: #252545;
+            transform: translateX(3px);
+        }
+        .checkpoint-option input[type="radio"] {
+            accent-color: #a371f7;
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0;
+        }
+        .checkpoint-option.correct-flash {
+            border-color: #3fb950 !important;
+            background: #1a3e2a !important;
+            color: #3fb950 !important;
+            font-weight: 700;
+            animation: correct-flash-anim 0.5s ease;
+            box-shadow: 0 0 16px rgba(63, 185, 80, 0.4);
+        }
+        @keyframes correct-flash-anim {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.03);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .checkpoint-option.wrong-flash {
+            border-color: #f85149 !important;
+            background: #3e1a1a !important;
+            color: #f85149 !important;
+            animation: shake 0.4s ease;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-6px);
+            }
+            75% {
+                transform: translateX(6px);
+            }
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-feedback {
+            font-size: 0.85rem;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            min-height: 20px;
+            font-weight: 500;
+            line-height: 1.5;
+            transition: all var(--transition);
+        }
+        .feedback-correct {
+            background: #1a3e2a;
+            color: #3fb950;
+            border: 1px solid #2a5a3a;
+        }
+        .feedback-wrong {
+            background: #3e1a1a;
+            color: #f85149;
+            border: 1px solid #5a2a2a;
+        }
+        .feedback-info {
+            background: #1a2530;
+            color: #79c0ff;
+            border: 1px solid #2a4050;
+        }
+        .feedback-hint {
+            background: #1a2a1a;
+            color: #f0c060;
+            border: 1px solid #3a3a1a;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: #0d1117;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            border: 1px solid #1e2a3a;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.76rem;
+            color: #a0b0c0;
+            font-family: var(--font-mono);
+            line-height: 1.6;
+        }
+        #learning-log .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #1a2530;
+        }
+        #learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        #learning-log .log-entry.correct-log {
+            color: #3fb950;
+        }
+        #learning-log .log-entry.wrong-log {
+            color: #f85149;
+        }
+        #learning-log .log-entry.info-log {
+            color: #79c0ff;
+        }
+        #learning-log .log-empty {
+            color: #484f58;
+            font-style: italic;
+        }
+
+        /* Completion overlay */
+        #completion-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            pointer-events: none;
+        }
+        #completion-overlay.show {
+            display: block;
+            animation: overlay-in 0.5s ease;
+        }
+        @keyframes overlay-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .completion-toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #1a3a1a, #2e2610);
+            border: 2px solid #f0c060;
+            border-radius: 30px;
+            padding: 14px 28px;
+            color: #f0c060;
+            font-weight: 700;
+            font-size: 1.1rem;
+            z-index: 101;
+            pointer-events: auto;
+            box-shadow: 0 8px 30px rgba(240, 192, 96, 0.4);
+            animation: toast-bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        @keyframes toast-bounce {
+            0% {
+                transform: translateX(-50%) translateY(-80px);
+                opacity: 0;
+            }
+            60% {
+                transform: translateX(-50%) translateY(8px);
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Utility */
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .gap-sm {
+            gap: 6px;
+        }
+        .mt-sm {
+            margin-top: 6px;
+        }
+        .mt-md {
+            margin-top: 12px;
+        }
+        .full-width {
+            width: 100%;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .badge-green {
+            background: #1a3e2a;
+            color: #3fb950;
+            border: 1px solid #2a5a3a;
+        }
+        .badge-red {
+            background: #3e1a1a;
+            color: #f85149;
+            border: 1px solid #5a2a2a;
+        }
+        .badge-blue {
+            background: #1a2a3e;
+            color: #58a6ff;
+            border: 1px solid #2a405a;
+        }
+        .badge-gold {
+            background: #2e2610;
+            color: #f0c060;
+            border: 1px solid #4a3a1a;
+        }
+        .badge-purple {
+            background: #1a1a35;
+            color: #a371f7;
+            border: 1px solid #3a2a5a;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas" width="800" height="600" tabindex="0"></canvas>
+    <div id="completion-overlay"></div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div id="title">📚 数组中的第 K 个最大元素</div>
+            <div id="subtitle">LeetCode 215 · 小顶堆 · TopK 问题 · 容量为 k 的候选集维护</div>
+            <div class="badge-row">
+                <span class="header-badge badge-algo">🔬 堆算法</span>
+                <span class="header-badge badge-topk">🎯 TopK</span>
+                <span class="header-badge badge-heap">🪣 小顶堆</span>
+                <span class="header-badge badge-purple">💡 O(n log k)</span>
+            </div>
+            <div class="top-results">
+                <div class="top-result-box">
+                    <span class="label">🏆 最终答案</span>
+                    <span id="top-result">5</span>
+                </div>
+                <div id="top-solution">使用容量为 <strong>k=2</strong> 的小顶堆，遍历数组时维护堆。堆大小不足 k 时直接加入；堆满时若当前元素大于堆顶则替换堆顶。遍历完成后堆顶即为第 k 大元素。</div>
+            </div>
+            <span id="answer" style="display:none;">5</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel">
+            <div class="flex-row" style="justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div class="flex-row gap-sm">
+                    <span class="panel-title" style="margin:0;"><span class="icon-dot"></span> 步骤导航</span>
+                    <span id="counter">1 / 8</span>
+                    <span id="op" class="badge badge-blue">INIT</span>
+                </div>
+                <div class="controls-row">
+                    <button class="btn" id="prev" title="上一步 (←)">◀ 上一步</button>
+                    <button class="btn play-btn" id="play" title="自动播放 (空格键)">▶</button>
+                    <button class="btn" id="next" title="下一步 (→)">下一步 ▶</button>
+                    <input type="range" id="range" min="1" max="8" value="1" title="快速跳转">
+                    <button class="btn green-btn" id="reset-btn" title="回到起点">↺ 重置</button>
+                </div>
+            </div>
+            <!-- Timeline -->
+            <div id="timeline" class="mt-sm"></div>
+        </div>
+
+        <!-- Main content grid -->
+        <div class="content-grid">
+            <!-- Left column: Canvas + Code -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+                <!-- Canvas -->
+                <div class="panel" id="viz-panel">
+                    <span class="panel-title"><span class="icon-dot"></span> 算法可视化</span>
+                    <div id="canvas">
+                        <div class="canvas-section" id="array-section">
+                            <span class="canvas-label">📊 原始数组 nums = [3, 2, 1, 5, 6, 4]</span>
+                            <div class="array-row" id="array-row"></div>
+                        </div>
+                        <div class="canvas-section" id="heap-section">
+                            <span class="canvas-label">🪣 小顶堆（容量 k=2）</span>
+                            <div class="heap-tree" id="heap-tree"></div>
+                            <div class="heap-array-display" id="heap-array-display">堆内部: []</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Code -->
+                <div class="panel">
+                    <span class="panel-title"><span class="icon-dot"></span> 算法代码 (JavaScript)</span>
+                    <div id="code"></div>
+                </div>
+            </div>
+
+            <!-- Right column -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+                <!-- Step info -->
+                <div class="panel">
+                    <span class="panel-title"><span class="icon-dot"></span> 当前步骤</span>
+                    <div id="step-title">初始化</div>
+                    <div id="step-desc">创建空的小顶堆，准备遍历数组。</div>
+                </div>
+                <!-- State -->
+                <div class="panel">
+                    <span class="panel-title"><span class="icon-dot"></span> 状态摘要 (JSON)</span>
+                    <div id="state"></div>
+                </div>
+                <!-- Teaching -->
+                <div class="panel">
+                    <span class="panel-title"><span class="icon-dot"></span> 📖 教学讲解</span>
+                    <div id="teaching"></div>
+                </div>
+                <!-- Step Evidence -->
+                <div class="panel">
+                    <span class="panel-title"><span class="icon-dot"></span> 📋 步骤证据</span>
+                    <div id="step-evidence"></div>
+                </div>
+                <!-- Checkpoint -->
+                <div id="checkpoint-area">
+                    <span class="panel-title" style="color:#a371f7;">🧠 Learner Checkpoint</span>
+                    <div class="checkpoint-question" id="checkpoint-question">请导航到包含检测点的步骤（步骤5）来回答问题，或使用下方的通用预测功能。</div>
+                    <div class="checkpoint-options" id="checkpoint-options"></div>
+                    <div class="checkpoint-btns">
+                        <button class="btn purple-btn" id="checkpoint-submit">✅ 提交答案</button>
+                        <button class="btn" id="checkpoint-hint">💡 提示</button>
+                        <button class="btn" id="checkpoint-show-answer">👁️ 显示答案</button>
+                        <button class="btn green-btn" id="predict-btn">🔮 预测下一步</button>
+                    </div>
+                    <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+                </div>
+                <!-- Learning Log -->
+                <div class="panel">
+                    <span class="panel-title"><span class="icon-dot"></span> 📝 学习日志</span>
+                    <div id="learning-log"><span class="log-empty">尚无提交记录。完成检测点或使用预测功能来记录学习轨迹。</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ BACKGROUND CANVAS ============
+            const bgCanvas = document.getElementById('bg-canvas');
+            const bgCtx = bgCanvas.getContext('2d');
+            let bgParticles = [];
+            const bgParticleCount = 50;
+
+            function resizeBgCanvas() {
+                bgCanvas.width = window.innerWidth;
+                bgCanvas.height = window.innerHeight;
+            }
+            resizeBgCanvas();
+            window.addEventListener('resize', resizeBgCanvas);
+
+            class BgParticle {
+                constructor() {
+                    this.reset();
+                }
+                reset() {
+                    this.x = Math.random() * bgCanvas.width;
+                    this.y = Math.random() * bgCanvas.height;
+                    this.size = Math.random() * 2 + 0.5;
+                    this.speedX = (Math.random() - 0.5) * 0.3;
+                    this.speedY = (Math.random() - 0.5) * 0.3;
+                    this.opacity = Math.random() * 0.5 + 0.15;
+                    this.pulseSpeed = Math.random() * 0.02 + 0.005;
+                    this.pulseOffset = Math.random() * Math.PI * 2;
+                    this.hue = Math.random() < 0.33 ? 210 : (Math.random() < 0.5 ? 270 : 40);
+                }
+                update(time) {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.opacity = 0.2 + Math.sin(time * this.pulseSpeed + this.pulseOffset) * 0.2;
+                    if (this.x < -10) this.x = bgCanvas.width + 10;
+                    if (this.x > bgCanvas.width + 10) this.x = -10;
+                    if (this.y < -10) this.y = bgCanvas.height + 10;
+                    if (this.y > bgCanvas.height + 10) this.y = -10;
+                }
+                draw(ctx) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 60%, 65%, ${this.opacity})`;
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < bgParticleCount; i++) {
+                bgParticles.push(new BgParticle());
+            }
+
+            // Celebration particles on main canvas overlay
+            let celebrationParticles = [];
+            let celebrationActive = false;
+            let celebrationTimer = null;
+
+            function spawnCelebration() {
+                celebrationActive = true;
+                celebrationParticles = [];
+                for (let i = 0; i < 80; i++) {
+                    celebrationParticles.push({
+                        x: bgCanvas.width / 2,
+                        y: bgCanvas.height / 2,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 1) * 8 - 3,
+                        life: 1,
+                        decay: Math.random() * 0.02 + 0.008,
+                        size: Math.random() * 5 + 2,
+                        hue: Math.random() * 60 + 30,
+                        gravity: 0.08,
+                    });
+                }
+                if (celebrationTimer) clearTimeout(celebrationTimer);
+                celebrationTimer = setTimeout(() => {
+                    celebrationActive = false;
+                    celebrationParticles = [];
+                }, 3000);
+            }
+
+            function drawCelebration(ctx, width, height) {
+                if (!celebrationActive) return;
+                for (let i = celebrationParticles.length - 1; i >= 0; i--) {
+                    const p = celebrationParticles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += p.gravity;
+                    p.life -= p.decay;
+                    if (p.life <= 0) {
+                        celebrationParticles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = `hsl(${p.hue}, 90%, 60%)`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = `hsl(${p.hue}, 100%, 75%)`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                if (celebrationParticles.length === 0) celebrationActive = false;
+            }
+
+            function bgGameLoop(timestamp) {
+                bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+                for (const p of bgParticles) {
+                    p.update(timestamp);
+                    p.draw(bgCtx);
+                }
+                drawCelebration(bgCtx, bgCanvas.width, bgCanvas.height);
+                requestAnimationFrame(bgGameLoop);
+            }
+            requestAnimationFrame(bgGameLoop);
+            bgCanvas.focus();
+
+            // ============ DATA ============
+            const nums = [3, 2, 1, 5, 6, 4];
+            const k = 2;
+
+            const steps = [{
+                id: 1,
+                title: '🚀 初始化',
+                desc: '创建空的小顶堆（容量 k=2），准备遍历数组 nums = [3, 2, 1, 5, 6, 4]。',
+                op: 'INIT',
+                heap: [],
+                heapTop: null,
+                currentIndex: -1,
+                currentElement: null,
+                action: 'initialize',
+                actionDetail: '创建空堆',
+                codeLines: [0, 1],
+                highlightType: 'highlight',
+                teaching: '这是算法的起点。我们使用一个容量为 <strong>k=2</strong> 的<strong>小顶堆</strong>来维护"当前找到的最大的 k 个元素"。小顶堆的堆顶始终是堆中最小的元素——也就是这 k 个候选者中的"门槛"。当新元素大于这个门槛时，它就有资格进入堆。',
+                evidence: 'operation: initialize\nheap_before: null\nheap_after: []\ncapacity: 2\ninvariant: 堆中元素数量 ≤ k',
+                arrayStatus: ['unvisited', 'unvisited', 'unvisited', 'unvisited', 'unvisited', 'unvisited'],
+                visitingIndex: -1,
+                replacedNode: null,
+                checkpointActive: false,
+                checkpointData: null,
+            }, {
+                id: 2,
+                title: '📥 处理元素 3',
+                desc: 'nums[0] = 3。堆大小 0 < k=2，直接加入堆。堆变为 [3]，堆顶为 3。',
+                op: 'PUSH',
+                heap: [3],
+                heapTop: 3,
+                currentIndex: 0,
+                currentElement: 3,
+                action: 'push',
+                actionDetail: '堆未满，直接加入 3',
+                codeLines: [2, 3, 4],
+                highlightType: 'highlight',
+                teaching: '当前堆为空（大小 0 < k=2），所以元素 <strong>3</strong> 直接入堆。小顶堆会自动维护顺序——目前只有一个元素，堆顶就是 3。<br><br><strong>不变量：</strong>堆中保存着遍历到目前为止最大的 k 个元素（目前只有 1 个）。',
+                evidence: 'operation: push\nheap_before: []\nheap_after: [3]\nheap_top_before: null\nheap_top_after: 3\nreason: heap.length (0) < k (2)',
+                arrayStatus: ['processed-kept', 'unvisited', 'unvisited', 'unvisited', 'unvisited', 'unvisited'],
+                visitingIndex: 0,
+                replacedNode: null,
+                checkpointActive: false,
+                checkpointData: null,
+            }, {
+                id: 3,
+                title: '📥 处理元素 2',
+                desc: 'nums[1] = 2。堆大小 1 < k=2，加入堆并维护小顶堆性质。堆变为 [2, 3]，堆顶为 2。',
+                op: 'PUSH',
+                heap: [2, 3],
+                heapTop: 2,
+                currentIndex: 1,
+                currentElement: 2,
+                action: 'push',
+                actionDetail: '堆未满，加入 2，上浮维护',
+                codeLines: [2, 3, 4],
+                highlightType: 'highlight',
+                teaching: '堆大小仍不足 k，<strong>2</strong> 入堆。加入后堆内元素为 [2, 3]，小顶堆自动将较小值 2 置于堆顶。<br><br><strong>关键认知：</strong>堆顶 2 是当前找到的"第 2 大"元素的候选——它实际上是已遍历元素中第 2 大的（3 最大，2 次之）。',
+                evidence: 'operation: push\nheap_before: [3]\nheap_after: [2, 3]\nheap_top_before: 3\nheap_top_after: 2\nreason: heap.length (1) < k (2)\nsorting maintained min-heap property',
+                arrayStatus: ['processed-kept', 'processed-kept', 'unvisited', 'unvisited', 'unvisited', 'unvisited'],
+                visitingIndex: 1,
+                replacedNode: null,
+                checkpointActive: true,
+                checkpointData: {
+                    question: '堆现在包含 [2, 3]，堆顶为 2。如果下一个元素是 1（小于堆顶 2），应该执行什么操作？',
+                    options: [
+                        { label: 'A', text: '将 1 加入堆 → 堆变成 [1, 2, 3]（超过容量 k=2）', value: 'A' },
+                        { label: 'B', text: '跳过元素 1，堆保持 [2, 3] 不变', value: 'B' },
+                        { label: 'C', text: '弹出堆顶 2，将 1 加入堆 → 堆变成 [1, 3]', value: 'C' },
+                        { label: 'D', text: '清空堆，重新放入 1 和 3', value: 'D' },
+                    ],
+                    correctAnswer: 'B',
+                    hint: '堆已满且堆顶 2 大于 1。回顾"小顶堆维护最大的 k 个元素"这个不变量——比门槛小的元素能进入前 k 大吗？',
+                    correctFeedback: '✅ 完全正确！堆已满（大小 = k=2），且新元素 1 小于堆顶 2。1 不可能成为前 k 大的元素，应该跳过。这是 TopK 算法的核心剪枝逻辑。',
+                    wrongFeedback: {
+                        'A': '❌ 错误。堆的容量只有 k=2，加入 1 会超出容量限制，破坏不变量。',
+                        'C': '❌ 错误。1 比原来的堆顶 2 还小，用它替换堆顶会导致堆的质量下降——我们会丢失一个更大的候选者。',
+                        'D': '❌ 低效且错误。不需要清空堆，且 1 不应该进入前 k 大的候选集。',
+                    },
+                },
+            }, {
+                id: 4,
+                title: '⏭️ 处理元素 1 — 被跳过',
+                desc: 'nums[2] = 1。堆大小 = k=2 且 1 < 堆顶 2，不加入。堆保持 [2, 3]。',
+                op: 'SKIP',
+                heap: [2, 3],
+                heapTop: 2,
+                currentIndex: 2,
+                currentElement: 1,
+                action: 'skip',
+                actionDetail: '1 < 堆顶 2，无资格入堆',
+                codeLines: [2, 5],
+                highlightType: 'highlight-alt',
+                teaching: '堆已满（大小 = k=2），且当前元素 <strong>1</strong> 小于堆顶 <strong>2</strong>。这意味着 1 不可能成为前 k 大的元素——它比堆中最小的候选者还小。<br><br><strong>常见误区：</strong>初学者可能会想"万一后面需要 1 呢？"但第 k 大只需要最大的 k 个元素，比门槛小的元素永远不会是答案。',
+                evidence: 'operation: compare_and_skip\nheap_before: [2, 3]\nheap_after: [2, 3] (unchanged)\ncurrent_element: 1\nheap_top: 2\ncondition: 1 < 2 → skip\nreason: element too small to enter top-k',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'unvisited', 'unvisited',
+                    'unvisited'
+                ],
+                visitingIndex: 2,
+                replacedNode: null,
+                checkpointActive: false,
+                checkpointData: null,
+            }, {
+                id: 5,
+                title: '🔄 处理元素 5 — 替换堆顶',
+                desc: 'nums[3] = 5。堆大小 = k=2 且 5 > 堆顶 2，弹出堆顶 2，加入 5。堆变为 [3, 5]，堆顶为 3。',
+                op: 'REPLACE_TOP',
+                heap: [3, 5],
+                heapTop: 3,
+                currentIndex: 3,
+                currentElement: 5,
+                action: 'replace_top',
+                actionDetail: '5 > 2，弹出 2，加入 5',
+                codeLines: [2, 5, 6, 7, 8],
+                highlightType: 'highlight-alt',
+                teaching: '这是<strong>关键操作</strong>！堆已满，但当前元素 <strong>5</strong> 大于堆顶 <strong>2</strong>。这意味着 5 比堆中最小的候选者更大，有资格取代它。弹出 2，加入 5，维护小顶堆后新堆顶为 3。<br><br><strong>不变量保持：</strong>堆始终包含已遍历元素中最大的 k 个。现在已遍历 [3,2,1,5]，最大的 2 个是 {5, 3}，堆正确反映了这一点。',
+                evidence: 'operation: replace_top\nheap_before: [2, 3]\nheap_after: [3, 5]\npopped: 2\ninserted: 5\nheap_top_before: 2\nheap_top_after: 3\ncondition: 5 > 2 → replace',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept', 'unvisited',
+                    'unvisited'
+                ],
+                visitingIndex: 3,
+                replacedNode: 2,
+                checkpointActive: true,
+                checkpointData: {
+                    question: '当前堆为 [2, 3]（堆顶=2），现在处理元素 5。5 > 2，堆已满（k=2）。应该执行什么操作？',
+                    options: [
+                        { label: 'A', text: '直接将 5 加入堆 → 堆变成 [2, 3, 5]（超过容量 k=2）', value: 'A' },
+                        { label: 'B', text: '弹出堆顶 2，将 5 加入堆 → 堆变成 [3, 5]，新堆顶为 3', value: 'B' },
+                        { label: 'C', text: '忽略元素 5，保持堆 [2, 3] 不变', value: 'C' },
+                        { label: 'D', text: '清空堆，重新放入 3 和 5 → 堆变成 [3, 5]', value: 'D' },
+                    ],
+                    correctAnswer: 'B',
+                    hint: '堆的容量只有 k=2，已满。但 5 比堆顶 2 大——想想"淘汰最弱的候选者"这个思路。',
+                    correctFeedback: '✅ 正确！堆已满时，如果新元素大于堆顶（当前第 k 大的门槛），就需要弹出堆顶（最小的候选者）并加入新元素。这是小顶堆 TopK 算法的核心操作。',
+                    wrongFeedback: {
+                        'A': '❌ 错误。堆的容量只有 k=2，不能容纳 3 个元素。这会破坏"维护 k 个最大元素"的不变量。',
+                        'C': '❌ 错误。5 比堆顶 2 大，意味着 5 应该取代 2 成为前 k 大的候选者。忽略 5 会导致丢失正确答案。',
+                        'D': '❌ 不够高效。不需要清空整个堆，只需要替换堆顶即可——这正是小顶堆的优势所在，时间复杂度 O(log k)。',
+                    },
+                },
+            }, {
+                id: 6,
+                title: '🔄 处理元素 6 — 再次替换堆顶',
+                desc: 'nums[4] = 6。堆大小 = k=2 且 6 > 堆顶 3，弹出堆顶 3，加入 6。堆变为 [5, 6]，堆顶为 5。',
+                op: 'REPLACE_TOP',
+                heap: [5, 6],
+                heapTop: 5,
+                currentIndex: 4,
+                currentElement: 6,
+                action: 'replace_top',
+                actionDetail: '6 > 3，弹出 3，加入 6',
+                codeLines: [2, 5, 6, 7, 8],
+                highlightType: 'highlight-alt',
+                teaching: '又一次替换操作！当前元素 <strong>6</strong> 大于堆顶 <strong>3</strong>，所以弹出 3，加入 6。新堆 [5, 6] 的堆顶变为 5。<br><br>注意：现在堆顶 5 就是已遍历元素 [3,2,1,5,6] 中第 2 大的元素（最大是 6，第 2 大是 5）。这与排序结果一致。',
+                evidence: 'operation: replace_top\nheap_before: [3, 5]\nheap_after: [5, 6]\npopped: 3\ninserted: 6\nheap_top_before: 3\nheap_top_after: 5\ncondition: 6 > 3 → replace',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept',
+                    'processed-kept', 'unvisited'
+                ],
+                visitingIndex: 4,
+                replacedNode: 3,
+                checkpointActive: true,
+                checkpointData: {
+                    question: '堆现在是 [5, 6]，堆顶=5。如果下一个元素是 4（< 堆顶 5），应该怎么做？',
+                    options: [
+                        { label: 'A', text: '将 4 加入堆 → 堆变成 [4, 5, 6]', value: 'A' },
+                        { label: 'B', text: '跳过 4，堆保持 [5, 6]', value: 'B' },
+                        { label: 'C', text: '用 4 替换堆顶 5 → 堆变成 [4, 6]', value: 'C' },
+                        { label: 'D', text: '弹出 6，保留 [4, 5]', value: 'D' },
+                    ],
+                    correctAnswer: 'B',
+                    hint: '4 < 5（堆顶）。如果你要选"最大的 2 个"，4 能挤进 {5, 6} 这个组合吗？',
+                    correctFeedback: '✅ 正确！4 小于堆顶 5，不能进入前 k 大候选集，应跳过。遍历结束后堆 [5, 6] 的堆顶 5 就是答案。',
+                    wrongFeedback: {
+                        'A': '❌ 容量超限。堆最多容纳 k=2 个元素。',
+                        'C': '❌ 用更小的 4 替换 5 会降低堆的质量，丢失正确答案。',
+                        'D': '❌ 6 是数组最大值，不应被移除。',
+                    },
+                },
+            }, {
+                id: 7,
+                title: '⏭️ 处理元素 4 — 被跳过',
+                desc: 'nums[5] = 4。堆大小 = k=2 且 4 < 堆顶 5，不加入。堆保持 [5, 6]。',
+                op: 'SKIP',
+                heap: [5, 6],
+                heapTop: 5,
+                currentIndex: 5,
+                currentElement: 4,
+                action: 'skip',
+                actionDetail: '4 < 堆顶 5，无资格入堆',
+                codeLines: [2, 5],
+                highlightType: 'highlight-alt',
+                teaching: '最后一个元素 <strong>4</strong> 小于堆顶 <strong>5</strong>，被跳过。此时堆 [5, 6] 包含了整个数组中最大的 2 个元素。<br><br>排序验证：数组排序后为 [1,2,3,4,5,6]，第 2 大是 5。堆顶正是 5。✅',
+                evidence: 'operation: compare_and_skip\nheap_before: [5, 6]\nheap_after: [5, 6] (unchanged)\ncurrent_element: 4\nheap_top: 5\ncondition: 4 < 5 → skip',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept',
+                    'processed-kept', 'processed-skipped'
+                ],
+                visitingIndex: 5,
+                replacedNode: null,
+                checkpointActive: false,
+                checkpointData: null,
+            }, {
+                id: 8,
+                title: '🎉 答案确认 — 返回堆顶',
+                desc: '遍历完成。堆顶 5 即为数组第 2 大的元素。返回 5。',
+                op: 'RETURN',
+                heap: [5, 6],
+                heapTop: 5,
+                currentIndex: -1,
+                currentElement: null,
+                action: 'return_answer',
+                actionDetail: '返回堆顶 5',
+                codeLines: [9],
+                highlightType: 'highlight',
+                teaching: '🎉 算法完成！遍历全部 6 个元素后，小顶堆中保留了最大的 2 个元素 [5, 6]。堆顶 <strong>5</strong> 是其中最小的——也就是整个数组第 2 大的元素。<br><br><strong>总结：</strong>容量为 k 的小顶堆天然适合 TopK 问题。堆顶始终是"当前第 k 大"，时间复杂度 O(n log k)，空间复杂度 O(k)。',
+                evidence: 'operation: return_answer\nfinal_heap: [5, 6]\nheap_top: 5\nresult: 5\nverification: sorted array = [1,2,3,4,5,6], 2nd largest = 5 ✓',
+                arrayStatus: ['processed-kept', 'processed-kept', 'processed-skipped', 'processed-kept',
+                    'processed-kept', 'processed-skipped'
+                ],
+                visitingIndex: -1,
+                replacedNode: null,
+                checkpointActive: false,
+                checkpointData: null,
+            }];
+
+            const totalSteps = steps.length;
+
+            const codeLines = [
+                'function findKthLargest(nums, k) {',
+                '  const heap = [];                 // 小顶堆',
+                '  for (let i = 0; i < nums.length; i++) {',
+                '    if (heap.length < k) {         // 堆未满',
+                '      heap.push(nums[i]);          // 直接加入',
+                '      heap.sort((a,b) => a - b);   // 维护小顶堆',
+                '    } else if (nums[i] > heap[0]) { // 堆满且元素>堆顶',
+                '      heap.shift();                // 弹出堆顶',
+                '      heap.push(nums[i]);          // 加入新元素',
+                '      heap.sort((a,b) => a - b);   // 维护小顶堆',
+                '    }',
+                '  }',
+                '  return heap[0];                  // 堆顶=第k大',
+                '}',
+            ];
+
+            // ============ DOM REFS ============
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const counterEl = $('#counter');
+            const opEl = $('#op');
+            const stepTitleEl = $('#step-title');
+            const stepDescEl = $('#step-desc');
+            const codeEl = $('#code');
+            const timelineEl = $('#timeline');
+            const teachingEl = $('#teaching');
+            const stateEl = $('#state');
+            const stepEvidenceEl = $('#step-evidence');
+            const answerEl = $('#answer');
+            const topResultEl = $('#top-result');
+            const prevBtn = $('#prev');
+            const nextBtn = $('#next');
+            const playBtn = $('#play');
+            const rangeEl = $('#range');
+            const resetBtn = $('#reset-btn');
+            const predictBtn = $('#predict-btn');
+            const checkpointArea = $('#checkpoint-area');
+            const checkpointQuestion = $('#checkpoint-question');
+            const checkpointOptions = $('#checkpoint-options');
+            const checkpointSubmit = $('#checkpoint-submit');
+            const checkpointHintBtn = $('#checkpoint-hint');
+            const checkpointShowAnswer = $('#checkpoint-show-answer');
+            const checkpointFeedback = $('#checkpoint-feedback');
+            const learningLogEl = $('#learning-log');
+            const arrayRowEl = $('#array-row');
+            const heapTreeEl = $('#heap-tree');
+            const heapArrayDisplayEl = $('#heap-array-display');
+            const vizPanel = $('#viz-panel');
+            const completionOverlay = $('#completion-overlay');
+
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let learningLogEntries = [];
+            let checkpointSubmitted = false;
+            let checkpointRevealed = false;
+            let hasShownCompletion = false;
+
+            // ============ ANSWER ============
+            answerEl.textContent = '5';
+            topResultEl.textContent = '5';
+
+            // ============ BUILD TIMELINE ============
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                steps.forEach((s, i) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.dataset.step = i + 1;
+                    tick.setAttribute('aria-label', '跳转到步骤 ' + (i + 1) + ': ' + s.op);
+                    tick.innerHTML = `
+                <span class="tick-dot"></span>
+                <span class="tick-label">步骤 ${i + 1}</span>
+                <span class="tick-op">${s.op}</span>
+              `;
+                    tick.addEventListener('click', () => {
+                        stopPlay();
+                        goToStep(i);
+                    });
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            function updateTimelineActive() {
+                const ticks = $$('#timeline .tick');
+                ticks.forEach((t, i) => {
+                    t.classList.remove('active', 'completed');
+                    if (i === currentStepIndex) t.classList.add('active');
+                    else if (i < currentStepIndex) t.classList.add('completed');
+                });
+            }
+
+            // ============ BUILD CODE ============
+            function buildCode() {
+                codeEl.innerHTML = '';
+                codeLines.forEach((line, i) => {
+                    const span = document.createElement('span');
+                    span.className = 'code-line';
+                    span.dataset.line = i;
+                    span.textContent = line;
+                    codeEl.appendChild(span);
+                });
+            }
+
+            function updateCodeHighlight() {
+                const step = steps[currentStepIndex];
+                const allLines = $$('#code .code-line');
+                allLines.forEach(l => {
+                    l.classList.remove('highlight', 'highlight-alt', 'flash-line');
+                });
+                step.codeLines.forEach(lineIdx => {
+                    if (lineIdx < allLines.length) {
+                        allLines[lineIdx].classList.add(step.highlightType || 'highlight');
+                    }
+                });
+            }
+
+            function flashCodeLine(lineIdx) {
+                const allLines = $$('#code .code-line');
+                if (lineIdx < allLines.length) {
+                    allLines[lineIdx].classList.add('flash-line');
+                    setTimeout(() => allLines[lineIdx].classList.remove('flash-line'), 500);
+                }
+            }
+
+            // ============ BUILD CANVAS ============
+            function updateCanvas() {
+                const step = steps[currentStepIndex];
+                const prevStep = currentStepIndex > 0 ? steps[currentStepIndex - 1] : null;
+
+                // Array row
+                arrayRowEl.innerHTML = '';
+                nums.forEach((num, i) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell ' + (step.arrayStatus[i] || 'unvisited');
+                    if (i === step.visitingIndex && step.visitingIndex >= 0) {
+                        cell.className = 'array-cell visiting';
+                    }
+                    if (step.id === 8 && num === 5 && i === 3) {
+                        cell.classList.add('answer-highlight');
+                    }
+                    if (step.id === 8 && num === 6 && i === 4) {
+                        cell.classList.add('processed-kept');
+                    }
+                    if (step.arrayStatus[i] === 'processed-skipped') {
+                        cell.style.textDecoration = 'line-through';
+                    }
+                    // Add pop-in animation for newly processed cells
+                    if (prevStep && prevStep.arrayStatus[i] === 'unvisited' && step.arrayStatus[i] !==
+                        'unvisited') {
+                        cell.classList.add('cell-pop-in');
+                    }
+                    cell.textContent = num;
+                    arrayRowEl.appendChild(cell);
+                });
+
+                // Heap tree
+                heapTreeEl.innerHTML = '';
+                const heap = step.heap;
+                if (heap.length === 0) {
+                    const emptyNode = document.createElement('div');
+                    emptyNode.className = 'heap-empty';
+                    emptyNode.textContent = '空';
+                    heapTreeEl.appendChild(emptyNode);
+                } else if (heap.length === 1) {
+                    const root = document.createElement('div');
+                    root.className = 'heap-node root';
+                    if (step.id === 8) root.classList.add('answer-node');
+                    if (prevStep && prevStep.heap.length === 0) root.classList.add('node-pop-in');
+                    root.textContent = heap[0];
+                    heapTreeEl.appendChild(root);
+                } else if (heap.length >= 2) {
+                    const root = document.createElement('div');
+                    root.className = 'heap-node root';
+                    if (step.id === 8) root.classList.add('answer-node');
+                    if (prevStep && prevStep.heap.length < 2 && heap.length >= 2) root.classList.add('node-pop-in');
+                    root.textContent = heap[0];
+                    heapTreeEl.appendChild(root);
+
+                    const connector = document.createElement('div');
+                    connector.className = 'heap-connector';
+                    heapTreeEl.appendChild(connector);
+
+                    const childContainer = document.createElement('div');
+                    childContainer.style.display = 'flex';
+                    childContainer.style.gap = '14px';
+                    childContainer.style.justifyContent = 'center';
+
+                    for (let i = 1; i < heap.length; i++) {
+                        const child = document.createElement('div');
+                        child.className = 'heap-node child';
+                        if (step.replacedNode !== null && heap[i] === step.replacedNode && step.action ===
+                            'replace_top') {
+                            child.classList.add('replaced');
+                        }
+                        if (prevStep && prevStep.heap.length <= i) child.classList.add('node-pop-in');
+                        child.textContent = heap[i];
+                        childContainer.appendChild(child);
+                    }
+                    heapTreeEl.appendChild(childContainer);
+                }
+
+                // Heap array display
+                heapArrayDisplayEl.textContent = '堆内部: [' + step.heap.join(', ') + ']';
+                if (step.heapTop !== null) {
+                    heapArrayDisplayEl.textContent += ' | 堆顶: ' + step.heapTop;
+                }
+            }
+
+            // ============ UPDATE ALL ============
+            function updateAll() {
+                const step = steps[currentStepIndex];
+                counterEl.textContent = (currentStepIndex + 1) + ' / ' + totalSteps;
+                opEl.textContent = step.op;
+                opEl.className = 'badge ' + (step.op === 'SKIP' ? 'badge-red' :
+                    step.op === 'RETURN' ? 'badge-gold' :
+                    step.op === 'REPLACE_TOP' ? 'badge-purple' : 'badge-blue');
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                teachingEl.innerHTML = step.teaching;
+                stateEl.textContent = JSON.stringify({
+                    heap: step.heap,
+                    heapTop: step.heapTop,
+                    currentIndex: step.currentIndex,
+                    currentElement: step.currentElement,
+                    action: step.action,
+                    step: step.id,
+                }, null, 2);
+                stepEvidenceEl.textContent = step.evidence;
+                updateCodeHighlight();
+                updateCanvas();
+                updateTimelineActive();
+                rangeEl.value = currentStepIndex + 1;
+
+                // Checkpoint
+                checkpointSubmitted = false;
+                checkpointRevealed = false;
+                checkpointFeedback.textContent = '';
+                checkpointFeedback.className = 'checkpoint-feedback';
+
+                if (step.checkpointActive && step.checkpointData) {
+                    checkpointArea.classList.add('checkpoint-active');
+                    const cd = step.checkpointData;
+                    checkpointQuestion.textContent = '❓ ' + cd.question;
+                    checkpointOptions.innerHTML = '';
+                    cd.options.forEach(opt => {
+                        const label = document.createElement('label');
+                        label.className = 'checkpoint-option';
+                        label.innerHTML =
+                            `<input type="radio" name="checkpoint-answer" value="${opt.value}"> <span><strong>${opt.label}.</strong> ${opt.text}</span>`;
+                        checkpointOptions.appendChild(label);
+                    });
+                    $$('.checkpoint-option').forEach(o => {
+                        o.classList.remove('correct-flash', 'wrong-flash');
+                    });
+                    checkpointArea.dataset.correctAnswer = cd.correctAnswer;
+                    checkpointArea.dataset.correctFeedback = cd.correctFeedback;
+                    checkpointArea.dataset.wrongFeedback = JSON.stringify(cd.wrongFeedback || {});
+                    checkpointArea.dataset.hint = cd.hint;
+                    checkpointSubmit.disabled = false;
+                    checkpointShowAnswer.disabled = false;
+                    checkpointHintBtn.disabled = false;
+                } else {
+                    checkpointArea.classList.remove('checkpoint-active');
+                    checkpointQuestion.textContent =
+                        '💡 当前步骤没有内置检测点。你可以使用"🔮 预测下一步"按钮来测试自己对算法的理解，或导航到步骤 3、5、6 查看检测点。';
+                    checkpointOptions.innerHTML = '';
+                    checkpointArea.dataset.correctAnswer = '';
+                    checkpointArea.dataset.correctFeedback = '';
+                    checkpointArea.dataset.wrongFeedback = '{}';
+                    checkpointArea.dataset.hint = '';
+                    checkpointSubmit.disabled = true;
+                    checkpointShowAnswer.disabled = true;
+                    checkpointHintBtn.disabled = true;
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.className = 'checkpoint-feedback';
+                }
+
+                // Enable/disable buttons
+                prevBtn.disabled = (currentStepIndex === 0);
+                nextBtn.disabled = (currentStepIndex === totalSteps - 1);
+                rangeEl.max = totalSteps;
+                rangeEl.value = currentStepIndex + 1;
+
+                // Completion celebration
+                if (step.id === 8 && !hasShownCompletion) {
+                    hasShownCompletion = true;
+                    spawnCelebration();
+                    showCompletionToast();
+                    vizPanel.classList.add('celebration-panel');
+                    setTimeout(() => vizPanel.classList.remove('celebration-panel'), 800);
+                }
+                if (step.id !== 8) {
+                    hasShownCompletion = false;
+                }
+
+                // Flash key code lines
+                if (step.action === 'replace_top') {
+                    setTimeout(() => flashCodeLine(6), 100);
+                    setTimeout(() => flashCodeLine(7), 250);
+                }
+            }
+
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                const prevIndex = currentStepIndex;
+                currentStepIndex = index;
+                updateAll();
+                // Scroll timeline active tick into view if needed
+                const activeTick = $$('#timeline .tick')[index];
+                if (activeTick) {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // ============ COMPLETION TOAST ============
+            function showCompletionToast() {
+                const existingToast = document.querySelector('.completion-toast');
+                if (existingToast) existingToast.remove();
+
+                const toast = document.createElement('div');
+                toast.className = 'completion-toast';
+                toast.innerHTML = '🎉 <strong>恭喜完成！</strong> 第 K 大元素 = <strong>5</strong> &nbsp;|&nbsp; 堆: [5, 6]';
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(-50%) translateY(-30px)';
+                    toast.style.transition = 'all 0.5s ease';
+                    setTimeout(() => toast.remove(), 500);
+                }, 3500);
+            }
+
+            // ============ PLAY ============
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸';
+                playBtn.classList.add('playing');
+                playBtn.setAttribute('aria-label', '暂停自动播放');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶';
+                playBtn.classList.remove('playing');
+                playBtn.setAttribute('aria-label', '自动播放');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ============ PREDICT NEXT ============
+            function predictNext() {
+                if (currentStepIndex >= totalSteps - 1) {
+                    checkpointFeedback.textContent = '🎉 已经是最后一步了！算法已完成，答案是 5。';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                    return;
+                }
+                const nextStep = steps[currentStepIndex + 1];
+                const currentStep = steps[currentStepIndex];
+                const question =
+                    `🔮 根据当前状态（堆=${JSON.stringify(currentStep.heap)}，堆顶=${currentStep.heapTop}），请预测：处理下一个元素 nums[${currentStep.currentIndex + 1 >= 0 && currentStep.currentIndex + 1 < nums.length ? currentStep.currentIndex + 1 : '?'}] 后，堆会如何变化？`;
+                checkpointQuestion.textContent = question;
+                checkpointFeedback.textContent =
+                    '💡 这是自由预测练习。思考后再点击"下一步"查看实际结果，对比你的预测。你也可以在下方学习日志中记录你的思考。';
+                checkpointFeedback.className = 'checkpoint-feedback feedback-info';
+
+                // Auto-log the prediction attempt
+                const logEntry = {
+                    step: currentStepIndex + 1,
+                    stepTitle: currentStep.title,
+                    userAnswer: '(预测练习)',
+                    correctAnswer: nextStep ? nextStep.actionDetail : 'N/A',
+                    isCorrect: null,
+                    timestamp: new Date().toLocaleTimeString(),
+                    revealed: false,
+                    prediction: true,
+                };
+                learningLogEntries.push(logEntry);
+                updateLearningLog();
+            }
+
+            // ============ EVENT LISTENERS ============
+            prevBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            nextBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+            });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                goToStep(val - 1);
+            });
+            resetBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(0);
+                hasShownCompletion = false;
+                checkpointFeedback.textContent = '';
+                checkpointFeedback.className = 'checkpoint-feedback';
+            });
+            predictBtn.addEventListener('click', () => {
+                predictNext();
+            });
+
+            // Checkpoint submit
+            checkpointSubmit.addEventListener('click', () => {
+                if (checkpointSubmitted) {
+                    checkpointFeedback.textContent = '⚠️ 你已经提交过这个检测点的答案了。请导航到其他检测点继续练习。';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-info';
+                    return;
+                }
+                const selected = document.querySelector('input[name="checkpoint-answer"]:checked');
+                if (!selected) {
+                    checkpointFeedback.textContent = '⚠️ 请先选择一个选项再提交。';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-info';
+                    return;
+                }
+                const userAnswer = selected.value;
+                const correctAnswer = checkpointArea.dataset.correctAnswer;
+                const isCorrect = (userAnswer === correctAnswer);
+                checkpointSubmitted = true;
+                checkpointRevealed = true;
+
+                const allOptions = $$('.checkpoint-option');
+                allOptions.forEach(opt => {
+                    const radio = opt.querySelector('input');
+                    if (radio && radio.value === correctAnswer) {
+                        opt.classList.add('correct-flash');
+                    }
+                    if (radio && radio.value === userAnswer && !isCorrect) {
+                        opt.classList.add('wrong-flash');
+                    }
+                });
+
+                if (isCorrect) {
+                    checkpointFeedback.textContent = '🎉 ' + (checkpointArea.dataset.correctFeedback ||
+                        '正确！');
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                    spawnCelebration();
+                } else {
+                    const wrongMap = JSON.parse(checkpointArea.dataset.wrongFeedback || '{}');
+                    checkpointFeedback.textContent = (wrongMap[userAnswer] || '❌ 答案不正确。') +
+                        ' 正确答案是 ' + correctAnswer + '。';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-wrong';
+                }
+
+                const logEntry = {
+                    step: currentStepIndex + 1,
+                    stepTitle: steps[currentStepIndex].title,
+                    userAnswer: userAnswer,
+                    correctAnswer: correctAnswer,
+                    isCorrect: isCorrect,
+                    timestamp: new Date().toLocaleTimeString(),
+                    revealed: false,
+                    prediction: false,
+                };
+                learningLogEntries.push(logEntry);
+                updateLearningLog();
+            });
+
+            checkpointHintBtn.addEventListener('click', () => {
+                const hint = checkpointArea.dataset.hint || '暂无提示。请导航到包含检测点的步骤（步骤3、5、6）。';
+                checkpointFeedback.textContent = '💡 ' + hint;
+                checkpointFeedback.className = 'checkpoint-feedback feedback-hint';
+            });
+
+            checkpointShowAnswer.addEventListener('click', () => {
+                const correctAnswer = checkpointArea.dataset.correctAnswer;
+                if (!correctAnswer) {
+                    checkpointFeedback.textContent = '⚠️ 当前步骤没有检测点答案可显示。请导航到步骤 3、5 或 6。';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-info';
+                    return;
+                }
+                checkpointRevealed = true;
+                checkpointFeedback.textContent = '👁️ 正确答案是 ' + correctAnswer + '。' + (checkpointArea.dataset
+                    .correctFeedback || '');
+                checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                const allOptions = $$('.checkpoint-option');
+                allOptions.forEach(opt => {
+                    const radio = opt.querySelector('input');
+                    if (radio && radio.value === correctAnswer) {
+                        opt.classList.add('correct-flash');
+                    }
+                });
+                if (!checkpointSubmitted) {
+                    checkpointSubmitted = true;
+                    const logEntry = {
+                        step: currentStepIndex + 1,
+                        stepTitle: steps[currentStepIndex].title,
+                        userAnswer: '(revealed)',
+                        correctAnswer: correctAnswer,
+                        isCorrect: false,
+                        timestamp: new Date().toLocaleTimeString(),
+                        revealed: true,
+                        prediction: false,
+                    };
+                    learningLogEntries.push(logEntry);
+                    updateLearningLog();
+                }
+            });
+
+            function updateLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    learningLogEl.innerHTML =
+                        '<span class="log-empty">尚无提交记录。完成检测点或使用预测功能来记录学习轨迹。</span>';
+                    return;
+                }
+                learningLogEl.innerHTML = '';
+                learningLogEntries.forEach((entry, idx) => {
+                    const div = document.createElement('div');
+                    if (entry.prediction) {
+                        div.className = 'log-entry info-log';
+                        const icon = '🔮';
+                        div.textContent =
+                            `[${entry.timestamp}] 步骤${entry.step} ${entry.stepTitle} | ${icon} 预测练习 | 实际: ${entry.correctAnswer}`;
+                    } else {
+                        div.className = 'log-entry ' + (entry.isCorrect ? 'correct-log' : 'wrong-log');
+                        const icon = entry.isCorrect ? '✅' : (entry.revealed ? '👁️' : '❌');
+                        div.textContent =
+                            `[${entry.timestamp}] 步骤${entry.step} ${entry.stepTitle} | 选择: ${entry.userAnswer} | 正确: ${entry.correctAnswer} ${icon}`;
+                    }
+                    learningLogEl.appendChild(div);
+                });
+                learningLogEl.scrollTop = learningLogEl.scrollHeight;
+            }
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'range') return;
+                if (e.target.tagName === 'INPUT' && e.target.type === 'radio') return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(0);
+                } else if (e.key === 'End') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(totalSteps - 1);
+                }
+            });
+
+            // Touch swipe support
+            let touchStartX = 0;
+            let touchStartY = 0;
+            document.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+            document.addEventListener('touchend', (e) => {
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                    stopPlay();
+                    if (dx < -30 && currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else if (dx > 30 && currentStepIndex > 0) {
+                        goToStep(currentStepIndex - 1);
+                    }
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                buildTimeline();
+                buildCode();
+                goToStep(0);
+                rangeEl.min = 1;
+                rangeEl.max = totalSteps;
+                rangeEl.value = 1;
+                answerEl.textContent = '5';
+                topResultEl.textContent = '5';
+                hasShownCompletion = false;
+                learningLogEntries = [];
+                updateLearningLog();
+                checkpointFeedback.textContent = '';
+                checkpointFeedback.className = 'checkpoint-feedback';
+                // Set initial checkpoint message
+                checkpointQuestion.textContent =
+                    '💡 当前步骤没有内置检测点。你可以使用"🔮 预测下一步"按钮来测试自己对算法的理解，或导航到步骤 3、5、6 查看检测点。';
+            }
+
+            init();
+
+            // Log initial state
+            console.log('🚀 AlgoLab - 数组中的第 K 个最大元素 已就绪');
+            console.log('   📊 数组: [3, 2, 1, 5, 6, 4]  |  k = 2  |  答案: 5');
+            console.log('   🎮 键盘快捷键: ← → 导航 | 空格 播放/暂停 | Home/End 跳转首尾');
+            console.log('   🧠 检测点位于步骤 3、5、6 | 🔮 任意步骤可使用"预测下一步"');
+            console.log('   ✨ 完成全部步骤后有庆祝动画！');
+        })();
+    </script>
+</body>
+</html>

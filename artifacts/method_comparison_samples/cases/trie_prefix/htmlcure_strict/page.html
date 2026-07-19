@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trie 前缀计数 - AlgoLab 教学页</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --panel-bg: #161b22;
+            --card-bg: #1c2129;
+            --text: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-glow: #79b8ff;
+            --accent-dim: rgba(88, 166, 255, 0.15);
+            --gold: #f0c040;
+            --gold-glow: #f5d060;
+            --gold-dim: rgba(240, 192, 64, 0.12);
+            --green: #3fb950;
+            --green-glow: #56d364;
+            --green-dim: rgba(63, 185, 80, 0.12);
+            --orange: #f0883e;
+            --orange-glow: #f5a060;
+            --orange-dim: rgba(240, 136, 62, 0.1);
+            --red: #f85149;
+            --red-dim: rgba(248, 81, 73, 0.12);
+            --pink: #e0558a;
+            --purple: #a371f7;
+            --border: #30363d;
+            --border-light: #484f58;
+            --highlight-line: rgba(240, 192, 64, 0.22);
+            --node-default: #2d3a50;
+            --node-current: #f0c040;
+            --node-answer: #3fb950;
+            --node-path: #58a6ff;
+            --node-new: #f0883e;
+            --node-updated: #c9a020;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-lg: 14px;
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+            --shadow-glow: 0 0 20px rgba(88, 166, 255, 0.3);
+            --transition: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.55;
+        }
+
+        .page-container {
+            max-width: 1140px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(88, 166, 255, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 60%, rgba(240, 192, 64, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .header>* {
+            position: relative;
+            z-index: 1;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .algo-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent), #4090e0);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.72rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.35);
+            animation: badgePulse 3s ease-in-out infinite;
+        }
+        @keyframes badgePulse {
+            0%,
+            100% {
+                box-shadow: 0 2px 8px rgba(88, 166, 255, 0.35);
+            }
+            50% {
+                box-shadow: 0 2px 18px rgba(88, 166, 255, 0.6);
+            }
+        }
+        #title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.4px;
+            white-space: nowrap;
+        }
+        #subtitle {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            font-weight: 400;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            font-size: 2.1rem;
+            font-weight: 900;
+            color: var(--green-glow);
+            background: var(--green-dim);
+            border: 2px solid var(--green);
+            border-radius: var(--radius);
+            padding: 8px 18px;
+            min-width: 54px;
+            text-align: center;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+            box-shadow: 0 0 18px rgba(63, 185, 80, 0.25);
+            animation: answerGlow 2.5s ease-in-out infinite;
+        }
+        @keyframes answerGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 18px rgba(63, 185, 80, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 32px rgba(63, 185, 80, 0.5);
+            }
+        }
+        #top-solution {
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+            max-width: 300px;
+            text-align: right;
+            line-height: 1.4;
+            white-space: normal;
+        }
+        #top-solution strong {
+            color: #fff;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 16px;
+        }
+        @media (max-width: 850px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            #top-solution {
+                text-align: left;
+            }
+            #top-result {
+                font-size: 1.6rem;
+                padding: 6px 14px;
+            }
+        }
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .panel:hover {
+            border-color: var(--border-light);
+            box-shadow: var(--shadow-lg);
+        }
+        .panel-title {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .panel-title .icon-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .icon-dot.code-dot {
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent-glow);
+        }
+        .icon-dot.viz-dot {
+            background: var(--gold);
+            box-shadow: 0 0 6px var(--gold-glow);
+        }
+        .icon-dot.info-dot {
+            background: var(--purple);
+            box-shadow: 0 0 6px var(--purple);
+        }
+
+        #code {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.75;
+            overflow-x: auto;
+            white-space: pre;
+            color: #c9d1d9;
+            position: relative;
+            max-height: 440px;
+            overflow-y: auto;
+            tab-size: 3;
+        }
+        #code .code-line {
+            display: block;
+            padding: 3px 10px;
+            margin: 0 -10px;
+            border-radius: 4px;
+            transition: all var(--transition-fast);
+        }
+        #code .code-line.highlight {
+            background: var(--highlight-line);
+            border-left: 3px solid var(--gold);
+            padding-left: 15px;
+            margin-left: -10px;
+            font-weight: 600;
+            color: #fff;
+            box-shadow: inset 0 0 20px rgba(240, 192, 64, 0.08);
+        }
+        .code-keyword {
+            color: #ff7b72;
+            font-weight: 500;
+        }
+        .code-func {
+            color: #d2a8ff;
+            font-weight: 500;
+        }
+        .code-string {
+            color: #a5d6ff;
+        }
+        .code-comment {
+            color: #6e7681;
+            font-style: italic;
+        }
+        .code-number {
+            color: #79c0ff;
+            font-weight: 500;
+        }
+
+        #canvas {
+            background: #0d1117;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            min-height: 340px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            overflow: auto;
+            position: relative;
+            flex-direction: column;
+        }
+        #canvas .trie-container {
+            font-family: var(--font-mono);
+            font-size: 0.84rem;
+            user-select: none;
+            width: 100%;
+        }
+        #canvas .trie-root-label {
+            display: inline-block;
+            background: #21262d;
+            color: #b0b8c4;
+            padding: 5px 12px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.76rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            transition: all var(--transition-fast);
+        }
+        #canvas ul.trie-tree {
+            list-style: none;
+            padding-left: 24px;
+            border-left: 2px solid #30363d;
+            margin-left: 10px;
+            position: relative;
+        }
+        #canvas ul.trie-tree::before {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: 0;
+            bottom: 50%;
+            width: 16px;
+            border-bottom: 2px solid #30363d;
+            border-left: 2px solid #30363d;
+            border-bottom-left-radius: 8px;
+        }
+        #canvas li.trie-node-item {
+            position: relative;
+            padding: 4px 0 4px 12px;
+            margin: 3px 0;
+            animation: treeItemIn 0.4s ease-out both;
+        }
+        @keyframes treeItemIn {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        #canvas li.trie-node-item::before {
+            content: '';
+            position: absolute;
+            left: -12px;
+            top: 50%;
+            width: 12px;
+            height: 2px;
+            background: #30363d;
+        }
+        #canvas .trie-node-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--node-default);
+            color: #d0d7e2;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.81rem;
+            transition: all var(--transition);
+            border: 2px solid transparent;
+            white-space: nowrap;
+            position: relative;
+            cursor: default;
+        }
+        #canvas .trie-node-chip .node-char {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #fff;
+        }
+        #canvas .trie-node-chip .node-count {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #e0e4ea;
+            min-width: 20px;
+            text-align: center;
+        }
+        #canvas .trie-node-chip.node-current {
+            background: var(--node-current);
+            color: #1a1a0a;
+            border-color: #fff;
+            box-shadow: 0 0 18px rgba(240, 192, 64, 0.55);
+            animation: pulse-current 1.2s ease-in-out infinite;
+            transform: scale(1.04);
+        }
+        #canvas .trie-node-chip.node-current .node-char {
+            color: #1a1a0a;
+        }
+        #canvas .trie-node-chip.node-current .node-count {
+            background: rgba(0, 0, 0, 0.3);
+            color: #1a1a0a;
+        }
+        #canvas .trie-node-chip.node-answer {
+            background: var(--node-answer);
+            color: #fff;
+            border-color: #fff;
+            box-shadow: 0 0 22px rgba(63, 185, 80, 0.7);
+            animation: pulse-answer 1s ease-in-out infinite;
+            transform: scale(1.06);
+        }
+        #canvas .trie-node-chip.node-answer .node-count {
+            background: rgba(255, 255, 255, 0.35);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 900;
+        }
+        #canvas .trie-node-chip.node-path {
+            background: #2a5080;
+            border-color: var(--accent);
+            box-shadow: 0 0 14px rgba(88, 166, 255, 0.5);
+        }
+        #canvas .trie-node-chip.node-new {
+            background: var(--node-new);
+            border-color: #fff;
+            animation: fadeInPop 0.5s ease-out;
+            box-shadow: 0 0 12px rgba(240, 136, 62, 0.5);
+        }
+        #canvas .trie-node-chip.node-updated {
+            background: #5a4520;
+            border-color: var(--gold);
+            box-shadow: 0 0 10px rgba(240, 192, 64, 0.4);
+            animation: updatedShimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes updatedShimmer {
+            0%,
+            100% {
+                box-shadow: 0 0 10px rgba(240, 192, 64, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(240, 192, 64, 0.7);
+            }
+        }
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 18px rgba(240, 192, 64, 0.55);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(240, 192, 64, 0.9);
+            }
+        }
+        @keyframes pulse-answer {
+            0%,
+            100% {
+                box-shadow: 0 0 22px rgba(63, 185, 80, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 36px rgba(63, 185, 80, 1);
+            }
+        }
+        @keyframes fadeInPop {
+            0% {
+                transform: scale(0.65);
+                opacity: 0;
+            }
+            70% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes shimmerSweep {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px 0;
+        }
+        .btn {
+            padding: 9px 18px;
+            border-radius: 22px;
+            border: 1px solid var(--border-light);
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+            font-family: var(--font-sans);
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover {
+            background: #2d333b;
+            border-color: #6a7282;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        .btn:active {
+            transform: scale(0.95);
+            background: #252a32;
+            transition: all 0.08s;
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(30%);
+        }
+        .btn.active-btn {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+            font-weight: 700;
+            box-shadow: 0 0 14px rgba(88, 166, 255, 0.4);
+        }
+        #play {
+            background: var(--green);
+            border-color: var(--green);
+            color: #000;
+            font-weight: 700;
+            box-shadow: 0 0 14px rgba(63, 185, 80, 0.35);
+        }
+        #play:hover {
+            background: #4cc760;
+            box-shadow: 0 0 20px rgba(63, 185, 80, 0.5);
+        }
+        #play.paused {
+            background: var(--orange);
+            border-color: var(--orange);
+            box-shadow: 0 0 14px rgba(240, 136, 62, 0.4);
+        }
+        #play.paused:hover {
+            background: #f59a4a;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 220px;
+            accent-color: var(--accent);
+            height: 7px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all var(--transition-fast);
+        }
+        #range:hover {
+            accent-color: var(--accent-glow);
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #fff;
+            white-space: nowrap;
+            background: var(--card-bg);
+            padding: 7px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+            min-width: 60px;
+            text-align: center;
+        }
+        #op {
+            font-size: 0.8rem;
+            color: var(--gold);
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--gold-dim);
+            padding: 7px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(240, 192, 64, 0.25);
+        }
+
+        #timeline {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #timeline .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-family: var(--font-sans);
+            min-width: 74px;
+            text-align: center;
+            position: relative;
+        }
+        #timeline .tick:hover {
+            border-color: #6a7282;
+            background: #283040;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        #timeline .tick.active-tick {
+            border-color: var(--gold);
+            background: var(--gold-dim);
+            box-shadow: 0 0 16px rgba(240, 192, 64, 0.3);
+            animation: tickActive 2s ease-in-out infinite;
+        }
+        @keyframes tickActive {
+            0%,
+            100% {
+                box-shadow: 0 0 16px rgba(240, 192, 64, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 26px rgba(240, 192, 64, 0.55);
+            }
+        }
+        #timeline .tick .tick-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+        #timeline .tick.active-tick .tick-label {
+            color: var(--gold);
+        }
+        #timeline .tick .tick-op {
+            font-size: 0.74rem;
+            font-weight: 500;
+            color: #c0c6d0;
+        }
+        #timeline .tick.active-tick .tick-op {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        #step-title {
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        #step-desc {
+            font-size: 0.86rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+        #teaching {
+            font-size: 0.84rem;
+            color: #c8d0da;
+            line-height: 1.65;
+            background: var(--accent-dim);
+            border-left: 3px solid var(--accent);
+            padding: 12px 16px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            transition: all var(--transition);
+        }
+        #teaching code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: #ffd080;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            color: #a5d6ff;
+            white-space: pre-wrap;
+            max-height: 190px;
+            overflow-y: auto;
+            line-height: 1.55;
+            transition: all var(--transition);
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: var(--orange-dim);
+            border-left: 3px solid var(--orange);
+            padding: 12px 16px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            line-height: 1.55;
+            transition: all var(--transition);
+        }
+        #step-evidence strong {
+            color: var(--orange-glow);
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 900;
+            font-size: 1.4rem;
+            color: var(--green-glow);
+            background: var(--green-dim);
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--green);
+            text-align: center;
+            display: inline-block;
+            letter-spacing: 0.6px;
+            box-shadow: 0 0 20px rgba(63, 185, 80, 0.3);
+            animation: answerGlow 2.5s ease-in-out infinite;
+        }
+
+        .checkpoint-area {
+            background: #161b26;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-top: 4px;
+            transition: all var(--transition);
+        }
+        .checkpoint-area h4 {
+            font-size: 0.88rem;
+            color: var(--gold);
+            margin-bottom: 10px;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .checkpoint-area .quiz-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin: 10px 0;
+        }
+        .checkpoint-area .quiz-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 0.86rem;
+            padding: 8px 15px;
+            border-radius: 18px;
+            border: 2px solid var(--border-light);
+            background: var(--card-bg);
+            transition: all var(--transition-fast);
+            user-select: none;
+            font-weight: 500;
+        }
+        .checkpoint-area .quiz-option:hover {
+            border-color: #8a94a6;
+            background: #283040;
+            transform: translateY(-1px);
+        }
+        .checkpoint-area .quiz-option input[type="radio"] {
+            accent-color: var(--accent);
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        .checkpoint-area .quiz-option.selected-opt {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+            box-shadow: 0 0 12px rgba(88, 166, 255, 0.2);
+        }
+        .checkpoint-area .btn-row {
+            display: flex;
+            gap: 9px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .checkpoint-area .feedback {
+            margin-top: 10px;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.83rem;
+            line-height: 1.55;
+            display: none;
+            animation: fadeInPop 0.35s ease-out;
+        }
+        .checkpoint-area .feedback.show {
+            display: block;
+        }
+        .checkpoint-area .feedback.correct {
+            background: var(--green-dim);
+            border: 1px solid var(--green);
+            color: #b8f0c0;
+        }
+        .checkpoint-area .feedback.incorrect {
+            background: var(--red-dim);
+            border: 1px solid var(--red);
+            color: #fcc;
+        }
+        .checkpoint-area .feedback.hint-fb {
+            background: var(--gold-dim);
+            border: 1px solid var(--gold);
+            color: #f5e0a0;
+        }
+        #learning-log {
+            font-size: 0.77rem;
+            color: var(--text-secondary);
+            max-height: 130px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+            margin-top: 10px;
+            padding-top: 10px;
+            line-height: 1.6;
+        }
+        #learning-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px dotted #252a33;
+            transition: all var(--transition-fast);
+        }
+        #learning-log .log-entry.correct-log {
+            color: #8be0a0;
+            font-weight: 500;
+        }
+        #learning-log .log-entry.incorrect-log {
+            color: #f0a0a0;
+            font-weight: 500;
+        }
+        #learning-log .log-entry.hint-log {
+            color: #f5d080;
+        }
+        #learning-log .log-entry.answer-log {
+            color: #a0c8f0;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .two-col {
+            grid-column: span 2;
+        }
+        @media (max-width: 850px) {
+            .two-col {
+                grid-column: span 1;
+            }
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .kbd-hint {
+            display: inline-block;
+            font-size: 0.65rem;
+            background: #21262d;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+        .step-transition {
+            animation: stepFadeIn 0.4s ease-out;
+        }
+        @keyframes stepFadeIn {
+            from {
+                opacity: 0.6;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particleCanvas" width="800" height="600" tabindex="0"></canvas>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <span class="algo-badge">🌳 Trie</span>
+                <div>
+                    <div id="title">Trie 前缀计数</div>
+                    <div id="subtitle">插入单词 + 沿前缀路径统计匹配数量</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <span style="color:var(--text-secondary);font-size:0.8rem;font-weight:500;">🎯 最终答案</span>
+                <span id="top-result">3</span>
+                <span id="top-solution">前缀 <strong>"ap"</strong> 匹配 <strong>3</strong> 个单词：<strong>apple</strong>、<strong>app</strong>、<strong>ape</strong></span>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Code Panel -->
+            <div class="panel" style="grid-row:span 2;">
+                <div class="panel-title"><span class="icon-dot code-dot"></span> 📜 算法代码</div>
+                <pre id="code"><span class="code-line" data-line="0"><span class="code-keyword">function</span> <span class="code-func">solve</span>(words, prefix) {</span>
+<span class="code-line" data-line="1">  <span class="code-keyword">const</span> root = <span class="code-keyword">new</span> <span class="code-func">TrieNode</span>();</span>
+<span class="code-line" data-line="2">  <span class="code-comment">// 阶段1：插入所有单词</span></span>
+<span class="code-line" data-line="3">  <span class="code-keyword">for</span> (<span class="code-keyword">const</span> word <span class="code-keyword">of</span> words) {</span>
+<span class="code-line" data-line="4">    <span class="code-keyword">let</span> node = root;</span>
+<span class="code-line" data-line="5">    <span class="code-keyword">for</span> (<span class="code-keyword">const</span> ch <span class="code-keyword">of</span> word) {</span>
+<span class="code-line" data-line="6">      <span class="code-keyword">if</span> (!node.children[ch]) {</span>
+<span class="code-line" data-line="7">        node.children[ch] = <span class="code-keyword">new</span> <span class="code-func">TrieNode</span>();</span>
+<span class="code-line" data-line="8">      }</span>
+<span class="code-line" data-line="9">      node = node.children[ch];</span>
+<span class="code-line" data-line="10">      node.count++;</span>
+<span class="code-line" data-line="11">    }</span>
+<span class="code-line" data-line="12">  }</span>
+<span class="code-line" data-line="13">  <span class="code-comment">// 阶段2：查询前缀</span></span>
+<span class="code-line" data-line="14">  <span class="code-keyword">let</span> node = root;</span>
+<span class="code-line" data-line="15">  <span class="code-keyword">for</span> (<span class="code-keyword">const</span> ch <span class="code-keyword">of</span> prefix) {</span>
+<span class="code-line" data-line="16">    <span class="code-keyword">if</span> (!node.children[ch]) <span class="code-keyword">return</span> <span class="code-number">0</span>;</span>
+<span class="code-line" data-line="17">    node = node.children[ch];</span>
+<span class="code-line" data-line="18">  }</span>
+<span class="code-line" data-line="19">  <span class="code-keyword">return</span> node.count;</span>
+<span class="code-line" data-line="20">}</span></pre>
+            </div>
+
+            <!-- Canvas Panel -->
+            <div class="panel">
+                <div class="panel-title"><span class="icon-dot viz-dot"></span> 🔍 算法视图 — Trie 树结构</div>
+                <div id="canvas">
+                    <div class="trie-container">
+                        <span class="trie-root-label">📌 root (count: 0)</span>
+                        <ul class="trie-tree"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step Info -->
+            <div class="panel">
+                <div class="flex-between">
+                    <span id="step-title" style="font-size:1.08rem;font-weight:700;color:#fff;">步骤 1：初始化</span>
+                    <span id="op" style="font-size:0.8rem;color:var(--gold);">创建根节点</span>
+                </div>
+                <div id="step-desc">创建空的 Trie 根节点，准备插入所有单词。</div>
+                <div id="teaching">Trie（前缀树）的根节点不存储任何字符，它只作为树的入口。每个节点维护一个 <code>count</code> 表示经过该节点的单词数量，以及一个 <code>children</code> 映射表指向子节点。初始化时根节点的 count=0，children 为空。</div>
+                <div id="state">{
+                    "root": {
+                    "count": 0,
+                    "children": {}
+                    },
+                    "待插入单词": ["apple","app","ape","bat"],
+                    "查询前缀": "ap"
+                    }</div>
+                <div id="step-evidence"><strong>operation:</strong> init<br><strong>targets:</strong> root 节点<br><strong>before:</strong> 无<br><strong>after:</strong> 创建根节点，count=0，children={}</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel full-width">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="上一步 (← 键)">◀ 上一步</button>
+                <button class="btn active-btn" id="play" title="自动播放 (空格键)">▶ 播放</button>
+                <button class="btn" id="next" title="下一步 (→ 键)">下一步 ▶</button>
+                <input type="range" id="range" min="1" max="6" value="1" step="1" title="拖动切换步骤">
+                <span id="counter">1 / 6</span>
+                <span id="op-mobile" style="font-size:0.78rem;color:var(--gold);display:none;"></span>
+                <span class="kbd-hint">← → 导航</span>
+                <span class="kbd-hint">空格 播放</span>
+            </div>
+            <div id="timeline">
+                <button class="tick active-tick" data-step="1" onclick="window._gotoStep &amp;&amp; window._gotoStep(1)"><span class="tick-label">🔰 初始化</span><span class="tick-op">创建根节点</span></button>
+                <button class="tick" data-step="2" onclick="window._gotoStep &amp;&amp; window._gotoStep(2)"><span class="tick-label">📥 插入</span><span class="tick-op">添加 apple</span></button>
+                <button class="tick" data-step="3" onclick="window._gotoStep &amp;&amp; window._gotoStep(3)"><span class="tick-label">📥 插入</span><span class="tick-op">添加 app</span></button>
+                <button class="tick" data-step="4" onclick="window._gotoStep &amp;&amp; window._gotoStep(4)"><span class="tick-label">📥 插入</span><span class="tick-op">添加 ape</span></button>
+                <button class="tick" data-step="5" onclick="window._gotoStep &amp;&amp; window._gotoStep(5)"><span class="tick-label">📥 插入</span><span class="tick-op">添加 bat</span></button>
+                <button class="tick" data-step="6" onclick="window._gotoStep &amp;&amp; window._gotoStep(6)"><span class="tick-label">🔎 查询</span><span class="tick-op">查找前缀 ap</span></button>
+            </div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="panel full-width checkpoint-area" id="checkpoint-panel">
+            <h4>🧠 Learner Checkpoint</h4>
+            <p id="checkpoint-question" style="font-size:0.86rem;color:#d0d6e0;">📋 请先完成当前步骤，checkpoint 将在适当时机出现。</p>
+            <div class="quiz-options" id="quiz-options"></div>
+            <div class="btn-row">
+                <button class="btn" id="btn-submit" disabled>✅ 提交</button>
+                <button class="btn" id="btn-hint" disabled>💡 提示</button>
+                <button class="btn" id="btn-show-answer" disabled>👁 显示答案</button>
+            </div>
+            <div class="feedback" id="feedback"></div>
+            <div id="learning-log">
+                <div style="color:var(--text-secondary);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">📝 学习日志</div>
+            </div>
+        </div>
+
+        <!-- Answer -->
+        <div class="panel full-width" style="text-align:center;">
+            <span style="color:var(--text-secondary);font-size:0.82rem;margin-right:10px;font-weight:500;">🎯 最终答案（裸 JSON）</span>
+            <span id="answer">3</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== Particle Canvas System ====================
+            const particleCanvas = document.getElementById('particleCanvas');
+            if (particleCanvas) {
+                particleCanvas.tabIndex = 0;
+                const pCtx = particleCanvas.getContext('2d');
+                let particles = [];
+                const maxParticles = 55;
+                let pWidth, pHeight;
+
+                function resizeParticleCanvas() {
+                    pWidth = particleCanvas.width = window.innerWidth;
+                    pHeight = particleCanvas.height = window.innerHeight;
+                }
+                resizeParticleCanvas();
+                window.addEventListener('resize', resizeParticleCanvas);
+
+                class Particle {
+                    constructor() {
+                        this.reset();
+                    }
+                    reset() {
+                        this.x = Math.random() * pWidth;
+                        this.y = Math.random() * pHeight;
+                        this.size = Math.random() * 1.8 + 0.5;
+                        this.speedX = (Math.random() - 0.5) * 0.4;
+                        this.speedY = (Math.random() - 0.5) * 0.4;
+                        this.opacity = Math.random() * 0.5 + 0.15;
+                        this.pulse = Math.random() * Math.PI * 2;
+                        this.pulseSpeed = Math.random() * 0.02 + 0.005;
+                    }
+                    update() {
+                        this.x += this.speedX;
+                        this.y += this.speedY;
+                        this.pulse += this.pulseSpeed;
+                        if (this.x < -10) this.x = pWidth + 10;
+                        if (this.x > pWidth + 10) this.x = -10;
+                        if (this.y < -10) this.y = pHeight + 10;
+                        if (this.y > pHeight + 10) this.y = -10;
+                    }
+                    draw(ctx) {
+                        const alpha = this.opacity + Math.sin(this.pulse) * 0.15;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(120,170,240,${Math.max(0.05, alpha)})`;
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size * 1.8, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(120,170,240,${Math.max(0.02, alpha * 0.35)})`;
+                        ctx.fill();
+                    }
+                }
+
+                while (particles.length < maxParticles) {
+                    particles.push(new Particle());
+                }
+
+                function particleLoop() {
+                    pCtx.clearRect(0, 0, pWidth, pHeight);
+                    for (const p of particles) {
+                        p.update();
+                        p.draw(pCtx);
+                    }
+                    requestAnimationFrame(particleLoop);
+                }
+                particleLoop();
+                particleCanvas.focus();
+            }
+
+            // ==================== TrieNode 类 ====================
+            class TrieNode {
+                constructor() {
+                    this.children = {};
+                    this.count = 0;
+                }
+            }
+
+            // ==================== 全局状态 ====================
+            const words = ["apple", "app", "ape", "bat"];
+            const prefix = "ap";
+            const totalSteps = 6;
+            let currentStep = 1;
+            let trieRoot = new TrieNode();
+            let nodePathMap = {};
+
+            const stepHighlights = {
+                1: {},
+                2: { 'a': 'node-new', 'ap': 'node-new', 'app': 'node-new', 'appl': 'node-new',
+                'apple': 'node-new' },
+                3: { 'a': 'node-updated', 'ap': 'node-updated', 'app': 'node-updated' },
+                4: { 'a': 'node-updated', 'ap': 'node-updated', 'ape': 'node-new' },
+                5: { 'b': 'node-new', 'ba': 'node-new', 'bat': 'node-new' },
+                6: { 'a': 'node-path', 'ap': 'node-answer' },
+            };
+
+            const stepData = [
+                null,
+                {
+                    title: '步骤 1：初始化 Trie',
+                    desc: '创建空的 Trie 根节点，准备插入所有单词。',
+                    teaching: 'Trie（前缀树）的根节点不存储任何字符，它只作为树的入口。每个节点维护一个 <code>count</code> 表示经过该节点的单词数量，以及一个 <code>children</code> 映射表指向子节点。初始化时根节点的 count=0，children 为空。这是所有后续操作的基础。',
+                    state: '{\n  "root": {\n    "count": 0,\n    "children": {}\n  },\n  "待插入单词": ["apple","app","ape","bat"],\n  "查询前缀": "ap"\n}',
+                    evidence: '<strong>operation:</strong> init<br><strong>targets:</strong> root 节点<br><strong>before:</strong> 无<br><strong>after:</strong> 创建根节点，count=0，children={}',
+                    op: '创建根节点',
+                    codeLines: [1],
+                    checkpoint: {
+                        question: '初始化后，根节点的 count 值是多少？',
+                        options: [
+                            { label: 'A', text: '0', value: '0' },
+                            { label: 'B', text: '1', value: '1' },
+                            { label: 'C', text: '4', value: '4' },
+                            { label: 'D', text: 'null', value: 'null' },
+                        ],
+                        correct: '0',
+                        hint: '根节点只是入口，不存储任何字符，也没有单词经过它。',
+                        explanation_correct: '正确！根节点初始化时 count=0，因为还没有插入任何单词。它只作为 Trie 的入口。',
+                        explanation_incorrect: '不对。根节点在初始化时 count=0，它只是树的入口。还没有任何单词被插入。',
+                    },
+                },
+                {
+                    title: '步骤 2：插入单词 "apple"',
+                    desc: '沿字符路径 a→p→p→l→e 创建节点，每个节点 count 设为 1。',
+                    teaching: '插入 <code>"apple"</code> 时，从根节点出发，逐字符检查 children。由于 Trie 为空，每个字符都需要创建新节点。每经过一个节点，其 <code>count</code> 就增加 1，表示有一个单词经过该前缀。最终路径上的 5 个节点 count 均为 1。',
+                    state: '{\n  "root": { "count": 0 },\n  "a": { "count": 1 },\n  "a→p": { "count": 1 },\n  "a→p→p": { "count": 1 },\n  "a→p→p→l": { "count": 1 },\n  "a→p→p→l→e": { "count": 1 }\n}',
+                    evidence: '<strong>operation:</strong> insert "apple"<br><strong>targets:</strong> 路径 a→p→p→l→e<br><strong>before:</strong> Trie 为空（仅根节点）<br><strong>after:</strong> 创建 5 个新节点，每个 count=1',
+                    op: '添加 apple',
+                    codeLines: [3, 4, 5, 6, 7, 9, 10],
+                    checkpoint: {
+                        question: '插入 "apple" 后，路径 "a→p" 节点的 count 是多少？',
+                        options: [
+                            { label: 'A', text: '0', value: '0' },
+                            { label: 'B', text: '1', value: '1' },
+                            { label: 'C', text: '2', value: '2' },
+                            { label: 'D', text: '5', value: '5' },
+                        ],
+                        correct: '1',
+                        hint: '目前只有一个单词 "apple" 经过了路径 a→p。',
+                        explanation_correct: '正确！只有 "apple" 经过了路径 a→p，所以 count=1。',
+                        explanation_incorrect: '不对。目前只有 "apple" 被插入，它经过 a→p，所以该节点 count=1。',
+                    },
+                },
+                {
+                    title: '步骤 3：插入单词 "app"',
+                    desc: '沿已有路径 a→p→p 复用节点，count 增加到 2。',
+                    teaching: '插入 <code>"app"</code> 时，前三个字符 a、p、p 的节点已存在（来自 <code>"apple"</code>），因此直接复用这些节点并将它们的 <code>count</code> 从 1 增加到 2。注意第三个字符 p（路径 "app"）的 count 变为 2，表示有两个单词以 "app" 为前缀。这里体现了 Trie 共享前缀的核心优势。',
+                    state: '{\n  "a": { "count": 2 },\n  "a→p": { "count": 2 },\n  "a→p→p": { "count": 2 },\n  "a→p→p→l": { "count": 1 },\n  "a→p→p→l→e": { "count": 1 }\n}',
+                    evidence: '<strong>operation:</strong> insert "app"<br><strong>targets:</strong> 路径 a→p→p（复用已有节点）<br><strong>before:</strong> a.count=1, ap.count=1, app.count=1<br><strong>after:</strong> a.count=2, ap.count=2, app.count=2',
+                    op: '添加 app',
+                    codeLines: [3, 4, 5, 9, 10],
+                    checkpoint: {
+                        question: '插入 "app" 后，节点 p（第二层，路径 "ap"）的 count 值是多少？',
+                        options: [
+                            { label: 'A', text: '1', value: '1' },
+                            { label: 'B', text: '2', value: '2' },
+                            { label: 'C', text: '3', value: '3' },
+                            { label: 'D', text: '0', value: '0' },
+                        ],
+                        correct: '2',
+                        hint: '回想一下：哪些单词经过了路径 "ap"？"apple" 和 "app" 都经过它。',
+                        explanation_correct: '正确！"apple" 和 "app" 都经过路径 "ap"（即 a→p），所以该节点的 count 从 1 增加到 2。Trie 通过共享前缀节点来高效存储。',
+                        explanation_incorrect: '不正确。请想一下：经过路径 "ap" 的单词有哪些？"apple" 和 "app" 都经过 a→p，所以 count=2。选 1 可能忽略了 "app" 的贡献；选 3 可能混淆了不同层级的节点。',
+                    },
+                },
+                {
+                    title: '步骤 4：插入单词 "ape"',
+                    desc: '沿路径 a→p 复用节点（count→3），然后创建新节点 e（count=1）。',
+                    teaching: '插入 <code>"ape"</code> 时，前两个字符 a 和 p 已存在，count 分别增加到 3。第三个字符 e 在 p 的 children 中不存在（p 的 children 目前只有 p），因此创建新节点 e。这展示了 Trie 如何处理分支：共享前缀 "ap"，但在第三个字符处分叉。',
+                    state: '{\n  "a": { "count": 3 },\n  "a→p": { "count": 3 },\n  "a→p→p": { "count": 2 },\n  "a→p→e": { "count": 1 },\n  "a→p→p→l": { "count": 1 },\n  "a→p→p→l→e": { "count": 1 }\n}',
+                    evidence: '<strong>operation:</strong> insert "ape"<br><strong>targets:</strong> 路径 a→p（复用+更新），e（新建）<br><strong>before:</strong> a.count=2, ap.count=2<br><strong>after:</strong> a.count=3, ap.count=3, 新建 ape 节点 count=1',
+                    op: '添加 ape',
+                    codeLines: [3, 4, 5, 6, 7, 9, 10],
+                    checkpoint: {
+                        question: '插入 "ape" 后，节点 p（路径 "ap"）的 count 变为多少？',
+                        options: [
+                            { label: 'A', text: '1', value: '1' },
+                            { label: 'B', text: '2', value: '2' },
+                            { label: 'C', text: '3', value: '3' },
+                            { label: 'D', text: '4', value: '4' },
+                        ],
+                        correct: '3',
+                        hint: '"apple"、"app"、"ape" 三个单词都经过了路径 a→p。',
+                        explanation_correct: '正确！三个单词都经过 a→p，所以 count=3。Trie 的分支结构在此体现。',
+                        explanation_incorrect: '不对。"apple"、"app"、"ape" 都经过 a→p，count 从 2 增加到 3。',
+                    },
+                },
+                {
+                    title: '步骤 5：插入单词 "bat"',
+                    desc: '创建全新分支 b→a→t，每个节点 count=1。',
+                    teaching: '插入 <code>"bat"</code> 时，根节点的 children 中没有 "b"，因此创建全新分支。这展示了 Trie 如何处理与前缀完全不同的单词——它们从根节点就分叉，互不影响。现在以 "a" 为前缀的单词有 3 个（apple、app、ape），以 "b" 为前缀的有 1 个（bat）。',
+                    state: '{\n  "a": { "count": 3 },\n  "a→p": { "count": 3 },\n  "b": { "count": 1 },\n  "b→a": { "count": 1 },\n  "b→a→t": { "count": 1 },\n  "节点总数": 10\n}',
+                    evidence: '<strong>operation:</strong> insert "bat"<br><strong>targets:</strong> 全新分支 b→a→t<br><strong>before:</strong> 根节点无 b 子节点<br><strong>after:</strong> 创建 3 个新节点，每个 count=1',
+                    op: '添加 bat',
+                    codeLines: [3, 4, 5, 6, 7, 9, 10],
+                    checkpoint: {
+                        question: '现在以 "a" 为前缀的单词有多少个？',
+                        options: [
+                            { label: 'A', text: '1', value: '1' },
+                            { label: 'B', text: '2', value: '2' },
+                            { label: 'C', text: '3', value: '3' },
+                            { label: 'D', text: '4', value: '4' },
+                        ],
+                        correct: '3',
+                        hint: '查看节点 a（第一层）的 count 值。它统计了所有经过字符 a 的单词。',
+                        explanation_correct: '正确！节点 a 的 count=3，表示有 3 个单词以 "a" 开头：apple、app、ape。这正是 Trie 前缀统计的核心能力。',
+                        explanation_incorrect: '不对。节点 a（根的直接子节点）的 count=3，分别来自 apple、app、ape。bat 以 "b" 开头，不走 a 分支。选 4 可能误把 bat 也算进去了。',
+                    },
+                },
+                {
+                    title: '步骤 6：查询前缀 "ap"',
+                    desc: '沿路径 a→p 查找，返回节点 p 的 count=3。',
+                    teaching: '查询前缀 <code>"ap"</code> 时，从根节点出发，逐字符沿 children 查找。首先找到 a 节点，再从 a 的 children 中找到 p 节点。p 节点的 count=3 表示有 3 个单词以 "ap" 为前缀（apple、app、ape）。如果某一步找不到对应字符，则返回 0 表示没有匹配。这就是 Trie 前缀查询的完整流程。',
+                    state: '{\n  "查询路径": "a → p",\n  "节点 p 的 count": 3,\n  "匹配单词": ["apple","app","ape"],\n  "最终答案": 3\n}',
+                    evidence: '<strong>operation:</strong> query prefix "ap"<br><strong>targets:</strong> 路径 a→p<br><strong>查找过程:</strong> root→a(存在)→p(存在)→返回 p.count=3<br><strong>结果:</strong> 3 个单词匹配',
+                    op: '查找前缀 ap',
+                    codeLines: [14, 15, 17, 19],
+                    checkpoint: {
+                        question: '如果查询前缀 "ba"，会返回什么结果？',
+                        options: [
+                            { label: 'A', text: '0', value: '0' },
+                            { label: 'B', text: '1', value: '1' },
+                            { label: 'C', text: '2', value: '2' },
+                            { label: 'D', text: '3', value: '3' },
+                        ],
+                        correct: '1',
+                        hint: '沿路径 b→a 查找。b 节点存在，a 是 b 的子节点，它的 count 是多少？',
+                        explanation_correct: '正确！路径 b→a 存在，节点 a（b 的子节点）的 count=1，只有 "bat" 以 "ba" 开头。查询成功返回 1。',
+                        explanation_incorrect: '不对。沿 b→a 查找，b 节点存在（count=1），a 子节点也存在（count=1），返回 1。选 0 可能认为没有匹配；选 2 或 3 可能混淆了不同分支。',
+                    },
+                },
+            ];
+
+            // ==================== 安全 DOM 引用 ====================
+            function safeGet(id) {
+                const el = document.getElementById(id);
+                if (!el) {
+                    console.warn('⚠️ DOM 元素未找到: #' + id);
+                }
+                return el;
+            }
+
+            const codeEl = safeGet('code');
+            const canvasEl = safeGet('canvas');
+            const stepTitleEl = safeGet('step-title');
+            const stepDescEl = safeGet('step-desc');
+            const teachingEl = safeGet('teaching');
+            const stateEl = safeGet('state');
+            const stepEvidenceEl = safeGet('step-evidence');
+            const opEl = safeGet('op');
+            const counterEl = safeGet('counter');
+            const rangeEl = safeGet('range');
+            const prevBtn = safeGet('prev');
+            const nextBtn = safeGet('next');
+            const playBtn = safeGet('play');
+            const timelineEl = safeGet('timeline');
+            const answerEl = safeGet('answer');
+            const checkpointQuestionEl = safeGet('checkpoint-question');
+            const quizOptionsEl = safeGet('quiz-options');
+            const btnSubmit = safeGet('btn-submit');
+            const btnHint = safeGet('btn-hint');
+            const btnShowAnswer = safeGet('btn-show-answer');
+            const feedbackEl = safeGet('feedback');
+            const learningLogEl = safeGet('learning-log');
+            const topResultEl = safeGet('top-result');
+            const topSolutionEl = safeGet('top-solution');
+
+            // ==================== 构建 Trie ====================
+            function getTrieStateUpToStep(step) {
+                const root = new TrieNode();
+                const pathMap = {};
+                pathMap[''] = root;
+                const insertedWords = [];
+                if (step >= 2) insertedWords.push('apple');
+                if (step >= 3) insertedWords.push('app');
+                if (step >= 4) insertedWords.push('ape');
+                if (step >= 5) insertedWords.push('bat');
+                for (const word of insertedWords) {
+                    let node = root;
+                    let path = '';
+                    for (const ch of word) {
+                        path += ch;
+                        if (!node.children[ch]) {
+                            node.children[ch] = new TrieNode();
+                        }
+                        node = node.children[ch];
+                        node.count++;
+                        pathMap[path] = node;
+                    }
+                }
+                return { root, pathMap };
+            }
+
+            function renderTrie(step) {
+                if (!canvasEl) return;
+                const { root, pathMap } = getTrieStateUpToStep(step);
+                const highlights = stepHighlights[step] || {};
+                let html = '<div class="trie-container">';
+                html += '<span class="trie-root-label">📌 root (count: ' + root.count + ')</span>';
+                html += '<ul class="trie-tree">';
+                const childChars = Object.keys(root.children).sort();
+                for (const ch of childChars) {
+                    html += renderTrieNode(ch, root.children[ch], ch, highlights, pathMap);
+                }
+                html += '</ul></div>';
+                canvasEl.innerHTML = html;
+            }
+
+            function renderTrieNode(ch, node, fullPath, highlights, pathMap) {
+                let cssClass = 'trie-node-chip';
+                if (highlights[fullPath]) {
+                    cssClass += ' ' + highlights[fullPath];
+                }
+                let html = '<li class="trie-node-item">';
+                html += '<span class="' + cssClass + '">';
+                html += '<span class="node-char">' + escapeHTML(ch) + '</span>';
+                html += '<span class="node-count">' + node.count + '</span>';
+                html += '</span>';
+                const childChars = Object.keys(node.children).sort();
+                if (childChars.length > 0) {
+                    html += '<ul class="trie-tree">';
+                    for (const childCh of childChars) {
+                        html += renderTrieNode(childCh, node.children[childCh], fullPath + childCh, highlights,
+                            pathMap);
+                    }
+                    html += '</ul>';
+                }
+                html += '</li>';
+                return html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function highlightCode(codeLineIndices) {
+                if (!codeEl) return;
+                const allLines = codeEl.querySelectorAll('.code-line');
+                allLines.forEach(line => line.classList.remove('highlight'));
+                if (codeLineIndices && codeLineIndices.length > 0) {
+                    codeLineIndices.forEach(idx => {
+                        const line = codeEl.querySelector('.code-line[data-line="' + idx + '"]');
+                        if (line) line.classList.add('highlight');
+                    });
+                }
+            }
+
+            // ==================== Checkpoint 逻辑 ====================
+            let currentCheckpoint = null;
+            let selectedOption = null;
+            let checkpointSubmitted = false;
+            let hintShown = false;
+
+            function updateCheckpoint(checkpoint) {
+                currentCheckpoint = checkpoint;
+                selectedOption = null;
+                checkpointSubmitted = false;
+                hintShown = false;
+                if (feedbackEl) {
+                    feedbackEl.classList.remove('show', 'correct', 'incorrect', 'hint-fb');
+                    feedbackEl.textContent = '';
+                }
+                if (quizOptionsEl) quizOptionsEl.innerHTML = '';
+                if (btnSubmit) btnSubmit.disabled = true;
+                if (btnHint) btnHint.disabled = !checkpoint;
+                if (btnShowAnswer) btnShowAnswer.disabled = !checkpoint;
+
+                if (!checkpoint) {
+                    if (checkpointQuestionEl) checkpointQuestionEl.textContent =
+                        '📋 当前步骤没有 checkpoint 问题，请使用导航按钮继续前进。步骤 1-6 均有 checkpoint 可供练习。';
+                    if (btnSubmit) btnSubmit.disabled = true;
+                    if (btnHint) btnHint.disabled = true;
+                    if (btnShowAnswer) btnShowAnswer.disabled = true;
+                    return;
+                }
+
+                if (checkpointQuestionEl) checkpointQuestionEl.textContent = '📋 ' + checkpoint.question;
+                if (quizOptionsEl && checkpoint.options) {
+                    checkpoint.options.forEach((opt) => {
+                        const label = document.createElement('label');
+                        label.className = 'quiz-option';
+                        label.innerHTML = '<input type="radio" name="quiz-opt" value="' + opt.value +
+                            '"> <strong>' + opt.label + '.</strong> ' + opt.text;
+                        label.addEventListener('click', function() {
+                            if (checkpointSubmitted) return;
+                            const allOpts = quizOptionsEl.querySelectorAll('.quiz-option');
+                            allOpts.forEach(el => el.classList.remove('selected-opt'));
+                            label.classList.add('selected-opt');
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (radio) radio.checked = true;
+                            selectedOption = opt.value;
+                            if (btnSubmit) btnSubmit.disabled = false;
+                        });
+                        quizOptionsEl.appendChild(label);
+                    });
+                }
+                if (btnSubmit) btnSubmit.disabled = true;
+            }
+
+            function appendLog(message, cssClass) {
+                if (!learningLogEl) return;
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry ' + (cssClass || '');
+                const now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+                logEntry.textContent = '[' + now + '] ' + message;
+                learningLogEl.appendChild(logEntry);
+                learningLogEl.scrollTop = learningLogEl.scrollHeight;
+            }
+
+            if (btnSubmit) {
+                btnSubmit.addEventListener('click', function() {
+                    if (!currentCheckpoint || checkpointSubmitted || !selectedOption) return;
+                    checkpointSubmitted = true;
+                    const isCorrect = (selectedOption === currentCheckpoint.correct);
+                    if (feedbackEl) {
+                        feedbackEl.classList.add('show');
+                        feedbackEl.classList.remove('incorrect', 'hint-fb', 'correct');
+                        if (isCorrect) {
+                            feedbackEl.classList.add('correct');
+                            feedbackEl.innerHTML = '✅ <strong>正确！</strong> ' + currentCheckpoint
+                                .explanation_correct;
+                        } else {
+                            feedbackEl.classList.add('incorrect');
+                            feedbackEl.innerHTML = '❌ <strong>不正确。</strong> ' + currentCheckpoint
+                                .explanation_incorrect;
+                        }
+                    }
+                    appendLog(
+                        '步骤 ' + currentStep + ' | 选择: ' + selectedOption + ' | ' + (isCorrect ? '✓ 正确' :
+                            '✗ 错误') + ' | 正确答案: ' + currentCheckpoint.correct,
+                        isCorrect ? 'correct-log' : 'incorrect-log'
+                    );
+                    if (btnSubmit) btnSubmit.disabled = true;
+                    if (btnHint) btnHint.disabled = true;
+                    if (btnShowAnswer) btnShowAnswer.disabled = true;
+                });
+            }
+
+            if (btnHint) {
+                btnHint.addEventListener('click', function() {
+                    if (!currentCheckpoint || checkpointSubmitted) return;
+                    hintShown = true;
+                    if (feedbackEl) {
+                        feedbackEl.classList.add('show', 'hint-fb');
+                        feedbackEl.classList.remove('correct', 'incorrect');
+                        feedbackEl.innerHTML = '💡 <strong>提示：</strong> ' + currentCheckpoint.hint;
+                    }
+                    appendLog('步骤 ' + currentStep + ' | 请求了提示 💡', 'hint-log');
+                });
+            }
+
+            if (btnShowAnswer) {
+                btnShowAnswer.addEventListener('click', function() {
+                    if (!currentCheckpoint) return;
+                    checkpointSubmitted = true;
+                    if (feedbackEl) {
+                        feedbackEl.classList.add('show', 'correct');
+                        feedbackEl.classList.remove('incorrect', 'hint-fb');
+                        feedbackEl.innerHTML = '👁 <strong>正确答案是：' + currentCheckpoint.correct +
+                            '</strong><br>' + currentCheckpoint.explanation_correct;
+                    }
+                    appendLog('步骤 ' + currentStep + ' | 查看了答案: ' + currentCheckpoint.correct,
+                        'answer-log');
+                    if (btnSubmit) btnSubmit.disabled = true;
+                    if (btnHint) btnHint.disabled = true;
+                    if (btnShowAnswer) btnShowAnswer.disabled = true;
+                });
+            }
+
+            // ==================== 更新步骤 ====================
+            function updateStep(step) {
+                currentStep = Math.max(1, Math.min(totalSteps, step));
+                const data = stepData[currentStep];
+                if (!data) {
+                    console.warn('步骤数据缺失: step=' + currentStep);
+                    return;
+                }
+
+                if (stepTitleEl) stepTitleEl.textContent = data.title;
+                if (stepDescEl) stepDescEl.textContent = data.desc;
+                if (teachingEl) teachingEl.innerHTML = data.teaching;
+                if (stateEl) stateEl.textContent = data.state;
+                if (stepEvidenceEl) stepEvidenceEl.innerHTML = data.evidence;
+                if (opEl) opEl.textContent = data.op;
+                if (counterEl) counterEl.textContent = currentStep + ' / ' + totalSteps;
+                if (rangeEl && String(rangeEl.value) !== String(currentStep)) {
+                    rangeEl.value = currentStep;
+                }
+                if (answerEl) answerEl.textContent = '3';
+                if (topResultEl) topResultEl.textContent = '3';
+                if (topSolutionEl) topSolutionEl.innerHTML =
+                    '前缀 <strong>"ap"</strong> 匹配 <strong>3</strong> 个单词：<strong>apple</strong>、<strong>app</strong>、<strong>ape</strong>';
+
+                highlightCode(data.codeLines || []);
+                renderTrie(currentStep);
+
+                if (timelineEl) {
+                    const ticks = timelineEl.querySelectorAll('.tick');
+                    ticks.forEach(t => t.classList.remove('active-tick'));
+                    const activeTick = timelineEl.querySelector('.tick[data-step="' + currentStep + '"]');
+                    if (activeTick) activeTick.classList.add('active-tick');
+                }
+
+                updateCheckpoint(data.checkpoint);
+
+                if (prevBtn) prevBtn.disabled = (currentStep === 1);
+                if (nextBtn) nextBtn.disabled = (currentStep === totalSteps);
+
+                // 触发过渡动画
+                const panels = document.querySelectorAll(
+                    '#step-title,#step-desc,#teaching,#state,#step-evidence');
+                panels.forEach(el => {
+                    el.classList.remove('step-transition');
+                    void el.offsetWidth;
+                    el.classList.add('step-transition');
+                });
+            }
+
+            // ==================== 按钮事件 ====================
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    if (currentStep > 1) {
+                        stopPlay();
+                        updateStep(currentStep - 1);
+                    }
+                });
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    if (currentStep < totalSteps) {
+                        stopPlay();
+                        updateStep(currentStep + 1);
+                    }
+                });
+            }
+            if (rangeEl) {
+                rangeEl.addEventListener('input', function() {
+                    const val = parseInt(this.value);
+                    if (!isNaN(val) && val >= 1 && val <= totalSteps) {
+                        stopPlay();
+                        updateStep(val);
+                    }
+                });
+                rangeEl.addEventListener('change', function() {
+                    const val = parseInt(this.value);
+                    if (!isNaN(val) && val >= 1 && val <= totalSteps) {
+                        stopPlay();
+                        updateStep(val);
+                    }
+                });
+            }
+
+            // 播放逻辑 — 使用 requestAnimationFrame 实现更流畅的自动播放
+            let playInterval = null;
+            let isPlaying = false;
+            let playStartTime = 0;
+            const PLAY_STEP_DURATION = 2200;
+
+            function startPlay() {
+                isPlaying = true;
+                if (playBtn) {
+                    playBtn.textContent = '⏸ 暂停';
+                    playBtn.classList.add('paused');
+                }
+                playStartTime = performance.now() - ((currentStep - 1) * PLAY_STEP_DURATION);
+                scheduleNextPlayStep();
+            }
+
+            function scheduleNextPlayStep() {
+                if (!isPlaying) return;
+                const elapsed = performance.now() - playStartTime;
+                const targetStep = Math.floor(elapsed / PLAY_STEP_DURATION) + 1;
+                if (targetStep > totalSteps) {
+                    stopPlay();
+                    updateStep(totalSteps);
+                    return;
+                }
+                if (targetStep !== currentStep) {
+                    updateStep(targetStep);
+                }
+                playInterval = setTimeout(scheduleNextPlayStep, 150);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playBtn) {
+                    playBtn.textContent = '▶ 播放';
+                    playBtn.classList.remove('paused');
+                }
+                if (playInterval) {
+                    clearTimeout(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            if (playBtn) {
+                playBtn.addEventListener('click', () => {
+                    if (isPlaying) {
+                        stopPlay();
+                    } else {
+                        if (currentStep >= totalSteps) {
+                            updateStep(1);
+                            setTimeout(startPlay, 350);
+                        } else {
+                            startPlay();
+                        }
+                    }
+                });
+            }
+
+            // Timeline 点击 — 同时支持委托和直接点击
+            if (timelineEl) {
+                timelineEl.addEventListener('click', (e) => {
+                    const tick = e.target.closest('.tick');
+                    if (!tick) return;
+                    const step = parseInt(tick.getAttribute('data-step'));
+                    if (step && step >= 1 && step <= totalSteps) {
+                        stopPlay();
+                        updateStep(step);
+                    }
+                });
+            }
+
+            // 暴露全局函数供内联 onclick 使用
+            window._gotoStep = function(step) {
+                stopPlay();
+                updateStep(step);
+            };
+
+            // 键盘导航
+            document.addEventListener('keydown', (e) => {
+                const tag = document.activeElement && document.activeElement.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStep > 1) updateStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStep < totalSteps) updateStep(currentStep + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isPlaying) {
+                        stopPlay();
+                    } else {
+                        if (currentStep >= totalSteps) {
+                            updateStep(1);
+                            setTimeout(startPlay, 350);
+                        } else {
+                            startPlay();
+                        }
+                    }
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    stopPlay();
+                    updateStep(1);
+                } else if (e.key === 'End') {
+                    e.preventDefault();
+                    stopPlay();
+                    updateStep(totalSteps);
+                }
+            });
+
+            // ==================== 初始化 ====================
+            function init() {
+                if (answerEl) answerEl.textContent = '3';
+                if (topResultEl) topResultEl.textContent = '3';
+                if (topSolutionEl) topSolutionEl.innerHTML =
+                    '前缀 <strong>"ap"</strong> 匹配 <strong>3</strong> 个单词：<strong>apple</strong>、<strong>app</strong>、<strong>ape</strong>';
+                updateStep(1);
+                if (rangeEl) rangeEl.value = 1;
+                console.log('✅ Trie 前缀计数 - AlgoLab 教学页已就绪');
+                console.log('   - 总步骤: ' + totalSteps);
+                console.log('   - 最终答案: 3');
+                console.log('   - 键盘导航: ← → 切换步骤 | 空格 播放/暂停 | Home/End 跳转首尾');
+                console.log('   - 所有 ' + totalSteps + ' 个步骤均配备 checkpoint 互动问题');
+                console.log('   - 粒子背景动画已启动 (requestAnimationFrame)');
+            }
+
+            // 确保 DOM 完全就绪后初始化
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>割点和桥 - Tarjan dfn/low 算法教学</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1117;
+            --panel-bg: #1a1d27;
+            --card-bg: #21252f;
+            --text: #e0e0e0;
+            --text-secondary: #a0a8b8;
+            --accent: #61afef;
+            --accent2: #e5c07b;
+            --danger: #e06c75;
+            --success: #98c379;
+            --warning: #d19a66;
+            --purple: #c678dd;
+            --border: #2d3340;
+            --highlight-yellow: #e5c07b;
+            --highlight-green: #98c379;
+            --highlight-red: #e06c75;
+            --highlight-orange: #d19a66;
+            --highlight-blue: #61afef;
+            --node-unvisited: #4a4f5a;
+            --node-visited: #98c379;
+            --node-current: #e5c07b;
+            --node-articulation: #e06c75;
+            --edge-normal: #5a5f6a;
+            --edge-bridge: #e06c75;
+            --edge-active: #d19a66;
+            --edge-back: #c678dd;
+            --glow-articulation: rgba(224, 108, 117, 0.5);
+            --glow-current: rgba(229, 192, 123, 0.55);
+            --glow-bridge: rgba(224, 108, 117, 0.45);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(97, 175, 239, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 60%, rgba(198, 120, 221, 0.05) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 80%, rgba(229, 192, 123, 0.03) 0%, transparent 55%);
+            background-attachment: fixed;
+        }
+        .main-container {
+            max-width: 1240px;
+            width: 100%;
+            padding: 18px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        #title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.01em;
+            margin: 0;
+            text-align: center;
+            background: linear-gradient(135deg, #61afef 0%, #a78bfa 40%, #c678dd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 2px 8px rgba(97, 175, 239, 0.3));
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            text-align: center;
+            margin: 0;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        .top-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            background: var(--panel-bg);
+            border-radius: var(--radius-md);
+            padding: 18px 22px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+        .top-bar .result-box {
+            flex: 1;
+            min-width: 180px;
+        }
+        .top-bar .result-box h3 {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        #top-result,
+        #top-solution {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.82rem;
+            background: var(--card-bg);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            color: var(--success);
+            word-break: break-all;
+            border: 1px solid var(--border);
+            min-height: 34px;
+            line-height: 1.5;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        #top-solution {
+            color: var(--accent);
+        }
+        #answer {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
+            background: #15171d;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            color: var(--success);
+            border: 1px solid #2a3a2a;
+            word-break: break-all;
+            min-height: 34px;
+            line-height: 1.5;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 920px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            #title {
+                font-size: 1.5rem;
+            }
+            .top-bar {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+        .panel {
+            background: var(--panel-bg);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 3px 16px rgba(0, 0, 0, 0.2);
+            transition: box-shadow 0.3s ease;
+        }
+        .panel:hover {
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+        }
+        .panel h3 {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            font-weight: 600;
+        }
+        #canvas {
+            min-height: 380px;
+            position: relative;
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        #canvas svg {
+            width: 100%;
+            height: 100%;
+            max-height: 420px;
+        }
+        .node-circle {
+            transition: fill 0.4s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s cubic-bezier(0.4, 0, 0.2, 1), r 0.4s cubic-bezier(0.4, 0, 0.2, 1), filter 0.4s ease;
+            cursor: default;
+        }
+        .node-circle.pulse-current {
+            animation: nodePulse 1.2s ease-in-out infinite;
+        }
+        .node-circle.pulse-articulation {
+            animation: nodePulseRed 2s ease-in-out infinite;
+        }
+        @keyframes nodePulse {
+            0%,
+            100% {
+                filter: drop-shadow(0 0 6px var(--glow-current));
+            }
+            50% {
+                filter: drop-shadow(0 0 18px var(--glow-current));
+            }
+        }
+        @keyframes nodePulseRed {
+            0%,
+            100% {
+                filter: drop-shadow(0 0 5px var(--glow-articulation));
+            }
+            50% {
+                filter: drop-shadow(0 0 16px var(--glow-articulation));
+            }
+        }
+        .node-label {
+            font-weight: 700;
+            font-size: 14px;
+            pointer-events: none;
+            transition: fill 0.4s ease;
+        }
+        .edge-line {
+            transition: stroke 0.4s cubic-bezier(0.4, 0, 0.2, 1), stroke-width 0.4s ease, stroke-dasharray 0.4s ease, filter 0.4s ease;
+        }
+        .edge-line.bridge-glow {
+            filter: drop-shadow(0 0 6px var(--glow-bridge));
+        }
+        .dfn-low-tag {
+            font-size: 11px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            pointer-events: none;
+            transition: fill 0.4s ease, opacity 0.4s ease;
+        }
+        #code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.76rem;
+            background: #17191f;
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.75;
+            border: 1px solid var(--border);
+            color: #abb2bf;
+            max-height: 460px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        #code .line {
+            display: block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            transition: background 0.35s ease, color 0.35s ease, border-left 0.35s ease, padding-left 0.35s ease;
+        }
+        #code .line.highlight {
+            background: rgba(97, 175, 239, 0.2);
+            color: #e8e8e8;
+            border-left: 3px solid var(--accent);
+            padding-left: 7px;
+        }
+        #code .line.highlight-strong {
+            background: rgba(229, 192, 123, 0.28);
+            color: #fff;
+            border-left: 3px solid var(--highlight-yellow);
+            padding-left: 7px;
+            font-weight: 600;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #step-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+            flex: 1;
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent);
+            color: #0f1117;
+            font-weight: 700;
+            font-size: 0.73rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+        #step-desc {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            margin: 0;
+            line-height: 1.5;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--accent);
+            white-space: nowrap;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 22px;
+            cursor: pointer;
+            font-size: 0.84rem;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            font-weight: 500;
+            font-family: inherit;
+        }
+        .controls button:hover {
+            background: #353b4a;
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(97, 175, 239, 0.2);
+        }
+        .controls button:active {
+            transform: scale(0.95);
+        }
+        .controls button.active-btn {
+            background: var(--accent);
+            color: #0f1117;
+            border-color: var(--accent);
+            font-weight: 700;
+            box-shadow: 0 2px 12px rgba(97, 175, 239, 0.35);
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+        }
+        #timeline {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            padding: 4px 0;
+        }
+        .tick {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 11px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.68rem;
+            text-align: center;
+            transition: all 0.28s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 52px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-weight: 500;
+        }
+        .tick:hover {
+            border-color: var(--accent);
+            color: #fff;
+            background: #2c3240;
+            box-shadow: 0 2px 8px rgba(97, 175, 239, 0.15);
+        }
+        .tick.active-tick {
+            border-color: var(--accent);
+            background: rgba(97, 175, 239, 0.22);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 0 14px rgba(97, 175, 239, 0.35);
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.68rem;
+            letter-spacing: 0.04em;
+        }
+        .tick .tick-op {
+            font-size: 0.6rem;
+            opacity: 0.8;
+        }
+        #teaching,
+        #state,
+        #step-evidence {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            background: var(--card-bg);
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            line-height: 1.6;
+            min-height: 42px;
+        }
+        #teaching {
+            border-left: 4px solid var(--accent);
+            color: #c8d4e0;
+        }
+        #state {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.74rem;
+            white-space: pre-wrap;
+            border-left: 4px solid var(--success);
+            color: var(--success);
+            max-height: 210px;
+            overflow-y: auto;
+        }
+        #step-evidence {
+            border-left: 4px solid var(--warning);
+            color: #e0cdb0;
+            font-size: 0.78rem;
+        }
+        .checkpoint-area {
+            background: var(--card-bg);
+            border: 2px solid var(--purple);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
+            margin-top: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.35s ease;
+            box-shadow: 0 0 20px rgba(198, 120, 221, 0.08);
+        }
+        .checkpoint-area.has-question {
+            border-color: #d89aee;
+            box-shadow: 0 0 24px rgba(198, 120, 221, 0.18);
+        }
+        .checkpoint-area h4 {
+            color: var(--purple);
+            font-size: 0.9rem;
+            margin: 0;
+            letter-spacing: 0.04em;
+            font-weight: 700;
+        }
+        .cp-score-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .cp-score-badge {
+            background: rgba(152, 195, 121, 0.15);
+            color: var(--success);
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            border: 1px solid rgba(152, 195, 121, 0.3);
+        }
+        .checkpoint-area .question {
+            color: #e8e8e8;
+            font-weight: 600;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .checkpoint-area .options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .checkpoint-area .options label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 9px 12px;
+            border-radius: 7px;
+            transition: background 0.2s, border-color 0.2s;
+            font-size: 0.84rem;
+            color: #c8c8d0;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.015);
+        }
+        .checkpoint-area .options label:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(198, 120, 221, 0.3);
+            color: #e0e0e0;
+        }
+        .checkpoint-area .options label.selected-option {
+            background: rgba(198, 120, 221, 0.12);
+            border-color: rgba(198, 120, 221, 0.5);
+            color: #fff;
+        }
+        .checkpoint-area .options input[type="radio"] {
+            accent-color: var(--purple);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .checkpoint-area .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-area button {
+            font-size: 0.78rem;
+            padding: 7px 16px;
+            border-radius: 18px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--panel-bg);
+            color: var(--text);
+            transition: all 0.25s;
+            font-weight: 500;
+            font-family: inherit;
+        }
+        .checkpoint-area button:hover {
+            border-color: var(--purple);
+            background: #2c2438;
+            box-shadow: 0 2px 8px rgba(198, 120, 221, 0.15);
+        }
+        .checkpoint-area .btn-submit {
+            background: var(--purple);
+            color: #fff;
+            border-color: var(--purple);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .checkpoint-area .btn-submit:hover {
+            background: #b84dd6;
+            box-shadow: 0 3px 12px rgba(198, 120, 221, 0.35);
+        }
+        .checkpoint-area .btn-submit:active {
+            transform: scale(0.95);
+        }
+        .checkpoint-area .feedback {
+            font-size: 0.83rem;
+            padding: 10px 14px;
+            border-radius: 7px;
+            min-height: 30px;
+            font-weight: 500;
+            line-height: 1.5;
+            animation: feedbackSlideIn 0.3s ease;
+        }
+        @keyframes feedbackSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .feedback.correct {
+            background: rgba(152, 195, 121, 0.18);
+            color: #a8e08a;
+            border: 1px solid rgba(152, 195, 121, 0.45);
+        }
+        .feedback.wrong {
+            background: rgba(224, 108, 117, 0.18);
+            color: #f09098;
+            border: 1px solid rgba(224, 108, 117, 0.45);
+        }
+        .feedback.info {
+            background: rgba(97, 175, 239, 0.12);
+            color: #8cc8f8;
+            border: 1px solid rgba(97, 175, 239, 0.35);
+        }
+        .learning-log {
+            background: var(--panel-bg);
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            border: 1px solid var(--border);
+            max-height: 220px;
+            overflow-y: auto;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+        .learning-log h4 {
+            margin: 0 0 8px;
+            color: var(--purple);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .learning-log .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            line-height: 1.5;
+        }
+        .learning-log .log-entry.correct-log {
+            color: #a8e08a;
+        }
+        .learning-log .log-entry.wrong-log {
+            color: #f09098;
+        }
+        .learning-log .log-entry.info-log {
+            color: #8cc8f8;
+        }
+        .learning-log .log-empty {
+            color: #5a5f6a;
+            font-style: italic;
+            text-align: center;
+            padding: 12px 0;
+        }
+        .legend-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            padding: 6px 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+        }
+        .completion-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .completion-overlay.visible {
+            display: flex;
+            animation: overlayFadeIn 0.4s ease;
+        }
+        @keyframes overlayFadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .completion-modal {
+            background: var(--panel-bg);
+            border-radius: var(--radius-lg);
+            padding: 32px 28px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            border: 2px solid var(--purple);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: modalSlideUp 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.92);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .completion-modal h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #61afef, #c678dd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .completion-modal .score-summary {
+            font-size: 1rem;
+            color: var(--text);
+            margin: 12px 0;
+            line-height: 1.8;
+        }
+        .completion-modal .score-highlight {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--success);
+        }
+        .completion-modal button {
+            margin-top: 16px;
+            padding: 10px 28px;
+            border-radius: 22px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: none;
+            background: var(--purple);
+            color: #fff;
+            transition: all 0.25s;
+            font-family: inherit;
+        }
+        .completion-modal button:hover {
+            background: #b84dd6;
+            box-shadow: 0 4px 16px rgba(198, 120, 221, 0.4);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1 id="title">🔗 割点和桥（Articulation Points & Bridges）</h1>
+        <p id="subtitle">Tarjan dfn/low 算法 · 深度优先搜索 · 回溯判定 · 交互式学习</p>
+
+        <div class="top-bar">
+            <div class="result-box">
+                <h3>📋 期望输出（#top-result）</h3>
+                <div id="top-result">{"articulation":["B","D"],"bridges":[["D","E"],["A","B"]]}</div>
+            </div>
+            <div class="result-box">
+                <h3>✅ 最终答案（#answer）</h3>
+                <div id="answer">{"articulation":["B","D"],"bridges":[["D","E"],["A","B"]]}</div>
+            </div>
+            <div class="result-box">
+                <h3>💡 答案解读（#top-solution）</h3>
+                <div id="top-solution">割点: B, D（移除后图不连通）；桥: D-E, A-B（移除后图分裂）</div>
+            </div>
+        </div>
+
+        <div class="legend-row">
+            <span class="legend-item"><span class="legend-dot" style="background:#4a4f5a;"></span> 未访问</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#98c379;"></span> 已访问</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#e5c07b;"></span> 当前节点</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#e06c75;"></span> 割点</span>
+            <span class="legend-item"><span style="color:#e06c75; font-weight:700;">━━</span> 桥</span>
+            <span class="legend-item"><span style="color:#d19a66; font-weight:700;">━━</span> 正在检查的边</span>
+            <span class="legend-item"><span style="color:#c678dd; font-weight:700;">╍╍</span> 回边（back edge）</span>
+        </div>
+
+        <div class="main-grid">
+            <div class="panel" style="grid-row: span 2;">
+                <h3>📐 算法视图（#canvas）</h3>
+                <div id="canvas">
+                    <svg viewBox="0 0 560 400" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="glowArticulation" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#e06c75" stop-opacity="0.6"/>
+                                <stop offset="100%" stop-color="#e06c75" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="glowCurrent" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#e5c07b" stop-opacity="0.5"/>
+                                <stop offset="100%" stop-color="#e5c07b" stop-opacity="0"/>
+                            </radialGradient>
+                            <filter id="shadowNode">
+                                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
+                            </filter>
+                        </defs>
+                        <line id="edge-AB" x1="70" y1="190" x2="200" y2="190" class="edge-line" stroke="#5a5f6a" stroke-width="3" stroke-linecap="round"/>
+                        <line id="edge-BC" x1="200" y1="190" x2="310" y2="95" class="edge-line" stroke="#5a5f6a" stroke-width="3" stroke-linecap="round"/>
+                        <line id="edge-BD" x1="200" y1="190" x2="310" y2="300" class="edge-line" stroke="#5a5f6a" stroke-width="3" stroke-linecap="round"/>
+                        <line id="edge-CD" x1="310" y1="95" x2="310" y2="300" class="edge-line" stroke="#5a5f6a" stroke-width="3" stroke-linecap="round"/>
+                        <line id="edge-DE" x1="310" y1="300" x2="450" y2="300" class="edge-line" stroke="#5a5f6a" stroke-width="3" stroke-linecap="round"/>
+                        <circle id="node-A" cx="70" cy="190" r="26" class="node-circle" fill="#4a4f5a" stroke="#5a5f6a" stroke-width="3" filter="url(#shadowNode)"/>
+                        <text id="label-A" x="70" y="195" text-anchor="middle" class="node-label" fill="#ccc" font-size="15">A</text>
+                        <text id="dfnlow-A" x="70" y="230" text-anchor="middle" class="dfn-low-tag" fill="#888" font-size="10" opacity="0">-/-</text>
+                        <circle id="node-B" cx="200" cy="190" r="26" class="node-circle" fill="#4a4f5a" stroke="#5a5f6a" stroke-width="3" filter="url(#shadowNode)"/>
+                        <text id="label-B" x="200" y="195" text-anchor="middle" class="node-label" fill="#ccc" font-size="15">B</text>
+                        <text id="dfnlow-B" x="200" y="230" text-anchor="middle" class="dfn-low-tag" fill="#888" font-size="10" opacity="0">-/-</text>
+                        <circle id="node-C" cx="310" cy="95" r="26" class="node-circle" fill="#4a4f5a" stroke="#5a5f6a" stroke-width="3" filter="url(#shadowNode)"/>
+                        <text id="label-C" x="310" y="100" text-anchor="middle" class="node-label" fill="#ccc" font-size="15">C</text>
+                        <text id="dfnlow-C" x="310" y="135" text-anchor="middle" class="dfn-low-tag" fill="#888" font-size="10" opacity="0">-/-</text>
+                        <circle id="node-D" cx="310" cy="300" r="26" class="node-circle" fill="#4a4f5a" stroke="#5a5f6a" stroke-width="3" filter="url(#shadowNode)"/>
+                        <text id="label-D" x="310" y="305" text-anchor="middle" class="node-label" fill="#ccc" font-size="15">D</text>
+                        <text id="dfnlow-D" x="310" y="340" text-anchor="middle" class="dfn-low-tag" fill="#888" font-size="10" opacity="0">-/-</text>
+                        <circle id="node-E" cx="450" cy="300" r="26" class="node-circle" fill="#4a4f5a" stroke="#5a5f6a" stroke-width="3" filter="url(#shadowNode)"/>
+                        <text id="label-E" x="450" y="305" text-anchor="middle" class="node-label" fill="#ccc" font-size="15">E</text>
+                        <text id="dfnlow-E" x="450" y="340" text-anchor="middle" class="dfn-low-tag" fill="#888" font-size="10" opacity="0">-/-</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>💻 算法代码（#code）</h3>
+                <div id="code"><span class="line" data-line="1">function findCutVerticesAndBridges(graph) {</span>
+                    <span class="line" data-line="2">  let dfn = {}, low = {}, parent = {}, timer = 0;</span>
+                    <span class="line" data-line="3">  let articulation = new Set(), bridges = [];</span>
+                    <span class="line" data-line="4">  function dfs(u) {</span>
+                    <span class="line" data-line="5">    dfn[u] = low[u] = ++timer;</span>
+                    <span class="line" data-line="6">    let children = 0;</span>
+                    <span class="line" data-line="7">    for (let v of graph[u]) {</span>
+                    <span class="line" data-line="8">      if (dfn[v] === undefined) {</span>
+                    <span class="line" data-line="9">        parent[v] = u;</span>
+                    <span class="line" data-line="10">        children++;</span>
+                    <span class="line" data-line="11">        dfs(v);</span>
+                    <span class="line" data-line="12">        low[u] = Math.min(low[u], low[v]);</span>
+                    <span class="line" data-line="13">        if (low[v] &gt; dfn[u]) bridges.push([u, v]);</span>
+                    <span class="line" data-line="14">        if (low[v] &gt;= dfn[u] &amp;&amp; parent[u] !== undefined) articulation.add(u);</span>
+                    <span class="line" data-line="15">      } else if (v !== parent[u]) {</span>
+                    <span class="line" data-line="16">        low[u] = Math.min(low[u], dfn[v]);</span>
+                    <span class="line" data-line="17">      }</span>
+                    <span class="line" data-line="18">    }</span>
+                    <span class="line" data-line="19">    if (parent[u] === undefined &amp;&amp; children &gt; 1) articulation.add(u);</span>
+                    <span class="line" data-line="20">  }</span>
+                    <span class="line" data-line="21">  dfs('A');</span>
+                    <span class="line" data-line="22">  return {articulation: [...articulation], bridges};</span>
+                    <span class="line" data-line="23">}</span></div>
+            </div>
+            <div class="panel">
+                <div class="step-header">
+                    <span id="counter">1 / 12</span>
+                    <span id="op">初始化</span>
+                    <h3 id="step-title">步骤 1：初始化数据结构</h3>
+                </div>
+                <p id="step-desc">设置 dfn、low、parent 为空字典，timer=0，从节点 A 开始 DFS。</p>
+                <div class="controls">
+                    <button id="prev">◀ 上一步</button>
+                    <button id="play">▶ 播放</button>
+                    <button id="next">下一步 ▶</button>
+                    <input type="range" id="range" min="1" max="12" value="1" step="1">
+                </div>
+                <div id="timeline"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>📖 教学讲解（#teaching）</h3>
+            <div id="teaching">初始化：创建 dfn（深度优先编号）、low（可回溯的最早祖先 dfn）、parent（DFS 树中的父节点）三个字典。timer 从 0 开始。割点集合 articulation 和桥列表 bridges 初始为空。从节点 A 启动 DFS。这是 Tarjan 算法的标准前置步骤，时间复杂度 O(V+E)。</div>
+        </div>
+
+        <div class="panel">
+            <h3>📊 当前状态（#state）</h3>
+            <div id="state">{
+                "dfn": {},
+                "low": {},
+                "parent": {},
+                "timer": 0,
+                "articulation": [],
+                "bridges": []
+                }</div>
+        </div>
+
+        <div class="panel">
+            <h3>🔍 步骤证据（#step-evidence）</h3>
+            <div id="step-evidence"><strong>operation:</strong> 初始化 | <strong>targets:</strong> 全局数据结构 | <strong>before:</strong> 无 | <strong>after:</strong> dfn={}, low={}, parent={}, timer=0, articulation=[], bridges=[]</div>
+        </div>
+
+        <div class="checkpoint-area" id="checkpoint-container">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <h4>🧠 学习检查点（Learner Checkpoint）</h4>
+                <span class="cp-score-row" id="cp-score-display">
+                    📊 得分: <span class="cp-score-badge" id="cp-score-badge">0/0</span>
+                </span>
+            </div>
+            <p class="question" id="cp-question" style="display:none;"></p>
+            <div class="options" id="cp-options" style="display:none;"></div>
+            <p id="cp-placeholder" style="color:#5a5f6a;font-style:italic;text-align:center;padding:8px 0;">👆 继续浏览步骤，检查点问题将在关键步骤出现（共5个检查点）</p>
+            <div class="btn-row">
+                <button class="btn-submit" id="cp-submit">📝 提交答案</button>
+                <button id="cp-hint">💡 提示</button>
+                <button id="cp-show-answer">👁 显示答案</button>
+            </div>
+            <div class="feedback" id="cp-feedback" style="display:none;"></div>
+        </div>
+
+        <div class="learning-log">
+            <h4>📝 学习日志（Learning Log）</h4>
+            <div id="log-entries"><span class="log-empty">📭 暂无学习记录 — 开始交互后将记录你的答题历史</span></div>
+        </div>
+    </div>
+
+    <div class="completion-overlay" id="completion-overlay">
+        <div class="completion-modal">
+            <h2>🎉 恭喜完成！</h2>
+            <div class="score-summary">
+                <p>你已完成 <strong>割点和桥</strong> 算法的全部学习步骤！</p>
+                <p>检查点得分：</p>
+                <div class="score-highlight" id="final-score">0%</div>
+                <p id="final-detail" style="font-size:0.85rem;color:var(--text-secondary);"></p>
+                <p style="margin-top:8px;font-size:0.85rem;color:var(--text-secondary);">
+                    割点: <strong style="color:#e06c75;">B, D</strong> &nbsp;|&nbsp;
+                    桥: <strong style="color:#e06c75;">D-E, A-B</strong>
+                </p>
+            </div>
+            <button id="completion-restart">🔄 重新学习</button>
+            <button id="completion-close" style="background:var(--card-bg);border:1px solid var(--border);margin-left:8px;">✕ 关闭</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const N_STEPS = 12;
+            let currentStep = 1;
+            let playInterval = null;
+            let isPlaying = false;
+            let totalCheckpointsAttempted = 0;
+            let totalCorrect = 0;
+            const checkpointAttempts = {};
+            let completionShown = false;
+
+            const nodes = ['A', 'B', 'C', 'D', 'E'];
+            const edgesList = [
+                ['A', 'B'],
+                ['B', 'C'],
+                ['B', 'D'],
+                ['C', 'D'],
+                ['D', 'E']
+            ];
+
+            function edgeId(u, v) {
+                const sorted = [u, v].sort();
+                return 'edge-' + sorted[0] + sorted[1];
+            }
+
+            const stepData = [{
+                id: 1,
+                title: '步骤 1：初始化数据结构',
+                desc: '设置 dfn、low、parent 为空字典，timer=0，割点和桥集合为空。准备从节点 A 启动 DFS。',
+                op: '初始化',
+                codeLines: [2, 3],
+                codeStrong: [],
+                nodeColors: { 'A': 'unvisited', 'B': 'unvisited', 'C': 'unvisited', 'D': 'unvisited',
+                    'E': 'unvisited' },
+                nodeDfnLow: { 'A': '-/-', 'B': '-/-', 'C': '-/-', 'D': '-/-', 'E': '-/-' },
+                edgeStyles: {},
+                stateJSON: '{\n  "dfn": {},\n  "low": {},\n  "parent": {},\n  "timer": 0,\n  "articulation": [],\n  "bridges": []\n}',
+                teaching: '初始化：创建 dfn（深度优先编号）、low（可回溯的最早祖先 dfn）、parent（DFS 树中的父节点）三个字典。timer 从 0 开始。割点集合 articulation 和桥列表 bridges 初始为空。从节点 A 启动 DFS。这是 Tarjan 算法的标准前置步骤，时间复杂度 O(V+E)。',
+                evidence: '<strong>operation:</strong> 初始化 | <strong>targets:</strong> 全局数据结构 | <strong>before:</strong> 无 | <strong>after:</strong> dfn={}, low={}, parent={}, timer=0, articulation=[], bridges=[]',
+                checkpoint: null
+            }, {
+                id: 2,
+                title: '步骤 2：访问节点 A（DFS 入口）',
+                desc: 'dfs(A)：dfn[A]=1, low[A]=1, timer=1。A 是根节点，parent[A]=undefined。',
+                op: '访问A',
+                codeLines: [5],
+                codeStrong: [5],
+                nodeColors: { 'A': 'current', 'B': 'unvisited', 'C': 'unvisited', 'D': 'unvisited',
+                'E': 'unvisited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '-/-', 'C': '-/-', 'D': '-/-', 'E': '-/-' },
+                edgeStyles: {},
+                stateJSON: '{\n  "dfn": {"A":1},\n  "low": {"A":1},\n  "parent": {"A":undefined},\n  "timer": 1,\n  "articulation": [],\n  "bridges": []\n}',
+                teaching: 'dfs(A) 被调用。A 获得 dfn=1 和 low=1。timer 增加到 1。A 是根节点（parent 为 undefined）。此时 A 是黄色高亮的"当前节点"。dfn 记录节点首次被访问的时间戳，low 初始等于 dfn。',
+                evidence: '<strong>operation:</strong> dfs访问 | <strong>targets:</strong> 节点A | <strong>before:</strong> dfn[A]=undefined | <strong>after:</strong> dfn[A]=1, low[A]=1, timer=1',
+                checkpoint: {
+                    question: '🔍 执行 dfs(A) 后，timer 的值变为多少？',
+                    options: [
+                        { value: 'a', text: 'A. timer = 0（未变化）' },
+                        { value: 'b', text: 'B. timer = 1' },
+                        { value: 'c', text: 'C. timer = 5' },
+                        { value: 'd', text: 'D. timer = 2' }
+                    ],
+                    correct: 'b',
+                    hint: '💡 timer 在每次访问新节点时通过 ++timer 递增。A 是第一个被访问的节点，dfn[A] = ++timer，所以 timer 从 0 变为 1。',
+                    explanationCorrect: '✅ 正确！timer 从 0 开始，执行 ++timer 后变为 1，同时 dfn[A] 和 low[A] 都被赋值为 1。',
+                    explanationWrong: '❌ 不正确。timer 初始为 0，访问 A 时执行 dfn[A] = low[A] = ++timer，timer 先自增为 1，然后赋值。所以 timer=1。'
+                }
+            }, {
+                id: 3,
+                title: '步骤 3：A → B，访问节点 B',
+                desc: 'A 的邻居 B 未访问，parent[B]=A，递归 dfs(B)：dfn[B]=2, low[B]=2, timer=2。',
+                op: '访问B',
+                codeLines: [8, 9, 10, 11, 5],
+                codeStrong: [11, 5],
+                nodeColors: { 'A': 'visited', 'B': 'current', 'C': 'unvisited', 'D': 'unvisited', 'E': 'unvisited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '-/-', 'D': '-/-', 'E': '-/-' },
+                edgeStyles: { 'edge-AB': 'active' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2},\n  "low": {"A":1,"B":2},\n  "parent": {"B":"A"},\n  "timer": 2,\n  "articulation": [],\n  "bridges": []\n}',
+                teaching: 'A 遍历邻居 B，发现 dfn[B]===undefined（未访问），设置 parent[B]=A，children[A]++（此时为1），递归调用 dfs(B)。B 获得 dfn=2, low=2。边 A-B 正在被探索（橙色高亮）。',
+                evidence: '<strong>operation:</strong> 发现未访问邻居+递归 | <strong>targets:</strong> 边A→B, 节点B | <strong>before:</strong> dfn[B]=undefined | <strong>after:</strong> parent[B]=A, dfn[B]=2, low[B]=2',
+                checkpoint: null
+            }, {
+                id: 4,
+                title: '步骤 4：B → C，访问节点 C',
+                desc: 'B 的邻居 C 未访问，parent[C]=B，递归 dfs(C)：dfn[C]=3, low[C]=3, timer=3。',
+                op: '访问C',
+                codeLines: [8, 9, 10, 11, 5],
+                codeStrong: [11, 5],
+                nodeColors: { 'A': 'visited', 'B': 'visited', 'C': 'current', 'D': 'unvisited', 'E': 'unvisited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/3', 'D': '-/-', 'E': '-/-' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'active' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3},\n  "low": {"A":1,"B":2,"C":3},\n  "parent": {"B":"A","C":"B"},\n  "timer": 3,\n  "articulation": [],\n  "bridges": []\n}',
+                teaching: 'B 遍历邻居（跳过父节点 A），发现 C 未访问。设置 parent[C]=B，递归 dfs(C)。C 获得 dfn=3, low=3。边 B-C 正在探索中。DFS 沿着路径 A→B→C 深入。',
+                evidence: '<strong>operation:</strong> 发现未访问邻居+递归 | <strong>targets:</strong> 边B→C, 节点C | <strong>before:</strong> dfn[C]=undefined | <strong>after:</strong> parent[C]=B, dfn[C]=3, low[C]=3',
+                checkpoint: {
+                    question: '🔍 C 是第几个被 DFS 访问的节点？其 dfn 值是多少？',
+                    options: [
+                        { value: 'a', text: 'A. 第2个，dfn=2' },
+                        { value: 'b', text: 'B. 第3个，dfn=3' },
+                        { value: 'c', text: 'C. 第4个，dfn=4' },
+                        { value: 'd', text: 'D. 第1个，dfn=1' }
+                    ],
+                    correct: 'b',
+                    hint: '💡 DFS 访问顺序：A(1) → B(2) → C(3)。dfn 按访问顺序递增分配（++timer）。',
+                    explanationCorrect: '✅ 正确！C 是第 3 个被访问的节点（A=1, B=2, C=3），因此 dfn[C]=3。',
+                    explanationWrong: '❌ 不正确。回顾 DFS 访问顺序：先 A（dfn=1），再 B（dfn=2），然后 C（dfn=3）。C 是第三个被访问的节点。'
+                }
+            }, {
+                id: 5,
+                title: '步骤 5：C → D，访问节点 D',
+                desc: 'C 的邻居 D 未访问，parent[D]=C，递归 dfs(D)：dfn[D]=4, low[D]=4, timer=4。',
+                op: '访问D',
+                codeLines: [8, 9, 10, 11, 5],
+                codeStrong: [11, 5],
+                nodeColors: { 'A': 'visited', 'B': 'visited', 'C': 'visited', 'D': 'current', 'E': 'unvisited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/3', 'D': '4/4', 'E': '-/-' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'visited', 'edge-CD': 'active' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4},\n  "low": {"A":1,"B":2,"C":3,"D":4},\n  "parent": {"B":"A","C":"B","D":"C"},\n  "timer": 4,\n  "articulation": [],\n  "bridges": []\n}',
+                teaching: 'C 遍历邻居（跳过父节点 B，D 未访问）。设置 parent[D]=C，递归 dfs(D)。D 获得 dfn=4, low=4。注意 D 还有一个邻居 B（dfn=2 已访问且不是父节点），这在后续回溯时会处理为回边。',
+                evidence: '<strong>operation:</strong> 发现未访问邻居+递归 | <strong>targets:</strong> 边C→D, 节点D | <strong>before:</strong> dfn[D]=undefined | <strong>after:</strong> parent[D]=C, dfn[D]=4, low[D]=4',
+                checkpoint: null
+            }, {
+                id: 6,
+                title: '步骤 6：D → E，访问节点 E（叶子）',
+                desc: 'D 的邻居 E 未访问，parent[E]=D，递归 dfs(E)：dfn[E]=5, low[E]=5, timer=5。E 无其他邻居（叶子节点）。',
+                op: '访问E',
+                codeLines: [8, 9, 10, 11, 5],
+                codeStrong: [11, 5],
+                nodeColors: { 'A': 'visited', 'B': 'visited', 'C': 'visited', 'D': 'visited', 'E': 'current' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/3', 'D': '4/4', 'E': '5/5' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'visited', 'edge-CD': 'visited', 'edge-DE': 'active' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "low": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "parent": {"B":"A","C":"B","D":"C","E":"D"},\n  "timer": 5,\n  "articulation": [],\n  "bridges": []\n}',
+                teaching: 'D 遍历邻居（跳过父节点 C），发现 E 未访问。设置 parent[E]=D，递归 dfs(E)。E 获得 dfn=5, low=5。E 只有邻居 D（父节点），因此 E 的 for 循环结束，即将回溯。E 是叶子节点，low[E] 保持为 5。',
+                evidence: '<strong>operation:</strong> 发现未访问邻居+递归 | <strong>targets:</strong> 边D→E, 节点E | <strong>before:</strong> dfn[E]=undefined | <strong>after:</strong> parent[E]=D, dfn[E]=5, low[E]=5（叶子）',
+                checkpoint: null
+            }, {
+                id: 7,
+                title: '步骤 7：回溯 E→D，判定桥 D-E 和割点 D',
+                desc: '回溯：low[E]=5 > dfn[D]=4 → 桥 D-E！low[D]=min(4,5)=4。low[E]=5 >= dfn[D]=4 且 parent[D]=C≠undefined → D 是割点！',
+                op: '回溯判定',
+                codeLines: [12, 13, 14],
+                codeStrong: [13, 14],
+                nodeColors: { 'A': 'visited', 'B': 'visited', 'C': 'visited', 'D': 'articulation', 'E': 'visited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/3', 'D': '4/4', 'E': '5/5' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'visited', 'edge-CD': 'visited', 'edge-DE': 'bridge' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "low": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "parent": {"B":"A","C":"B","D":"C","E":"D"},\n  "timer": 5,\n  "articulation": ["D"],\n  "bridges": [["D","E"]]\n}',
+                teaching: 'dfs(E) 返回后，D 执行回溯逻辑：① low[D]=min(low[D], low[E])=min(4,5)=4；② 检查桥条件：low[E]=5 > dfn[D]=4，成立！D-E 是桥（移除后 E 孤立）；③ 检查割点条件：low[E]=5 >= dfn[D]=4 且 parent[D]=C≠undefined，成立！D 是割点（E 无法绕过 D 到达祖先）。D 节点变为红色。',
+                evidence: '<strong>operation:</strong> 回溯检查 | <strong>targets:</strong> 边D-E, 节点D | <strong>before:</strong> low[D]=4, low[E]=5 | <strong>after:</strong> 桥D-E确认, D确认为割点, bridges=[[D,E]], articulation=[D]',
+                checkpoint: {
+                    question: '🔍 在回溯 E→D 时，判定<strong>桥</strong>的条件是什么？',
+                    options: [
+                        { value: 'a', text: 'A. low[E] < dfn[D]' },
+                        { value: 'b', text: 'B. low[E] > dfn[D]（严格大于）' },
+                        { value: 'c', text: 'C. low[E] == dfn[D]' },
+                        { value: 'd', text: 'D. low[E] >= dfn[D]' }
+                    ],
+                    correct: 'b',
+                    hint: '💡 桥意味着移除该边后图分裂。如果子节点 E 无法回溯到 D 或 D 的祖先（即 low[E] 严格大于 dfn[D]），则 D-E 是唯一的连接路径。等号不成立因为 low[E]==dfn[D] 意味着存在另一条路径。',
+                    explanationCorrect: '✅ 正确！low[E] > dfn[D] 说明 E 及其后代无法绕过 D-E 这条边到达 D 或更早的节点，因此 D-E 是桥。',
+                    explanationWrong: '❌ 不正确。桥的条件是 low[child] > dfn[parent]（严格大于）。如果 low[child] == dfn[parent]，说明存在回边可以绕过该边，该边不是桥。'
+                }
+            }, {
+                id: 8,
+                title: '步骤 8：D 检查回边 D→B',
+                desc: 'D 的邻居 B 已访问且 B≠parent[D]=C，这是回边！low[D]=min(low[D], dfn[B])=min(4,2)=2。',
+                op: '回边更新',
+                codeLines: [15, 16],
+                codeStrong: [16],
+                nodeColors: { 'A': 'visited', 'B': 'backref', 'C': 'visited', 'D': 'articulation', 'E': 'visited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/3', 'D': '4/2', 'E': '5/5' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'visited', 'edge-CD': 'visited', 'edge-DE': 'bridge',
+                    'edge-BD': 'backedge' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "low": {"A":1,"B":2,"C":3,"D":2,"E":5},\n  "parent": {"B":"A","C":"B","D":"C","E":"D"},\n  "timer": 5,\n  "articulation": ["D"],\n  "bridges": [["D","E"]]\n}',
+                teaching: 'D 继续遍历邻居 B。B 的 dfn=2（已访问），且 B ≠ parent[D]=C。这是回边（back edge）！说明 D 可以通过 B 到达更早的祖先。更新 low[D]=min(low[D], dfn[B])=min(4, 2)=2。low[D] 从 4 降到 2，这意味着 D 可以通过回边 B 到达 dfn=2 的节点。边 B-D 以紫色虚线显示为回边。',
+                evidence: '<strong>operation:</strong> 回边处理 | <strong>targets:</strong> 边D→B（回边） | <strong>before:</strong> low[D]=4 | <strong>after:</strong> low[D]=min(4, dfn[B]=2)=2',
+                checkpoint: null
+            }, {
+                id: 9,
+                title: '步骤 9：回溯 D→C，更新 low[C]',
+                desc: '回溯：low[D]=2, dfn[C]=3。low[D]=2 < dfn[C]=3，不满足桥条件。low[C]=min(low[C], low[D])=min(3,2)=2。',
+                op: '回溯更新',
+                codeLines: [12, 13, 14],
+                codeStrong: [12],
+                nodeColors: { 'A': 'visited', 'B': 'visited', 'C': 'visited', 'D': 'articulation', 'E': 'visited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/2', 'D': '4/2', 'E': '5/5' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'visited', 'edge-CD': 'visited', 'edge-DE': 'bridge',
+                    'edge-BD': 'backedge' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "low": {"A":1,"B":2,"C":2,"D":2,"E":5},\n  "parent": {"B":"A","C":"B","D":"C","E":"D"},\n  "timer": 5,\n  "articulation": ["D"],\n  "bridges": [["D","E"]]\n}',
+                teaching: 'dfs(D) 返回后，C 执行回溯：① low[C]=min(low[C], low[D])=min(3,2)=2（C 可以通过 D 的回边到达 dfn=2 的 B）；② 检查桥条件：low[D]=2 > dfn[C]=3？不成立（2<3），C-D 不是桥（因为存在环 B-C-D）；③ 检查割点条件：low[D]=2 >= dfn[C]=3？不成立（2<3），C 不是割点。low[C] 更新为 2。',
+                evidence: '<strong>operation:</strong> 回溯更新 | <strong>targets:</strong> 边D→C, 节点C | <strong>before:</strong> low[C]=3, low[D]=2 | <strong>after:</strong> low[C]=2, C-D非桥, C非割点',
+                checkpoint: null
+            }, {
+                id: 10,
+                title: '步骤 10：回溯 C→B，判定割点 B',
+                desc: '回溯：low[C]=2 >= dfn[B]=2 且 parent[B]=A≠undefined → B 是割点！low[B]=min(low[B], low[C])=min(2,2)=2。',
+                op: '回溯判定',
+                codeLines: [12, 13, 14],
+                codeStrong: [14],
+                nodeColors: { 'A': 'visited', 'B': 'articulation', 'C': 'visited', 'D': 'articulation',
+                    'E': 'visited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/2', 'D': '4/2', 'E': '5/5' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'visited', 'edge-CD': 'visited', 'edge-DE': 'bridge',
+                    'edge-BD': 'backedge' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "low": {"A":1,"B":2,"C":2,"D":2,"E":5},\n  "parent": {"B":"A","C":"B","D":"C","E":"D"},\n  "timer": 5,\n  "articulation": ["D","B"],\n  "bridges": [["D","E"]]\n}',
+                teaching: 'dfs(C) 返回后，B 执行回溯：① low[B]=min(low[B], low[C])=min(2,2)=2；② 检查桥条件：low[C]=2 > dfn[B]=2？不成立（2=2），B-C 不是桥；③ 检查割点条件：low[C]=2 >= dfn[B]=2 且 parent[B]=A≠undefined，成立！B 是割点（C 无法绕过 B 到达 B 的祖先）。B 变为红色割点。',
+                evidence: '<strong>operation:</strong> 回溯检查 | <strong>targets:</strong> 边C→B, 节点B | <strong>before:</strong> low[B]=2, low[C]=2 | <strong>after:</strong> B确认为割点, articulation=[D,B]',
+                checkpoint: {
+                    question: '🔍 对于<strong>非根节点</strong> u，判定割点的条件是什么？',
+                    options: [
+                        { value: 'a', text: 'A. 存在子节点 v 满足 low[v] > dfn[u]' },
+                        { value: 'b', text: 'B. 存在子节点 v 满足 low[v] < dfn[u]' },
+                        { value: 'c', text: 'C. 存在子节点 v 满足 low[v] >= dfn[u]' },
+                        { value: 'd', text: 'D. 所有子节点 v 满足 low[v] >= dfn[u]' }
+                    ],
+                    correct: 'c',
+                    hint: '💡 割点意味着移除该节点后图分裂。如果某个子节点无法绕过 u 到达 u 的祖先，则 u 是割点。注意这里是"存在"还是"所有"？想想：只要有一个子节点回不去，移除 u 后那个子树就孤立了。',
+                    explanationCorrect: '✅ 正确！存在一个子节点 v 满足 low[v] >= dfn[u]（即 v 无法绕过 u 到达 u 的祖先），则 u 是割点。这是因为移除 u 后，v 及其后代将与图的其余部分断开。',
+                    explanationWrong: '❌ 不正确。对于非根节点 u，条件是"存在"子节点 v 满足 low[v] >= dfn[u]。注意是 >= 而非 >（等号也成立，因为 v 最多只能到达 u 本身，移除 u 后 v 仍无法到达祖先）。'
+                }
+            }, {
+                id: 11,
+                title: '步骤 11：B 检查回边 B→D',
+                desc: 'B 的邻居 D 已访问且 D≠parent[B]=A，这是回边！low[B]=min(low[B], dfn[D])=min(2,4)=2（不变）。',
+                op: '回边检查',
+                codeLines: [15, 16],
+                codeStrong: [16],
+                nodeColors: { 'A': 'visited', 'B': 'articulation', 'C': 'visited', 'D': 'articulation',
+                    'E': 'visited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/2', 'D': '4/2', 'E': '5/5' },
+                edgeStyles: { 'edge-AB': 'visited', 'edge-BC': 'visited', 'edge-CD': 'visited', 'edge-DE': 'bridge',
+                    'edge-BD': 'backedge' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "low": {"A":1,"B":2,"C":2,"D":2,"E":5},\n  "parent": {"B":"A","C":"B","D":"C","E":"D"},\n  "timer": 5,\n  "articulation": ["D","B"],\n  "bridges": [["D","E"]]\n}',
+                teaching: 'B 继续遍历邻居 D（dfn=4 已访问，D ≠ parent[B]=A）。这是回边。更新 low[B]=min(low[B], dfn[D])=min(2, 4)=2，low[B] 不变。B 的所有邻居处理完毕。注意 B-D 边在之前已被 D 处理为回边，此处 B 也将其识别为回边。',
+                evidence: '<strong>operation:</strong> 回边处理 | <strong>targets:</strong> 边B→D（回边） | <strong>before:</strong> low[B]=2 | <strong>after:</strong> low[B]=min(2, dfn[D]=4)=2（不变）',
+                checkpoint: null
+            }, {
+                id: 12,
+                title: '步骤 12：回溯 B→A，判定桥 A-B，根节点检查',
+                desc: '回溯：low[B]=2 > dfn[A]=1 → 桥 A-B！A 是根节点，children=1（只有B），不满足 >1，A 不是割点。最终结果：割点 [B,D]，桥 [D-E, A-B]。',
+                op: '最终判定',
+                codeLines: [12, 13, 14, 19],
+                codeStrong: [13, 19],
+                nodeColors: { 'A': 'visited', 'B': 'articulation', 'C': 'visited', 'D': 'articulation',
+                    'E': 'visited' },
+                nodeDfnLow: { 'A': '1/1', 'B': '2/2', 'C': '3/2', 'D': '4/2', 'E': '5/5' },
+                edgeStyles: { 'edge-AB': 'bridge', 'edge-BC': 'visited', 'edge-CD': 'visited', 'edge-DE': 'bridge',
+                    'edge-BD': 'backedge' },
+                stateJSON: '{\n  "dfn": {"A":1,"B":2,"C":3,"D":4,"E":5},\n  "low": {"A":1,"B":2,"C":2,"D":2,"E":5},\n  "parent": {"B":"A","C":"B","D":"C","E":"D"},\n  "timer": 5,\n  "articulation": ["D","B"],\n  "bridges": [["D","E"],["A","B"]]\n}',
+                teaching: 'dfs(B) 返回后，A 执行回溯：① low[A]=min(low[A], low[B])=min(1,2)=1；② 检查桥条件：low[B]=2 > dfn[A]=1，成立！A-B 是桥（移除后 A 孤立）；③ 检查割点条件：A 是根节点（parent[A]=undefined），children[A]=1，不满足 >1，A 不是割点。最终答案确认：割点={B,D}，桥={D-E, A-B}。🎉 算法完成！',
+                evidence: '<strong>operation:</strong> 最终回溯+根节点检查 | <strong>targets:</strong> 边B→A, 根节点A | <strong>before:</strong> low[B]=2, dfn[A]=1 | <strong>after:</strong> 桥A-B确认, A非割点(根节点children=1), 最终articulation=[B,D], bridges=[[D,E],[A,B]]',
+                checkpoint: {
+                    question: '🔍 <strong>根节点</strong>被判定为割点的条件是什么？',
+                    options: [
+                        { value: 'a', text: 'A. 根节点有至少 1 个子节点' },
+                        { value: 'b', text: 'B. 根节点有超过 1 个子节点（children > 1）' },
+                        { value: 'c', text: 'C. 根节点的 low 值大于其 dfn 值' },
+                        { value: 'd', text: 'D. 根节点永远是割点' }
+                    ],
+                    correct: 'b',
+                    hint: '💡 根节点没有父节点，移除根节点后，它的各个子节点之间如果没有其他路径连接，图就会分裂。什么时候子节点之间一定没有其他路径？只有当根节点有多个子节点时。',
+                    explanationCorrect: '✅ 正确！根节点是割点当且仅当它在 DFS 树中有超过 1 个子节点（children > 1）。因为根节点没有祖先，移除它后，不同子树之间如果没有根节点连接便会断开。本题中 A 只有 1 个子节点 B，所以 A 不是割点。',
+                    explanationWrong: '❌ 不正确。根节点的判定规则特殊：只有当 children > 1 时才是割点。如果根节点只有 1 个子节点，移除根节点后，剩余部分仍然连通（都挂在那唯一的子树上）。'
+                }
+            }];
+
+            function getNodeColorClass(colorKey) {
+                const map = {
+                    'unvisited': '#4a4f5a',
+                    'visited': '#98c379',
+                    'current': '#e5c07b',
+                    'articulation': '#e06c75',
+                    'backref': '#c678dd'
+                };
+                return map[colorKey] || '#4a4f5a';
+            }
+
+            function getNodeStrokeClass(colorKey) {
+                const map = {
+                    'unvisited': '#5a5f6a',
+                    'visited': '#6aaf6a',
+                    'current': '#d4b04a',
+                    'articulation': '#c0392b',
+                    'backref': '#a04dc4'
+                };
+                return map[colorKey] || '#5a5f6a';
+            }
+
+            function getEdgeStyle(styleKey) {
+                const map = {
+                    'active': { stroke: '#d19a66', width: 3.5, dash: 'none', glow: false },
+                    'visited': { stroke: '#6aaf6a', width: 2.5, dash: 'none', glow: false },
+                    'bridge': { stroke: '#e06c75', width: 3.8, dash: 'none', glow: true },
+                    'backedge': { stroke: '#c678dd', width: 3, dash: '8,4', glow: false },
+                };
+                return map[styleKey] || { stroke: '#5a5f6a', width: 3, dash: 'none', glow: false };
+            }
+
+            function updateScoreDisplay() {
+                const badge = document.getElementById('cp-score-badge');
+                if (totalCheckpointsAttempted > 0) {
+                    const pct = Math.round((totalCorrect / totalCheckpointsAttempted) * 100);
+                    badge.textContent = totalCorrect + '/' + totalCheckpointsAttempted + ' (' + pct + '%)';
+                    if (pct >= 80) badge.style.background = 'rgba(152,195,121,0.2)';
+                    else if (pct >= 50) badge.style.background = 'rgba(229,192,123,0.2)';
+                    else badge.style.background = 'rgba(224,108,117,0.2)';
+                } else {
+                    badge.textContent = '0/0';
+                    badge.style.background = 'rgba(152,195,121,0.15)';
+                }
+            }
+
+            function applyStep(stepIndex) {
+                const step = stepData[stepIndex - 1];
+                document.getElementById('counter').textContent = stepIndex + ' / ' + N_STEPS;
+                document.getElementById('step-title').textContent = step.title;
+                document.getElementById('step-desc').textContent = step.desc;
+                document.getElementById('op').textContent = step.op;
+                document.getElementById('teaching').innerHTML = step.teaching;
+                document.getElementById('state').textContent = step.stateJSON;
+                document.getElementById('step-evidence').innerHTML = step.evidence;
+                document.getElementById('range').value = stepIndex;
+
+                const allLines = document.querySelectorAll('#code .line');
+                allLines.forEach(l => {
+                    l.classList.remove('highlight', 'highlight-strong');
+                });
+                step.codeLines.forEach(ln => {
+                    const el = document.querySelector('#code .line[data-line="' + ln + '"]');
+                    if (el) el.classList.add('highlight');
+                });
+                step.codeStrong.forEach(ln => {
+                    const el = document.querySelector('#code .line[data-line="' + ln + '"]');
+                    if (el) {
+                        el.classList.remove('highlight');
+                        el.classList.add('highlight-strong');
+                    }
+                });
+
+                nodes.forEach(n => {
+                    const circle = document.getElementById('node-' + n);
+                    const nc = step.nodeColors[n] || 'unvisited';
+                    circle.setAttribute('fill', getNodeColorClass(nc));
+                    circle.setAttribute('stroke', getNodeStrokeClass(nc));
+                    circle.classList.remove('pulse-current', 'pulse-articulation');
+                    if (nc === 'current') {
+                        circle.setAttribute('r', '28');
+                        circle.setAttribute('stroke-width', '3');
+                        circle.classList.add('pulse-current');
+                    } else if (nc === 'articulation') {
+                        circle.setAttribute('r', '27');
+                        circle.setAttribute('stroke-width', '4');
+                        circle.classList.add('pulse-articulation');
+                    } else {
+                        circle.setAttribute('r', '26');
+                        circle.setAttribute('stroke-width', '3');
+                    }
+                    const dfnLowTag = document.getElementById('dfnlow-' + n);
+                    const dlText = step.nodeDfnLow[n] || '-/-';
+                    dfnLowTag.textContent = dlText;
+                    if (dlText === '-/-') {
+                        dfnLowTag.setAttribute('opacity', '0');
+                    } else {
+                        dfnLowTag.setAttribute('opacity', '1');
+                        if (nc === 'current') dfnLowTag.setAttribute('fill', '#1a1d23');
+                        else if (nc === 'articulation') dfnLowTag.setAttribute('fill', '#fff');
+                        else dfnLowTag.setAttribute('fill', '#ccc');
+                    }
+                    const label = document.getElementById('label-' + n);
+                    if (nc === 'current') label.setAttribute('fill', '#1a1d23');
+                    else if (nc === 'articulation') label.setAttribute('fill', '#fff');
+                    else if (nc === 'visited') label.setAttribute('fill', '#d0e8d0');
+                    else label.setAttribute('fill', '#ccc');
+                });
+
+                const allEdgeIds = ['edge-AB', 'edge-BC', 'edge-BD', 'edge-CD', 'edge-DE'];
+                allEdgeIds.forEach(eid => {
+                    const edgeEl = document.getElementById(eid);
+                    const styleKey = step.edgeStyles[eid] || null;
+                    const style = getEdgeStyle(styleKey);
+                    edgeEl.setAttribute('stroke', style.stroke);
+                    edgeEl.setAttribute('stroke-width', style.width);
+                    edgeEl.setAttribute('stroke-dasharray', style.dash);
+                    if (style.glow) {
+                        edgeEl.classList.add('bridge-glow');
+                    } else {
+                        edgeEl.classList.remove('bridge-glow');
+                    }
+                });
+
+                const allTicks = document.querySelectorAll('.tick');
+                allTicks.forEach(t => t.classList.remove('active-tick'));
+                const activeTick = document.querySelector('.tick[data-step="' + stepIndex + '"]');
+                if (activeTick) activeTick.classList.add('active-tick');
+
+                updateCheckpoint(stepIndex);
+
+                if (stepIndex === N_STEPS && !completionShown) {
+                    setTimeout(showCompletion, 1800);
+                }
+            }
+
+            function updateCheckpoint(stepIndex) {
+                const step = stepData[stepIndex - 1];
+                const container = document.getElementById('checkpoint-container');
+                const cp = step.checkpoint;
+                const questionEl = document.getElementById('cp-question');
+                const optionsDiv = document.getElementById('cp-options');
+                const placeholder = document.getElementById('cp-placeholder');
+                const fbDiv = document.getElementById('cp-feedback');
+
+                if (cp) {
+                    container.classList.add('has-question');
+                    questionEl.style.display = 'block';
+                    optionsDiv.style.display = 'flex';
+                    placeholder.style.display = 'none';
+                    questionEl.textContent = cp.question;
+                    optionsDiv.innerHTML = '';
+                    cp.options.forEach(opt => {
+                        const label = document.createElement('label');
+                        const radio = document.createElement('input');
+                        radio.type = 'radio';
+                        radio.name = 'cp-radio';
+                        radio.value = opt.value;
+                        radio.addEventListener('change', function() {
+                            document.querySelectorAll('#cp-options label').forEach(l => l
+                                .classList.remove('selected-option'));
+                            if (this.checked) {
+                                label.classList.add('selected-option');
+                            }
+                        });
+                        label.appendChild(radio);
+                        label.appendChild(document.createTextNode(' ' + opt.text));
+                        optionsDiv.appendChild(label);
+                    });
+                    fbDiv.style.display = 'none';
+                    fbDiv.textContent = '';
+                    fbDiv.className = 'feedback';
+                    window._cpData = cp;
+                    window._cpStepId = step.id;
+                } else {
+                    container.classList.remove('has-question');
+                    questionEl.style.display = 'none';
+                    optionsDiv.style.display = 'none';
+                    placeholder.style.display = 'block';
+                    fbDiv.style.display = 'none';
+                    fbDiv.textContent = '';
+                    fbDiv.className = 'feedback';
+                    window._cpData = null;
+                    window._cpStepId = null;
+                }
+            }
+
+            function buildTimeline() {
+                const timeline = document.getElementById('timeline');
+                timeline.innerHTML = '';
+                for (let i = 1; i <= N_STEPS; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i);
+                    const sd = stepData[i - 1];
+                    const hasCP = sd.checkpoint ? ' 🧠' : '';
+                    tick.innerHTML = '<span class="tick-label">步骤' + i + hasCP + '</span><span class="tick-op">' + sd
+                        .op + '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(i);
+                    });
+                    timeline.appendChild(tick);
+                }
+            }
+
+            function goToStep(stepIndex) {
+                if (stepIndex < 1 || stepIndex > N_STEPS) return;
+                currentStep = stepIndex;
+                applyStep(currentStep);
+                document.getElementById('range').value = currentStep;
+            }
+
+            function nextStep() {
+                if (currentStep < N_STEPS) {
+                    goToStep(currentStep + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStep > 1) {
+                    goToStep(currentStep - 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                document.getElementById('play').textContent = '⏸ 暂停';
+                document.getElementById('play').classList.add('active-btn');
+                if (currentStep >= N_STEPS) {
+                    goToStep(1);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStep < N_STEPS) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2000);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+                document.getElementById('play').textContent = '▶ 播放';
+                document.getElementById('play').classList.remove('active-btn');
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            function appendLog(message, logType) {
+                const logDiv = document.getElementById('log-entries');
+                const emptyMsg = logDiv.querySelector('.log-empty');
+                if (emptyMsg) {
+                    logDiv.removeChild(emptyMsg);
+                }
+                const entry = document.createElement('div');
+                const typeClass = logType === 'correct' ? 'correct-log' : logType === 'wrong' ? 'wrong-log' :
+                    'info-log';
+                entry.className = 'log-entry ' + typeClass;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                const icon = logType === 'correct' ? '✅' : logType === 'wrong' ? '❌' : 'ℹ️';
+                entry.textContent = '[' + timeStr + '] ' + icon + ' ' + message;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+
+            function showCompletion() {
+                if (completionShown) return;
+                completionShown = true;
+                const overlay = document.getElementById('completion-overlay');
+                const pct = totalCheckpointsAttempted > 0 ? Math.round((totalCorrect / totalCheckpointsAttempted) *
+                    100) : 0;
+                document.getElementById('final-score').textContent = pct + '%';
+                document.getElementById('final-detail').textContent =
+                    '回答了 ' + totalCheckpointsAttempted + ' 个检查点，正确 ' + totalCorrect + ' 个';
+                overlay.classList.add('visible');
+                stopPlay();
+            }
+
+            function hideCompletion() {
+                document.getElementById('completion-overlay').classList.remove('visible');
+            }
+
+            function resetLearning() {
+                hideCompletion();
+                completionShown = false;
+                totalCheckpointsAttempted = 0;
+                totalCorrect = 0;
+                Object.keys(checkpointAttempts).forEach(k => delete checkpointAttempts[k]);
+                updateScoreDisplay();
+                const logDiv = document.getElementById('log-entries');
+                logDiv.innerHTML =
+                    '<span class="log-empty">📭 暂无学习记录 — 开始交互后将记录你的答题历史</span>';
+                goToStep(1);
+                const fbDiv = document.getElementById('cp-feedback');
+                fbDiv.style.display = 'none';
+                fbDiv.textContent = '';
+                fbDiv.className = 'feedback';
+                document.querySelectorAll('#cp-options label').forEach(l => l.classList.remove('selected-option'));
+                const radios = document.querySelectorAll('input[name="cp-radio"]');
+                radios.forEach(r => r.checked = false);
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                buildTimeline();
+                goToStep(1);
+                updateScoreDisplay();
+
+                document.getElementById('range').addEventListener('input', function() {
+                    goToStep(parseInt(this.value));
+                });
+                document.getElementById('next').addEventListener('click', nextStep);
+                document.getElementById('prev').addEventListener('click', prevStep);
+                document.getElementById('play').addEventListener('click', togglePlay);
+                document.getElementById('range').setAttribute('max', N_STEPS);
+                document.getElementById('range').setAttribute('min', '1');
+
+                document.getElementById('cp-submit').addEventListener('click', function() {
+                    const cpData = window._cpData;
+                    const stepId = window._cpStepId;
+                    if (!cpData || !stepId) {
+                        const fbDiv = document.getElementById('cp-feedback');
+                        fbDiv.style.display = 'block';
+                        fbDiv.className = 'feedback info';
+                        fbDiv.textContent = 'ℹ️ 当前步骤没有检查点问题。请导航到标记了 🧠 的步骤。';
+                        return;
+                    }
+                    const selected = document.querySelector('input[name="cp-radio"]:checked');
+                    const fbDiv = document.getElementById('cp-feedback');
+                    if (!selected) {
+                        fbDiv.style.display = 'block';
+                        fbDiv.className = 'feedback info';
+                        fbDiv.textContent = '⚠️ 请先选择一个选项再提交。';
+                        return;
+                    }
+                    const userAnswer = selected.value;
+                    fbDiv.style.display = 'block';
+
+                    const attemptKey = 'step-' + stepId;
+                    const alreadyAttempted = checkpointAttempts[attemptKey];
+
+                    if (userAnswer === cpData.correct) {
+                        fbDiv.className = 'feedback correct';
+                        fbDiv.textContent = '✅ ' + cpData.explanationCorrect;
+                        if (!alreadyAttempted) {
+                            totalCheckpointsAttempted++;
+                            totalCorrect++;
+                            checkpointAttempts[attemptKey] = 'correct';
+                            updateScoreDisplay();
+                            appendLog('步骤' + stepId + ' 检查点：回答正确！' + cpData.explanationCorrect,
+                                'correct');
+                        } else if (alreadyAttempted === 'wrong') {
+                            totalCorrect++;
+                            checkpointAttempts[attemptKey] = 'correct';
+                            updateScoreDisplay();
+                            appendLog('步骤' + stepId + ' 检查点：修正后回答正确！' + cpData.explanationCorrect,
+                                'correct');
+                        } else {
+                            appendLog('步骤' + stepId + ' 检查点：再次确认正确。' + cpData.explanationCorrect,
+                                'correct');
+                        }
+                    } else {
+                        fbDiv.className = 'feedback wrong';
+                        fbDiv.textContent = '❌ ' + cpData.explanationWrong;
+                        if (!alreadyAttempted) {
+                            totalCheckpointsAttempted++;
+                            checkpointAttempts[attemptKey] = 'wrong';
+                            updateScoreDisplay();
+                            appendLog('步骤' + stepId + ' 检查点：回答错误。' + cpData.explanationWrong, 'wrong');
+                        } else if (alreadyAttempted === 'correct') {
+                            appendLog('步骤' + stepId + ' 检查点：再次回答错误（之前正确）。' + cpData.explanationWrong,
+                                'wrong');
+                        } else {
+                            appendLog('步骤' + stepId + ' 检查点：仍然错误。' + cpData.explanationWrong, 'wrong');
+                        }
+                    }
+
+                    if (stepId === N_STEPS && !completionShown && totalCheckpointsAttempted >= 3) {
+                        setTimeout(showCompletion, 1500);
+                    }
+                });
+
+                document.getElementById('cp-hint').addEventListener('click', function() {
+                    const cpData = window._cpData;
+                    const stepId = window._cpStepId;
+                    if (!cpData || !stepId) {
+                        const fbDiv = document.getElementById('cp-feedback');
+                        fbDiv.style.display = 'block';
+                        fbDiv.className = 'feedback info';
+                        fbDiv.textContent = 'ℹ️ 当前步骤没有检查点问题。请导航到标记了 🧠 的步骤。';
+                        return;
+                    }
+                    const fbDiv = document.getElementById('cp-feedback');
+                    fbDiv.style.display = 'block';
+                    fbDiv.className = 'feedback info';
+                    fbDiv.textContent = cpData.hint;
+                    appendLog('步骤' + stepId + ' 请求提示：' + cpData.hint, 'info');
+                });
+
+                document.getElementById('cp-show-answer').addEventListener('click', function() {
+                    const cpData = window._cpData;
+                    const stepId = window._cpStepId;
+                    if (!cpData || !stepId) {
+                        const fbDiv = document.getElementById('cp-feedback');
+                        fbDiv.style.display = 'block';
+                        fbDiv.className = 'feedback info';
+                        fbDiv.textContent = 'ℹ️ 当前步骤没有检查点问题。请导航到标记了 🧠 的步骤。';
+                        return;
+                    }
+                    const fbDiv = document.getElementById('cp-feedback');
+                    fbDiv.style.display = 'block';
+                    fbDiv.className = 'feedback info';
+                    const correctOpt = cpData.options.find(o => o.value === cpData.correct);
+                    fbDiv.textContent = '👁 正确答案：' + (correctOpt ? correctOpt.text : cpData.correct) +
+                        '。' + cpData.explanationCorrect;
+                    appendLog('步骤' + stepId + ' 查看答案：' + (correctOpt ? correctOpt.text : cpData.correct),
+                        'info');
+                });
+
+                document.getElementById('completion-restart').addEventListener('click', resetLearning);
+                document.getElementById('completion-close').addEventListener('click', hideCompletion);
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        nextStep();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        prevStep();
+                    } else if (e.key === ' ') {
+                        e.preventDefault();
+                        togglePlay();
+                    } else if (e.key === 'Escape') {
+                        hideCompletion();
+                    }
+                });
+
+                document.getElementById('completion-overlay').addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        hideCompletion();
+                    }
+                });
+            });
+
+            window._resetLearning = resetLearning;
+        })();
+    </script>
+</body>
+</html>

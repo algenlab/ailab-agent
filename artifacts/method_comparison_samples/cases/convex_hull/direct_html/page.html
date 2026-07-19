@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凸包 - Andrew 单调链算法 | AlgoLab</title>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --panel-bg: #ffffff;
+            --border: #e0e3e7;
+            --text: #1a1d23;
+            --text-secondary: #555a63;
+            --accent: #3b6df0;
+            --accent-light: #e8edfc;
+            --gold: #e8a817;
+            --gold-light: #fef7e6;
+            --green: #1e8c4a;
+            --green-light: #e6f5ec;
+            --red: #c73a3a;
+            --red-light: #fdecea;
+            --blue-dep: #5b8def;
+            --orange-curr: #f07b3a;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        header {
+            background: var(--panel-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 12px 24px;
+        }
+
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a1d23;
+            letter-spacing: -0.01em;
+        }
+
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        #top-result {
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            background: var(--green-light);
+            color: var(--green);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+
+        #top-solution {
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+
+        main {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .left-panel {
+            flex: 1 1 520px;
+            min-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .right-panel {
+            flex: 1 1 440px;
+            min-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .panel h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            background: #1e2233;
+            color: #d4d8e0;
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            overflow-x: auto;
+            white-space: pre;
+            position: relative;
+            counter-reset: codeline;
+            border: 1px solid #2a2f3d;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background 0.25s, color 0.25s;
+            position: relative;
+        }
+
+        #code .code-line.highlight {
+            background: rgba(59, 109, 240, 0.25);
+            color: #ffffff;
+            box-shadow: inset 3px 0 0 0 var(--accent);
+        }
+
+        #code .code-line.highlight-pop {
+            background: rgba(199, 58, 58, 0.3);
+            color: #ffb0b0;
+            box-shadow: inset 3px 0 0 0 var(--red);
+        }
+
+        #code .code-line.highlight-push {
+            background: rgba(30, 140, 74, 0.25);
+            color: #b0e8c8;
+            box-shadow: inset 3px 0 0 0 var(--green);
+        }
+
+        .code-kw {
+            color: #c792ea;
+        }
+        .code-fn {
+            color: #82c8ff;
+        }
+        .code-str {
+            color: #ecc48d;
+        }
+        .code-num {
+            color: #f78c6c;
+        }
+        .code-cmt {
+            color: #6a737d;
+            font-style: italic;
+        }
+
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1d23;
+            margin-bottom: 4px;
+        }
+
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        #op {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #f0f2f5;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #4a4f58;
+            letter-spacing: 0.03em;
+        }
+
+        #canvas {
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            min-height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #e0e3e7;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas svg {
+            width: 100%;
+            max-width: 420px;
+            height: auto;
+        }
+
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            background: #f8f9fb;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #3a3f48;
+            max-height: 140px;
+            overflow-y: auto;
+            border: 1px solid #e8eaef;
+        }
+
+        #teaching {
+            font-size: 0.9rem;
+            color: #3a3f48;
+            line-height: 1.7;
+            padding: 4px 0;
+        }
+
+        #teaching .highlight-note {
+            background: var(--gold-light);
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-weight: 500;
+            color: #7a5d10;
+        }
+
+        #step-evidence {
+            font-size: 0.82rem;
+            background: #fefefe;
+            border-left: 4px solid var(--accent);
+            padding: 10px 14px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            color: #3a3f48;
+            line-height: 1.6;
+        }
+
+        #step-evidence .ev-label {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+
+        .tick {
+            flex: 1 1 auto;
+            min-width: 56px;
+            padding: 10px 8px;
+            font-size: 0.72rem;
+            background: #f0f2f5;
+            border: 2px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-sans);
+            color: #555a63;
+            user-select: none;
+        }
+
+        .tick:hover {
+            background: #e4e7ed;
+            border-color: #c8cdd6;
+        }
+        .tick.active {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(59, 109, 240, 0.12);
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            letter-spacing: 0.03em;
+        }
+        .tick .tick-op {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            opacity: 0.75;
+            letter-spacing: 0.02em;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #prev,
+        #play,
+        #next {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            white-space: nowrap;
+        }
+
+        #prev:hover,
+        #play:hover,
+        #next:hover {
+            background: #f5f6f8;
+            border-color: #b8bec7;
+        }
+        #prev:active,
+        #play:active,
+        #next:active {
+            background: #e8eaef;
+            transform: scale(0.97);
+        }
+        #play.playing {
+            background: var(--gold-light);
+            border-color: var(--gold);
+            color: #7a5d10;
+        }
+
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: var(--font-mono);
+            color: #1a1d23;
+            min-width: 48px;
+            text-align: center;
+        }
+
+        #range {
+            flex: 1 1 100px;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+        }
+
+        #checkpoint-container {
+            background: #fffdf5;
+            border: 2px solid #e8d88e;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            display: none;
+            transition: all 0.3s;
+        }
+        #checkpoint-container.visible {
+            display: block;
+        }
+        #checkpoint-container h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #6b5510;
+        }
+        #checkpoint-container .cp-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 8px 0;
+        }
+        #checkpoint-container .cp-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 1px solid #e0dcc8;
+            background: #fffef8;
+            transition: all 0.15s;
+            font-size: 0.85rem;
+        }
+        #checkpoint-container .cp-option:hover {
+            background: #fef9e0;
+            border-color: #d4c870;
+        }
+        #checkpoint-container .cp-option.selected {
+            background: #fef3c0;
+            border-color: #c9a820;
+            font-weight: 600;
+        }
+        #checkpoint-container .cp-option input[type="radio"] {
+            accent-color: #c9a820;
+        }
+        #checkpoint-container .cp-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        #checkpoint-container .cp-btns button {
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            border: 1px solid #d4ccb0;
+            background: #fffef8;
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+        }
+        #checkpoint-container .cp-btns button:hover {
+            background: #fef9e0;
+            border-color: #b8a850;
+        }
+        #checkpoint-container .cp-btns .cp-submit {
+            background: #e8a817;
+            color: #fff;
+            border-color: #c98c10;
+            font-weight: 700;
+        }
+        #checkpoint-container .cp-btns .cp-submit:hover {
+            background: #d49510;
+        }
+        #checkpoint-container .cp-feedback {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.84rem;
+            line-height: 1.5;
+            display: none;
+        }
+        #checkpoint-container .cp-feedback.correct {
+            display: block;
+            background: #e6f5ec;
+            color: #1e6b38;
+            border: 1px solid #b8dcc8;
+        }
+        #checkpoint-container .cp-feedback.incorrect {
+            display: block;
+            background: #fdecea;
+            color: #a13030;
+            border: 1px solid #f0c8c0;
+        }
+        #checkpoint-container .cp-feedback.show-answer {
+            display: block;
+            background: #e8edfc;
+            color: #2548a0;
+            border: 1px solid #c4d0f0;
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            background: #f0faf4;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            color: #1a5c32;
+            font-weight: 600;
+            border: 1px solid #c0e0cc;
+            word-break: break-all;
+            letter-spacing: 0.03em;
+        }
+
+        #learning-log {
+            font-size: 0.78rem;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            border: 1px solid #e8eaef;
+        }
+        #learning-log .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.76rem;
+            line-height: 1.5;
+        }
+        #learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-time {
+            color: #999;
+            font-size: 0.68rem;
+            margin-right: 6px;
+        }
+        .log-correct {
+            color: #1e8c4a;
+            font-weight: 600;
+        }
+        .log-wrong {
+            color: #c73a3a;
+            font-weight: 600;
+        }
+        .log-info {
+            color: #3b6df0;
+        }
+
+        footer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        footer .footer-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        @media (max-width: 860px) {
+            main {
+                flex-direction: column;
+            }
+            .left-panel,
+            .right-panel {
+                flex: 1 1 auto;
+                min-width: auto;
+            }
+            #timeline {
+                gap: 3px;
+            }
+            .tick {
+                padding: 6px 4px;
+                font-size: 0.65rem;
+                min-width: 38px;
+            }
+            .tick .tick-label {
+                font-size: 0.6rem;
+            }
+            .tick .tick-op {
+                font-size: 0.55rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <span id="title">凸包 · Convex Hull</span>
+            <span id="subtitle">Andrew 单调链算法</span>
+            <span id="top-result">[[0,0],[2,0],[1,2]]</span>
+            <span id="top-solution">下凸壳: [[0,0],[1,1]]</span>
+        </header>
+
+        <main>
+            <div class="left-panel">
+                <div class="panel">
+                    <h3>📜 算法代码</h3>
+                    <div id="code"></div>
+                </div>
+                <div class="panel">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span id="step-title">排序点集</span>
+                        <span id="op">sort</span>
+                    </div>
+                    <div id="step-desc">按 x 坐标升序排列所有点</div>
+                    <div id="teaching"></div>
+                </div>
+                <div id="checkpoint-container">
+                    <h4>🧠 学习检查点</h4>
+                    <p id="cp-question"></p>
+                    <div class="cp-options" id="cp-options"></div>
+                    <div class="cp-btns">
+                        <button class="cp-submit" id="cp-submit">✅ 提交</button>
+                        <button id="cp-hint">💡 提示</button>
+                        <button id="cp-show-answer">👁️ 显示答案</button>
+                    </div>
+                    <div class="cp-feedback" id="cp-feedback"></div>
+                </div>
+                <div class="panel">
+                    <div id="step-evidence"></div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="panel">
+                    <h3>📐 算法视图</h3>
+                    <div id="canvas"></div>
+                </div>
+                <div class="panel">
+                    <h3>📊 当前状态</h3>
+                    <div id="state"></div>
+                </div>
+                <div class="panel">
+                    <h3>⏱️ 步骤时间线</h3>
+                    <div id="timeline"></div>
+                    <div class="controls-row" style="margin-top:12px;">
+                        <button id="prev">◀ 上一步</button>
+                        <button id="play">▶ 播放</button>
+                        <button id="next">下一步 ▶</button>
+                        <span id="counter">1 / 7</span>
+                        <input type="range" id="range" min="1" max="7" value="1" step="1">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <span class="footer-label">📦 最终答案</span>
+            <div id="answer">[[0,0],[2,0],[1,2]]</div>
+            <span class="footer-label">📝 学习日志</span>
+            <div id="learning-log"><span style="color:#999;">尚无记录。完成检查点后日志会出现在这里。</span></div>
+        </footer>
+    </div>
+
+    <script>
+        (function() {
+            // ============ 数据定义 ============
+            const inputPoints = [
+                [0, 0],
+                [1, 1],
+                [2, 0],
+                [1, 2]
+            ];
+            const sortedPoints = [
+                [0, 0],
+                [1, 1],
+                [1, 2],
+                [2, 0]
+            ];
+            const finalAnswer = [
+                [0, 0],
+                [2, 0],
+                [1, 2]
+            ];
+            const finalAnswerJSON = '[[0,0],[2,0],[1,2]]';
+
+            const totalSteps = 7;
+
+            // 每个步骤的详细数据
+            const stepsData = [{
+                id: 1,
+                title: '排序点集',
+                desc: '按 x 坐标升序排列所有点，x 相同时按 y 升序。',
+                op: 'sort',
+                tickLabel: '排序',
+                tickOp: 'sort',
+                teaching: 'Andrew 算法的<strong>第一步</strong>是对点集进行排序。排序后，我们可以从左到右扫描构建<span class="highlight-note">下凸壳</span>，再从右到左扫描构建<span class="highlight-note">上凸壳</span>。排序确保了点按 x 坐标单调排列，这是算法正确性的基础。',
+                evidence: '<span class="ev-label">operation:</span> sort(points) by x, then y<br><span class="ev-label">targets:</span> 所有输入点<br><span class="ev-label">before:</span> [[0,0],[1,1],[2,0],[1,2]] (无序)<br><span class="ev-label">after:</span> [[0,0],[1,1],[1,2],[2,0]] (有序)',
+                stateJSON: '{"sorted_points":[[0,0],[1,1],[1,2],[2,0]],"phase":"sorting"}',
+                topSolution: '排序完成: [[0,0],[1,1],[1,2],[2,0]]',
+                codeHighlightLines: [0],
+                codeHighlightClass: 'highlight',
+                svgData: {
+                    points: [
+                        { coord: [0, 0], color: '#bbb', radius: 9, label: 'P0', opacity: 0.6 },
+                        { coord: [1, 1], color: '#bbb', radius: 9, label: 'P1', opacity: 0.6 },
+                        { coord: [1, 2], color: '#bbb', radius: 9, label: 'P2', opacity: 0.6 },
+                        { coord: [2, 0], color: '#bbb', radius: 9, label: 'P3', opacity: 0.6 }
+                    ],
+                    segments: [],
+                    annotations: ['排序后: 按x升序'],
+                    highlightPointIndex: -1,
+                    depPointIndices: [],
+                    popPointIndices: [],
+                    extraLabels: []
+                },
+                hasCheckpoint: false,
+                checkpointData: null
+            }, {
+                id: 2,
+                title: '初始化下凸壳',
+                desc: '将排序后的前两个点 [0,0] 和 [1,1] 加入下凸壳。',
+                op: 'push [0,0], [1,1] → lower',
+                tickLabel: '下凸壳初始化',
+                tickOp: 'push 2 pts',
+                teaching: '下凸壳的构建从<strong>最左边的点</strong>开始。前两个点直接加入栈中，因为至少需要两个点才能形成一条边。当前下凸壳为 <code>[[0,0], [1,1]]</code>。',
+                evidence: '<span class="ev-label">operation:</span> lower.push([0,0]), lower.push([1,1])<br><span class="ev-label">targets:</span> sortedPoints[0], sortedPoints[1]<br><span class="ev-label">before:</span> lower = []<br><span class="ev-label">after:</span> lower = [[0,0],[1,1]]',
+                stateJSON: '{"lower_hull":[[0,0],[1,1]],"phase":"building_lower"}',
+                topSolution: '下凸壳: [[0,0],[1,1]]',
+                codeHighlightLines: [1, 2, 6],
+                codeHighlightClass: 'highlight-push',
+                svgData: {
+                    points: [
+                        { coord: [0, 0], color: '#1e8c4a', radius: 10, label: 'P0', opacity: 1 },
+                        { coord: [1, 1], color: '#1e8c4a', radius: 10, label: 'P1', opacity: 1 },
+                        { coord: [1, 2], color: '#bbb', radius: 8, label: 'P2', opacity: 0.5 },
+                        { coord: [2, 0], color: '#bbb', radius: 8, label: 'P3', opacity: 0.5 }
+                    ],
+                    segments: [
+                        { from: [0, 0], to: [1, 1], color: '#1e8c4a', width: 3, dashed: false }
+                    ],
+                    annotations: ['下凸壳: [0,0]→[1,1]'],
+                    highlightPointIndex: -1,
+                    depPointIndices: [],
+                    popPointIndices: [],
+                    extraLabels: [{ text: 'lower栈', at: [0.3, 0.6], color: '#1e8c4a' }]
+                },
+                hasCheckpoint: false,
+                checkpointData: null
+            }, {
+                id: 3,
+                title: '下凸壳 — 检查转向 [1,2]',
+                desc: '处理第三个点 [1,2]：计算 cross([0,0],[1,1],[1,2])，发现三点共线（cross=0），弹出 [1,1]。',
+                op: 'cross=0 → pop [1,1]',
+                tickLabel: '检查转向',
+                tickOp: 'cross & pop',
+                teaching: '处理点 <strong>[1,2]</strong> 时，检查栈顶两个点 <code>[0,0]→[1,1]→[1,2]</code> 的转向。<br>🧮 <code>cross = (1-0)*(2-1) - (1-0)*(1-0) = 1 - 1 = <strong>0</strong></code><br>在 Andrew 算法中，<code>cross ≤ 0</code> 表示<strong>非左转</strong>（共线或右转），需要<span style="color:#c73a3a;">弹出栈顶点</span>以保持凸性。共线时保留更远的点即可。',
+                evidence: '<span class="ev-label">operation:</span> cross([0,0],[1,1],[1,2]) = 0 ≤ 0 → lower.pop()<br><span class="ev-label">targets:</span> lower栈顶 [1,1]<br><span class="ev-label">before:</span> lower = [[0,0],[1,1]]<br><span class="ev-label">after:</span> lower = [[0,0]]，然后 push([1,2]) → [[0,0],[1,2]]',
+                stateJSON: '{"lower_hull":[[0,0],[1,2]],"popped":[1,1],"cross_value":0,"phase":"building_lower"}',
+                topSolution: '下凸壳: [[0,0],[1,2]] (弹出[1,1])',
+                codeHighlightLines: [3, 4],
+                codeHighlightClass: 'highlight-pop',
+                svgData: {
+                    points: [
+                        { coord: [0, 0], color: '#5b8def', radius: 10, label: 'P0', opacity: 1 },
+                        { coord: [1, 1], color: '#c73a3a', radius: 11, label: 'P1 ✕', opacity: 1 },
+                        { coord: [1, 2], color: '#f07b3a', radius: 11, label: 'P2◎', opacity: 1 },
+                        { coord: [2, 0], color: '#bbb', radius: 8, label: 'P3', opacity: 0.4 }
+                    ],
+                    segments: [
+                        { from: [0, 0], to: [1, 1], color: '#c73a3a', width: 2.5,
+                        dashed: true },
+                        { from: [1, 1], to: [1, 2], color: '#f07b3a', width: 2, dashed: true },
+                        { from: [0, 0], to: [1, 2], color: '#1e8c4a', width: 3, dashed: false }
+                    ],
+                    annotations: ['cross=0 共线!', '弹出[1,1]', '加入[1,2]'],
+                    highlightPointIndex: 2,
+                    depPointIndices: [0, 1],
+                    popPointIndices: [1],
+                    extraLabels: [{ text: 'cross=0', at: [0.55, 1.35], color: '#c73a3a' }]
+                },
+                hasCheckpoint: true,
+                checkpointData: {
+                    question: '在处理点 [1,2] 时，cross([0,0],[1,1],[1,2]) 的值是多少？这说明了什么？',
+                    options: [
+                        { value: 'A', text: '正值，说明三点形成左转', isCorrect: false },
+                        { value: 'B', text: '0，说明三点共线，需要弹出栈顶点', isCorrect: true },
+                        { value: 'C', text: '负值，说明三点形成右转', isCorrect: false },
+                        { value: 'D', text: '无法计算，因为点重复', isCorrect: false }
+                    ],
+                    hint: '向量 [1,1]-[0,0] = (1,1)，向量 [1,2]-[1,1] = (0,1)，它们的叉积 = 1*1 - 1*0 = 1... 等等，再仔细算算。实际上 cross = (x2-x1)*(y3-y1) - (y2-y1)*(x3-x1) = (1-0)*(2-1) - (1-0)*(1-0) = 1*1 - 1*1 = 0。',
+                    answerExplanation: 'cross = 0 表示三点共线。在 Andrew 算法中，下凸壳使用 cross ≤ 0 作为弹出条件，共线时弹出中间点以保留最远的点，保持凸壳的 minimal 性质。'
+                }
+            }, {
+                id: 4,
+                title: '完成下凸壳',
+                desc: '处理最后一个点 [2,0]：cross([0,0],[1,2],[2,0]) = -6 < 0，弹出 [1,2]，加入 [2,0]。下凸壳完成。',
+                op: 'cross=-6 → pop, push [2,0]',
+                tickLabel: '完成下凸壳',
+                tickOp: 'push last pt',
+                teaching: '处理点 <strong>[2,0]</strong>：计算 <code>cross([0,0],[1,2],[2,0])</code>。<br>🧮 <code>cross = (1-0)*(0-2) - (2-0)*(2-0) = 1*(-2) - 2*2 = -2 - 4 = <strong>-6 &lt; 0</strong></code><br>非左转，弹出 <code>[1,2]</code>。栈中只剩 <code>[0,0]</code>，再检查（栈长&lt;2自动通过），加入 <code>[2,0]</code>。<br>✅ <strong>下凸壳完成：</strong><code>[[0,0],[2,0]]</code>',
+                evidence: '<span class="ev-label">operation:</span> cross([0,0],[1,2],[2,0]) = -6 ≤ 0 → lower.pop()，然后 lower.push([2,0])<br><span class="ev-label">targets:</span> [1,2]被弹出, [2,0]被加入<br><span class="ev-label">before:</span> lower = [[0,0],[1,2]]<br><span class="ev-label">after:</span> lower = [[0,0],[2,0]] ✅ 下凸壳完成',
+                stateJSON: '{"lower_hull":[[0,0],[2,0]],"popped":[1,2],"cross_value":-6,"phase":"lower_complete"}',
+                topSolution: '下凸壳完成: [[0,0],[2,0]]',
+                codeHighlightLines: [3, 4, 5, 7],
+                codeHighlightClass: 'highlight-pop',
+                svgData: {
+                    points: [
+                        { coord: [0, 0], color: '#1e8c4a', radius: 10, label: 'P0', opacity: 1 },
+                        { coord: [1, 1], color: '#ddd', radius: 7, label: 'P1', opacity: 0.3 },
+                        { coord: [1, 2], color: '#c73a3a', radius: 9, label: 'P2✕', opacity: 0.7 },
+                        { coord: [2, 0], color: '#1e8c4a', radius: 10, label: 'P3', opacity: 1 }
+                    ],
+                    segments: [
+                        { from: [0, 0], to: [2, 0], color: '#1e8c4a', width: 3.5, dashed: false }
+                    ],
+                    annotations: ['下凸壳完成!', '[0,0]→[2,0]'],
+                    highlightPointIndex: 3,
+                    depPointIndices: [0, 2],
+                    popPointIndices: [2],
+                    extraLabels: [{ text: 'cross=-6', at: [0.7, 1.0], color: '#c73a3a' }]
+                },
+                hasCheckpoint: false,
+                checkpointData: null
+            }, {
+                id: 5,
+                title: '初始化上凸壳',
+                desc: '从右向左遍历排序点，将 [2,0] 和 [1,2] 加入上凸壳。',
+                op: 'push [2,0], [1,2] → upper',
+                tickLabel: '上凸壳初始化',
+                tickOp: 'reverse push',
+                teaching: '上凸壳的构建从<strong>最右边的点</strong>开始，<strong>逆序</strong>（从右到左）扫描排序点集。<br>前两个点 <code>[2,0]</code> 和 <code>[1,2]</code> 直接加入上凸壳栈。<br>🔑 <strong>关键：</strong>上凸壳的遍历方向与下凸壳相反，这保证了最终合并时凸壳的完整闭合。',
+                evidence: '<span class="ev-label">operation:</span> upper.push([2,0]), upper.push([1,2]) (逆序遍历)<br><span class="ev-label">targets:</span> sortedPoints[3], sortedPoints[2]<br><span class="ev-label">before:</span> upper = []<br><span class="ev-label">after:</span> upper = [[2,0],[1,2]]',
+                stateJSON: '{"upper_hull":[[2,0],[1,2]],"traversal":"right-to-left","phase":"building_upper"}',
+                topSolution: '上凸壳: [[2,0],[1,2]]',
+                codeHighlightLines: [8, 9, 10, 14],
+                codeHighlightClass: 'highlight-push',
+                svgData: {
+                    points: [
+                        { coord: [0, 0], color: '#1e8c4a', radius: 9, label: 'P0', opacity: 0.7 },
+                        { coord: [1, 1], color: '#ddd', radius: 7, label: 'P1', opacity: 0.25 },
+                        { coord: [1, 2], color: '#5b8def', radius: 10, label: 'P2', opacity: 1 },
+                        { coord: [2, 0], color: '#5b8def', radius: 10, label: 'P3', opacity: 1 }
+                    ],
+                    segments: [
+                        { from: [2, 0], to: [1, 2], color: '#5b8def', width: 3, dashed: false },
+                        { from: [0, 0], to: [2, 0], color: '#1e8c4a', width: 2.5, dashed: false,
+                            opacity: 0.5 }
+                    ],
+                    annotations: ['上凸壳初始化', '逆序遍历: ←'],
+                    highlightPointIndex: -1,
+                    depPointIndices: [],
+                    popPointIndices: [],
+                    extraLabels: [{ text: 'upper栈', at: [1.5, 0.8], color: '#5b8def' }]
+                },
+                hasCheckpoint: true,
+                checkpointData: {
+                    question: '上凸壳的构建使用什么遍历顺序？为什么？',
+                    options: [
+                        { value: 'A', text: '从左到右，与下凸壳保持一致', isCorrect: false },
+                        { value: 'B', text: '从右到左，逆序扫描排序点集', isCorrect: true },
+                        { value: 'C', text: '随机顺序，因为凸包与顺序无关', isCorrect: false },
+                        { value: 'D', text: '只扫描下凸壳未包含的点', isCorrect: false }
+                    ],
+                    hint: '考虑一下：下凸壳已经从左边扫描到了右边，上凸壳需要"回头"覆盖上方的边界。如果还是从左到右，能捕捉到上方的凸出点吗？',
+                    answerExplanation: '上凸壳从右到左遍历排序点集。这样做是因为下凸壳已经覆盖了"底部"的凸边界，上凸壳需要覆盖"顶部"的凸边界。逆序遍历确保我们能够捕捉到所有在上方凸出的点，最终与下凸壳一起形成完整的闭合凸包。'
+                }
+            }, {
+                id: 6,
+                title: '处理上凸壳剩余点',
+                desc: '依次处理 [1,1] 和 [0,0]：对 [1,1] 左转保留；对 [0,0] 先弹出 [1,1] 再保留。',
+                op: 'cross checks, pop [1,1]',
+                tickLabel: '处理上凸壳',
+                tickOp: 'cross & push',
+                teaching: '🔹 处理 <strong>[1,1]</strong>：<code>cross([2,0],[1,2],[1,1]) = 1 &gt; 0</code>（左转✅），保留并加入。<br>🔹 处理 <strong>[0,0]</strong>：先检查 <code>cross([1,2],[1,1],[0,0]) = -1 &lt; 0</code>（非左转❌），弹出 <code>[1,1]</code>；再检查 <code>cross([2,0],[1,2],[0,0]) = 4 &gt; 0</code>（左转✅），加入。<br>上凸壳：<code>[[2,0],[1,2],[0,0]]</code>',
+                evidence: '<span class="ev-label">operation:</span> 处理[1,1]: cross=1>0→保留; 处理[0,0]: cross([1,2],[1,1],[0,0])=-1→pop[1,1]; cross([2,0],[1,2],[0,0])=4>0→push[0,0]<br><span class="ev-label">targets:</span> [1,1]保留, [1,1]后被弹出, [0,0]加入<br><span class="ev-label">before:</span> upper = [[2,0],[1,2]]<br><span class="ev-label">after:</span> upper = [[2,0],[1,2],[0,0]]',
+                stateJSON: '{"upper_hull":[[2,0],[1,2],[0,0]],"popped_from_upper":[1,1],"phase":"upper_complete"}',
+                topSolution: '上凸壳: [[2,0],[1,2],[0,0]]',
+                codeHighlightLines: [10, 11, 12, 13, 15],
+                codeHighlightClass: 'highlight',
+                svgData: {
+                    points: [
+                        { coord: [0, 0], color: '#5b8def', radius: 10, label: 'P0', opacity: 1 },
+                        { coord: [1, 1], color: '#c73a3a', radius: 9, label: 'P1✕', opacity: 0.7 },
+                        { coord: [1, 2], color: '#5b8def', radius: 10, label: 'P2', opacity: 1 },
+                        { coord: [2, 0], color: '#5b8def', radius: 10, label: 'P3', opacity: 1 }
+                    ],
+                    segments: [
+                        { from: [2, 0], to: [1, 2], color: '#5b8def', width: 3, dashed: false },
+                        { from: [1, 2], to: [0, 0], color: '#5b8def', width: 3, dashed: false },
+                        { from: [0, 0], to: [2, 0], color: '#1e8c4a', width: 2, dashed: false,
+                            opacity: 0.4 }
+                    ],
+                    annotations: ['上凸壳完成', '弹出[1,1]'],
+                    highlightPointIndex: 0,
+                    depPointIndices: [3, 2],
+                    popPointIndices: [1],
+                    extraLabels: [{ text: '上凸壳✓', at: [1.2, 0.3], color: '#5b8def' }]
+                },
+                hasCheckpoint: false,
+                checkpointData: null
+            }, {
+                id: 7,
+                title: '合并上下凸壳',
+                desc: '去掉重复端点（lower的[2,0]和upper的[0,0]），合并得到最终凸包 [[0,0],[2,0],[1,2]]。',
+                op: 'pop duplicates, concat',
+                tickLabel: '合并',
+                tickOp: 'concat',
+                teaching: '🔗 <strong>合并步骤：</strong><br>1. 下凸壳 <code>[[0,0],[2,0]]</code><br>2. 上凸壳 <code>[[2,0],[1,2],[0,0]]</code><br>3. 去掉重复端点：<code>lower.pop()</code> 去掉 <code>[2,0]</code>，<code>upper.pop()</code> 去掉 <code>[0,0]</code><br>4. 合并：<code>[[0,0],[2,0]] + [[1,2]] = <strong>[[0,0],[2,0],[1,2]]</strong></code><br>🎉 <strong>凸包构建完成！</strong>',
+                evidence: '<span class="ev-label">operation:</span> lower.pop(), upper.pop(), return lower.concat(upper)<br><span class="ev-label">targets:</span> 重复端点[2,0]和[0,0]<br><span class="ev-label">before:</span> lower=[[0,0],[2,0]], upper=[[2,0],[1,2],[0,0]]<br><span class="ev-label">after:</span> 最终凸包=[[0,0],[2,0],[1,2]] ✅',
+                stateJSON: '{"final_convex_hull":[[0,0],[2,0],[1,2]],"phase":"complete"}',
+                topSolution: '最终凸包: [[0,0],[2,0],[1,2]]',
+                codeHighlightLines: [16, 17],
+                codeHighlightClass: 'highlight',
+                svgData: {
+                    points: [
+                        { coord: [0, 0], color: '#1e8c4a', radius: 11, label: 'P0✓', opacity: 1 },
+                        { coord: [1, 1], color: '#ddd', radius: 6, label: 'P1', opacity: 0.2 },
+                        { coord: [1, 2], color: '#1e8c4a', radius: 11, label: 'P2✓', opacity: 1 },
+                        { coord: [2, 0], color: '#1e8c4a', radius: 11, label: 'P3✓', opacity: 1 }
+                    ],
+                    segments: [
+                        { from: [0, 0], to: [2, 0], color: '#1e8c4a', width: 3.5, dashed: false },
+                        { from: [2, 0], to: [1, 2], color: '#1e8c4a', width: 3.5, dashed: false },
+                        { from: [1, 2], to: [0, 0], color: '#1e8c4a', width: 3.5, dashed: false }
+                    ],
+                    annotations: ['🎉 凸包完成!'],
+                    highlightPointIndex: -1,
+                    depPointIndices: [],
+                    popPointIndices: [],
+                    extraLabels: [{ text: '凸包边界', at: [1.0, 0.15], color: '#1e8c4a', size: '14px' }]
+                },
+                hasCheckpoint: false,
+                checkpointData: null
+            }];
+
+            // 代码行定义
+            const codeLines = [
+                { text: 'points.sort((a,b)=>a[0]-b[0]||a[1]-b[1])', cls: '', stepRange: [1] },
+                { text: 'const lower = [];', cls: '', stepRange: [2] },
+                { text: 'for (const p of points) {', cls: '', stepRange: [2, 3, 4] },
+                { text: '  while (lower.length>=2 &&', cls: '', stepRange: [3, 4] },
+                { text: '    cross(lower.at(-2),lower.at(-1),p)<=0){', cls: '', stepRange: [3, 4] },
+                { text: '    lower.pop();', cls: '', stepRange: [3, 4] },
+                { text: '  }', cls: '', stepRange: [3, 4] },
+                { text: '  lower.push(p);', cls: '', stepRange: [2, 3, 4] },
+                { text: '}', cls: '', stepRange: [4] },
+                { text: 'const upper = [];', cls: '', stepRange: [5] },
+                { text: 'for (let i=pts.length-1; i>=0; i--){', cls: '', stepRange: [5, 6] },
+                { text: '  const p = points[i];', cls: '', stepRange: [5, 6] },
+                { text: '  while (upper.length>=2 &&', cls: '', stepRange: [6] },
+                { text: '    cross(upper.at(-2),upper.at(-1),p)<=0){', cls: '', stepRange: [6] },
+                { text: '    upper.pop();', cls: '', stepRange: [6] },
+                { text: '  }', cls: '', stepRange: [6] },
+                { text: '  upper.push(p);', cls: '', stepRange: [5, 6] },
+                { text: '}', cls: '', stepRange: [6] },
+                { text: 'upper.pop(); lower.pop();', cls: '', stepRange: [7] },
+                { text: 'return lower.concat(upper);', cls: '', stepRange: [7] },
+            ];
+
+            // ============ DOM 引用 ============
+            const $ = (id) => document.getElementById(id);
+            const dom = {
+                title: $('title'),
+                subtitle: $('subtitle'),
+                topResult: $('top-result'),
+                topSolution: $('top-solution'),
+                code: $('code'),
+                stepTitle: $('step-title'),
+                stepDesc: $('step-desc'),
+                op: $('op'),
+                canvas: $('canvas'),
+                prev: $('prev'),
+                play: $('play'),
+                next: $('next'),
+                range: $('range'),
+                counter: $('counter'),
+                timeline: $('timeline'),
+                teaching: $('teaching'),
+                state: $('state'),
+                stepEvidence: $('step-evidence'),
+                answer: $('answer'),
+                checkpointContainer: $('checkpoint-container'),
+                cpQuestion: $('cp-question'),
+                cpOptions: $('cp-options'),
+                cpSubmit: $('cp-submit'),
+                cpHint: $('cp-hint'),
+                cpShowAnswer: $('cp-show-answer'),
+                cpFeedback: $('cp-feedback'),
+                learningLog: $('learning-log'),
+            };
+
+            // ============ 状态 ============
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let cpSelectedValue = null;
+            let cpRevealed = false;
+            let cpSubmitted = false;
+            let learningLogEntries = [];
+
+            // ============ 初始化代码显示 ============
+            function buildCodeHTML() {
+                let html = '';
+                codeLines.forEach((line, idx) => {
+                    html +=
+                        `<span class="code-line" data-line="${idx}" data-step-range="${line.stepRange.join(',')}">${escapeHTML(line.text)}</span>\n`;
+                });
+                dom.code.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============ 初始化时间线 ============
+            function buildTimeline() {
+                dom.timeline.innerHTML = '';
+                stepsData.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', step.id);
+                    tick.innerHTML =
+                        `<span class="tick-label">${escapeHTML(step.tickLabel)}</span><span class="tick-op">${escapeHTML(step.tickOp)}</span>`;
+                    tick.addEventListener('click', () => {
+                        goToStep(step.id);
+                    });
+                    dom.timeline.appendChild(tick);
+                });
+            }
+
+            // ============ SVG 构建 ============
+            function toSVGCoords(coord) {
+                const margin = 50;
+                const scale = 95;
+                const height = 270;
+                return {
+                    x: margin + coord[0] * scale,
+                    y: height - margin - coord[1] * scale
+                };
+            }
+
+            function buildSVG(svgData) {
+                const vbWidth = 320;
+                const vbHeight = 280;
+                let svg = `<svg viewBox="0 0 ${vbWidth} ${vbHeight}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:420px;">`;
+
+                // 网格
+                for (let gx = 50; gx <= 250; gx += 100) {
+                    svg +=
+                        `<line x1="${gx}" y1="30" x2="${gx}" y2="250" stroke="#e8eaef" stroke-width="0.5" stroke-dasharray="3,4"/>`;
+                }
+                for (let gy = 30; gy <= 250; gy += 100) {
+                    svg +=
+                        `<line x1="50" y1="${gy}" x2="250" y2="${gy}" stroke="#e8eaef" stroke-width="0.5" stroke-dasharray="3,4"/>`;
+                }
+
+                // 轴标签
+                svg += `<text x="255" y="255" font-size="8" fill="#aaa" font-family="sans-serif">x</text>`;
+                svg += `<text x="30" y="40" font-size="8" fill="#aaa" font-family="sans-serif">y</text>`;
+
+                // 线段
+                if (svgData.segments) {
+                    svgData.segments.forEach(seg => {
+                        const a = toSVGCoords(seg.from);
+                        const b = toSVGCoords(seg.to);
+                        const dash = seg.dashed ? 'stroke-dasharray="6,3"' : '';
+                        const opacity = seg.opacity !== undefined ? `opacity="${seg.opacity}"` : '';
+                        svg +=
+                            `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${seg.color}" stroke-width="${seg.width||2.5}" ${dash} ${opacity} stroke-linecap="round"/>`;
+                    });
+                }
+
+                // 点
+                if (svgData.points) {
+                    svgData.points.forEach((pt, i) => {
+                        const c = toSVGCoords(pt.coord);
+                        const r = pt.radius || 8;
+                        const opacity = pt.opacity !== undefined ? pt.opacity : 1;
+                        let strokeColor = pt.color;
+                        let strokeWidth = 2;
+                        if (svgData.highlightPointIndex === i) {
+                            strokeColor = '#f07b3a';
+                            strokeWidth = 3.5;
+                        }
+                        if (svgData.popPointIndices && svgData.popPointIndices.includes(i)) {
+                            strokeColor = '#c73a3a';
+                            strokeWidth = 3;
+                        }
+                        if (svgData.depPointIndices && svgData.depPointIndices.includes(i) && svgData
+                            .highlightPointIndex !== i && !(svgData.popPointIndices && svgData
+                                .popPointIndices.includes(i))) {
+                            strokeColor = '#5b8def';
+                            strokeWidth = 3;
+                        }
+                        svg +=
+                            `<circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${pt.color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" opacity="${opacity}"/>`;
+                        if (pt.label) {
+                            const labelOffsetY = r + 14;
+                            svg +=
+                                `<text x="${c.x}" y="${c.y - labelOffsetY}" text-anchor="middle" font-size="9" fill="#444" font-family="sans-serif" font-weight="600">${escapeHTML(pt.label)}</text>`;
+                        }
+                    });
+                }
+
+                // 标注
+                if (svgData.annotations) {
+                    svgData.annotations.forEach((ann, i) => {
+                        svg +=
+                            `<text x="${vbWidth/2}" y="${22 + i*16}" text-anchor="middle" font-size="11" fill="#555" font-family="sans-serif" font-weight="600">${escapeHTML(ann)}</text>`;
+                    });
+                }
+
+                // 额外标签
+                if (svgData.extraLabels) {
+                    svgData.extraLabels.forEach(el => {
+                        const cx = 50 + el.at[0] * 95;
+                        const cy = 270 - 50 - el.at[1] * 95;
+                        svg +=
+                            `<text x="${cx}" y="${cy}" text-anchor="middle" font-size="${el.size||'10px'}" fill="${el.color}" font-family="sans-serif" font-weight="700">${escapeHTML(el.text)}</text>`;
+                    });
+                }
+
+                svg += `</svg>`;
+                return svg;
+            }
+
+            // ============ 更新步骤 ============
+            function goToStep(stepNum) {
+                if (stepNum < 1 || stepNum > totalSteps) return;
+                currentStep = stepNum;
+                const sd = stepsData[stepNum - 1];
+
+                // 更新标题、描述、操作
+                dom.stepTitle.textContent = sd.title;
+                dom.stepDesc.textContent = sd.desc;
+                dom.op.textContent = sd.op;
+                dom.topSolution.textContent = sd.topSolution;
+                dom.counter.textContent = `${stepNum} / ${totalSteps}`;
+                dom.range.value = stepNum;
+                dom.teaching.innerHTML = sd.teaching;
+                dom.stepEvidence.innerHTML = sd.evidence;
+                dom.state.textContent = sd.stateJSON;
+
+                // 更新SVG
+                dom.canvas.innerHTML = buildSVG(sd.svgData);
+
+                // 更新代码高亮
+                const allCodeLines = dom.code.querySelectorAll('.code-line');
+                allCodeLines.forEach(cl => cl.classList.remove('highlight', 'highlight-pop', 'highlight-push'));
+                const highlightClass = sd.codeHighlightClass || 'highlight';
+                allCodeLines.forEach(cl => {
+                    const rangeStr = cl.getAttribute('data-step-range');
+                    if (rangeStr) {
+                        const ranges = rangeStr.split(',').map(Number);
+                        if (ranges.includes(stepNum)) {
+                            cl.classList.add(highlightClass);
+                        }
+                    }
+                });
+
+                // 更新timeline
+                const ticks = dom.timeline.querySelectorAll('.tick');
+                ticks.forEach(t => t.classList.remove('active'));
+                const activeTick = dom.timeline.querySelector(`.tick[data-step="${stepNum}"]`);
+                if (activeTick) activeTick.classList.add('active');
+
+                // 更新checkpoint
+                updateCheckpoint(stepNum);
+
+                // 滚动代码到高亮行
+                const firstHighlighted = dom.code.querySelector('.code-line.highlight, .code-line.highlight-pop, .code-line.highlight-push');
+                if (firstHighlighted) {
+                    firstHighlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            function updateCheckpoint(stepNum) {
+                const sd = stepsData[stepNum - 1];
+                cpSelectedValue = null;
+                cpRevealed = false;
+                cpSubmitted = false;
+                dom.cpFeedback.className = 'cp-feedback';
+                dom.cpFeedback.textContent = '';
+                dom.cpFeedback.style.display = 'none';
+
+                if (sd.hasCheckpoint && sd.checkpointData) {
+                    dom.checkpointContainer.classList.add('visible');
+                    dom.cpQuestion.textContent = sd.checkpointData.question;
+                    dom.cpOptions.innerHTML = '';
+                    sd.checkpointData.options.forEach(opt => {
+                        const label = document.createElement('label');
+                        label.className = 'cp-option';
+                        label.innerHTML =
+                            `<input type="radio" name="cp-radio" value="${opt.value}"> <span>${opt.value}) ${opt.text}</span>`;
+                        label.addEventListener('click', function(e) {
+                            if (cpSubmitted && cpRevealed) return;
+                            const radio = this.querySelector('input[type="radio"]');
+                            radio.checked = true;
+                            cpSelectedValue = opt.value;
+                            document.querySelectorAll('#cp-options .cp-option').forEach(el => el
+                                .classList.remove('selected'));
+                            this.classList.add('selected');
+                        });
+                        dom.cpOptions.appendChild(label);
+                    });
+                    dom.cpFeedback.style.display = 'none';
+                    dom.cpFeedback.className = 'cp-feedback';
+                } else {
+                    dom.checkpointContainer.classList.remove('visible');
+                }
+            }
+
+            // ============ Checkpoint 交互 ============
+            function getCurrentCheckpointData() {
+                const sd = stepsData[currentStep - 1];
+                if (!sd.hasCheckpoint || !sd.checkpointData) return null;
+                return sd.checkpointData;
+            }
+
+            function submitCheckpoint() {
+                const cpData = getCurrentCheckpointData();
+                if (!cpData) return;
+                if (cpSubmitted && cpRevealed) return;
+                if (!cpSelectedValue) {
+                    dom.cpFeedback.className = 'cp-feedback incorrect';
+                    dom.cpFeedback.textContent = '⚠️ 请先选择一个选项。';
+                    dom.cpFeedback.style.display = 'block';
+                    return;
+                }
+                cpSubmitted = true;
+                const selectedOpt = cpData.options.find(o => o.value === cpSelectedValue);
+                const isCorrect = selectedOpt && selectedOpt.isCorrect;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                if (isCorrect) {
+                    dom.cpFeedback.className = 'cp-feedback correct';
+                    dom.cpFeedback.textContent = '✅ 正确！' + cpData.answerExplanation;
+                    dom.cpFeedback.style.display = 'block';
+                    addLogEntry(timeStr, cpData.question, cpSelectedValue, true, '回答正确');
+                } else {
+                    dom.cpFeedback.className = 'cp-feedback incorrect';
+                    dom.cpFeedback.textContent = '❌ 不正确。常见误区：' + (selectedOpt ? selectedOpt.text : '') +
+                        '。请再想想，或点击"显示答案"查看解析。';
+                    dom.cpFeedback.style.display = 'block';
+                    addLogEntry(timeStr, cpData.question, cpSelectedValue, false, '回答错误');
+                }
+                cpRevealed = isCorrect;
+            }
+
+            function showHint() {
+                const cpData = getCurrentCheckpointData();
+                if (!cpData) return;
+                dom.cpFeedback.className = 'cp-feedback show-answer';
+                dom.cpFeedback.textContent = '💡 提示：' + cpData.hint;
+                dom.cpFeedback.style.display = 'block';
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                addLogEntry(timeStr, cpData.question, 'HINT', null, '查看了提示');
+            }
+
+            function showAnswer() {
+                const cpData = getCurrentCheckpointData();
+                if (!cpData) return;
+                cpRevealed = true;
+                cpSubmitted = true;
+                dom.cpFeedback.className = 'cp-feedback show-answer';
+                dom.cpFeedback.textContent = '📖 答案：' + cpData.answerExplanation;
+                dom.cpFeedback.style.display = 'block';
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                addLogEntry(timeStr, cpData.question, 'ANSWER', null, '查看了答案');
+            }
+
+            function addLogEntry(time, question, answer, isCorrect, note) {
+                learningLogEntries.push({ time, question, answer, isCorrect, note });
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    dom.learningLog.innerHTML = '<span style="color:#999;">尚无记录。完成检查点后日志会出现在这里。</span>';
+                    return;
+                }
+                let html = '';
+                learningLogEntries.forEach(entry => {
+                    let statusClass = 'log-info';
+                    let statusText = entry.note;
+                    if (entry.isCorrect === true) {
+                        statusClass = 'log-correct';
+                        statusText = '✅ 正确';
+                    } else if (entry.isCorrect === false) {
+                        statusClass = 'log-wrong';
+                        statusText = '❌ 错误';
+                    }
+                    html +=
+                        `<div class="log-entry"><span class="log-time">${entry.time}</span> <strong>Q:</strong> ${truncateText(entry.question,60)} <span class="${statusClass}">${statusText}</span> | 选择: ${entry.answer}</div>`;
+                });
+                dom.learningLog.innerHTML = html;
+            }
+
+            function truncateText(text, maxLen) {
+                if (text.length <= maxLen) return text;
+                return text.substring(0, maxLen) + '…';
+            }
+
+            // ============ 播放控制 ============
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                dom.play.textContent = '⏸ 暂停';
+                dom.play.classList.add('playing');
+                playInterval = setInterval(() => {
+                    if (currentStep < totalSteps) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                dom.play.textContent = '▶ 播放';
+                dom.play.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ============ 事件绑定 ============
+            dom.prev.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStep - 1);
+            });
+            dom.next.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStep + 1);
+            });
+            dom.play.addEventListener('click', togglePlay);
+            dom.range.addEventListener('input', () => {
+                stopPlay();
+                goToStep(parseInt(dom.range.value));
+            });
+            dom.cpSubmit.addEventListener('click', submitCheckpoint);
+            dom.cpHint.addEventListener('click', showHint);
+            dom.cpShowAnswer.addEventListener('click', showAnswer);
+
+            // 键盘导航
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    goToStep(currentStep + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ============ 初始化 ============
+            function init() {
+                buildCodeHTML();
+                buildTimeline();
+                dom.range.setAttribute('max', totalSteps);
+                dom.range.value = 1;
+                dom.answer.textContent = finalAnswerJSON;
+                dom.topResult.textContent = finalAnswerJSON;
+                goToStep(1);
+                dom.counter.textContent = '1 / ' + totalSteps;
+                renderLearningLog();
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

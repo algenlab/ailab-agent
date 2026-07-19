@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KMP 字符串匹配 - 交互式学习</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #1e293b;
+      line-height: 1.6;
+      padding: 1.25rem;
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      border-radius: 1rem;
+      padding: 1.75rem 2rem;
+    }
+
+    header h1 {
+      font-size: 1.85rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    header .subtitle {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin-top: 0.35rem;
+    }
+
+    .problem-statement {
+      background: white;
+      border-radius: 1rem;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .problem-statement h2 {
+      font-size: 1.2rem;
+      margin-bottom: 0.75rem;
+      color: #1e293b;
+    }
+
+    .problem-statement p {
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+      line-height: 1.75;
+    }
+
+    .input-output {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      margin-top: 1.25rem;
+    }
+
+    .io-card {
+      flex: 1 1 260px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .io-card h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #374151;
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+
+    .io-card pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 0.85rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      overflow-x: auto;
+      line-height: 1.5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.75rem;
+      flex: 1;
+    }
+
+    .visualization {
+      background: white;
+      border-radius: 1rem;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .visualization .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .visualization h2 {
+      font-size: 1.2rem;
+      color: #1e293b;
+      margin: 0;
+    }
+
+    .step-counter {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #3b82f6;
+      background: #eff6ff;
+      padding: 0.35rem 0.85rem;
+      border-radius: 2rem;
+      white-space: nowrap;
+    }
+
+    .viz-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .viz-section h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.7rem;
+      color: #334155;
+    }
+
+    .string-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .string-label {
+      font-weight: 600;
+      min-width: 4rem;
+      color: #475569;
+      font-size: 0.95rem;
+    }
+
+    .chars {
+      display: flex;
+      gap: 0.3rem;
+    }
+
+    .char-box {
+      width: 2.75rem;
+      height: 2.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+      border-radius: 0.5rem;
+      background: #e2e8f0;
+      border: 2px solid transparent;
+      color: #1e293b;
+      transition: all 0.2s;
+    }
+
+    .char-box.match {
+      background: #bbf7d0;
+      border-color: #4ade80;
+    }
+
+    .char-box.mismatch {
+      background: #fecaca;
+      border-color: #f87171;
+    }
+
+    .char-box.current {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.5);
+    }
+
+    .char-box.found {
+      background: #fde68a;
+      border-color: #f59e0b;
+    }
+
+    .pointer-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .pointer-label {
+      font-weight: 600;
+      min-width: 4rem;
+      color: #475569;
+      font-size: 0.9rem;
+    }
+
+    .pointer-spots {
+      display: flex;
+      gap: 0.3rem;
+    }
+
+    .pointer-spot {
+      width: 2.75rem;
+      height: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #6366f1;
+    }
+
+    .state-info {
+      background: #f1f5f9;
+      border-radius: 0.5rem;
+      padding: 0.85rem 1.25rem;
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.75rem;
+    }
+
+    .state-info span {
+      font-size: 0.95rem;
+      color: #334155;
+    }
+
+    .state-info strong {
+      color: #1e293b;
+    }
+
+    .prefix-table {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .prefix-table .label {
+      font-weight: 700;
+      color: #475569;
+      font-size: 0.95rem;
+    }
+
+    .pi-value {
+      width: 2.75rem;
+      height: 2.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.95rem;
+      background: #e2e8f0;
+      border-radius: 0.5rem;
+    }
+
+    .pi-value.highlight {
+      background: #bfdbfe;
+      border: 2px solid #3b82f6;
+    }
+
+    .prefix-state {
+      font-size: 0.88rem;
+      color: #475569;
+      margin-top: 0.5rem;
+      padding: 0.4rem 0.85rem;
+      background: #f8fafc;
+      border-radius: 0.35rem;
+      display: inline-block;
+      border: 1px solid #e2e8f0;
+    }
+
+    .step-description {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 0.85rem 1.25rem;
+      border-radius: 0.5rem;
+      margin-top: 0.85rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .found-banner {
+      margin-top: 0.85rem;
+      font-weight: 700;
+      color: #059669;
+      font-size: 1.05rem;
+      padding: 0.5rem 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 0.55rem 1.15rem;
+      border-radius: 0.5rem;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover:not(:disabled) { background: #2563eb; }
+    .btn-secondary { background: #e2e8f0; color: #1e293b; }
+    .btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
+    .btn-accent { background: #f59e0b; color: #1e293b; }
+    .btn-accent:hover:not(:disabled) { background: #d97706; }
+    .btn-hint { background: #a78bfa; color: white; }
+    .btn-hint:hover:not(:disabled) { background: #7c3aed; }
+    .btn-reset { background: #94a3b8; color: white; }
+    .btn-reset:hover:not(:disabled) { background: #64748b; }
+
+    .checkpoint {
+      background: white;
+      border-radius: 1rem;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .checkpoint h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.75rem;
+      color: #1e293b;
+    }
+
+    .checkpoint p {
+      margin-bottom: 0.85rem;
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .option-btn {
+      padding: 0.55rem 1.25rem;
+      border: 2px solid #cbd5e1;
+      border-radius: 0.5rem;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .option-btn:hover { border-color: #3b82f6; background: #f8faff; }
+    .option-btn.selected { border-color: #3b82f6; background: #eff6ff; }
+    .option-btn.correct { border-color: #22c55e !important; background: #dcfce7 !important; }
+    .option-btn.incorrect { border-color: #ef4444 !important; background: #fee2e2 !important; }
+
+    .feedback {
+      padding: 0.85rem 1.25rem;
+      border-radius: 0.5rem;
+      margin-bottom: 0.85rem;
+      font-weight: 600;
+      font-size: 0.93rem;
+      line-height: 1.5;
+    }
+    .feedback.correct { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .feedback.incorrect { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .feedback.info { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+
+    .log-section {
+      background: white;
+      border-radius: 1rem;
+      padding: 1.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .log-section h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: #1e293b;
+    }
+
+    .log-entries {
+      max-height: 220px;
+      overflow-y: auto;
+      background: #f8fafc;
+      border-radius: 0.5rem;
+      padding: 0.65rem 1.1rem;
+      font-size: 0.85rem;
+      border: 1px solid #e2e8f0;
+    }
+
+    .log-entry {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid #f1f5f9;
+      color: #475569;
+    }
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 0.75rem;
+      }
+      header {
+        padding: 1.25rem 1.25rem;
+      }
+      header h1 {
+        font-size: 1.4rem;
+      }
+      .problem-statement, .visualization, .checkpoint, .log-section {
+        padding: 1.25rem;
+      }
+      .char-box {
+        width: 2.25rem;
+        height: 2.25rem;
+        font-size: 1rem;
+      }
+      .pointer-spot {
+        width: 2.25rem;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .btn {
+        justify-content: center;
+      }
+      .state-info {
+        gap: 1rem;
+      }
+      .visualization .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🔍 KMP 字符串匹配</h1>
+      <div class="subtitle">算法家族：字符串高级算法</div>
+    </header>
+
+    <section class="problem-statement">
+      <h2>题目描述</h2>
+      <p>基因研究员正在比对一段DNA长链 <strong>text</strong>，需要快速找出目标基因探针 <strong>pattern</strong> 首次出现的位置。若未找到则返回 -1，若 pattern 为空串则返回 0。</p>
+      <p>通过分析 pattern 自身的重复结构来构建<strong>前缀表（π）</strong>，在比对时实现智能跳转，避免从头逐个匹配。</p>
+      <div class="input-output">
+        <div class="io-card">
+          <h3>输入 (JSON)</h3>
+          <pre id="inputDisplay">{ "pattern": "abc", "text": "ababc" }</pre>
+        </div>
+        <div class="io-card">
+          <h3>预期答案</h3>
+          <pre id="answerDisplay">2</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="visualization">
+      <div class="section-header">
+        <h2>算法可视化</h2>
+        <span class="step-counter" id="stepCounter">步骤 0 / 9</span>
+      </div>
+      <div id="vizContainer">
+        <!-- Dynamically filled -->
+      </div>
+      <div class="controls">
+        <button class="btn btn-secondary" id="prevBtn" disabled>◀ 上一步</button>
+        <button class="btn btn-primary" id="nextBtn">下一步 ▶</button>
+        <button class="btn btn-accent" id="autoBtn">▶ 自动播放</button>
+        <button class="btn btn-reset" id="resetBtn">↺ 重置</button>
+      </div>
+      <div style="margin-top: 0.75rem; font-size: 0.85rem; color: #64748b; text-align: center;">
+        点击「下一步」逐步观察 KMP 算法如何构建前缀表并进行匹配
+      </div>
+    </section>
+
+    <section class="checkpoint" id="checkpointSection">
+      <h3>🎯 学习者挑战</h3>
+      <p id="challengeQuestion">问题加载中...</p>
+      <div class="options" id="challengeOptions"></div>
+      <div id="challengeFeedback"></div>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button class="btn btn-hint" id="hintBtn">💡 提示</button>
+        <button class="btn btn-secondary" id="showAnswerBtn">🔎 显示答案</button>
+      </div>
+    </section>
+
+    <section class="log-section">
+      <h3>📋 学习活动记录</h3>
+      <div class="log-entries" id="logEntries">
+        <div class="log-entry">程序启动</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // --- Data ---
+    const inputData = { pattern: "abc", text: "ababc" };
+    const expectedAnswer = 2;
+
+    // Steps definition for KMP algorithm with given input
+    const steps = [
+      { id: 0, phase: "prefix", desc: "初始化前缀表构建：i<sub>前缀</sub> = 1, j<sub>前缀</sub> = 0，设定 π[0] = 0，开始扫描 pattern 的重复结构。", pi: [0,0,0], piHighlight: 0,
+        i_pat: 1, j_pat: 0, comparePat1: 1, comparePat2: 0, matchType: "none", 
+        textHighlight: [], patHighlight: [], fsmState: "prefix_init" },
+      { id: 1, phase: "prefix", desc: "比较 pattern[1] = 'b' 与 pattern[0] = 'a' → 不匹配，π[1] = 0，i<sub>前缀</sub> 前进至 2。", pi: [0,0,0], piHighlight: 1,
+        i_pat: 2, j_pat: 0, comparePat1: 1, comparePat2: 0, matchType: "mismatch",
+        textHighlight: [], patHighlight: [], fsmState: "prefix_step1" },
+      { id: 2, phase: "prefix", desc: "比较 pattern[2] = 'c' 与 pattern[0] = 'a' → 不匹配，π[2] = 0，i<sub>前缀</sub> = 3 超出长度，前缀表构建完毕。π = [0, 0, 0]。", pi: [0,0,0], piHighlight: 2,
+        i_pat: 3, j_pat: 0, comparePat1: 2, comparePat2: 0, matchType: "mismatch",
+        textHighlight: [], patHighlight: [], fsmState: "prefix_done" },
+      { id: 3, phase: "match", desc: "匹配阶段开始：i = 0 指向 text 开头，j = 0 指向 pattern 开头。", pi: [0,0,0], piHighlight: -1,
+        i_text: 0, j_patMatch: 0, compareText: 0, comparePat: 0, matchType: "none",
+        textHighlight: [], patHighlight: [], fsmState: "match_init" },
+      { id: 4, phase: "match", desc: "text[0] = 'a' 与 pattern[0] = 'a' 匹配成功 → j 变为 1，i 前进至 1。", pi: [0,0,0], piHighlight: -1,
+        i_text: 1, j_patMatch: 1, compareText: 0, comparePat: 0, matchType: "match",
+        textHighlight: [0], patHighlight: [0], fsmState: "match_0" },
+      { id: 5, phase: "match", desc: "text[1] = 'b' 与 pattern[1] = 'b' 匹配成功 → j 变为 2，i 前进至 2。", pi: [0,0,0], piHighlight: -1,
+        i_text: 2, j_patMatch: 2, compareText: 1, comparePat: 1, matchType: "match",
+        textHighlight: [1], patHighlight: [1], fsmState: "match_1" },
+      { id: 6, phase: "match", desc: "text[2] = 'a' 与 pattern[2] = 'c' 不匹配！查询 π[1] = 0，j 指针退回到 0，保持 i = 2 不变，准备在下一个位置重新比对。", pi: [0,0,0], piHighlight: 1,
+        i_text: 2, j_patMatch: 0, compareText: 2, comparePat: 2, matchType: "mismatch",
+        textHighlight: [2], patHighlight: [2], fsmState: "mismatch_backoff" },
+      { id: 7, phase: "match", desc: "回退后 text[2] = 'a' 与 pattern[0] = 'a' 重新匹配成功 → j 变为 1，i 前进至 3。", pi: [0,0,0], piHighlight: -1,
+        i_text: 3, j_patMatch: 1, compareText: 2, comparePat: 0, matchType: "match",
+        textHighlight: [2], patHighlight: [0], fsmState: "rematch" },
+      { id: 8, phase: "match", desc: "text[3] = 'b' 与 pattern[1] = 'b' 匹配成功 → j 变为 2，i 前进至 4。", pi: [0,0,0], piHighlight: -1,
+        i_text: 4, j_patMatch: 2, compareText: 3, comparePat: 1, matchType: "match",
+        textHighlight: [3], patHighlight: [1], fsmState: "match_3" },
+      { id: 9, phase: "match", desc: "text[4] = 'c' 与 pattern[2] = 'c' 匹配成功 → j 变为 3 等于 len(pattern)，完全匹配！起始位置 i − j = 2。", pi: [0,0,0], piHighlight: -1,
+        i_text: 5, j_patMatch: 3, compareText: 4, comparePat: 2, matchType: "match",
+        textHighlight: [4], patHighlight: [2], fsmState: "found", found: true }
+    ];
+
+    let currentStepIndex = 0;
+    let autoTimer = null;
+    let challengeAnswered = false;
+    let challengeCorrect = false;
+    let hintShown = false;
+    let logEntries = ["程序启动"];
+
+    const vizContainer = document.getElementById('vizContainer');
+    const stepCounter = document.getElementById('stepCounter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const autoBtn = document.getElementById('autoBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const hintBtn = document.getElementById('hintBtn');
+    const showAnswerBtn = document.getElementById('showAnswerBtn');
+    const challengeQuestion = document.getElementById('challengeQuestion');
+    const challengeOptions = document.getElementById('challengeOptions');
+    const challengeFeedback = document.getElementById('challengeFeedback');
+    const logEntriesDiv = document.getElementById('logEntries');
+
+    function addLog(msg) {
+      logEntries.push(msg);
+      renderLog();
+    }
+
+    function renderLog() {
+      logEntriesDiv.innerHTML = logEntries.map(e => `<div class="log-entry">${e}</div>`).join('');
+      logEntriesDiv.scrollTop = logEntriesDiv.scrollHeight;
+    }
+
+    function stopAuto() {
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        autoBtn.textContent = '▶ 自动播放';
+      }
+    }
+
+    function updateStepCounter() {
+      stepCounter.textContent = `步骤 ${currentStepIndex} / ${steps.length - 1}`;
+    }
+
+    function renderViz() {
+      const step = steps[currentStepIndex];
+      const { pattern, text } = inputData;
+      let html = '';
+
+      html += `<div class="viz-section">`;
+      html += `<h3>前缀表 (π)</h3>`;
+      html += `<div class="prefix-table">`;
+      html += `<span class="label">π:</span>`;
+      for (let k = 0; k < pattern.length; k++) {
+        const hl = step.piHighlight === k ? ' highlight' : '';
+        html += `<div class="pi-value${hl}">${step.pi[k]}</div>`;
+      }
+      html += `</div>`;
+      html += `<div class="prefix-state">`;
+      if (step.i_pat != null && step.j_pat != null) {
+        html += `i<sub>前缀</sub> = ${step.i_pat},   j<sub>前缀</sub> = ${step.j_pat}`;
+      } else {
+        html += `(匹配阶段，前缀表已固定)`;
+      }
+      html += `</div></div>`;
+
+      if (step.phase === 'prefix') {
+        html += `<div class="viz-section"><h3>构建前缀表 — Pattern 自身比较</h3>`;
+        html += `<div class="string-row"><span class="string-label">Pattern</span><div class="chars">`;
+        for (let k = 0; k < pattern.length; k++) {
+          let cls = 'char-box';
+          if (k === step.comparePat1) cls += ' current';
+          if (k === step.comparePat2) cls += ' current';
+          if (step.matchType === 'mismatch' && (k === step.comparePat1 || k === step.comparePat2)) cls += ' mismatch';
+          html += `<div class="${cls}">${pattern[k]}</div>`;
+        }
+        html += `</div></div>`;
+        html += `<div class="pointer-row"><span class="pointer-label"></span><div class="pointer-spots">`;
+        for (let k = 0; k < pattern.length; k++) {
+          let marker = '';
+          if (k === step.comparePat1 && k === step.comparePat2) marker = 'i,j';
+          else if (k === step.comparePat1) marker = 'i';
+          else if (k === step.comparePat2) marker = 'j';
+          html += `<div class="pointer-spot">${marker}</div>`;
+        }
+        html += `</div></div></div>`;
+      } else {
+        html += `<div class="viz-section"><h3>文本匹配 — Text 与 Pattern 逐次对比</h3>`;
+        html += `<div class="string-row"><span class="string-label">Text</span><div class="chars">`;
+        for (let k = 0; k < text.length; k++) {
+          let cls = 'char-box';
+          if (k === step.compareText) cls += step.matchType === 'mismatch' ? ' mismatch current' : ' match current';
+          else if (step.textHighlight.includes(k)) cls += ' match';
+          if (step.found && k >= expectedAnswer && k < expectedAnswer + pattern.length) cls += ' found';
+          html += `<div class="${cls}">${text[k]}</div>`;
+        }
+        html += `</div></div>`;
+        html += `<div class="string-row"><span class="string-label">Pattern</span><div class="chars">`;
+        for (let k = 0; k < pattern.length; k++) {
+          let cls = 'char-box';
+          if (k === step.comparePat) cls += step.matchType === 'mismatch' ? ' mismatch current' : ' match current';
+          else if (step.patHighlight.includes(k)) cls += ' match';
+          if (step.found) cls += ' found';
+          html += `<div class="${cls}">${pattern[k]}</div>`;
+        }
+        html += `</div></div>`;
+        html += `<div class="pointer-row"><span class="pointer-label"></span><div class="pointer-spots">`;
+        for (let k = 0; k < text.length; k++) {
+          let marker = '';
+          if (k === step.i_text) marker = 'i';
+          html += `<div class="pointer-spot">${marker}</div>`;
+        }
+        html += `</div></div>`;
+        html += `<div class="pointer-row"><span class="pointer-label"></span><div class="pointer-spots">`;
+        for (let k = 0; k < pattern.length; k++) {
+          let marker = '';
+          if (k === step.j_patMatch) marker = 'j';
+          html += `<div class="pointer-spot">${marker}</div>`;
+        }
+        html += `</div></div>`;
+        html += `<div class="state-info">`;
+        html += `<span><strong>i</strong> = ${step.i_text ?? '-'}</span>`;
+        html += `<span><strong>j</strong> = ${step.j_patMatch ?? '-'}</span>`;
+        html += `</div></div>`;
+      }
+
+      html += `<div class="step-description">${step.desc}</div>`;
+      if (step.found) {
+        html += `<div class="found-banner">✅ 匹配成功！起始索引 = ${expectedAnswer}</div>`;
+      }
+      vizContainer.innerHTML = html;
+
+      prevBtn.disabled = currentStepIndex === 0;
+      nextBtn.disabled = currentStepIndex === steps.length - 1;
+      updateStepCounter();
+    }
+
+    function goToStep(index) {
+      if (index < 0 || index >= steps.length) return;
+      currentStepIndex = index;
+      stopAuto();
+      renderViz();
+      updateChallenge();
+    }
+
+    function nextStep() {
+      goToStep(currentStepIndex + 1);
+    }
+
+    function prevStep() {
+      goToStep(currentStepIndex - 1);
+    }
+
+    function resetSteps() {
+      stopAuto();
+      goToStep(0);
+      challengeAnswered = false;
+      challengeCorrect = false;
+      hintShown = false;
+      challengeFeedback.innerHTML = '';
+      challengeFeedback.className = 'feedback';
+      const opts = challengeOptions.querySelectorAll('.option-btn');
+      opts.forEach(b => {
+        b.classList.remove('selected', 'correct', 'incorrect');
+        b.disabled = false;
+      });
+      addLog('已重置算法步骤');
+    }
+
+    function toggleAuto() {
+      if (autoTimer) {
+        stopAuto();
+        addLog('已停止自动播放');
+      } else {
+        addLog('开始自动播放');
+        autoBtn.textContent = '⏸ 暂停';
+        autoTimer = setInterval(() => {
+          if (currentStepIndex < steps.length - 1) {
+            nextStep();
+          } else {
+            stopAuto();
+            addLog('自动播放完成');
+          }
+        }, 1500);
+      }
+    }
+
+    const challengeData = {
+      question: "在步骤 6（i = 2, j = 2 时，text[2] = 'a' 与 pattern[2] = 'c' 失配），根据前缀表 π[1] = 0，j 指针会退回到哪个值？",
+      options: ["0", "1", "2", "π[2] = 0"],
+      correctIndex: 0,
+      hint: "回顾前缀表 π[1] 的值：失配时 j 回退至 π[j−1]，即 π[1] = 0。",
+      explanation: "此时 j = 2，失配后 j = π[1] = 0。这意味着 pattern 向右滑动，使得前缀与已匹配部分重新对齐，保持 i = 2 不变继续匹配。"
+    };
+
+    function updateChallenge() {
+      if (currentStepIndex === 6 && !challengeAnswered) {
+        challengeQuestion.textContent = challengeData.question;
+        challengeOptions.innerHTML = challengeData.options.map((opt, idx) => 
+          `<button class="option-btn" data-index="${idx}">${opt}</button>`
+        ).join('');
+        challengeFeedback.innerHTML = '';
+        challengeFeedback.className = 'feedback';
+        challengeOptions.querySelectorAll('.option-btn').forEach(btn => {
+          btn.addEventListener('click', handleOptionClick);
+        });
+        hintBtn.disabled = false;
+        showAnswerBtn.disabled = false;
+      } else if (currentStepIndex === 6 && challengeAnswered) {
+        hintBtn.disabled = true;
+        showAnswerBtn.disabled = true;
+      } else if (currentStepIndex !== 6) {
+        challengeQuestion.textContent = '（请导航至步骤 6 参与学习者挑战）';
+        challengeOptions.innerHTML = '';
+        challengeFeedback.innerHTML = '';
+        challengeFeedback.className = 'feedback';
+        hintBtn.disabled = true;
+        showAnswerBtn.disabled = true;
+      }
+    }
+
+    function handleOptionClick(e) {
+      if (challengeAnswered) return;
+      const index = parseInt(e.target.dataset.index);
+      challengeAnswered = true;
+      const buttons = challengeOptions.querySelectorAll('.option-btn');
+      buttons.forEach(b => {
+        b.disabled = true;
+        if (parseInt(b.dataset.index) === index) b.classList.add('selected');
+      });
+      if (index === challengeData.correctIndex) {
+        challengeCorrect = true;
+        e.target.classList.add('correct');
+        challengeFeedback.innerHTML = '✅ 回答正确！' + challengeData.explanation;
+        challengeFeedback.className = 'feedback correct';
+        addLog('挑战：回答正确 — j 退回到 0');
+      } else {
+        challengeCorrect = false;
+        e.target.classList.add('incorrect');
+        challengeFeedback.innerHTML = '❌ 回答错误。' + challengeData.explanation;
+        challengeFeedback.className = 'feedback incorrect';
+        addLog('挑战：回答错误');
+        buttons[challengeData.correctIndex].classList.add('correct');
+      }
+      hintBtn.disabled = true;
+      showAnswerBtn.disabled = true;
+    }
+
+    function showHint() {
+      if (challengeAnswered) return;
+      hintShown = true;
+      challengeFeedback.innerHTML = '💡 提示：' + challengeData.hint;
+      challengeFeedback.className = 'feedback info';
+      addLog('查看了提示');
+    }
+
+    function showAnswer() {
+      if (challengeAnswered) return;
+      challengeAnswered = true;
+      const buttons = challengeOptions.querySelectorAll('.option-btn');
+      buttons.forEach(b => {
+        b.disabled = true;
+        if (parseInt(b.dataset.index) === challengeData.correctIndex) b.classList.add('correct');
+      });
+      challengeFeedback.innerHTML = '🔎 答案：j 变为 <strong>' + challengeData.options[challengeData.correctIndex] + '</strong>。' + challengeData.explanation;
+      challengeFeedback.className = 'feedback correct';
+      addLog('查看了答案');
+      challengeCorrect = false;
+      hintBtn.disabled = true;
+      showAnswerBtn.disabled = true;
+    }
+
+    prevBtn.addEventListener('click', () => { addLog('点击「上一步」'); prevStep(); });
+    nextBtn.addEventListener('click', () => { addLog('点击「下一步」'); nextStep(); });
+    autoBtn.addEventListener('click', toggleAuto);
+    resetBtn.addEventListener('click', resetSteps);
+    hintBtn.addEventListener('click', showHint);
+    showAnswerBtn.addEventListener('click', showAnswer);
+
+    updateStepCounter();
+    renderViz();
+    updateChallenge();
+    addLog('页面加载完成，初始步骤已显示');
+  </script>
+</body>
+</html>

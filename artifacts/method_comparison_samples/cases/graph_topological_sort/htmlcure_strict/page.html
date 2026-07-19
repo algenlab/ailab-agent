@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拓扑排序 - AlgoLab 教学页</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --card-bg: #ffffff;
+            --text: #1a1a2e;
+            --text-secondary: #555;
+            --border: #e0e4ea;
+            --accent: #3b6df0;
+            --accent-light: #eef3ff;
+            --gold: #f0a030;
+            --green: #2eaa70;
+            --blue: #3b8ef0;
+            --purple: #8b5cf6;
+            --gray: #9ca3af;
+            --orange: #f57c3c;
+            --red: #e05050;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.10);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'System UI', -apple-system, sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px 16px 60px;
+        }
+
+        .app-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            justify-content: space-between;
+        }
+        .header-left h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #1a1a2e;
+            margin: 0;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin: 0;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            background: #e8f5e9;
+            color: #1b5e20;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            max-width: 280px;
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 850px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .panel-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #888;
+            font-weight: 600;
+            margin-bottom: -6px;
+        }
+
+        /* Canvas */
+        #canvas {
+            position: relative;
+            min-height: 380px;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            border: 2px dashed #e8ecf2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+            padding: 16px 10px 10px;
+        }
+        .graph-area {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            flex-shrink: 0;
+        }
+        .graph-area svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .graph-area svg line {
+            stroke-width: 2.5;
+            stroke-linecap: round;
+        }
+        .graph-area svg line.edge-normal {
+            stroke: #c5cdd8;
+        }
+        .graph-area svg line.edge-active {
+            stroke: #f57c3c;
+            stroke-width: 3.5;
+            stroke-dasharray: 8 3;
+            animation: edgePulse 0.7s ease-in-out infinite alternate;
+        }
+        .graph-area svg line.edge-done {
+            stroke: #c5cdd8;
+            stroke-dasharray: 5 5;
+            opacity: 0.5;
+            stroke-width: 1.8;
+        }
+        @keyframes edgePulse {
+            from {
+                stroke-opacity: 0.7;
+            }
+            to {
+                stroke-opacity: 1;
+            }
+        }
+        .graph-node {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            z-index: 2;
+            cursor: default;
+            transition: all var(--transition);
+            border: 3px solid #dde2e9;
+            background: #ffffff;
+            color: #444;
+            box-shadow: var(--shadow-sm);
+            user-select: none;
+            transform: translate(-50%, -50%);
+        }
+        .graph-node.node-current {
+            border-color: #f57c3c;
+            background: #fff8f2;
+            color: #e05520;
+            box-shadow: 0 0 0 8px rgba(245, 124, 60, 0.18);
+            animation: nodeGlow 0.8s ease-in-out infinite alternate;
+            z-index: 3;
+        }
+        .graph-node.node-done {
+            border-color: #2eaa70;
+            background: #e8f5e9;
+            color: #1b5e20;
+            box-shadow: 0 0 0 4px rgba(46, 170, 112, 0.10);
+        }
+        .graph-node.node-queued {
+            border-color: #3b8ef0;
+            background: #eef5ff;
+            color: #1a5dc4;
+            box-shadow: 0 0 0 4px rgba(59, 142, 240, 0.12);
+        }
+        .graph-node.node-pending {
+            border-color: #dde2e9;
+            background: #fafafa;
+            color: #999;
+        }
+        @keyframes nodeGlow {
+            from {
+                box-shadow: 0 0 0 8px rgba(245, 124, 60, 0.18);
+            }
+            to {
+                box-shadow: 0 0 0 16px rgba(245, 124, 60, 0.04);
+            }
+        }
+        .indegree-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #fff;
+            border: 2px solid #c5cdd8;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+            z-index: 4;
+            pointer-events: none;
+        }
+        .indegree-badge.zero {
+            border-color: #2eaa70;
+            color: #1b5e20;
+            background: #e8f5e9;
+        }
+        .canvas-extras {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 4px;
+            font-size: 0.85rem;
+        }
+        .extra-box {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: var(--shadow-sm);
+        }
+        .extra-box .eb-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #888;
+            letter-spacing: 0.04em;
+        }
+        .extra-box.queue-box {
+            border-color: #3b8ef0;
+            background: #eef5ff;
+        }
+        .extra-box.result-box {
+            border-color: #2eaa70;
+            background: #e8f5e9;
+        }
+        .extra-box .eb-val {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        /* Code */
+        #code {
+            background: #1e1e2e;
+            color: #e0e0e0;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 340px;
+            overflow-y: auto;
+            border: 1px solid #2a2a3a;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background var(--transition);
+            cursor: default;
+        }
+        #code .code-line.highlight {
+            background: rgba(255, 200, 60, 0.15);
+            border-left: 3px solid #f0a030;
+            padding-left: 5px;
+        }
+        #code .code-line.highlight-strong {
+            background: rgba(255, 160, 40, 0.28);
+            border-left: 3px solid #f57c3c;
+            padding-left: 5px;
+            font-weight: 600;
+            color: #ffe0b0;
+        }
+        #code .code-line .ln {
+            color: #666;
+            display: inline-block;
+            width: 24px;
+            text-align: right;
+            margin-right: 10px;
+            user-select: none;
+            font-size: 0.72rem;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            white-space: nowrap;
+            font-family: var(--font-sans);
+            box-shadow: var(--shadow-sm);
+        }
+        .btn:hover {
+            background: #f5f7fa;
+            box-shadow: var(--shadow-md);
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.primary:hover {
+            background: #2b5cd9;
+            border-color: #2b5cd9;
+        }
+        #play {
+            min-width: 44px;
+            font-size: 1.1rem;
+            padding: 8px 12px;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+            height: 6px;
+        }
+        #counter {
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            color: var(--accent);
+            min-width: 50px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 4px 0;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 2px solid #e0e4ea;
+            background: #fff;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-size: 0.78rem;
+            transition: all var(--transition);
+            min-width: 70px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #bcc5d2;
+            background: #f9fafb;
+            box-shadow: var(--shadow-md);
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            box-shadow: 0 0 0 4px rgba(59, 109, 240, 0.12);
+            font-weight: 700;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #444;
+            letter-spacing: 0.02em;
+        }
+        .tick.active .tick-label {
+            color: var(--accent);
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: #888;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .tick.active .tick-op {
+            color: #555;
+        }
+        .tick.done {
+            border-color: #2eaa70;
+            background: #f5fdf8;
+        }
+        .tick.done .tick-label {
+            color: #1b5e20;
+        }
+
+        /* Step info */
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            letter-spacing: -0.01em;
+        }
+        #step-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        #op {
+            display: inline-block;
+            background: #fff3e0;
+            color: #e05520;
+            padding: 3px 12px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid #ffe0b2;
+        }
+        #state {
+            background: #fafbfc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #333;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: #3a3a4a;
+            line-height: 1.6;
+            padding: 10px 14px;
+            background: #fdfdff;
+            border-left: 4px solid var(--accent);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #555;
+            background: #fafbfc;
+            border: 1px solid #e8ecf2;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            line-height: 1.5;
+            font-family: var(--font-mono);
+            white-space: pre-wrap;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            border: 2px solid #f0a030;
+            border-radius: var(--radius);
+            padding: 16px;
+            background: #fffdf6;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .checkpoint-area .cp-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #b8701a;
+            letter-spacing: 0.02em;
+        }
+        .checkpoint-area .cp-question {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #3a3a4a;
+        }
+        .checkpoint-area .cp-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .checkpoint-area .cp-option {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 2px solid #dde2e9;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            font-family: var(--font-mono);
+        }
+        .checkpoint-area .cp-option:hover {
+            border-color: #f0a030;
+            background: #fffdf4;
+        }
+        .checkpoint-area .cp-option.selected {
+            border-color: #f0a030;
+            background: #fff8e8;
+            box-shadow: 0 0 0 3px rgba(240, 160, 48, 0.15);
+        }
+        .checkpoint-area .cp-input {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 2px solid #dde2e9;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 300px;
+            transition: all var(--transition);
+        }
+        .checkpoint-area .cp-input:focus {
+            outline: none;
+            border-color: #f0a030;
+            box-shadow: 0 0 0 3px rgba(240, 160, 48, 0.12);
+        }
+        .checkpoint-area .cp-feedback {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-height: 20px;
+        }
+        .checkpoint-area .cp-feedback.correct {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+        .checkpoint-area .cp-feedback.wrong {
+            background: #fdecea;
+            color: #a03030;
+        }
+        .cp-btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .cp-btn {
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid #dde2e9;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .cp-btn:hover {
+            background: #f5f7fa;
+        }
+        .cp-btn.submit-btn {
+            background: #f0a030;
+            color: #fff;
+            border-color: #f0a030;
+        }
+        .cp-btn.submit-btn:hover {
+            background: #d98a20;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: #fafbfc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: #555;
+            font-family: var(--font-mono);
+            margin-top: 4px;
+        }
+        #learning-log .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px dotted #e8ecf2;
+        }
+        #learning-log .log-entry.correct-log {
+            color: #1b5e20;
+        }
+        #learning-log .log-entry.wrong-log {
+            color: #a03030;
+        }
+        #learning-log .log-time {
+            color: #999;
+            font-size: 0.7rem;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #f5fdf8;
+            border: 2px solid #2eaa70;
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: #1b5e20;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            word-break: break-all;
+            text-align: center;
+            display: inline-block;
+            margin: 0 auto;
+        }
+        .answer-wrap {
+            text-align: center;
+            padding: 4px 0;
+        }
+        .answer-wrap .answer-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+        .badge-sm {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .badge-current {
+            background: #fff3e0;
+            color: #e05520;
+            border: 1px solid #ffe0b2;
+        }
+        .badge-done {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #a5d6a7;
+        }
+        .badge-queued {
+            background: #eef5ff;
+            color: #1a5dc4;
+            border: 1px solid #90caf9;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1 id="title">拓扑排序</h1>
+                <div id="subtitle">BFS Kahn 算法 · 有向无环图 · 入度表 + 零入度队列</div>
+            </div>
+            <div class="header-right">
+                <div id="top-result">结果: ["A","B","C","D"]</div>
+                <div id="top-solution">每次弹出零入度节点，删除其出边，更新邻居入度，直至队列为空。</div>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left: Canvas + Code -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+                <div class="panel">
+                    <div class="panel-label">📐 算法视图</div>
+                    <div id="canvas">
+                        <div class="graph-area" id="graphArea">
+                            <!-- SVG for edges -->
+                            <svg id="edgeSvg" viewBox="0 0 400 280" preserveAspectRatio="xMidYMid meet">
+                                <!-- Edge A->B -->
+                                <line id="edgeAB" x1="200" y1="50" x2="88" y2="156" class="edge-normal" />
+                                <!-- Edge A->C -->
+                                <line id="edgeAC" x1="200" y1="50" x2="312" y2="156" class="edge-normal" />
+                                <!-- Edge B->D -->
+                                <line id="edgeBD" x1="88" y1="170" x2="200" y2="248" class="edge-normal" />
+                                <!-- Edge C->D -->
+                                <line id="edgeCD" x1="312" y1="170" x2="200" y2="248" class="edge-normal" />
+                                <!-- Arrowheads drawn as small polygons or just use marker - we'll use simple approach -->
+                                <defs>
+                                    <marker id="arrowNormal" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                                        <polygon points="0 0, 8 3, 0 6" fill="#c5cdd8" />
+                                    </marker>
+                                    <marker id="arrowActive" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                                        <polygon points="0 0, 8 3, 0 6" fill="#f57c3c" />
+                                    </marker>
+                                    <marker id="arrowDone" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                                        <polygon points="0 0, 8 3, 0 6" fill="#c5cdd8" opacity="0.5" />
+                                    </marker>
+                                </defs>
+                            </svg>
+                            <!-- Nodes -->
+                            <div class="graph-node" id="nodeA" style="left:50%;top:17.86%;" data-node="A">A<span class="indegree-badge" id="indegA">0</span></div>
+                            <div class="graph-node" id="nodeB" style="left:22%;top:55.7%;" data-node="B">B<span class="indegree-badge" id="indegB">1</span></div>
+                            <div class="graph-node" id="nodeC" style="left:78%;top:55.7%;" data-node="C">C<span class="indegree-badge" id="indegC">1</span></div>
+                            <div class="graph-node" id="nodeD" style="left:50%;top:88.6%;" data-node="D">D<span class="indegree-badge" id="indegD">2</span></div>
+                        </div>
+                        <div class="canvas-extras">
+                            <div class="extra-box queue-box" id="queueDisplay">
+                                <span class="eb-label">📥 队列</span>
+                                <span class="eb-val" id="queueVal">[A]</span>
+                            </div>
+                            <div class="extra-box result-box" id="resultDisplay">
+                                <span class="eb-label">✅ 结果</span>
+                                <span class="eb-val" id="resultVal">[]</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">💻 算法代码</div>
+                    <div id="code"><span class="code-line" data-line="1"><span class="ln"> 1</span>def topological_sort(graph):</span><span class="code-line" data-line="2"><span class="ln"> 2</span>    indegree = {u: 0 for u in graph}</span><span class="code-line" data-line="3"><span class="ln"> 3</span>    for u in graph:</span><span class="code-line" data-line="4"><span class="ln"> 4</span>        for v in graph[u]:</span><span class="code-line" data-line="5"><span class="ln"> 5</span>            indegree[v] += 1</span><span class="code-line" data-line="6"><span class="ln"> 6</span>    queue = [u for u in graph if indegree[u] == 0]</span><span class="code-line" data-line="7"><span class="ln"> 7</span>    result = []</span><span class="code-line" data-line="8"><span class="ln"> 8</span>    while queue:</span><span class="code-line" data-line="9"><span class="ln"> 9</span>        u = queue.pop(0)</span><span class="code-line" data-line="10"><span class="ln">10</span>        result.append(u)</span><span class="code-line" data-line="11"><span class="ln">11</span>        for v in graph[u]:</span><span class="code-line" data-line="12"><span class="ln">12</span>            indegree[v] -= 1</span><span class="code-line" data-line="13"><span class="ln">13</span>            if indegree[v] == 0:</span><span class="code-line" data-line="14"><span class="ln">14</span>                queue.append(v)</span><span class="code-line" data-line="15"><span class="ln">15</span>    return result</span></div>
+                </div>
+            </div>
+
+            <!-- Right: Controls + Info -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+                <div class="panel">
+                    <div class="panel-label">🎮 步骤控制</div>
+                    <div id="step-title">初始化</div>
+                    <div id="step-desc">构建入度表，找到所有入度为 0 的节点，初始化队列。</div>
+                    <div><span id="op">BUILD_INDEGREE</span></div>
+                    <div class="controls-row">
+                        <button class="btn" id="prev" title="上一步">◀ 上一步</button>
+                        <button class="btn primary" id="play" title="自动播放">▶</button>
+                        <button class="btn" id="next" title="下一步">下一步 ▶</button>
+                        <span id="counter">1 / 5</span>
+                    </div>
+                    <input type="range" id="range" min="1" max="5" value="1" step="1" title="步骤滑块">
+                </div>
+                <div class="panel">
+                    <div class="panel-label">📊 当前状态</div>
+                    <div id="state">{"indegree":{"A":0,"B":1,"C":1,"D":2},"queue":["A"],"result":[]}</div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">📖 讲解</div>
+                    <div id="teaching">首先遍历图中所有边，统计每个节点的入度（即有多少条边指向该节点）。节点 A 的入度为 0，加入队列。队列存储所有当前可处理的节点。</div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">🔍 步骤证据</div>
+                    <div id="step-evidence">operation: BUILD_INDEGREE
+                        targets: all nodes
+                        before: indegree all unknown
+                        after: indegree={A:0, B:1, C:1, D:2}, queue=[A], result=[]</div>
+                </div>
+                <!-- Checkpoint area -->
+                <div class="panel checkpoint-area hidden" id="checkpointPanel">
+                    <div class="cp-title">🧠 Learner Checkpoint</div>
+                    <div class="cp-question" id="cpQuestion"></div>
+                    <div class="cp-options" id="cpOptions"></div>
+                    <input class="cp-input hidden" id="cpInput" type="text" placeholder="输入你的答案...">
+                    <div class="cp-btn-row">
+                        <button class="cp-btn submit-btn" id="cpSubmit">提交</button>
+                        <button class="cp-btn" id="cpHint">💡 提示</button>
+                        <button class="cp-btn" id="cpShowAnswer">👁 显示答案</button>
+                    </div>
+                    <div class="cp-feedback" id="cpFeedback"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-label">📝 学习日志</div>
+                    <div id="learning-log"><span style="color:#999;">尚无提交记录。</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="panel" style="padding:14px 20px;">
+            <div class="panel-label">⏱ 步骤时间线</div>
+            <div id="timeline">
+                <button class="tick active" data-step="0"><span class="tick-label">初始化</span><span class="tick-op">BUILD</span></button>
+                <button class="tick" data-step="1"><span class="tick-label">处理 A</span><span class="tick-op">POP A</span></button>
+                <button class="tick" data-step="2"><span class="tick-label">处理 B</span><span class="tick-op">POP B</span></button>
+                <button class="tick" data-step="3"><span class="tick-label">处理 C</span><span class="tick-op">POP C</span></button>
+                <button class="tick" data-step="4"><span class="tick-label">处理 D</span><span class="tick-op">POP D</span></button>
+            </div>
+        </div>
+
+        <!-- Answer -->
+        <div class="answer-wrap">
+            <div class="answer-label">🏁 最终答案（裸 JSON）</div>
+            <div id="answer">["A","B","C","D"]</div>
+        </div>
+
+        <!-- Hidden learning log container anchor -->
+        <div id="learning-log-anchor"></div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ STEP DATA ============
+            const N = 5;
+            const steps = [{
+                idx: 0,
+                title: '初始化 — 构建入度表与零入度队列',
+                desc: '遍历图的所有边，统计每个节点的入度。找出所有入度为 0 的节点，加入处理队列。',
+                op: 'BUILD_INDEGREE',
+                state: { indegree: { A: 0, B: 1, C: 1, D: 2 }, queue: ['A'], result: [] },
+                teaching: '首先遍历图中所有边，统计每个节点的<strong>入度</strong>（指向该节点的边数）。节点 A 没有入边，入度为 0，因此加入队列。<br><br>📌 <strong>不变量</strong>：队列始终包含所有入度为 0 且尚未处理的节点。<br>⚠️ <strong>常见错误</strong>：忘记统计入度就直接操作，会导致顺序错乱。',
+                evidence: 'operation: BUILD_INDEGREE\ntargets: all nodes (A, B, C, D)\nbefore: indegree unknown\n  after: indegree={A:0, B:1, C:1, D:2}\n         queue=[A], result=[]\nrationale: 入度为0的节点没有任何前置依赖，可以安全地放在拓扑序最前面。',
+                highlightLines: [1, 2, 3, 4, 5, 6, 7],
+                highlightStrong: [2, 6],
+                nodeStates: { A: 'queued', B: 'pending', C: 'pending', D: 'pending' },
+                indegreeDisplay: { A: 0, B: 1, C: 1, D: 2 },
+                queueDisplay: ['A'],
+                resultDisplay: [],
+                edgesState: { AB: 'normal', AC: 'normal', BD: 'normal', CD: 'normal' },
+                currentProcessing: null,
+                hasCheckpoint: false,
+            }, {
+                idx: 1,
+                title: '步骤 2 — 处理节点 A',
+                desc: '从队列弹出 A，加入结果。删除 A 的所有出边（A→B, A→C），B 和 C 的入度降为 0，加入队列。',
+                op: 'POP_A',
+                state: { indegree: { A: 0, B: 0, C: 0, D: 2 }, queue: ['B', 'C'], result: ['A'] },
+                teaching: '弹出队列首部的 A，将其加入拓扑序结果。然后<strong>删除 A 的出边</strong>：A→B 和 A→C。B 的入度从 1 降为 0，C 的入度从 1 降为 0，它们现在都满足条件，按序进入队列。<br><br>📌 <strong>关键思想</strong>：删除出边相当于"解除"了该节点对邻居的依赖约束。',
+                evidence: 'operation: POP + RELAX_EDGES\n  pop: A from queue\n  relax: A→B (indegree[B]: 1→0), A→C (indegree[C]: 1→0)\n  enqueue: B, C\nbefore: queue=[A], result=[]\n  after: queue=[B,C], result=[A]\nrationale: A已处理完毕，其所有后继节点的入度减1；入度归零者获得处理资格。',
+                highlightLines: [8, 9, 10, 11, 12, 13, 14],
+                highlightStrong: [9, 10, 12],
+                nodeStates: { A: 'done', B: 'queued', C: 'queued', D: 'pending' },
+                indegreeDisplay: { A: 0, B: 0, C: 0, D: 2 },
+                queueDisplay: ['B', 'C'],
+                resultDisplay: ['A'],
+                edgesState: { AB: 'done', AC: 'done', BD: 'normal', CD: 'normal' },
+                currentProcessing: 'A',
+                hasCheckpoint: true,
+                checkpoint: {
+                    question: '处理完节点 A 后，队列中有哪些节点？',
+                    type: 'choice',
+                    options: ['["A"]', '["B"]', '["B","C"]', '["A","B","C"]'],
+                    correctAnswer: '["B","C"]',
+                    hint: 'A 已被弹出并加入结果，B 和 C 的入度都变成了 0。',
+                    explanation_correct: '正确！A 处理完毕后，B 和 C 的入度都变为 0，因此它们都进入队列。队列状态为 [B, C]。',
+                    explanation_wrong: '不对。回顾：A 被弹出后，其出边 A→B 和 A→C 被删除，B 和 C 的入度分别从 1 降为 0，所以两者都进入队列。',
+                },
+            }, {
+                idx: 2,
+                title: '步骤 3 — 处理节点 B',
+                desc: '从队列弹出 B，加入结果。删除 B 的出边（B→D），D 的入度降为 1，尚未归零，不加入队列。',
+                op: 'POP_B',
+                state: { indegree: { A: 0, B: 0, C: 0, D: 1 }, queue: ['C'], result: ['A', 'B'] },
+                teaching: '弹出队列首部的 B，加入结果。删除出边 B→D，D 的入度从 2 降为 <strong>1</strong>（因为 C→D 这条边仍然存在）。D 的入度未归零，因此<strong>不加入队列</strong>。<br><br>📌 <strong>注意</strong>：一个节点只有在<em>所有</em>入边都被删除后（入度=0）才能进入队列。D 还有一条来自 C 的入边。',
+                evidence: 'operation: POP + RELAX_EDGES\n  pop: B from queue\n  relax: B→D (indegree[D]: 2→1)\n  enqueue: (none, D still has indegree 1)\nbefore: queue=[B,C], result=[A]\n  after: queue=[C], result=[A,B]\nrationale: D的入度从2降到1，未达0，仍需等待C的处理。',
+                highlightLines: [8, 9, 10, 11, 12, 13, 14],
+                highlightStrong: [9, 10, 12, 13],
+                nodeStates: { A: 'done', B: 'done', C: 'queued', D: 'pending' },
+                indegreeDisplay: { A: 0, B: 0, C: 0, D: 1 },
+                queueDisplay: ['C'],
+                resultDisplay: ['A', 'B'],
+                edgesState: { AB: 'done', AC: 'done', BD: 'done', CD: 'normal' },
+                currentProcessing: 'B',
+                hasCheckpoint: false,
+            }, {
+                idx: 3,
+                title: '步骤 4 — 处理节点 C',
+                desc: '从队列弹出 C，加入结果。删除 C 的出边（C→D），D 的入度降为 0，加入队列。',
+                op: 'POP_C',
+                state: { indegree: { A: 0, B: 0, C: 0, D: 0 }, queue: ['D'], result: ['A', 'B', 'C'] },
+                teaching: '弹出队列中的 C，加入结果。删除出边 C→D，D 的入度从 1 降为 <strong>0</strong>，现在 D 的所有入边都已被删除，D 进入队列。<br><br>📌 <strong>观察</strong>：这是关键一步——D 终于获得了处理资格。之前 B 的处理只把 D 的入度从 2 降到 1，而 C 的处理完成了最后一步。',
+                evidence: 'operation: POP + RELAX_EDGES\n  pop: C from queue\n  relax: C→D (indegree[D]: 1→0)\n  enqueue: D\nbefore: queue=[C], result=[A,B]\n  after: queue=[D], result=[A,B,C]\nrationale: C处理后D入度归零，D终于可以进入队列。',
+                highlightLines: [8, 9, 10, 11, 12, 13, 14],
+                highlightStrong: [9, 10, 12, 14],
+                nodeStates: { A: 'done', B: 'done', C: 'done', D: 'queued' },
+                indegreeDisplay: { A: 0, B: 0, C: 0, D: 0 },
+                queueDisplay: ['D'],
+                resultDisplay: ['A', 'B', 'C'],
+                edgesState: { AB: 'done', AC: 'done', BD: 'done', CD: 'done' },
+                currentProcessing: 'C',
+                hasCheckpoint: true,
+                checkpoint: {
+                    question: 'C 被处理后，D 的入度变为多少？',
+                    type: 'input',
+                    correctAnswer: '0',
+                    hint: 'B 处理后 D 的入度为 1，C 的出边 C→D 被删除后，D 的入度再减 1。',
+                    explanation_correct: '正确！B 处理后 D 入度=1，C 处理时删除 C→D，D 入度从 1 降为 0，因此 D 进入队列。',
+                    explanation_wrong: '再想想：B 处理完后 D 的入度是 1（因为还有 C→D 这条边）。C 处理后这条边也被删除，D 的入度变为 0。',
+                },
+            }, {
+                idx: 4,
+                title: '步骤 5 — 处理节点 D，排序完成',
+                desc: '从队列弹出 D，加入结果。D 没有出边。队列为空，拓扑排序完成！最终结果：["A","B","C","D"]',
+                op: 'POP_D_DONE',
+                state: { indegree: { A: 0, B: 0, C: 0, D: 0 }, queue: [], result: ['A', 'B', 'C', 'D'] },
+                teaching: '弹出最后一个节点 D，加入结果。D 没有出边，无需更新任何邻居。队列变为空，<strong>while 循环结束</strong>，返回最终拓扑序。<br><br>📌 <strong>验证</strong>：检查所有边是否满足拓扑序——A 在 B 和 C 之前 ✅，B 在 D 之前 ✅，C 在 D 之前 ✅。结果有效！<br>🎉 排序完成！',
+                evidence: 'operation: POP + FINISH\n  pop: D from queue\n  relax: (none, D has no outgoing edges)\n  queue empty → loop terminates\nbefore: queue=[D], result=[A,B,C]\n  after: queue=[], result=[A,B,C,D]\nreturn: ["A","B","C","D"]\nrationale: 所有节点处理完毕，队列清空，拓扑排序成功完成。',
+                highlightLines: [8, 9, 10, 15],
+                highlightStrong: [9, 10, 15],
+                nodeStates: { A: 'done', B: 'done', C: 'done', D: 'done' },
+                indegreeDisplay: { A: 0, B: 0, C: 0, D: 0 },
+                queueDisplay: [],
+                resultDisplay: ['A', 'B', 'C', 'D'],
+                edgesState: { AB: 'done', AC: 'done', BD: 'done', CD: 'done' },
+                currentProcessing: 'D',
+                hasCheckpoint: false,
+            }];
+
+            // ============ DOM REFS ============
+            const $ = (id) => document.getElementById(id);
+            const dom = {
+                title: $('title'),
+                subtitle: $('subtitle'),
+                topResult: $('top-result'),
+                topSolution: $('top-solution'),
+                code: $('code'),
+                stepTitle: $('step-title'),
+                stepDesc: $('step-desc'),
+                op: $('op'),
+                canvas: $('canvas'),
+                prev: $('prev'),
+                play: $('play'),
+                next: $('next'),
+                range: $('range'),
+                counter: $('counter'),
+                timeline: $('timeline'),
+                teaching: $('teaching'),
+                state: $('state'),
+                stepEvidence: $('step-evidence'),
+                answer: $('answer'),
+                graphArea: $('graphArea'),
+                edgeSvg: $('edgeSvg'),
+                queueVal: $('queueVal'),
+                resultVal: $('resultVal'),
+                learningLog: $('learning-log'),
+                checkpointPanel: $('checkpointPanel'),
+                cpQuestion: $('cpQuestion'),
+                cpOptions: $('cpOptions'),
+                cpInput: $('cpInput'),
+                cpSubmit: $('cpSubmit'),
+                cpHint: $('cpHint'),
+                cpShowAnswer: $('cpShowAnswer'),
+                cpFeedback: $('cpFeedback'),
+                nodeA: $('nodeA'),
+                nodeB: $('nodeB'),
+                nodeC: $('nodeC'),
+                nodeD: $('nodeD'),
+                indegA: $('indegA'),
+                indegB: $('indegB'),
+                indegC: $('indegC'),
+                indegD: $('indegD'),
+                edgeAB: $('edgeAB'),
+                edgeAC: $('edgeAC'),
+                edgeBD: $('edgeBD'),
+                edgeCD: $('edgeCD'),
+            };
+
+            let currentStepIdx = 0;
+            let playInterval = null;
+            let isPlaying = false;
+            let checkpointSubmitted = {}; // track which step's checkpoint was submitted
+
+            // ============ RENDER STEP ============
+            function renderStep(idx) {
+                const s = steps[idx];
+                // Update counter
+                dom.counter.textContent = (idx + 1) + ' / ' + N;
+                // Update range
+                dom.range.value = idx + 1;
+                // Update step info
+                dom.stepTitle.textContent = s.title;
+                dom.stepDesc.textContent = s.desc;
+                dom.op.textContent = s.op;
+                dom.teaching.innerHTML = s.teaching;
+                dom.state.textContent = JSON.stringify(s.state, null, 2);
+                dom.stepEvidence.textContent = s.evidence;
+
+                // Update timeline ticks
+                const ticks = dom.timeline.querySelectorAll('.tick');
+                ticks.forEach((tick, i) => {
+                    tick.classList.remove('active', 'done');
+                    if (i < idx) tick.classList.add('done');
+                    if (i === idx) tick.classList.add('active');
+                });
+
+                // Update code highlighting
+                const codeLines = dom.code.querySelectorAll('.code-line');
+                codeLines.forEach(cl => {
+                    cl.classList.remove('highlight', 'highlight-strong');
+                });
+                s.highlightLines.forEach(ln => {
+                    const lineEl = dom.code.querySelector(`.code-line[data-line="${ln}"]`);
+                    if (lineEl) lineEl.classList.add('highlight');
+                });
+                s.highlightStrong.forEach(ln => {
+                    const lineEl = dom.code.querySelector(`.code-line[data-line="${ln}"]`);
+                    if (lineEl) {
+                        lineEl.classList.remove('highlight');
+                        lineEl.classList.add('highlight-strong');
+                    }
+                });
+
+                // Update canvas node states
+                updateNodeVisual('A', s.nodeStates.A, s.indegreeDisplay.A, s.currentProcessing === 'A');
+                updateNodeVisual('B', s.nodeStates.B, s.indegreeDisplay.B, s.currentProcessing === 'B');
+                updateNodeVisual('C', s.nodeStates.C, s.indegreeDisplay.C, s.currentProcessing === 'C');
+                updateNodeVisual('D', s.nodeStates.D, s.indegreeDisplay.D, s.currentProcessing === 'D');
+
+                // Update edges
+                updateEdgeVisual('AB', s.edgesState.AB);
+                updateEdgeVisual('AC', s.edgesState.AC);
+                updateEdgeVisual('BD', s.edgesState.BD);
+                updateEdgeVisual('CD', s.edgesState.CD);
+
+                // Update queue and result displays
+                dom.queueVal.textContent = '[' + s.queueDisplay.join(', ') + ']';
+                dom.resultVal.textContent = '[' + s.resultDisplay.join(', ') + ']';
+
+                // Checkpoint visibility
+                if (s.hasCheckpoint && s.checkpoint) {
+                    dom.checkpointPanel.classList.remove('hidden');
+                    dom.cpQuestion.textContent = s.checkpoint.question;
+                    dom.cpFeedback.textContent = '';
+                    dom.cpFeedback.className = 'cp-feedback';
+                    if (s.checkpoint.type === 'choice') {
+                        dom.cpOptions.classList.remove('hidden');
+                        dom.cpInput.classList.add('hidden');
+                        dom.cpOptions.innerHTML = '';
+                        s.checkpoint.options.forEach(opt => {
+                            const btn = document.createElement('button');
+                            btn.className = 'cp-option';
+                            btn.textContent = opt;
+                            btn.addEventListener('click', () => {
+                                dom.cpOptions.querySelectorAll('.cp-option').forEach(b => b
+                                    .classList.remove('selected'));
+                                btn.classList.add('selected');
+                            });
+                            dom.cpOptions.appendChild(btn);
+                        });
+                    } else if (s.checkpoint.type === 'input') {
+                        dom.cpOptions.classList.add('hidden');
+                        dom.cpInput.classList.remove('hidden');
+                        dom.cpInput.value = '';
+                    }
+                    // Reset checkpoint submitted flag for this step if not yet submitted
+                    if (!checkpointSubmitted[idx]) {
+                        dom.cpFeedback.textContent = '';
+                        dom.cpFeedback.className = 'cp-feedback';
+                    }
+                } else {
+                    dom.checkpointPanel.classList.add('hidden');
+                }
+
+                // Update prev/next button states
+                dom.prev.disabled = (idx === 0);
+                dom.next.disabled = (idx === N - 1);
+                dom.range.max = N;
+                dom.range.value = idx + 1;
+            }
+
+            function updateNodeVisual(nodeLabel, state, indegreeVal, isCurrent) {
+                const nodeMap = { A: dom.nodeA, B: dom.nodeB, C: dom.nodeC, D: dom.nodeD };
+                const indegMap = { A: dom.indegA, B: dom.indegB, C: dom.indegC, D: dom.indegD };
+                const nodeEl = nodeMap[nodeLabel];
+                const badgeEl = indegMap[nodeLabel];
+                if (!nodeEl || !badgeEl) return;
+                // Remove all state classes
+                nodeEl.classList.remove('node-current', 'node-done', 'node-queued', 'node-pending');
+                if (isCurrent) {
+                    nodeEl.classList.add('node-current');
+                } else if (state === 'done') {
+                    nodeEl.classList.add('node-done');
+                } else if (state === 'queued') {
+                    nodeEl.classList.add('node-queued');
+                } else {
+                    nodeEl.classList.add('node-pending');
+                }
+                badgeEl.textContent = indegreeVal;
+                badgeEl.classList.remove('zero');
+                if (indegreeVal === 0) {
+                    badgeEl.classList.add('zero');
+                }
+            }
+
+            function updateEdgeVisual(edgeId, state) {
+                const edgeMap = { AB: dom.edgeAB, AC: dom.edgeAC, BD: dom.edgeBD, CD: dom.edgeCD };
+                const el = edgeMap[edgeId];
+                if (!el) return;
+                el.classList.remove('edge-normal', 'edge-active', 'edge-done');
+                if (state === 'normal') el.classList.add('edge-normal');
+                if (state === 'active') el.classList.add('edge-active');
+                if (state === 'done') el.classList.add('edge-done');
+                // Update marker
+                if (state === 'active') {
+                    el.setAttribute('marker-end', 'url(#arrowActive)');
+                } else if (state === 'done') {
+                    el.setAttribute('marker-end', 'url(#arrowDone)');
+                } else {
+                    el.setAttribute('marker-end', 'url(#arrowNormal)');
+                }
+            }
+
+            function goToStep(idx) {
+                if (idx < 0 || idx >= N) return;
+                currentStepIdx = idx;
+                renderStep(idx);
+            }
+
+            // ============ CONTROLS ============
+            dom.prev.addEventListener('click', () => {
+                if (currentStepIdx > 0) goToStep(currentStepIdx - 1);
+            });
+            dom.next.addEventListener('click', () => {
+                if (currentStepIdx < N - 1) goToStep(currentStepIdx + 1);
+            });
+            dom.range.addEventListener('input', () => {
+                const val = parseInt(dom.range.value);
+                goToStep(val - 1);
+            });
+            dom.play.addEventListener('click', () => {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            });
+
+            function startPlay() {
+                isPlaying = true;
+                dom.play.textContent = '⏸';
+                dom.play.classList.add('primary');
+                playInterval = setInterval(() => {
+                    if (currentStepIdx < N - 1) {
+                        goToStep(currentStepIdx + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1400);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                dom.play.textContent = '▶';
+                dom.play.classList.remove('primary');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            // ============ TIMELINE TICKS ============
+            dom.timeline.addEventListener('click', (e) => {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                const stepIdx = parseInt(tick.getAttribute('data-step'));
+                if (!isNaN(stepIdx)) {
+                    stopPlay();
+                    goToStep(stepIdx);
+                }
+            });
+
+            // ============ CHECKPOINT LOGIC ============
+            function getCurrentCheckpoint() {
+                const s = steps[currentStepIdx];
+                if (s.hasCheckpoint && s.checkpoint) return s.checkpoint;
+                return null;
+            }
+
+            function getSelectedOption() {
+                const sel = dom.cpOptions.querySelector('.cp-option.selected');
+                return sel ? sel.textContent.trim() : null;
+            }
+
+            dom.cpSubmit.addEventListener('click', () => {
+                const cp = getCurrentCheckpoint();
+                if (!cp) return;
+                let userAnswer = null;
+                if (cp.type === 'choice') {
+                    userAnswer = getSelectedOption();
+                } else if (cp.type === 'input') {
+                    userAnswer = dom.cpInput.value.trim();
+                }
+                if (userAnswer === null || userAnswer === '') {
+                    dom.cpFeedback.textContent = '请先选择一个答案或输入你的回答。';
+                    dom.cpFeedback.className = 'cp-feedback';
+                    return;
+                }
+                const isCorrect = (userAnswer === cp.correctAnswer);
+                const now = new Date().toLocaleTimeString();
+                if (isCorrect) {
+                    dom.cpFeedback.textContent = '✅ ' + cp.explanation_correct;
+                    dom.cpFeedback.className = 'cp-feedback correct';
+                    appendLog(now, true, userAnswer, cp.explanation_correct);
+                } else {
+                    dom.cpFeedback.textContent = '❌ ' + cp.explanation_wrong;
+                    dom.cpFeedback.className = 'cp-feedback wrong';
+                    appendLog(now, false, userAnswer, cp.explanation_wrong);
+                }
+                checkpointSubmitted[currentStepIdx] = true;
+            });
+
+            dom.cpHint.addEventListener('click', () => {
+                const cp = getCurrentCheckpoint();
+                if (!cp) return;
+                dom.cpFeedback.textContent = '💡 提示: ' + cp.hint;
+                dom.cpFeedback.className = 'cp-feedback';
+            });
+
+            dom.cpShowAnswer.addEventListener('click', () => {
+                const cp = getCurrentCheckpoint();
+                if (!cp) return;
+                dom.cpFeedback.textContent = '🔑 正确答案: ' + cp.correctAnswer + ' — ' + cp.explanation_correct;
+                dom.cpFeedback.className = 'cp-feedback correct';
+                checkpointSubmitted[currentStepIdx] = true;
+            });
+
+            function appendLog(time, correct, userAnswer, explanation) {
+                // Remove placeholder
+                if (dom.learningLog.querySelector('span[style]') && dom.learningLog.children.length === 1 &&
+                    dom.learningLog.children[0].textContent.includes('尚无提交记录')) {
+                    dom.learningLog.innerHTML = '';
+                }
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + (correct ? 'correct-log' : 'wrong-log');
+                entry.innerHTML =
+                    '<span class="log-time">[' + time + ']</span> ' +
+                    (correct ? '✅ 正确' : '❌ 错误') +
+                    ' — 你的答案: <strong>' + escapeHTML(userAnswer) + '</strong> — ' + escapeHTML(explanation);
+                dom.learningLog.appendChild(entry);
+                dom.learningLog.scrollTop = dom.learningLog.scrollHeight;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============ KEYBOARD NAVIGATION ============
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cpInput') return;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (currentStepIdx < N - 1) { stopPlay();
+                        goToStep(currentStepIdx + 1); }
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentStepIdx > 0) { stopPlay();
+                        goToStep(currentStepIdx - 1); }
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    else startPlay();
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                // Ensure #answer has correct bare JSON
+                dom.answer.textContent = '["A","B","C","D"]';
+                // Set initial edge markers
+                ['AB', 'AC', 'BD', 'CD'].forEach(eid => {
+                    const el = document.getElementById('edge' + eid);
+                    if (el) el.setAttribute('marker-end', 'url(#arrowNormal)');
+                });
+                // Render step 0
+                goToStep(0);
+                // Learning log initial
+                dom.learningLog.innerHTML = '<span style="color:#999;">尚无提交记录。</span>';
+                checkpointSubmitted = {};
+            }
+
+            init();
+            console.log('AlgoLab-style 拓扑排序教学页已就绪。步骤数: ' + N + '，最终答案: ["A","B","C","D"]');
+        })();
+    </script>
+</body>
+</html>

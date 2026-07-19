@@ -1,0 +1,89 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "kmp",
+  "algorithm_id": "kmp",
+  "title": "KMP 字符串匹配",
+  "family": "字符串高级算法",
+  "difficulty": "medium",
+  "problem": "基因研究员正在比对一段DNA长链 text，需要快速找出目标基因探针 pattern 首次出现的位置。若未找到则返回 -1，若 pattern 为空串则返回 0。你可以通过分析 pattern 自身的重复结构来构建前缀表，在比对时实现智能跳转，避免从头逐个匹配。",
+  "strategy": "使用 KMP 前缀表，trace 只记录初始化、一次前缀表更新、一次失配回退、一次成功匹配等关键步骤，不要逐字符展开全部循环。",
+  "input_contract": "输入 text 和 pattern。",
+  "time_complexity": "O(n+m)",
+  "space_complexity": "O(m)",
+  "learning_objectives": [
+    "掌握KMP算法中前缀表 pi 的构建过程及其在失配时回退 j 指针的作用",
+    "理解匹配过程中 text 和 pattern 的指针变化状态，能根据当前状态预测下一步操作",
+    "能够识别匹配过程中的不变式，如已匹配前缀长度始终等于 j"
+  ],
+  "required_views": [
+    "string"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！j 回退到 0，然后进行下一次比较。",
+      "feedback_wrong": "观察 pi[j-1] 的值，失配时 j 应回退到 pi[j-1] 的位置。",
+      "id": "task_1",
+      "oracle": "根据 trace 中该步骤的 move 事件，检查 j 是否变为 pi[1]=0，且下一帧 i 仍为 3，j 为 0。",
+      "prompt": "当 text=\"ababc\", pattern=\"abc\"，当前 i=3, j=2 且 pattern[2]='c' 与 text[3]='b' 失配，且 pi[1]=0，请问接下来的状态是什么？（提示：j 指针会如何变化？）",
+      "stage2_affordance": "拖动 j 指针滑块，可视化回退过程。",
+      "trace_anchor": [
+        "state.text",
+        "state.pattern",
+        "state.i",
+        "state.j",
+        "state.pi"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "正确！这就是部分匹配的不变式。",
+      "feedback_wrong": "请检查 text 中从 i-j 到 i-1 的子串是否等于 pattern 的前 j 个字符。",
+      "id": "task_2",
+      "oracle": "答案应为 B，可通过检查当前状态中 text 的切片与 pattern 的前 j 个字符是否匹配来验证。",
+      "prompt": "在KMP匹配过程的任意时刻，已匹配前缀长度 j 和下标 i 之间有何不变关系？请选择：A) i 始终等于 j；B) text[i-j...i-1] 与 pattern[0...j-1] 相等；C) pattern[0...i] 与 text 相等。",
+      "stage2_affordance": "高亮显示 text[i-j:i] 子串与 pattern[0:j] 的对比。",
+      "trace_anchor": [
+        "state.i",
+        "state.j",
+        "state.text"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "好！你修改了 pattern 使得前缀和后缀有重叠。",
+      "feedback_wrong": "想想 pattern 自身的前缀和后缀相等的条件。",
+      "id": "task_3",
+      "oracle": "学生应将 pattern 改为 \"aba\" 或任意使得 pattern[0]==pattern[2] 的字符串，且需修改 input_data 并重新生成 trace，检查 pi[2] 是否为 1。",
+      "prompt": "修改 pattern=\"aba\"，使其前缀表 pi[2] 的值变为 1 而非 0，并观察匹配过程的变化。你会如何修改 pattern？",
+      "stage2_affordance": "提供文本框直接修改 pattern 并实时更新前缀表和匹配动画。",
+      "trace_anchor": [
+        "input.pattern",
+        "state.pi"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释正确！这表示 pattern[0...4] 的最长相等前后缀长度为 3。",
+      "feedback_wrong": "考虑 j 表示什么，以及匹配后模式串前缀的扩展。",
+      "id": "task_4",
+      "oracle": "检查学生的解释是否提及最长相等前后缀长度增加，且 j 记录了新的匹配长度。可对比 trace 中 pi[4] 的值。",
+      "prompt": "在构建前缀表时，当 i=4, j=2，pattern[4]='a' 与 pattern[2]='a' 匹配后，为什么 j 变为 3？请解释这一状态转换背后的含义。",
+      "stage2_affordance": "点击步进按钮，逐帧观察 i 和 j 的变化与 pi 数组的更新。",
+      "trace_anchor": [
+        "state.i",
+        "state.j",
+        "state.pattern",
+        "state.pi"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 2,
+    "index": 0,
+    "input_data": {
+      "pattern": "abc",
+      "text": "ababc"
+    }
+  }
+}

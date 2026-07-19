@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KMP 字符串匹配 - AlgoLab 教学页</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --card-bg: #ffffff;
+            --border: #e2e6ed;
+            --text: #1a1d26;
+            --text-secondary: #5a6170;
+            --accent: #4a6cf7;
+            --accent-light: #eef1fe;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --highlight: #fef3c7;
+            --lps-color: #8b5cf6;
+            --lps-light: #f3f0ff;
+            --matched: #d1fae5;
+            --comparing: #fef3c7;
+            --mismatch: #fee2e2;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app-container {
+            max-width: 1300px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .badge-result {
+            background: var(--success-light);
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .badge-category {
+            background: var(--accent-light);
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+        }
+
+        #top-result {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        #top-solution {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            max-width: 300px;
+            text-align: right;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            grid-template-rows: auto auto;
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            #top-solution {
+                text-align: left;
+            }
+        }
+
+        /* Code panel */
+        .code-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            grid-row: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: auto;
+            max-height: 620px;
+        }
+
+        .code-panel h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.83rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            background: #1e2233;
+            color: #d4d8e6;
+            border-radius: 8px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            position: relative;
+            counter-reset: line;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background var(--transition), color var(--transition);
+            position: relative;
+            padding-left: 40px;
+            counter-increment: line;
+        }
+
+        #code .code-line::before {
+            content: counter(line);
+            position: absolute;
+            left: 6px;
+            width: 26px;
+            text-align: right;
+            color: #6b7280;
+            font-size: 0.75rem;
+            user-select: none;
+        }
+
+        #code .code-line.highlight {
+            background: #3b4252;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 0 #4a6cf7;
+            border-radius: 3px 3px 3px 3px;
+        }
+
+        #code .code-line.highlight::before {
+            color: #a5b4fc;
+        }
+
+        #code .code-line.dim {
+            opacity: 0.45;
+        }
+
+        /* Canvas panel */
+        .canvas-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            grid-column: 2;
+        }
+
+        .canvas-panel h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        #canvas {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 8px 0;
+            position: relative;
+        }
+
+        .vis-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .vis-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--text-secondary);
+        }
+
+        .char-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .char-cell {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            background: #fafbfc;
+            transition: all var(--transition);
+            position: relative;
+            cursor: default;
+        }
+
+        .char-cell.matched {
+            background: var(--matched);
+            border-color: #6ee7b7;
+            color: #065f46;
+        }
+        .char-cell.comparing {
+            background: var(--comparing);
+            border-color: #fcd34d;
+            color: #92400e;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+            animation: pulse-cell 0.9s ease-in-out infinite;
+        }
+        .char-cell.mismatch-cell {
+            background: var(--mismatch);
+            border-color: #fca5a5;
+            color: #991b1b;
+            animation: shake-cell 0.4s ease;
+        }
+        .char-cell.current-pos {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.2);
+        }
+        .char-cell.lps-cell {
+            background: var(--lps-light);
+            border-color: #c4b5fd;
+            color: #5b21b6;
+            font-size: 0.85rem;
+        }
+        .char-cell.found-highlight {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+            font-weight: 800;
+        }
+
+        @keyframes pulse-cell {
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+            }
+            50% {
+                box-shadow: 0 0 0 7px rgba(245, 158, 11, 0.05);
+            }
+        }
+        @keyframes shake-cell {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-3px);
+            }
+            75% {
+                transform: translateX(3px);
+            }
+        }
+
+        .pointer-indicator {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            min-height: 24px;
+            align-items: flex-start;
+        }
+        .pointer-arrow {
+            width: 42px;
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: var(--font-mono);
+        }
+        .pointer-arrow.active-ptr {
+            color: #ef4444;
+            font-size: 0.85rem;
+            animation: bounce-ptr 0.6s ease-in-out infinite;
+        }
+        @keyframes bounce-ptr {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        .lps-display {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .info-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: var(--accent-light);
+            color: #3730a3;
+            font-family: var(--font-mono);
+        }
+
+        /* Info panels below canvas */
+        .info-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            grid-column: 2;
+        }
+
+        @media (max-width: 900px) {
+            .info-row {
+                grid-column: 1;
+            }
+        }
+
+        .info-card {
+            flex: 1;
+            min-width: 200px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .info-card h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .info-card .content {
+            font-size: 0.85rem;
+            color: var(--text);
+            font-family: var(--font-mono);
+            background: #f9fafb;
+            border-radius: 6px;
+            padding: 8px 10px;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+            line-height: 1.5;
+            font-size: 0.78rem;
+        }
+        .info-card .content.teaching-content {
+            font-family: var(--font-sans);
+            font-size: 0.84rem;
+            line-height: 1.65;
+            color: #374151;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #fffbeb;
+            border: 2px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            animation: fadeInUp 0.4s ease;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .checkpoint-card h4 {
+            font-size: 0.9rem;
+            color: #92400e;
+            font-weight: 700;
+        }
+        .checkpoint-card .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .checkpoint-card .option-btn {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            font-family: var(--font-mono);
+        }
+        .checkpoint-card .option-btn:hover {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .checkpoint-card .option-btn.selected {
+            border-color: #f59e0b;
+            background: #fef3c7;
+            font-weight: 700;
+        }
+        .checkpoint-card .action-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .btn {
+            padding: 7px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .btn-submit {
+            background: #f59e0b;
+            color: #1a1a1a;
+        }
+        .btn-submit:hover {
+            background: #e5900a;
+            box-shadow: var(--shadow);
+        }
+        .btn-hint {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .btn-hint:hover {
+            background: #d1d5db;
+        }
+        .btn-reveal {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .btn-reveal:hover {
+            background: #fee2e2;
+        }
+        .feedback-box {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.83rem;
+            font-weight: 500;
+            line-height: 1.5;
+            animation: fadeInUp 0.3s ease;
+        }
+        .feedback-box.correct {
+            background: #ecfdf5;
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+        }
+        .feedback-box.incorrect {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+        .feedback-box.info {
+            background: #eef1fe;
+            border: 1px solid #c7d2fe;
+            color: #3730a3;
+        }
+        .learning-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            background: #f9fafb;
+            border-radius: 6px;
+            padding: 8px 10px;
+            line-height: 1.6;
+        }
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        /* Timeline & Controls */
+        .controls-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .nav-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+        }
+        .nav-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: #3730a3;
+        }
+        .nav-btn:active {
+            transform: scale(0.96);
+        }
+        .nav-btn.active-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 60px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 120px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .tick {
+            padding: 7px 11px;
+            border-radius: 18px;
+            border: 2px solid #e5e7eb;
+            background: #fafbfc;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 52px;
+            font-family: var(--font-sans);
+            text-align: center;
+        }
+        .tick:hover {
+            border-color: #c4b5fd;
+            background: #f8f7ff;
+        }
+        .tick.active-tick {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.12);
+        }
+        .tick .tick-label {
+            font-weight: 700;
+            font-size: 0.7rem;
+            letter-spacing: 0.02em;
+            color: #374151;
+            text-transform: uppercase;
+        }
+        .tick .tick-op {
+            font-size: 0.68rem;
+            color: #6b7280;
+            font-weight: 400;
+        }
+        .tick.active-tick .tick-label {
+            color: #3730a3;
+        }
+        .tick.active-tick .tick-op {
+            color: #4a6cf7;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+            color: #065f46;
+            background: #ecfdf5;
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            border: 1px solid #a7f3d0;
+        }
+
+        .hidden-checkpoint {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div id="title">KMP 字符串匹配</div>
+                <div id="subtitle">Knuth-Morris-Pratt 前缀表 &amp; 失配回退过程 · LeetCode 28 风格</div>
+            </div>
+            <div class="header-right">
+                <span class="badge badge-category">📚 字符串高级算法</span>
+                <span class="badge badge-result">🎯 结果：<span id="top-result">2</span></span>
+                <span id="top-solution">text="ababc", pattern="abc" → 首次匹配起始下标 2（KMP 前缀表驱动回退）</span>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Code panel -->
+            <div class="code-panel">
+                <h3>📝 算法实现 (JavaScript)</h3>
+                <div id="code">
+                    <span class="code-line" data-line="1">function kmpSearch(text, pattern) {</span>
+                    <span class="code-line" data-line="2">  if (pattern === "") return 0;</span>
+                    <span class="code-line" data-line="3">  const lps = buildLPS(pattern);</span>
+                    <span class="code-line" data-line="4">  let i = 0, j = 0;</span>
+                    <span class="code-line" data-line="5">  while (i &lt; text.length) {</span>
+                    <span class="code-line" data-line="6">    if (text[i] === pattern[j]) {</span>
+                    <span class="code-line" data-line="7">      i++; j++;</span>
+                    <span class="code-line" data-line="8">    }</span>
+                    <span class="code-line" data-line="9">    if (j === pattern.length) {</span>
+                    <span class="code-line" data-line="10">      return i - j;</span>
+                    <span class="code-line" data-line="11">    } else if (i &lt; text.length &amp;&amp; text[i] !== pattern[j]) {</span>
+                    <span class="code-line" data-line="12">      if (j !== 0) j = lps[j - 1];</span>
+                    <span class="code-line" data-line="13">      else i++;</span>
+                    <span class="code-line" data-line="14">    }</span>
+                    <span class="code-line" data-line="15">  }</span>
+                    <span class="code-line" data-line="16">  return -1;</span>
+                    <span class="code-line" data-line="17">}</span>
+                    <span class="code-line" data-line="18"></span>
+                    <span class="code-line" data-line="19">function buildLPS(pattern) {</span>
+                    <span class="code-line" data-line="20">  const lps = new Array(pattern.length).fill(0);</span>
+                    <span class="code-line" data-line="21">  let len = 0, i = 1;</span>
+                    <span class="code-line" data-line="22">  while (i &lt; pattern.length) {</span>
+                    <span class="code-line" data-line="23">    if (pattern[i] === pattern[len]) {</span>
+                    <span class="code-line" data-line="24">      len++; lps[i] = len; i++;</span>
+                    <span class="code-line" data-line="25">    } else {</span>
+                    <span class="code-line" data-line="26">      if (len !== 0) len = lps[len - 1];</span>
+                    <span class="code-line" data-line="27">      else { lps[i] = 0; i++; }</span>
+                    <span class="code-line" data-line="28">    }</span>
+                    <span class="code-line" data-line="29">  }</span>
+                    <span class="code-line" data-line="30">  return lps;</span>
+                    <span class="code-line" data-line="31">}</span>
+                </div>
+            </div>
+
+            <!-- Canvas panel -->
+            <div class="canvas-panel">
+                <h3>🔍 算法视图</h3>
+                <div id="canvas">
+                    <!-- Dynamic canvas content rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Step info cards -->
+            <div class="info-row" style="grid-column:2;">
+                <div class="info-card">
+                    <h4>📋 步骤标题</h4>
+                    <div id="step-title" style="font-weight:700;font-size:0.9rem;">初始化</div>
+                </div>
+                <div class="info-card">
+                    <h4>📖 步骤描述</h4>
+                    <div id="step-desc" style="font-size:0.82rem;color:#4b5563;">准备开始 KMP 匹配流程</div>
+                </div>
+            </div>
+            <div class="info-row" style="grid-column:2;">
+                <div class="info-card">
+                    <h4>📊 当前状态 (JSON)</h4>
+                    <div id="state" class="content">{}</div>
+                </div>
+                <div class="info-card">
+                    <h4>🧑‍🏫 教学讲解</h4>
+                    <div id="teaching" class="content teaching-content">加载中...</div>
+                </div>
+                <div class="info-card">
+                    <h4>🔬 步骤证据</h4>
+                    <div id="step-evidence" class="content">{}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkpoint area (conditionally shown) -->
+        <div id="checkpoint-container"></div>
+
+        <!-- Learning log -->
+        <div class="info-card" style="margin-top:0;">
+            <h4>📝 学习日志</h4>
+            <div id="learning-log" class="learning-log">暂无记录。完成 checkpoint 后此处会追加记录。</div>
+        </div>
+
+        <!-- Controls & Timeline -->
+        <div class="controls-bar">
+            <div class="nav-row">
+                <button id="prev" class="nav-btn" title="上一步">◀ 上一步</button>
+                <button id="play" class="nav-btn" title="自动播放">▶ 播放</button>
+                <button id="next" class="nav-btn" title="下一步">下一步 ▶</button>
+                <span id="counter">1 / 10</span>
+                <input type="range" id="range" min="1" max="10" value="1" title="拖动切换步骤">
+                <span style="font-size:0.8rem;color:var(--text-secondary);">最终答案：</span>
+                <span id="answer">2</span>
+            </div>
+            <div id="timeline">
+                <!-- Ticks rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ DATA ============
+            const textStr = "ababc";
+            const patternStr = "abc";
+            const finalAnswer = 2;
+            const totalSteps = 10;
+
+            // Step definitions
+            const stepsData = [{
+                id: 1,
+                title: "初始化",
+                desc: "设定 text=\"ababc\", pattern=\"abc\"，准备构建 LPS 前缀表。LPS 数组初始为 [0,0,0]。",
+                teaching: "KMP 算法的核心是前缀表（LPS: Longest Prefix Suffix）。在开始匹配前，我们需要先为模式串 pattern 构建 LPS 数组。LPS[i] 表示 pattern[0..i] 这个子串中，最长的相等前后缀的长度。<br><br>对于 pattern=\"abc\"，我们初始化 lps = [0, 0, 0]，因为 LPS[0] 永远为 0（单个字符没有真前后缀）。",
+                evidence: JSON.stringify({
+                    operation: "initialize",
+                    targets: { text: textStr, pattern: patternStr },
+                    lps_initial: [0, 0, 0],
+                    pointers: { i: 0, j: 0, phase: "lps_build" }
+                }, null, 2),
+                state: JSON.stringify({ phase: "lps_build", lps: [0, 0, 0], lps_index: 0, text_ptr: null,
+                    pattern_ptr: null, match_found: null }, null, 2),
+                codeLines: [1, 2, 3, 19, 20],
+                canvasData: {
+                    phase: "lps_init",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [0],
+                    textHighlight: [],
+                    patternHighlight: [],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [],
+                    foundStart: null,
+                    pointerI: null,
+                    pointerJ: null,
+                },
+                checkpoint: null,
+            }, {
+                id: 2,
+                title: "确认 LPS[0]",
+                desc: "LPS[0] = 0。单个字符 'a' 没有真前后缀，前缀表第一项始终为 0。",
+                teaching: "LPS[0] 总是 0，因为一个字符没有「真前缀」和「真后缀」可以相等（真前缀/真后缀不能等于整个字符串本身）。这是前缀表构建的基点。<br><br>🔑 <b>不变量：</b>对于任何长度为 1 的字符串，LPS[0] = 0。",
+                evidence: JSON.stringify({
+                    operation: "set_lps_base",
+                    targets: { index: 0, char: "a" },
+                    before: { lps: [0, 0, 0] },
+                    after: { lps: [0, 0, 0], confirmed_lps0: true }
+                }, null, 2),
+                state: JSON.stringify({ phase: "lps_build", lps: [0, 0, 0], lps_confirmed: [0], lps_next: 1,
+                    text_ptr: null, pattern_ptr: null }, null, 2),
+                codeLines: [19, 20, 21],
+                canvasData: {
+                    phase: "lps_building",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [0],
+                    textHighlight: [],
+                    patternHighlight: [0],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [],
+                    foundStart: null,
+                    pointerI: null,
+                    pointerJ: null,
+                },
+                checkpoint: null,
+            }, {
+                id: 3,
+                title: "计算 LPS[1]",
+                desc: "比较 pattern[1]='b' 与 pattern[0]='a'：不相等，故 lps[1]=0，继续推进。",
+                teaching: "现在计算 LPS[1]（子串 \"ab\"）。我们比较 pattern[1]='b' 与 pattern[len]（len=0，即 pattern[0]='a'）。它们不相等。<br><br>由于 len=0，无法再回退，所以 lps[1]=0，i 前进到 2。<br><br>⚠️ <b>常见错误：</b>初学者可能认为 \"ab\" 有相等前后缀（因为看到 'a' 出现），但实际上后缀 \"b\" ≠ 前缀 \"a\"。LPS 要求的是<b>连续相等</b>的前后缀。",
+                evidence: JSON.stringify({
+                    operation: "compute_lps",
+                    targets: { lps_index: 1, pattern_char: "b", compare_with: "pattern[0]='a'",
+                        result: "not_equal" },
+                    before: { len: 0, i: 1, lps: [0, 0, 0] },
+                    after: { lps: [0, 0, 0], lps1_confirmed: 0, i: 2, len: 0 }
+                }, null, 2),
+                state: JSON.stringify({ phase: "lps_build", lps: [0, 0, 0], lps_confirmed: [0, 1], lps_next: 2,
+                    comparison: "pattern[1]='b' vs pattern[0]='a' → mismatch", text_ptr: null,
+                    pattern_ptr: null }, null, 2),
+                codeLines: [22, 25, 26, 27],
+                canvasData: {
+                    phase: "lps_building",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [1],
+                    textHighlight: [],
+                    patternHighlight: [0, 1],
+                    comparingPair: [0, 1],
+                    mismatchAt: 1,
+                    matchedRanges: [],
+                    foundStart: null,
+                    pointerI: null,
+                    pointerJ: null,
+                },
+                checkpoint: null,
+            }, {
+                id: 4,
+                title: "LPS 数组完成",
+                desc: "同理计算 LPS[2]：pattern[2]='c' ≠ pattern[0]='a'，lps[2]=0。最终 LPS = [0, 0, 0]。",
+                teaching: "对于 pattern=\"abc\"，由于三个字符互不相同，LPS 数组全为 0。这意味着在匹配过程中，一旦失配，我们需要将 j 回退到 0（从头开始比较）。<br><br>📌 <b>关键洞察：</b>LPS 数组为全 0 时，KMP 退化为类似朴素匹配的行为——但这只是巧合。当 pattern 有重复结构时（如 \"abab\"），LPS 能大幅减少回退次数。",
+                evidence: JSON.stringify({
+                    operation: "lps_complete",
+                    targets: { pattern: "abc", final_lps: [0, 0, 0] },
+                    before: { lps: [0, 0, 0], lps_confirmed: [0, 1] },
+                    after: { lps: [0, 0, 0], all_confirmed: true, ready_for_matching: true }
+                }, null, 2),
+                state: JSON.stringify({ phase: "lps_complete", lps: [0, 0, 0], ready: true, text_ptr: 0,
+                    pattern_ptr: 0, match_phase: "starting" }, null, 2),
+                codeLines: [3, 4, 30],
+                canvasData: {
+                    phase: "lps_done",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [0, 1, 2],
+                    textHighlight: [],
+                    patternHighlight: [],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [],
+                    foundStart: null,
+                    pointerI: 0,
+                    pointerJ: 0,
+                },
+                checkpoint: null,
+            }, {
+                id: 5,
+                title: "开始匹配 (i=0, j=0)",
+                desc: "text[0]='a' == pattern[0]='a' ✓，双指针前进：i=1, j=1。",
+                teaching: "匹配阶段开始！我们使用双指针 i（遍历 text）和 j（遍历 pattern）。当 text[i] == pattern[j] 时，两个指针同时前进。<br><br>当前 text[0]='a' 与 pattern[0]='a' 匹配成功，这是很好的开端。",
+                evidence: JSON.stringify({
+                    operation: "compare_match",
+                    targets: { i: 0, j: 0, text_char: "a", pattern_char: "a", result: "match" },
+                    before: { i: 0, j: 0 },
+                    after: { i: 1, j: 1, matched_count: 1 }
+                }, null, 2),
+                state: JSON.stringify({ phase: "matching", i: 1, j: 1, text_ptr: 1, pattern_ptr: 1,
+                    matched_chars: 1, last_comparison: "match" }, null, 2),
+                codeLines: [4, 5, 6, 7],
+                canvasData: {
+                    phase: "matching",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [],
+                    textHighlight: [0],
+                    patternHighlight: [0],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [
+                        [0, 0]
+                    ],
+                    foundStart: null,
+                    pointerI: 1,
+                    pointerJ: 1,
+                },
+                checkpoint: null,
+            }, {
+                id: 6,
+                title: "匹配推进 (i=1, j=1)",
+                desc: "text[1]='b' == pattern[1]='b' ✓，继续：i=2, j=2。已连续匹配 2 个字符。",
+                teaching: "第二次比较也成功了！text[1]='b' 与 pattern[1]='b' 匹配。现在 i=2, j=2，接下来要比较 text[2] 和 pattern[2]。<br><br>目前匹配进展顺利，已匹配前缀 \"ab\"。",
+                evidence: JSON.stringify({
+                    operation: "compare_match",
+                    targets: { i: 1, j: 1, text_char: "b", pattern_char: "b", result: "match" },
+                    before: { i: 1, j: 1 },
+                    after: { i: 2, j: 2, matched_count: 2, matched_prefix: "ab" }
+                }, null, 2),
+                state: JSON.stringify({ phase: "matching", i: 2, j: 2, text_ptr: 2, pattern_ptr: 2,
+                    matched_chars: 2, matched_prefix: "ab", last_comparison: "match" }, null, 2),
+                codeLines: [5, 6, 7],
+                canvasData: {
+                    phase: "matching",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [],
+                    textHighlight: [0, 1],
+                    patternHighlight: [0, 1],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [
+                        [0, 1]
+                    ],
+                    foundStart: null,
+                    pointerI: 2,
+                    pointerJ: 2,
+                },
+                checkpoint: null,
+            }, {
+                id: 7,
+                title: "⚠️ 失配回退 (关键步骤)",
+                desc: "text[2]='a' ≠ pattern[2]='c' ✗！失配！根据 LPS，j = lps[1] = 0，i 保持为 2。",
+                teaching: "🔴 <b>失配发生！</b>text[2]='a' 与 pattern[2]='c' 不相等。这是 KMP 算法的关键时刻。<br><br>此时 j=2（不是 0），所以我们查阅 LPS 表：<b>j = lps[j-1] = lps[1] = 0</b>。这意味着我们将 pattern 的指针回退到 0，但 <b>i 保持不变</b>（i=2），避免了对 text 的回退。<br><br>🎯 <b>这就是 KMP 的核心优势：</b>朴素算法会回退 i，但 KMP 利用 LPS 表智能地只移动 j，从而保持 O(n) 的时间复杂度。<br><br>⚠️ <b>常见误区：</b>有人会误认为应该回退到 lps[j]（即 lps[2]=0），但正确做法是使用 lps[j-1]（已匹配部分的 LPS 值）。",
+                evidence: JSON.stringify({
+                    operation: "mismatch_backtrack",
+                    targets: { i: 2, j: 2, text_char: "a", pattern_char: "c", lps_lookup: "lps[1]",
+                        lps_value: 0 },
+                    before: { i: 2, j: 2, comparing: "text[2]='a' vs pattern[2]='c'" },
+                    after: { i: 2, j: 0, backtracked: true, reason: "lps[1]=0 → j回退到0" }
+                }, null, 2),
+                state: JSON.stringify({ phase: "mismatch", i: 2, j: 0, text_ptr: 2, pattern_ptr: 0,
+                    mismatch_at: "text[2]≠pattern[2]", backtrack_via: "lps[1]=0", matched_before_mismatch: 2 },
+                null, 2),
+                codeLines: [9, 11, 12],
+                canvasData: {
+                    phase: "mismatch",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [1],
+                    textHighlight: [2],
+                    patternHighlight: [2],
+                    comparingPair: [2, 2],
+                    mismatchAt: 2,
+                    matchedRanges: [
+                        [0, 1]
+                    ],
+                    foundStart: null,
+                    pointerI: 2,
+                    pointerJ: 0,
+                },
+                checkpoint: {
+                    id: "cp1",
+                    question: "失配后，j 应该回退到什么值？（提示：查阅 LPS 表 lps=[0,0,0]，当前 j=2）",
+                    options: ["j = 2（不回退）", "j = 1", "j = 0（即 lps[1]）", "j = -1（重新开始）"],
+                    correctIndex: 2,
+                    hint: "回退使用的是 lps[j-1]，即已匹配部分（\"ab\"）的最长相等前后缀长度。",
+                    explanation_correct: "✅ 正确！j=2 时失配，我们查看 lps[j-1]=lps[1]=0，所以 j 回退到 0。KMP 利用已匹配前缀 \"ab\" 的 LPS 信息来避免不必要的回退。",
+                    explanation_wrong: "❌ 不正确。失配时 j=2，我们使用 lps[j-1]=lps[1]=0 来确定回退位置。注意不是 lps[j]（即 lps[2]），而是 lps[j-1]——即已匹配部分的最长相等前后缀长度。"
+                },
+            }, {
+                id: 8,
+                title: "恢复匹配 (i=2, j=0)",
+                desc: "回退后：text[2]='a' == pattern[0]='a' ✓，i=3, j=1。匹配重新开始。",
+                teaching: "回退后 j=0，我们重新比较 text[2]='a' 与 pattern[0]='a'——它们匹配！i 前进到 3，j 前进到 1。<br><br>🔑 注意：虽然我们「回退」了 j，但 i 从未回退。text 的每个字符最多被比较一次（或常数次），这保证了 O(n) 的线性复杂度。",
+                evidence: JSON.stringify({
+                    operation: "compare_after_backtrack",
+                    targets: { i: 2, j: 0, text_char: "a", pattern_char: "a", result: "match" },
+                    before: { i: 2, j: 0, after_backtrack: true },
+                    after: { i: 3, j: 1, resumed: true }
+                }, null, 2),
+                state: JSON.stringify({ phase: "matching_resumed", i: 3, j: 1, text_ptr: 3, pattern_ptr: 1,
+                    last_comparison: "match", after_backtrack: true }, null, 2),
+                codeLines: [5, 6, 7],
+                canvasData: {
+                    phase: "matching",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [],
+                    textHighlight: [2],
+                    patternHighlight: [0],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [
+                        [2, 2]
+                    ],
+                    foundStart: null,
+                    pointerI: 3,
+                    pointerJ: 1,
+                },
+                checkpoint: null,
+            }, {
+                id: 9,
+                title: "匹配成功！",
+                desc: "继续：text[3]='b'==pattern[1]='b'✓, text[4]='c'==pattern[2]='c'✓。j=3==len(pattern)，找到匹配！起始位置 = i-j = 5-3 = 2。",
+                teaching: "🎉 <b>匹配成功！</b>经过失配回退后，剩余字符全部匹配。当 j 达到 pattern.length（即 3）时，说明我们找到了一个完整匹配。<br><br>匹配起始位置 = i - j = 5 - 3 = <b>2</b>。<br><br>检查：text[2..4] = \"abc\" = pattern ✓<br><br>📌 <b>总结：</b>KMP 通过 LPS 前缀表，在失配时智能回退 j 而不回退 i，将时间复杂度从朴素算法的 O(n·m) 降至 O(n+m)。",
+                evidence: JSON.stringify({
+                    operation: "match_found",
+                    targets: { i: 5, j: 3, start_index: 2, matched_substring: "abc" },
+                    before: { i: 4, j: 2, comparing: "text[4]='c' vs pattern[2]='c'" },
+                    after: { i: 5, j: 3, match_found: true, result: 2 }
+                }, null, 2),
+                state: JSON.stringify({ phase: "match_found", i: 5, j: 3, start_index: 2, result: 2,
+                    matched_substring: "text[2..4]='abc'", total_comparisons: "efficient" }, null, 2),
+                codeLines: [9, 10],
+                canvasData: {
+                    phase: "found",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [],
+                    textHighlight: [2, 3, 4],
+                    patternHighlight: [0, 1, 2],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [
+                        [2, 4]
+                    ],
+                    foundStart: 2,
+                    pointerI: 5,
+                    pointerJ: 3,
+                },
+                checkpoint: {
+                    id: "cp2",
+                    question: "匹配成功后，起始位置 i-j 等于多少？（i=5, j=3）",
+                    options: ["0", "1", "2", "3"],
+                    correctIndex: 2,
+                    hint: "起始位置 = i - j。i 是 text 的当前指针位置，j 是 pattern 的指针位置（已匹配完整个 pattern）。",
+                    explanation_correct: "✅ 正确！i=5, j=3，起始位置 = 5-3 = 2。验证：text[2]='a', text[3]='b', text[4]='c'，恰好是 \"abc\"。",
+                    explanation_wrong: "❌ 不正确。起始位置 = i - j = 5 - 3 = 2。可以验证 text[2..4] = \"abc\" 恰好匹配 pattern。"
+                },
+            }, {
+                id: 10,
+                title: "返回结果 & 确认",
+                desc: "返回 2。text=\"ababc\" 中 pattern=\"abc\" 首次出现在下标 2。KMP 匹配完成。",
+                teaching: "🏁 <b>最终结果：2</b>。整个 KMP 匹配过程完成。回顾关键步骤：<br>1️⃣ 构建 LPS 前缀表 [0,0,0]<br>2️⃣ 匹配推进（索引 0-1）<br>3️⃣ 失配回退（索引 2，j 从 2 回退到 0）<br>4️⃣ 恢复匹配并成功找到<br><br>KMP 的精髓在于：<b>利用已匹配信息避免无效比较</b>。即使本例 LPS 全为 0，失配回退机制仍然保证了 i 不回退，实现了线性时间。",
+                evidence: JSON.stringify({
+                    operation: "return_result",
+                    targets: { result: 2, text: "ababc", pattern: "abc", verification: "text[2..4]='abc'" },
+                    final_state: "complete"
+                }, null, 2),
+                state: JSON.stringify({ phase: "complete", result: 2, text: "ababc", pattern: "abc",
+                    lps: [0, 0, 0], match_start: 2, algorithm: "KMP", complexity: "O(n+m)" }, null, 2),
+                codeLines: [10, 16],
+                canvasData: {
+                    phase: "complete",
+                    textChars: ['a', 'b', 'a', 'b', 'c'],
+                    patternChars: ['a', 'b', 'c'],
+                    lps: [0, 0, 0],
+                    lpsHighlight: [],
+                    textHighlight: [2, 3, 4],
+                    patternHighlight: [0, 1, 2],
+                    comparingPair: null,
+                    mismatchAt: null,
+                    matchedRanges: [
+                        [2, 4]
+                    ],
+                    foundStart: 2,
+                    pointerI: null,
+                    pointerJ: null,
+                },
+                checkpoint: null,
+            }];
+
+            // ============ STATE ============
+            let currentStep = 1;
+            let autoPlayInterval = null;
+            let learningLogEntries = [];
+            let checkpointAnswers = {}; // track answers per checkpoint
+
+            // ============ DOM REFS ============
+            const $canvas = document.getElementById('canvas');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $prev = document.getElementById('prev');
+            const $next = document.getElementById('next');
+            const $play = document.getElementById('play');
+            const $answer = document.getElementById('answer');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $learningLog = document.getElementById('learning-log');
+            const $topResult = document.getElementById('top-result');
+
+            // Ensure answer is always the final result
+            $answer.textContent = finalAnswer;
+            $topResult.textContent = finalAnswer;
+
+            // ============ BUILD TIMELINE ============
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                for (let i = 1; i <= totalSteps; i++) {
+                    const sd = stepsData[i - 1];
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i);
+                    tick.innerHTML =
+                        '<span class="tick-label">步骤 ' + i + '</span><span class="tick-op">' + getTickOp(sd) +
+                        '</span>';
+                    tick.addEventListener('click', () => goToStep(i));
+                    $timeline.appendChild(tick);
+                }
+            }
+
+            function getTickOp(sd) {
+                const ops = {
+                    1: '初始化',
+                    2: 'LPS[0]',
+                    3: 'LPS[1]',
+                    4: 'LPS完成',
+                    5: '匹配i=0',
+                    6: '匹配i=1',
+                    7: '失配回退',
+                    8: '恢复匹配',
+                    9: '匹配成功',
+                    10: '返回结果'
+                };
+                return ops[sd.id] || '步骤';
+            }
+
+            // ============ RENDER CANVAS ============
+            function renderCanvas(cd) {
+                let html = '';
+
+                // LPS display
+                html += '<div class="vis-section">';
+                html += '<span class="vis-label">📐 LPS 前缀表</span>';
+                html += '<div class="lps-display">';
+                for (let k = 0; k < cd.lps.length; k++) {
+                    let cls = 'char-cell lps-cell';
+                    if (cd.lpsHighlight.includes(k)) cls += ' current-pos';
+                    html += '<span class="' + cls + '">' + cd.lps[k] + '</span>';
+                }
+                html += '<span style="font-size:0.7rem;color:#6b7280;margin-left:6px;">(索引: ' + cd.lps.map((_, i) =>
+                    i).join(', ') + ')</span>';
+                html += '</div></div>';
+
+                // Text string
+                html += '<div class="vis-section">';
+                html += '<span class="vis-label">📝 Text: "' + textStr + '"</span>';
+                html += '<div class="char-row">';
+                for (let k = 0; k < cd.textChars.length; k++) {
+                    let cls = 'char-cell';
+                    if (cd.foundStart !== null && k >= cd.foundStart && k < cd.foundStart + patternStr.length) {
+                        cls += ' found-highlight';
+                    } else if (cd.matchedRanges.some(r => k >= r[0] && k <= r[1])) {
+                        cls += ' matched';
+                    }
+                    if (cd.mismatchAt === k && cd.phase === 'mismatch') cls += ' mismatch-cell';
+                    if (cd.comparingPair && cd.comparingPair[0] === k) cls += ' comparing';
+                    if (cd.textHighlight.includes(k) && cd.phase !== 'mismatch') cls += ' matched';
+                    if (cd.pointerI === k) cls += ' current-pos';
+                    html += '<span class="' + cls + '">' + cd.textChars[k] + '</span>';
+                }
+                html += '</div>';
+                // Pointer row for text
+                html += '<div class="pointer-indicator">';
+                for (let k = 0; k < cd.textChars.length; k++) {
+                    let arrowCls = 'pointer-arrow';
+                    if (cd.pointerI === k || (cd.comparingPair && cd.comparingPair[0] === k)) arrowCls += ' active-ptr';
+                    html += '<span class="' + arrowCls + '">' + (cd.pointerI === k ? 'i▲' : (cd.comparingPair && cd
+                        .comparingPair[0] === k ? 'i▲' : '')) + '</span>';
+                }
+                html += '</div>';
+                html += '</div>';
+
+                // Pattern string
+                html += '<div class="vis-section">';
+                html += '<span class="vis-label">🔎 Pattern: "' + patternStr + '"</span>';
+                html += '<div class="char-row">';
+                for (let k = 0; k < cd.patternChars.length; k++) {
+                    let cls = 'char-cell';
+                    if (cd.foundStart !== null) cls += ' found-highlight';
+                    else if (cd.matchedRanges.length > 0 && cd.phase === 'matching') {
+                        let anyMatch = cd.matchedRanges.some(r => {
+                            let startInText = r[0];
+                            let idxInPattern = k;
+                            return idxInPattern <= (r[1] - r[0]);
+                        });
+                        if (anyMatch && cd.patternHighlight.includes(k)) cls += ' matched';
+                    }
+                    if (cd.mismatchAt === k && cd.phase === 'mismatch') cls += ' mismatch-cell';
+                    if (cd.comparingPair && cd.comparingPair[1] === k) cls += ' comparing';
+                    if (cd.patternHighlight.includes(k) && cd.phase !== 'mismatch' && cd.foundStart === null) cls +=
+                        ' matched';
+                    if (cd.pointerJ === k) cls += ' current-pos';
+                    html += '<span class="' + cls + '">' + cd.patternChars[k] + '</span>';
+                }
+                html += '</div>';
+                html += '<div class="pointer-indicator">';
+                for (let k = 0; k < cd.patternChars.length; k++) {
+                    let arrowCls = 'pointer-arrow';
+                    if (cd.pointerJ === k || (cd.comparingPair && cd.comparingPair[1] === k)) arrowCls += ' active-ptr';
+                    html += '<span class="' + arrowCls + '">' + (cd.pointerJ === k ? 'j▲' : (cd.comparingPair && cd
+                        .comparingPair[1] === k ? 'j▲' : '')) + '</span>';
+                }
+                html += '</div>';
+                html += '</div>';
+
+                // Status badge
+                if (cd.phase === 'found' || cd.phase === 'complete') {
+                    html +=
+                        '<div style="margin-top:8px;"><span class="info-tag" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;">✅ 匹配成功！起始位置 = ' +
+                        cd.foundStart + '</span></div>';
+                } else if (cd.phase === 'mismatch') {
+                    html +=
+                        '<div style="margin-top:8px;"><span class="info-tag" style="background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;">⚠️ 失配！j 回退至 0</span></div>';
+                }
+
+                $canvas.innerHTML = html;
+            }
+
+            // ============ CODE HIGHLIGHT ============
+            function highlightCode(lineNumbers) {
+                const allLines = $code.querySelectorAll('.code-line');
+                allLines.forEach(el => {
+                    const ln = parseInt(el.getAttribute('data-line'));
+                    el.classList.remove('highlight', 'dim');
+                    if (lineNumbers.includes(ln)) {
+                        el.classList.add('highlight');
+                    } else if (ln <= 17 || (ln >= 19 && ln <= 31)) {
+                        // keep visible but dim if in relevant section
+                        // Actually, only dim lines outside the current focus
+                    }
+                });
+                // Dim lines not highlighted
+                allLines.forEach(el => {
+                    const ln = parseInt(el.getAttribute('data-line'));
+                    if (!lineNumbers.includes(ln)) {
+                        if (ln >= 1 && ln <= 17) el.classList.add('dim');
+                        if (ln >= 19 && ln <= 31 && lineNumbers.some(l => l >= 19)) el.classList.add('dim');
+                    }
+                });
+            }
+
+            // ============ RENDER STEP ============
+            function renderStep(stepIndex) {
+                const sd = stepsData[stepIndex - 1];
+                if (!sd) return;
+
+                $stepTitle.textContent = sd.title;
+                $stepDesc.textContent = sd.desc;
+                $state.textContent = sd.state;
+                $teaching.innerHTML = sd.teaching;
+                $stepEvidence.textContent = sd.evidence;
+                $counter.textContent = stepIndex + ' / ' + totalSteps;
+                $range.value = stepIndex;
+
+                // Code highlight
+                highlightCode(sd.codeLines);
+
+                // Canvas
+                renderCanvas(sd.canvasData);
+
+                // Timeline active
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach(t => {
+                    t.classList.remove('active-tick');
+                    if (parseInt(t.getAttribute('data-step')) === stepIndex) {
+                        t.classList.add('active-tick');
+                    }
+                });
+
+                // Checkpoint
+                renderCheckpoint(sd);
+
+                // Scroll active tick into view
+                const activeTick = $timeline.querySelector('.tick.active-tick');
+                if (activeTick && typeof activeTick.scrollIntoView === 'function') {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // ============ CHECKPOINT ============
+            function renderCheckpoint(sd) {
+                if (!sd.checkpoint) {
+                    $checkpointContainer.innerHTML = '';
+                    $checkpointContainer.classList.add('hidden-checkpoint');
+                    return;
+                }
+                $checkpointContainer.classList.remove('hidden-checkpoint');
+                const cp = sd.checkpoint;
+                const cpId = cp.id;
+                const alreadyAnswered = checkpointAnswers[cpId] !== undefined;
+                const wasCorrect = checkpointAnswers[cpId] === true;
+
+                let html = '<div class="checkpoint-card">';
+                html += '<h4>🧠 Learner Checkpoint</h4>';
+                html += '<p style="font-size:0.88rem;color:#374151;font-weight:500;">' + cp.question + '</p>';
+                html += '<div class="options">';
+                for (let oi = 0; oi < cp.options.length; oi++) {
+                    html += '<button class="option-btn" data-cp="' + cpId + '" data-opt="' + oi + '" ' +
+                        (alreadyAnswered ? 'disabled' : '') + '>' + cp.options[oi] + '</button>';
+                }
+                html += '</div>';
+                html += '<div class="action-row">';
+                html += '<button class="btn btn-submit" id="btn-submit-' + cpId + '" ' + (alreadyAnswered ?
+                    'disabled' : '') + '>提交答案</button>';
+                html += '<button class="btn btn-hint" id="btn-hint-' + cpId + '">💡 提示</button>';
+                html += '<button class="btn btn-reveal" id="btn-reveal-' + cpId + '">👁 显示答案</button>';
+                html += '</div>';
+                html += '<div id="feedback-' + cpId + '" style="min-height:20px;"></div>';
+                if (alreadyAnswered) {
+                    html += '<div class="feedback-box ' + (wasCorrect ? 'correct' : 'incorrect') + '" style="margin-top:6px;">' +
+                        (wasCorrect ? cp.explanation_correct : cp.explanation_wrong) + '</div>';
+                }
+                html += '</div>';
+                $checkpointContainer.innerHTML = html;
+
+                // Bind events
+                if (!alreadyAnswered) {
+                    const optionBtns = $checkpointContainer.querySelectorAll('.option-btn');
+                    let selectedOpt = null;
+                    optionBtns.forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            optionBtns.forEach(b => b.classList.remove('selected'));
+                            this.classList.add('selected');
+                            selectedOpt = parseInt(this.getAttribute('data-opt'));
+                        });
+                    });
+
+                    const submitBtn = document.getElementById('btn-submit-' + cpId);
+                    if (submitBtn) {
+                        submitBtn.addEventListener('click', function() {
+                            if (selectedOpt === null) {
+                                const fb = document.getElementById('feedback-' + cpId);
+                                fb.innerHTML =
+                                    '<div class="feedback-box info">请先选择一个选项再提交。</div>';
+                                return;
+                            }
+                            const isCorrect = (selectedOpt === cp.correctIndex);
+                            checkpointAnswers[cpId] = isCorrect;
+                            const fb = document.getElementById('feedback-' + cpId);
+                            if (isCorrect) {
+                                fb.innerHTML = '<div class="feedback-box correct">' + cp
+                                    .explanation_correct + '</div>';
+                            } else {
+                                fb.innerHTML = '<div class="feedback-box incorrect">' + cp
+                                    .explanation_wrong + '</div>';
+                            }
+                            // Disable all option buttons and submit
+                            optionBtns.forEach(b => b.disabled = true);
+                            submitBtn.disabled = true;
+                            const hintBtn = document.getElementById('btn-hint-' + cpId);
+                            const revealBtn = document.getElementById('btn-reveal-' + cpId);
+                            if (hintBtn) hintBtn.disabled = true;
+                            if (revealBtn) revealBtn.disabled = true;
+                            // Log
+                            addLearningLog('Checkpoint "' + cpId + '" @步骤' + sd.id + ': 选择 "' + cp
+                                .options[selectedOpt] + '" → ' + (isCorrect ? '✅正确' : '❌错误') +
+                                ' (正确答案: ' + cp.options[cp.correctIndex] + ')');
+                        });
+                    }
+
+                    const hintBtn = document.getElementById('btn-hint-' + cpId);
+                    if (hintBtn) {
+                        hintBtn.addEventListener('click', function() {
+                            const fb = document.getElementById('feedback-' + cpId);
+                            fb.innerHTML = '<div class="feedback-box info">💡 提示：' + cp.hint +
+                                '</div>';
+                            addLearningLog('Checkpoint "' + cpId + '" @步骤' + sd.id + ': 请求了提示');
+                        });
+                    }
+
+                    const revealBtn = document.getElementById('btn-reveal-' + cpId);
+                    if (revealBtn) {
+                        revealBtn.addEventListener('click', function() {
+                            checkpointAnswers[cpId] = false;
+                            const fb = document.getElementById('feedback-' + cpId);
+                            fb.innerHTML = '<div class="feedback-box info">🔍 正确答案：' + cp.options[
+                                cp.correctIndex
+                            ] + ' — ' + cp.explanation_correct + '</div>';
+                            optionBtns.forEach(b => b.disabled = true);
+                            const submitBtn2 = document.getElementById('btn-submit-' + cpId);
+                            if (submitBtn2) submitBtn2.disabled = true;
+                            if (hintBtn) hintBtn.disabled = true;
+                            revealBtn.disabled = true;
+                            addLearningLog('Checkpoint "' + cpId + '" @步骤' + sd.id +
+                                ': 查看了答案 → 正确答案: ' + cp.options[cp.correctIndex]);
+                        });
+                    }
+                }
+            }
+
+            function addLearningLog(entry) {
+                const timestamp = new Date().toLocaleTimeString();
+                learningLogEntries.push('[' + timestamp + '] ' + entry);
+                updateLearningLog();
+            }
+
+            function updateLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    $learningLog.textContent = '暂无记录。完成 checkpoint 后此处会追加记录。';
+                } else {
+                    $learningLog.innerHTML = learningLogEntries.map(e => '<div class="log-entry">' + e + '</div>').join(
+                        '');
+                }
+            }
+
+            // ============ NAVIGATION ============
+            function goToStep(step) {
+                if (step < 1 || step > totalSteps) return;
+                currentStep = step;
+                renderStep(currentStep);
+                updateNavButtons();
+            }
+
+            function updateNavButtons() {
+                $prev.disabled = (currentStep <= 1);
+                $next.disabled = (currentStep >= totalSteps);
+                $range.value = currentStep;
+                $counter.textContent = currentStep + ' / ' + totalSteps;
+            }
+
+            $prev.addEventListener('click', () => {
+                if (currentStep > 1) goToStep(currentStep - 1);
+            });
+            $next.addEventListener('click', () => {
+                if (currentStep < totalSteps) goToStep(currentStep + 1);
+            });
+            $range.addEventListener('input', () => {
+                goToStep(parseInt($range.value));
+            });
+
+            // Play
+            $play.addEventListener('click', () => {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                    $play.textContent = '▶ 播放';
+                    $play.classList.remove('active-btn');
+                } else {
+                    $play.textContent = '⏸ 暂停';
+                    $play.classList.add('active-btn');
+                    autoPlayInterval = setInterval(() => {
+                        if (currentStep < totalSteps) {
+                            goToStep(currentStep + 1);
+                        } else {
+                            clearInterval(autoPlayInterval);
+                            autoPlayInterval = null;
+                            $play.textContent = '▶ 播放';
+                            $play.classList.remove('active-btn');
+                        }
+                    }, 1800);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (currentStep < totalSteps) goToStep(currentStep + 1);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentStep > 1) goToStep(currentStep - 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    $play.click();
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                buildTimeline();
+                goToStep(1);
+                updateNavButtons();
+                $answer.textContent = finalAnswer;
+                $topResult.textContent = finalAnswer;
+                updateLearningLog();
+            }
+
+            init();
+            console.log('✅ KMP AlgoLab 教学页已就绪 | 最终答案: ' + finalAnswer + ' | 总步骤: ' + totalSteps);
+        })();
+    </script>
+</body>
+</html>

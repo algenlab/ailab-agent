@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>插入排序 - AlgoLab 教学页</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --accent-light: #eff6ff;
+            --green: #10b981;
+            --green-bg: #ecfdf5;
+            --yellow: #f59e0b;
+            --yellow-bg: #fffbeb;
+            --orange: #f97316;
+            --orange-bg: #fff7ed;
+            --gray: #94a3b8;
+            --gray-bg: #f1f5f9;
+            --red: #ef4444;
+            --red-bg: #fef2f2;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'DejaVu Sans Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-left {
+            flex: 1;
+            min-width: 200px;
+        }
+        #title {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .result-badge {
+            background: var(--green-bg);
+            border: 1px solid #a7f3d0;
+            border-radius: 20px;
+            padding: 7px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #065f46;
+            white-space: nowrap;
+            font-family: var(--font-mono);
+        }
+        .solution-badge {
+            background: var(--accent-light);
+            border: 1px solid #bfdbfe;
+            border-radius: 20px;
+            padding: 7px 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1e40af;
+            white-space: nowrap;
+        }
+        #top-result {
+            font-weight: 700;
+        }
+        #top-solution {
+            font-style: italic;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 10px 0;
+        }
+        .array-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .array-element {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 68px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 1.25rem;
+            font-family: var(--font-mono);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            cursor: default;
+            user-select: none;
+            border: 2px solid transparent;
+        }
+        .array-element .element-value {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+        .array-element .element-index {
+            font-size: 0.65rem;
+            font-weight: 500;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .array-element.sorted {
+            background: #d1fae5;
+            border-color: #6ee7b7;
+            color: #065f46;
+        }
+        .array-element.key-highlight {
+            background: #fef3c7;
+            border-color: #fcd34d;
+            color: #92400e;
+            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.25);
+            animation: pulse-key 1.8s ease-in-out infinite;
+            z-index: 2;
+        }
+        .array-element.unsorted {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #94a3b8;
+        }
+        .array-element.moving {
+            background: #ffedd5;
+            border-color: #fdba74;
+            color: #9a3412;
+            animation: shift-right 0.4s ease-out;
+        }
+        .array-element.inserted {
+            background: #d1fae5;
+            border-color: #34d399;
+            color: #065f46;
+            animation: pop-in 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .array-element.all-done {
+            background: #d1fae5;
+            border-color: #10b981;
+            color: #065f46;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+        @keyframes pulse-key {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(251, 191, 36, 0.05);
+            }
+        }
+        @keyframes shift-right {
+            from {
+                transform: translateX(-8px);
+                opacity: 0.7;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes pop-in {
+            from {
+                transform: scale(0.75);
+                opacity: 0.4;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .canvas-labels {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            justify-content: center;
+        }
+        .canvas-labels span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .label-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        .label-dot.sorted-dot {
+            background: #d1fae5;
+            border: 2px solid #6ee7b7;
+        }
+        .label-dot.key-dot {
+            background: #fef3c7;
+            border: 2px solid #fcd34d;
+        }
+        .label-dot.unsorted-dot {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+        }
+        .label-dot.moving-dot {
+            background: #ffedd5;
+            border: 2px solid #fdba74;
+        }
+
+        /* Code */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.75;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            overflow-x: auto;
+            white-space: pre;
+            min-height: 160px;
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        #code .code-line.highlight {
+            background: #334155;
+            border-left-color: #facc15;
+            color: #fef08a;
+            font-weight: 600;
+        }
+        #code .code-line.highlight-strong {
+            background: #475569;
+            border-left-color: #fbbf24;
+            color: #fde68a;
+            font-weight: 700;
+        }
+
+        /* Info rows */
+        .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0f172a;
+        }
+        #step-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent-light);
+            color: #1e40af;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #334155;
+        }
+        #teaching {
+            font-size: 0.85rem;
+            color: #334155;
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #475569;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            line-height: 1.5;
+            font-family: var(--font-mono);
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 8px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn.play-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 700;
+            min-width: 80px;
+        }
+        .btn.play-btn:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        .btn.play-btn.playing {
+            background: #ef4444;
+            border-color: #ef4444;
+            animation: none;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            color: #0f172a;
+            min-width: 60px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 6px 0;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 2px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.25s;
+            min-width: 70px;
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: #dbeafe;
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: #374151;
+        }
+        .tick .tick-op {
+            font-size: 0.68rem;
+            color: #6b7280;
+            font-family: var(--font-mono);
+        }
+        .tick.active .tick-label {
+            color: #1e40af;
+        }
+        .tick.active .tick-op {
+            color: #2563eb;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #fefce8;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+        }
+        .checkpoint-card h4 {
+            font-size: 0.85rem;
+            color: #92400e;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .checkpoint-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            user-select: none;
+        }
+        .checkpoint-option:hover {
+            border-color: #fbbf24;
+            background: #fffbeb;
+        }
+        .checkpoint-option.selected {
+            border-color: #f59e0b;
+            background: #fef3c7;
+            font-weight: 600;
+        }
+        .checkpoint-option input[type="radio"] {
+            accent-color: #f59e0b;
+            cursor: pointer;
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-sm:hover {
+            background: #f3f4f6;
+        }
+        .btn-sm.submit-btn {
+            background: #f59e0b;
+            color: #fff;
+            border-color: #f59e0b;
+            font-weight: 700;
+        }
+        .btn-sm.submit-btn:hover {
+            background: #d97706;
+        }
+        .btn-sm.hint-btn {
+            background: #fef3c7;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .btn-sm.reveal-btn {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        .checkpoint-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            font-weight: 500;
+            display: none;
+            line-height: 1.5;
+        }
+        .checkpoint-feedback.correct {
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+            display: block;
+        }
+        .checkpoint-feedback.incorrect {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            display: block;
+        }
+        .checkpoint-feedback.info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            display: block;
+        }
+
+        /* Learning log */
+        .learning-log {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: #64748b;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 6px 0;
+            list-style: none;
+        }
+        .learning-log li {
+            padding: 4px 8px;
+            border-left: 3px solid #e2e8f0;
+            margin-bottom: 3px;
+            border-radius: 0 4px 4px 0;
+            background: #fafafa;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+        }
+        .learning-log li.correct-log {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+            color: #065f46;
+        }
+        .learning-log li.incorrect-log {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            padding: 8px 14px;
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+            color: #065f46;
+        }
+
+        /* Section spacing */
+        .section-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 6px 0;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="header-left">
+                <div id="title">插入排序</div>
+                <div id="subtitle">逐步维护有序前缀，将当前元素插入正确位置</div>
+            </div>
+            <div class="header-right">
+                <span class="result-badge">结果: <span id="top-result">[1, 2, 3, 5]</span></span>
+                <span class="solution-badge" id="top-solution">升序排列 · 插入排序</span>
+            </div>
+        </div>
+
+        <!-- Main grid: Canvas + Code -->
+        <div class="main-grid">
+            <!-- Canvas card -->
+            <div class="card">
+                <div class="section-label">📊 算法视图</div>
+                <div id="canvas">
+                    <div class="array-container" id="array-container"></div>
+                    <div class="canvas-labels">
+                        <span><span class="label-dot sorted-dot"></span> 已排序</span>
+                        <span><span class="label-dot key-dot"></span> 当前Key</span>
+                        <span><span class="label-dot unsorted-dot"></span> 未排序</span>
+                        <span><span class="label-dot moving-dot"></span> 移动中</span>
+                    </div>
+                </div>
+                <div class="info-row" style="margin-top:6px;">
+                    <span id="step-title">初始化</span>
+                    <span id="op">设置 i=1</span>
+                </div>
+                <div id="step-desc" style="font-size:0.82rem;color:#64748b;margin-top:4px;">
+                    将第一个元素视为已排序前缀，从索引1开始处理。
+                </div>
+            </div>
+
+            <!-- Code card -->
+            <div class="card">
+                <div class="section-label">💻 代码</div>
+                <div id="code"></div>
+            </div>
+        </div>
+
+        <!-- State & Teaching -->
+        <div class="card">
+            <div class="section-label">📋 状态 & 讲解</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" class="main-grid">
+                <div>
+                    <strong style="font-size:0.8rem;">当前状态 JSON</strong>
+                    <div id="state">{"phase":"init","array":[5,2,3,1],"i":1,"sorted_prefix":[5],"unsorted":[2,3,1]}</div>
+                </div>
+                <div>
+                    <strong style="font-size:0.8rem;">教学讲解</strong>
+                    <div id="teaching">插入排序的核心思想：维护一个已排序的前缀，每次将下一个未排序元素插入到前缀中的正确位置。初始时，第一个元素自身构成已排序前缀。</div>
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <strong style="font-size:0.8rem;">步骤证据</strong>
+                <div id="step-evidence">operation: init | targets: i=1 | before: [5,2,3,1] | after: 准备处理索引1的元素2</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="上一步">◀ 上一步</button>
+                <button class="btn play-btn" id="play" title="自动播放">▶ 播放</button>
+                <button class="btn" id="next" title="下一步">下一步 ▶</button>
+                <input type="range" id="range" min="1" max="5" value="1" step="1" title="拖动切换步骤">
+                <span id="counter">1 / 5</span>
+            </div>
+            <!-- Timeline -->
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="checkpoint-card" id="checkpoint-section">
+            <h4>🧠 学习者检测点</h4>
+            <div id="checkpoint-question" style="font-weight:600;margin-bottom:6px;font-size:0.9rem;"></div>
+            <div class="checkpoint-options" id="checkpoint-options"></div>
+            <div class="checkpoint-btns">
+                <button class="btn-sm submit-btn" id="checkpoint-submit">提交</button>
+                <button class="btn-sm hint-btn" id="checkpoint-hint">💡 提示</button>
+                <button class="btn-sm reveal-btn" id="checkpoint-reveal">👁 显示答案</button>
+            </div>
+            <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+            <div style="margin-top:10px;">
+                <strong style="font-size:0.75rem;color:#64748b;">📝 学习日志</strong>
+                <ul class="learning-log" id="learning-log"></ul>
+            </div>
+        </div>
+
+        <!-- Answer -->
+        <div class="card" style="text-align:center;">
+            <div class="section-label">✅ 最终答案</div>
+            <div id="answer">[1, 2, 3, 5]</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== 步骤数据定义 ====================
+            const steps = [{
+                index: 0,
+                label: '初始化',
+                op: '设置 i=1',
+                title: '步骤 0：初始化',
+                desc: '将索引0的元素5视为已排序前缀。设置i=1，准备处理索引1的元素2。',
+                array: [5, 2, 3, 1],
+                keyIdx: 1,
+                sortedUpTo: 0,
+                movingIndices: [],
+                insertedIdx: null,
+                phase: 'init',
+                stateJSON: '{"phase":"init","array":[5,2,3,1],"i":1,"sorted_prefix":[5],"unsorted":[2,3,1]}',
+                teaching: '插入排序的核心思想：维护一个已排序的前缀（初始为第一个元素），每次将下一个未排序元素插入到前缀中的正确位置。初始时，已排序前缀仅包含元素5。',
+                evidence: 'operation: init | targets: i=1 | before: [5,2,3,1] | after: 准备处理索引1的元素2（key=2）',
+                codeHighlightLines: [1],
+                codeStrongLines: [],
+                checkpointId: null,
+            }, {
+                index: 1,
+                label: '插入 key=2',
+                op: '插入 2 到索引0',
+                title: '步骤 1：处理 key=2',
+                desc: 'key=2，与5比较：2<5，5后移至索引1；j变为-1，循环结束。将2插入索引0。数组变为[2,5,3,1]。',
+                array: [2, 5, 3, 1],
+                keyIdx: 2,
+                sortedUpTo: 1,
+                movingIndices: [1],
+                insertedIdx: 0,
+                phase: 'insert',
+                stateJSON: '{"phase":"insert","key":2,"compared_with":[5],"shifted":[5],"inserted_at":0,"array":[2,5,3,1],"sorted_prefix_len":2}',
+                teaching: '取出key=2（索引1），与已排序前缀[5]从右向左比较。2<5，所以5需要后移一位。此时j变为-1（已超出左边界），说明2是最小的，应插入到索引0。不变量：已排序前缀始终保持有序。',
+                evidence: 'operation: insert key=2 | targets: compare 2<5, shift 5 right, insert 2 at idx 0 | before: [5,2,3,1] | after: [2,5,3,1] | 已排序前缀长度: 2',
+                codeHighlightLines: [2, 3, 4, 5, 6, 7],
+                codeStrongLines: [2, 7],
+                checkpointId: 'cp1',
+            }, {
+                index: 2,
+                label: '插入 key=3',
+                op: '插入 3 到索引1',
+                title: '步骤 2：处理 key=3',
+                desc: 'key=3，与5比较：3<5，5后移至索引2；与2比较：3≥2，停止。将3插入索引1。数组变为[2,3,5,1]。',
+                array: [2, 3, 5, 1],
+                keyIdx: 3,
+                sortedUpTo: 2,
+                movingIndices: [2],
+                insertedIdx: 1,
+                phase: 'insert',
+                stateJSON: '{"phase":"insert","key":3,"compared_with":[5,2],"shifted":[5],"inserted_at":1,"array":[2,3,5,1],"sorted_prefix_len":3}',
+                teaching: '取出key=3（索引2），与已排序前缀[2,5]从右向左比较。3<5，5后移一位。3≥2，停止。将3插入索引1。注意：while循环只执行了1次（仅5被移动）。常见误区：以为每次都要比较完所有已排序元素。',
+                evidence: 'operation: insert key=3 | targets: compare 3<5→shift, compare 3≥2→stop | before: [2,5,3,1] | after: [2,3,5,1] | while循环执行次数: 1',
+                codeHighlightLines: [2, 3, 4, 5, 6, 7],
+                codeStrongLines: [2, 5, 7],
+                checkpointId: 'cp2',
+            }, {
+                index: 3,
+                label: '插入 key=1',
+                op: '插入 1 到索引0',
+                title: '步骤 3：处理 key=1',
+                desc: 'key=1，依次与5、3、2比较，全部后移。将1插入索引0。数组变为[1,2,3,5]，排序完成。',
+                array: [1, 2, 3, 5],
+                keyIdx: null,
+                sortedUpTo: 3,
+                movingIndices: [1, 2, 3],
+                insertedIdx: 0,
+                phase: 'insert',
+                stateJSON: '{"phase":"insert","key":1,"compared_with":[5,3,2],"shifted":[5,3,2],"inserted_at":0,"array":[1,2,3,5],"sorted_prefix_len":4}',
+                teaching: '取出key=1（索引3），与已排序前缀[2,3,5]从右向左比较。1<5、1<3、1<2，全部后移。j变为-1，1插入索引0。这是最坏情况：每个已排序元素都需要移动。时间复杂度O(n²)的最坏情况体现。',
+                evidence: 'operation: insert key=1 | targets: compare 1<5→shift, 1<3→shift, 1<2→shift, j=-1→insert at 0 | before: [2,3,5,1] | after: [1,2,3,5] | while循环执行次数: 3（最坏情况）',
+                codeHighlightLines: [2, 3, 4, 5, 6, 7],
+                codeStrongLines: [2, 5, 7],
+                checkpointId: 'cp3',
+            }, {
+                index: 4,
+                label: '完成',
+                op: '返回结果',
+                title: '步骤 4：排序完成',
+                desc: '所有元素已按升序排列。最终结果：[1,2,3,5]。',
+                array: [1, 2, 3, 5],
+                keyIdx: null,
+                sortedUpTo: 3,
+                movingIndices: [],
+                insertedIdx: null,
+                phase: 'done',
+                stateJSON: '{"phase":"done","array":[1,2,3,5],"sorted":true,"length":4}',
+                teaching: '插入排序完成！最终数组[1,2,3,5]已完全升序排列。插入排序是稳定的排序算法（相等元素相对顺序不变），时间复杂度O(n²)，空间复杂度O(1)。对于小规模或基本有序的数据，插入排序表现良好。',
+                evidence: 'operation: return | targets: 返回排序后的数组 | result: [1,2,3,5] | 总比较次数: ~6次 | 总移动次数: ~6次',
+                codeHighlightLines: [8],
+                codeStrongLines: [8],
+                checkpointId: null,
+            }];
+
+            const totalSteps = steps.length; // 5
+
+            // ==================== 代码行 ====================
+            const codeLines = [
+                'def insertion_sort(nums):',
+                '    for i in range(1, len(nums)):',
+                '        key = nums[i]',
+                '        j = i - 1',
+                '        while j >= 0 and nums[j] > key:',
+                '            nums[j+1] = nums[j]',
+                '            j -= 1',
+                '        nums[j+1] = key',
+                '    return nums',
+            ];
+
+            // ==================== Checkpoint 数据 ====================
+            const checkpoints = {
+                cp1: {
+                    question: '处理 key=2 时，2 最终被插入到哪个索引位置？',
+                    options: [
+                        { value: 'A', label: '索引 0', isCorrect: true },
+                        { value: 'B', label: '索引 1', isCorrect: false },
+                        { value: 'C', label: '索引 2', isCorrect: false },
+                        { value: 'D', label: '保持不变（索引1）', isCorrect: false },
+                    ],
+                    hint: 'key=2 比已排序前缀中的所有元素（目前只有5）都小，所以它会被放到最前面。',
+                    correctExplanation: '正确！2<5，5后移，2被插入到索引0，成为新的已排序前缀的第一个元素。',
+                    wrongExplanation: '不正确。2比5小，5需要后移，2被插入到索引0（最前面），而不是保留在原位或移到其他位置。',
+                },
+                cp2: {
+                    question: '处理 key=3 时，while 循环体（nums[j+1]=nums[j]）执行了几次？',
+                    options: [
+                        { value: 'A', label: '0 次', isCorrect: false },
+                        { value: 'B', label: '1 次', isCorrect: true },
+                        { value: 'C', label: '2 次', isCorrect: false },
+                        { value: 'D', label: '3 次', isCorrect: false },
+                    ],
+                    hint: 'key=3 与已排序前缀 [2,5] 比较：先与5比较（3<5，移动），再与2比较（3≥2，停止）。',
+                    correctExplanation: '正确！3<5触发一次移动（5后移），然后3≥2停止循环。while循环体仅执行1次。',
+                    wrongExplanation: '不正确。3只比5小（触发移动），但不比2小（停止），所以仅执行1次移动操作。',
+                },
+                cp3: {
+                    question: '插入排序的最坏情况时间复杂度是多少？',
+                    options: [
+                        { value: 'A', label: 'O(n)', isCorrect: false },
+                        { value: 'B', label: 'O(n log n)', isCorrect: false },
+                        { value: 'C', label: 'O(n²)', isCorrect: true },
+                        { value: 'D', label: 'O(1)', isCorrect: false },
+                    ],
+                    hint: '考虑逆序数组（如[5,4,3,2,1]），每个元素都需要与所有已排序元素比较并移动它们。',
+                    correctExplanation: '正确！最坏情况（完全逆序）下，每个元素需要移动所有已排序元素，总比较和移动次数约为n(n-1)/2，即O(n²)。',
+                    wrongExplanation: '不正确。插入排序在最坏情况下（逆序输入），总操作次数与n²成正比，因此是O(n²)。最好情况（已排序）才是O(n)。',
+                },
+            };
+
+            // ==================== 全局状态 ====================
+            let currentStepIndex = 0; // 0-based
+            let isPlaying = false;
+            let playInterval = null;
+            let selectedCheckpointOption = null;
+            let checkpointSubmitted = {}; // 记录每个checkpoint是否已提交（用于该步骤）
+            let checkpointCurrentData = null; // 当前步骤的checkpoint数据
+
+            // ==================== DOM 引用 ====================
+            const $ = (id) => document.getElementById(id);
+            const dom = {
+                title: $('title'),
+                subtitle: $('subtitle'),
+                topResult: $('top-result'),
+                topSolution: $('top-solution'),
+                code: $('code'),
+                stepTitle: $('step-title'),
+                stepDesc: $('step-desc'),
+                op: $('op'),
+                canvas: $('canvas'),
+                arrayContainer: $('array-container'),
+                prev: $('prev'),
+                play: $('play'),
+                next: $('next'),
+                range: $('range'),
+                counter: $('counter'),
+                timeline: $('timeline'),
+                teaching: $('teaching'),
+                state: $('state'),
+                stepEvidence: $('step-evidence'),
+                answer: $('answer'),
+                checkpointSection: $('checkpoint-section'),
+                checkpointQuestion: $('checkpoint-question'),
+                checkpointOptions: $('checkpoint-options'),
+                checkpointSubmit: $('checkpoint-submit'),
+                checkpointHint: $('checkpoint-hint'),
+                checkpointReveal: $('checkpoint-reveal'),
+                checkpointFeedback: $('checkpoint-feedback'),
+                learningLog: $('learning-log'),
+            };
+
+            // ==================== 初始化 #answer ====================
+            dom.answer.textContent = '[1, 2, 3, 5]';
+
+            // ==================== 渲染函数 ====================
+            function renderCode(stepData) {
+                const highlightSet = new Set(stepData.codeHighlightLines || []);
+                const strongSet = new Set(stepData.codeStrongLines || []);
+                let html = '';
+                codeLines.forEach((line, idx) => {
+                    let cls = 'code-line';
+                    if (strongSet.has(idx)) cls += ' highlight-strong';
+                    else if (highlightSet.has(idx)) cls += ' highlight';
+                    html += `<span class="${cls}" data-line="${idx}">${escapeHTML(line)}</span>\n`;
+                });
+                dom.code.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function renderCanvas(stepData) {
+                const arr = stepData.array;
+                const sortedUpTo = stepData.sortedUpTo;
+                const keyIdx = stepData.keyIdx;
+                const movingSet = new Set(stepData.movingIndices || []);
+                const insertedIdx = stepData.insertedIdx;
+                let html = '';
+                arr.forEach((val, idx) => {
+                    let cls = 'array-element';
+                    if (stepData.phase === 'done') {
+                        cls += ' all-done';
+                    } else if (idx === insertedIdx && stepData.phase === 'insert') {
+                        cls += ' inserted';
+                    } else if (movingSet.has(idx) && stepData.phase === 'insert') {
+                        cls += ' moving';
+                    } else if (idx === keyIdx) {
+                        cls += ' key-highlight';
+                    } else if (idx <= sortedUpTo) {
+                        cls += ' sorted';
+                    } else {
+                        cls += ' unsorted';
+                    }
+                    html += `
+                    <div class="${cls}">
+                        <span class="element-value">${val}</span>
+                        <span class="element-index">[${idx}]</span>
+                    </div>`;
+                });
+                dom.arrayContainer.innerHTML = html;
+            }
+
+            function renderTimeline() {
+                let html = '';
+                steps.forEach((s, idx) => {
+                    const activeCls = idx === currentStepIndex ? ' active' : '';
+                    html += `
+                    <button class="tick${activeCls}" data-step="${idx}" role="button" tabindex="0">
+                        <span class="tick-label">${escapeHTML(s.label)}</span>
+                        <span class="tick-op">${escapeHTML(s.op)}</span>
+                    </button>`;
+                });
+                dom.timeline.innerHTML = html;
+
+                // 绑定事件
+                dom.timeline.querySelectorAll('.tick').forEach(tick => {
+                    tick.addEventListener('click', function() {
+                        const stepIdx = parseInt(this.getAttribute('data-step'));
+                        if (!isNaN(stepIdx) && stepIdx !== currentStepIndex) {
+                            goToStep(stepIdx);
+                        }
+                    });
+                });
+            }
+
+            function updateUI(stepData) {
+                // 基本信息
+                dom.stepTitle.textContent = stepData.title;
+                dom.stepDesc.textContent = stepData.desc;
+                dom.op.textContent = stepData.op;
+                dom.state.textContent = stepData.stateJSON;
+                dom.teaching.textContent = stepData.teaching;
+                dom.stepEvidence.textContent = stepData.evidence;
+
+                // Counter
+                dom.counter.textContent = `${stepData.index + 1} / ${totalSteps}`;
+
+                // Range
+                dom.range.value = stepData.index + 1;
+
+                // 按钮状态
+                dom.prev.disabled = currentStepIndex === 0;
+                dom.next.disabled = currentStepIndex === totalSteps - 1;
+
+                // 渲染
+                renderCode(stepData);
+                renderCanvas(stepData);
+                renderTimeline();
+                renderCheckpoint(stepData);
+
+                // 滚动timeline使active tick可见
+                const activeTick = dom.timeline.querySelector('.tick.active');
+                if (activeTick) {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            function goToStep(idx) {
+                if (idx < 0 || idx >= totalSteps) return;
+                currentStepIndex = idx;
+                selectedCheckpointOption = null;
+                const stepData = steps[currentStepIndex];
+                updateUI(stepData);
+
+                // 如果播放中且到达最后一步，停止播放
+                if (isPlaying && currentStepIndex === totalSteps - 1) {
+                    stopPlay();
+                }
+            }
+
+            // ==================== Checkpoint 渲染 ====================
+            function renderCheckpoint(stepData) {
+                const cpId = stepData.checkpointId;
+                if (!cpId || !checkpoints[cpId]) {
+                    // 没有checkpoint的步骤
+                    dom.checkpointQuestion.textContent = '（本步骤无检测题，请观察算法状态变化）';
+                    dom.checkpointOptions.innerHTML = '';
+                    dom.checkpointFeedback.className = 'checkpoint-feedback';
+                    dom.checkpointFeedback.style.display = 'none';
+                    dom.checkpointFeedback.textContent = '';
+                    dom.checkpointSubmit.disabled = true;
+                    dom.checkpointHint.disabled = true;
+                    dom.checkpointReveal.disabled = true;
+                    checkpointCurrentData = null;
+                    selectedCheckpointOption = null;
+                    return;
+                }
+
+                checkpointCurrentData = checkpoints[cpId];
+                dom.checkpointQuestion.textContent = checkpointCurrentData.question;
+                dom.checkpointSubmit.disabled = false;
+                dom.checkpointHint.disabled = false;
+                dom.checkpointReveal.disabled = false;
+                selectedCheckpointOption = null;
+
+                // 渲染选项
+                let optsHTML = '';
+                checkpointCurrentData.options.forEach((opt, oi) => {
+                    optsHTML += `
+                    <label class="checkpoint-option" data-opt-index="${oi}">
+                        <input type="radio" name="checkpoint-opt" value="${oi}">
+                        <span>${escapeHTML(opt.value)}) ${escapeHTML(opt.label)}</span>
+                    </label>`;
+                });
+                dom.checkpointOptions.innerHTML = optsHTML;
+
+                // 绑定选项点击
+                const optionLabels = dom.checkpointOptions.querySelectorAll('.checkpoint-option');
+                optionLabels.forEach((label, oi) => {
+                    label.addEventListener('click', function() {
+                        selectedCheckpointOption = oi;
+                        optionLabels.forEach(l => l.classList.remove('selected'));
+                        label.classList.add('selected');
+                        label.querySelector('input[type="radio"]').checked = true;
+                    });
+                });
+
+                // 清除反馈
+                dom.checkpointFeedback.className = 'checkpoint-feedback';
+                dom.checkpointFeedback.style.display = 'none';
+                dom.checkpointFeedback.textContent = '';
+
+                // 如果该checkpoint在当前会话中已提交过，恢复状态
+                if (checkpointSubmitted[cpId]) {
+                    const prev = checkpointSubmitted[cpId];
+                    selectedCheckpointOption = prev.selectedOption;
+                    if (prev.selectedOption !== null && optionLabels[prev.selectedOption]) {
+                        optionLabels[prev.selectedOption].classList.add('selected');
+                        optionLabels[prev.selectedOption].querySelector('input[type="radio"]').checked = true;
+                    }
+                    showCheckpointFeedback(prev.isCorrect, prev.feedbackMsg);
+                    dom.checkpointSubmit.disabled = true;
+                }
+            }
+
+            function showCheckpointFeedback(isCorrect, msg) {
+                dom.checkpointFeedback.textContent = msg;
+                dom.checkpointFeedback.className = 'checkpoint-feedback ' + (isCorrect ? 'correct' : 'incorrect');
+                dom.checkpointFeedback.style.display = 'block';
+            }
+
+            function submitCheckpoint() {
+                if (!checkpointCurrentData) return;
+                if (selectedCheckpointOption === null) {
+                    dom.checkpointFeedback.textContent = '⚠️ 请先选择一个选项再提交。';
+                    dom.checkpointFeedback.className = 'checkpoint-feedback info';
+                    dom.checkpointFeedback.style.display = 'block';
+                    return;
+                }
+                const stepData = steps[currentStepIndex];
+                const cpId = stepData.checkpointId;
+                if (!cpId) return;
+
+                const selectedOpt = checkpointCurrentData.options[selectedCheckpointOption];
+                const isCorrect = selectedOpt.isCorrect;
+                const feedbackMsg = isCorrect ?
+                    '✅ ' + checkpointCurrentData.correctExplanation :
+                    '❌ ' + checkpointCurrentData.wrongExplanation;
+
+                showCheckpointFeedback(isCorrect, feedbackMsg);
+                dom.checkpointSubmit.disabled = true;
+                checkpointSubmitted[cpId] = {
+                    selectedOption: selectedCheckpointOption,
+                    isCorrect: isCorrect,
+                    feedbackMsg: feedbackMsg,
+                };
+
+                // 追加到学习日志
+                addToLearningLog(stepData.label, selectedOpt.label, isCorrect, feedbackMsg);
+            }
+
+            function addToLearningLog(stepLabel, chosenLabel, isCorrect, feedbackMsg) {
+                const li = document.createElement('li');
+                li.className = isCorrect ? 'correct-log' : 'incorrect-log';
+                const timestamp = new Date().toLocaleTimeString();
+                li.textContent = `[${timestamp}] ${stepLabel}: 选择 "${chosenLabel}" — ${isCorrect ? '✓正确' : '✗错误'} — ${feedbackMsg.replace(/^[✅❓]\s*/, '').replace(/^[✅❌]\s*/, '')}`;
+                dom.learningLog.appendChild(li);
+                li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            function showCheckpointHint() {
+                if (!checkpointCurrentData) return;
+                dom.checkpointFeedback.textContent = '💡 提示: ' + checkpointCurrentData.hint;
+                dom.checkpointFeedback.className = 'checkpoint-feedback info';
+                dom.checkpointFeedback.style.display = 'block';
+            }
+
+            function revealCheckpointAnswer() {
+                if (!checkpointCurrentData) return;
+                const correctOpt = checkpointCurrentData.options.find(o => o.isCorrect);
+                if (correctOpt) {
+                    dom.checkpointFeedback.textContent = '👁 正确答案: ' + correctOpt.value + ') ' + correctOpt.label + ' — ' + checkpointCurrentData.correctExplanation;
+                    dom.checkpointFeedback.className = 'checkpoint-feedback info';
+                    dom.checkpointFeedback.style.display = 'block';
+                }
+                // 也标记为已提交
+                const stepData = steps[currentStepIndex];
+                const cpId = stepData.checkpointId;
+                if (cpId && !checkpointSubmitted[cpId]) {
+                    checkpointSubmitted[cpId] = {
+                        selectedOption: selectedCheckpointOption,
+                        isCorrect: false,
+                        feedbackMsg: '（查看答案）',
+                    };
+                    dom.checkpointSubmit.disabled = true;
+                    addToLearningLog(stepData.label, '（查看答案）', false, '查看了正确答案: ' + (correctOpt ? correctOpt.label : ''));
+                }
+            }
+
+            // ==================== 播放控制 ====================
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                dom.play.textContent = '⏸ 暂停';
+                dom.play.classList.add('playing');
+                // 如果当前在最后一步，从头开始
+                if (currentStepIndex >= totalSteps - 1) {
+                    goToStep(0);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2000);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                dom.play.textContent = '▶ 播放';
+                dom.play.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ==================== 事件绑定 ====================
+            dom.prev.addEventListener('click', () => {
+                if (currentStepIndex > 0) {
+                    stopPlay();
+                    goToStep(currentStepIndex - 1);
+                }
+            });
+            dom.next.addEventListener('click', () => {
+                if (currentStepIndex < totalSteps - 1) {
+                    stopPlay();
+                    goToStep(currentStepIndex + 1);
+                }
+            });
+            dom.play.addEventListener('click', togglePlay);
+            dom.range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(dom.range.value);
+                if (!isNaN(val) && val >= 1 && val <= totalSteps) {
+                    goToStep(val - 1);
+                }
+            });
+
+            // Checkpoint 事件
+            dom.checkpointSubmit.addEventListener('click', submitCheckpoint);
+            dom.checkpointHint.addEventListener('click', showCheckpointHint);
+            dom.checkpointReveal.addEventListener('click', revealCheckpointAnswer);
+
+            // 键盘导航
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentStepIndex > 0) { stopPlay();
+                        goToStep(currentStepIndex - 1); }
+                } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (currentStepIndex < totalSteps - 1) { stopPlay();
+                        goToStep(currentStepIndex + 1); }
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ==================== 初始渲染 ====================
+            function init() {
+                currentStepIndex = 0;
+                selectedCheckpointOption = null;
+                checkpointSubmitted = {};
+                isPlaying = false;
+                dom.answer.textContent = '[1, 2, 3, 5]';
+                dom.topResult.textContent = '[1, 2, 3, 5]';
+                dom.topSolution.textContent = '升序排列 · 插入排序';
+                dom.range.min = 1;
+                dom.range.max = totalSteps;
+                dom.range.value = 1;
+                dom.learningLog.innerHTML = '';
+                const stepData = steps[0];
+                updateUI(stepData);
+            }
+
+            init();
+
+            console.log('插入排序教学页面已就绪。共' + totalSteps + '个步骤。');
+            console.log('最终答案: [1, 2, 3, 5]');
+        })();
+    </script>
+</body>
+</html>

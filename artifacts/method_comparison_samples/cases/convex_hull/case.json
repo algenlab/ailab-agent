@@ -1,0 +1,113 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "convex_hull",
+  "algorithm_id": "convex_hull",
+  "title": "凸包",
+  "family": "几何 / 扫描线",
+  "difficulty": "medium",
+  "problem": "在快递配送中，你拿到一个投递点列表 points，每个点用一个二维坐标 (x, y) 表示。你需要计算能包围所有投递点的最小凸多边形的顶点，并按照 Andrew 单调链算法的输出顺序返回这些顶点的坐标列表。返回的顶点应按照逆时针顺序排列，并且不包含共线的中间点。",
+  "strategy": "按坐标排序点集，分别维护上下凸壳，使用 orientation/cross 判断转向。",
+  "input_contract": "输入 points 二维点数组。",
+  "time_complexity": "O(n log n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "理解 Andrew 单调链如何通过上下凸壳的交替构建实现凸包检测。",
+    "能够根据 trace 中 current 点的位置和 lower/upper 状态预测下一步操作。",
+    "辨别凸包构建过程中的不变式，如转向判别 cross <= 0 表示需要回退。"
+  ],
+  "required_views": [
+    "geometry"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！cross 大于0，表示左转，所以保持凸性，直接添加。",
+      "feedback_wrong": "请注意观察 cross 值的符号，cross > 0 表示左转，当前三点不构成右转，因此不需要弹出。检查 trace 中当前 lower[-2], lower[-1], current 三点的 cross。",
+      "id": "task_1",
+      "oracle": "如果学生回答添加该点，因为 cross((0,0),(1,0),(1,2)) > 0，则正确；如果回答弹出，错误。",
+      "prompt": "在扫描线到达点 (1,2) 时，下凸壳 lower 当前为 [(0,0), (1,0)]，根据 cross 计算结果，预测下一个 lower 状态是添加该点还是弹出末尾点后添加？为什么？",
+      "stage2_affordance": "在 Stage2 中，你可以拖动扫描线到该点，并观察转向提示动画。",
+      "trace_anchor": [
+        "state.lower",
+        "state.current"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "很好！转向判断是凸包算法的核心不变式。",
+      "feedback_wrong": "回忆一下，当连续三点出现右转或共线时，需要移除中间点。转向由 cross 值决定。",
+      "id": "task_2",
+      "oracle": "如果学生指出 cross(lower[-2], lower[-1], current) > 0 则凸性保持；或者 cross <= 0 时需要回退直到满足条件，则正确。",
+      "prompt": "在构建下凸壳过程中，什么条件能保证每次添加的点都不会破坏凸性？请用 state 中的相关变量描述。",
+      "stage2_affordance": "Stage2 中将高亮显示不满足条件的点对，并展示 cross 计算过程。",
+      "trace_anchor": [
+        "state.phase",
+        "cross 函数"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "预测正确！该点成为新的凸包顶点。",
+      "feedback_wrong": "请重新运行算法或观察几何视图，点 (1,3) 位于现有凸包外部，将改变凸包形状。",
+      "id": "task_3",
+      "oracle": "通过 verifier 重新计算正确 expected，比较学生预测的结果。",
+      "prompt": "如果将 points 中的一个点 (1,1) 改为 (1,3)，那么凸包顶点列表 expected 会发生什么变化？请尝试修改并预测新的 expected。",
+      "stage2_affordance": "在 Stage2 中可以直接拖拽点，并实时更新凸包形状。",
+      "trace_anchor": [
+        "points",
+        "expected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释准确！这就是凸包回退机制。",
+      "feedback_wrong": "查看 cross 计算：向量 (1,0)->(2,1) 和 (2,1)->(2,0) 的叉积，若为非正，需要弹出。请检查几何视图的转向动画。",
+      "id": "task_4",
+      "oracle": "如果学生解释因为 cross((1,0),(2,1),(2,0)) <= 0，所以弹出 (2,1)，然后重新检查直到满足条件，则正确。",
+      "prompt": "从 step 5 到 step 6，trace 显示 lower 从 [(0,0),(1,0),(2,1)] 变为 [(0,0),(2,1)]，请解释这一步发生的原因，并关联 current 点 (2,0) 的 cross 值。",
+      "stage2_affordance": "Stage2 中播放该步骤的慢速动画，显示被弹出的点和转向角。",
+      "trace_anchor": [
+        "state.lower",
+        "state.current",
+        "trace.step"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      [
+        0,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        1,
+        2
+      ]
+    ],
+    "index": 0,
+    "input_data": {
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          2
+        ]
+      ]
+    }
+  }
+}

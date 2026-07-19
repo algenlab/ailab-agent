@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>树形DP最大独立集 — 算法教学</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f2f7;
+            --card: #ffffff;
+            --border: #e2e6f0;
+            --text: #1e293b;
+            --text-secondary: #5b6e8c;
+            --accent: #4f6ef6;
+            --accent-light: #eef1ff;
+            --accent-glow: rgba(79, 110, 246, 0.25);
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --success-glow: rgba(16, 185, 129, 0.25);
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            --shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 2px 12px rgba(0, 0, 0, 0.05);
+            --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.1), 0 1px 6px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 5px;
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Noto Sans SC', 'Segoe UI', 'Helvetica Neue', sans-serif;
+            --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(160deg, #f0f2f7 0%, #e8ecf5 30%, #f5f6fa 60%, #eef1f8 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .bg-glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 0;
+            animation: bgPulse 8s ease-in-out infinite;
+        }
+        .bg-glow.g1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(79, 110, 246, 0.12);
+            top: -15%;
+            left: -10%;
+            animation-delay: 0s;
+        }
+        .bg-glow.g2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(16, 185, 129, 0.1);
+            bottom: -10%;
+            right: -8%;
+            animation-delay: -4s;
+        }
+        @keyframes bgPulse {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.35;
+            }
+            50% {
+                transform: scale(1.25);
+                opacity: 0.5;
+            }
+        }
+
+        .app-container {
+            max-width: 1120px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        .header-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #6366f1, var(--success));
+            border-radius: 3px 3px 0 0;
+        }
+        .header-left h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.4px;
+            margin: 0;
+        }
+        #title {
+            margin: 0;
+        }
+        #subtitle {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-top: 3px;
+            letter-spacing: 0.2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .result-pill {
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 7px 16px;
+            border-radius: 22px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            transition: all var(--transition);
+            border: 1.5px solid transparent;
+        }
+        .result-pill.final {
+            background: var(--success-light);
+            color: #059669;
+            font-size: 1rem;
+            padding: 9px 20px;
+            font-weight: 700;
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 0 4px var(--success-glow);
+            animation: glowPulse 2.2s ease-in-out infinite;
+        }
+        @keyframes glowPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px var(--success-glow);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(16, 185, 129, 0.05);
+            }
+        }
+        #top-result {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        #top-solution {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 820px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            transition: box-shadow var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        .card-full {
+            grid-column: 1 / -1;
+        }
+        .card-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            background: #1a1f2e;
+            color: #c9d6e8;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            overflow-x: auto;
+            max-height: 310px;
+            overflow-y: auto;
+            counter-reset: codeline;
+            position: relative;
+            border: 1px solid #2a3040;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        #code .code-line {
+            display: block;
+            padding: 3px 10px;
+            margin: 0 -10px;
+            border-radius: 4px;
+            transition: all var(--transition-fast);
+            counter-increment: codeline;
+            border-left: 3px solid transparent;
+        }
+        #code .code-line::before {
+            content: counter(codeline);
+            display: inline-block;
+            width: 26px;
+            text-align: right;
+            margin-right: 12px;
+            color: #5a6988;
+            font-size: 0.65rem;
+            user-select: none;
+            font-weight: 500;
+        }
+        #code .code-line.highlight {
+            background: rgba(79, 110, 246, 0.2);
+            color: #e8edff;
+            border-left: 3px solid var(--accent);
+            box-shadow: inset 2px 0 8px rgba(79, 110, 246, 0.15);
+        }
+        #code .code-line.highlight::before {
+            color: #9db4ff;
+            font-weight: 700;
+        }
+
+        #canvas {
+            position: relative;
+            min-height: 300px;
+            background: #fafbfd;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+            border: 1px solid #eef1f6;
+        }
+        .tree-viz {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 280px;
+        }
+        #particles-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .tree-node {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.88rem;
+            z-index: 2;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 3px solid transparent;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            cursor: default;
+            flex-direction: column;
+            line-height: 1.15;
+            backdrop-filter: blur(2px);
+        }
+        .tree-node .node-val {
+            font-size: 0.58rem;
+            font-weight: 500;
+            opacity: 0.75;
+            letter-spacing: 0.3px;
+        }
+        .tree-node.default {
+            background: #e8ecf6;
+            border-color: #c8d0e0;
+            color: #4a5568;
+        }
+        .tree-node.current {
+            background: #fff;
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 0 10px rgba(79, 110, 246, 0.13), 0 6px 20px rgba(79, 110, 246, 0.2);
+            transform: scale(1.12);
+            z-index: 4;
+            animation: pulse-current 1.6s ease-in-out infinite;
+        }
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 0 8px rgba(79, 110, 246, 0.14), 0 4px 16px rgba(79, 110, 246, 0.18);
+            }
+            50% {
+                box-shadow: 0 0 0 18px rgba(79, 110, 246, 0.03), 0 8px 28px rgba(79, 110, 246, 0.12);
+            }
+        }
+        .tree-node.done {
+            background: var(--success);
+            border-color: #059669;
+            color: #fff;
+            box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.15);
+        }
+        .tree-node.pending {
+            background: #f1f3f8;
+            border-color: #dde1ec;
+            color: #8b95a8;
+        }
+        .tree-edge {
+            position: absolute;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .tree-edge line {
+            stroke: #c8d0e0;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            transition: stroke 0.4s ease, stroke-width 0.35s ease, opacity 0.35s ease;
+        }
+        .tree-edge.active line {
+            stroke: var(--accent);
+            stroke-width: 3.5;
+            filter: drop-shadow(0 0 4px rgba(79, 110, 246, 0.3));
+        }
+        .tree-edge.done line {
+            stroke: var(--success);
+            stroke-width: 2.8;
+            opacity: 0.7;
+        }
+        .dp-label {
+            position: absolute;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            background: #fff;
+            padding: 3px 8px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            white-space: nowrap;
+            z-index: 3;
+            pointer-events: none;
+            transition: all 0.35s ease;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            font-weight: 600;
+        }
+        .dp-label.take {
+            color: #dc2626;
+            border-color: #fecaca;
+            background: #fff5f5;
+        }
+        .dp-label.skip {
+            color: #4f6ef6;
+            border-color: #c7d2fe;
+            background: #f5f7ff;
+        }
+
+        .step-info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1.02rem;
+            color: var(--text);
+        }
+        #step-desc {
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            border: 1px solid rgba(79, 110, 246, 0.2);
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 1.05rem;
+            transition: all var(--transition-fast);
+            color: var(--text);
+            flex-shrink: 0;
+            outline: none;
+            position: relative;
+        }
+        .btn:focus-visible {
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            border-color: var(--accent);
+        }
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: var(--shadow-hover);
+            background: var(--accent-light);
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: scale(0.93);
+            transition: 0.06s ease;
+        }
+        .btn.play-btn {
+            width: 44px;
+            height: 44px;
+            font-size: 1.15rem;
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-light);
+            font-weight: 700;
+        }
+        .btn.play-btn.playing {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 6px var(--accent-glow);
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 52px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            height: 7px;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 9px 13px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            transition: all var(--transition);
+            min-width: 72px;
+            flex: 1;
+            gap: 4px;
+            font-size: 0.74rem;
+            text-align: center;
+            user-select: none;
+            outline: none;
+        }
+        .tick:focus-visible {
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .tick:hover {
+            border-color: #b0bfd6;
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            box-shadow: 0 0 0 5px rgba(79, 110, 246, 0.08);
+            font-weight: 600;
+            transform: translateY(-2px);
+        }
+        .tick.done {
+            border-color: #86d9b5;
+            background: #f0faf5;
+            opacity: 0.9;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+        .tick .tick-op {
+            font-size: 0.64rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        .tick.active .tick-label {
+            color: var(--accent);
+        }
+        .tick.done .tick-label {
+            color: #059669;
+        }
+
+        #teaching {
+            font-size: 0.86rem;
+            color: var(--text);
+            line-height: 1.75;
+        }
+        #teaching strong {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #fafbfd;
+            border-radius: var(--radius-sm);
+            padding: 11px 15px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #3d4f63;
+            max-height: 190px;
+            overflow-y: auto;
+            border: 1px solid #eef1f6;
+            transition: all var(--transition);
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            background: #fffdf5;
+            border: 1px solid #f0e6c0;
+            border-radius: var(--radius-sm);
+            padding: 11px 15px;
+            color: #6b5900;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            min-height: 20px;
+            transition: all var(--transition);
+        }
+
+        .checkpoint-area {
+            margin-top: 10px;
+            padding: 14px 16px;
+            background: #f9fafc;
+            border: 2px dashed #d5dae3;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .checkpoint-area.active-checkpoint {
+            border-color: var(--accent);
+            background: #fafbff;
+            box-shadow: 0 0 0 6px rgba(79, 110, 246, 0.04);
+        }
+        .checkpoint-area .ck-question {
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        .opt-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            margin: 4px 0;
+            border: 2px solid var(--border);
+            border-radius: 22px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all var(--transition-fast);
+            font-family: var(--font-sans);
+            outline: none;
+        }
+        .opt-btn:hover {
+            border-color: #b0bfd6;
+            background: #f8f9fc;
+            transform: translateX(3px);
+        }
+        .opt-btn:focus-visible {
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .opt-btn.selected {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            font-weight: 700;
+            color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(79, 110, 246, 0.08);
+        }
+        .btn-sm {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 7px 15px;
+            margin: 3px 5px 3px 0;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: all var(--transition-fast);
+            font-family: var(--font-sans);
+            font-weight: 600;
+            outline: none;
+            white-space: nowrap;
+        }
+        .btn-sm:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-hover);
+        }
+        .btn-sm:focus-visible {
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .btn-sm:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(0.3);
+        }
+        .btn-sm.btn-hint {
+            border-color: #fcd34d;
+            color: #b45309;
+            background: #fffbeb;
+        }
+        .btn-sm.btn-hint:hover {
+            border-color: #f59e0b;
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .btn-sm.btn-show {
+            border-color: #c7d2fe;
+            color: #4338ca;
+            background: #eef2ff;
+        }
+        .btn-sm.btn-show:hover {
+            border-color: #6366f1;
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .btn-sm.btn-submit {
+            border-color: var(--success);
+            color: #059669;
+            background: var(--success-light);
+            font-weight: 700;
+        }
+        .btn-sm.btn-submit:hover {
+            background: #d1fae5;
+            border-color: #059669;
+            box-shadow: 0 0 0 4px var(--success-glow);
+        }
+        .feedback-area {
+            margin-top: 8px;
+            padding: 11px 15px;
+            border-radius: var(--radius-sm);
+            font-size: 0.83rem;
+            font-weight: 500;
+            display: none;
+            line-height: 1.5;
+            animation: fadeInUp 0.3s ease;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .feedback-area.show {
+            display: block;
+        }
+        .feedback-area.correct {
+            background: var(--success-light);
+            color: #065f46;
+            border: 1.5px solid #a7f3d0;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.06);
+        }
+        .feedback-area.wrong {
+            background: var(--danger-light);
+            color: #991b1b;
+            border: 1.5px solid #fecaca;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.06);
+        }
+        .feedback-area.info {
+            background: #fffbeb;
+            color: #78350f;
+            border: 1.5px solid #fde68a;
+        }
+        .prediction-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+            flex-wrap: wrap;
+        }
+        .prediction-input-row input {
+            width: 90px;
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            text-align: center;
+            transition: all var(--transition-fast);
+            outline: none;
+            background: #fff;
+            font-weight: 600;
+        }
+        .prediction-input-row input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(79, 110, 246, 0.08);
+        }
+        .prediction-input-row input.correct-input {
+            border-color: var(--success);
+            background: #f0fdf4;
+            box-shadow: 0 0 0 4px var(--success-glow);
+        }
+        .prediction-input-row input.wrong-input {
+            border-color: var(--danger);
+            background: #fef2f2;
+            box-shadow: 0 0 0 4px var(--danger-glow);
+            animation: shake 0.5s ease;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-6px);
+            }
+            40% {
+                transform: translateX(6px);
+            }
+            60% {
+                transform: translateX(-4px);
+            }
+            80% {
+                transform: translateX(3px);
+            }
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: #059669;
+            background: var(--success-light);
+            padding: 12px 22px;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+            letter-spacing: 1px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 0 6px var(--success-glow);
+        }
+
+        #learning-log {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            max-height: 150px;
+            overflow-y: auto;
+            background: #fafbfd;
+            border-radius: var(--radius-sm);
+            padding: 11px 15px;
+            color: #5a6c7d;
+            line-height: 1.6;
+            border: 1px solid #eef1f6;
+        }
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #f0f1f5;
+            animation: fadeInUp 0.25s ease;
+        }
+        .log-time {
+            color: #a0aab5;
+            font-size: 0.68rem;
+            font-weight: 500;
+        }
+
+        .completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.4s ease;
+            backdrop-filter: blur(4px);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .completion-card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            max-width: 440px;
+            width: 90%;
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .completion-card .celebration-emoji {
+            font-size: 4rem;
+            animation: bounceCelebrate 0.7s ease infinite alternate;
+        }
+        @keyframes bounceCelebrate {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-18px);
+            }
+        }
+        .completion-card h2 {
+            font-size: 1.5rem;
+            margin: 10px 0;
+            color: var(--text);
+            font-weight: 800;
+        }
+        .completion-card .final-score {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--success);
+            font-family: var(--font-mono);
+            margin: 8px 0;
+        }
+        .completion-card button {
+            margin-top: 14px;
+            padding: 11px 28px;
+            border-radius: 24px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .completion-card button:hover {
+            background: #3b5de7;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .flex-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .gap-sm {
+            gap: 6px;
+        }
+        .mt-sm {
+            margin-top: 8px;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            .header-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                padding: 14px 16px;
+            }
+            .tree-node {
+                width: 40px;
+                height: 40px;
+                font-size: 0.72rem;
+            }
+            .tree-node .node-val {
+                font-size: 0.5rem;
+            }
+            #canvas {
+                min-height: 230px;
+            }
+            .tree-viz {
+                min-height: 230px;
+            }
+            .tick {
+                min-width: 52px;
+                padding: 7px 9px;
+                font-size: 0.66rem;
+            }
+            .tick .tick-label {
+                font-size: 0.66rem;
+            }
+            .tick .tick-op {
+                font-size: 0.56rem;
+            }
+            .btn {
+                width: 34px;
+                height: 34px;
+                font-size: 0.9rem;
+            }
+            .btn.play-btn {
+                width: 38px;
+                height: 38px;
+            }
+            #code {
+                font-size: 0.68rem;
+                max-height: 220px;
+            }
+            .completion-card {
+                padding: 20px 16px;
+            }
+            .completion-card .final-score {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow g1"></div>
+    <div class="bg-glow g2"></div>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="header-left">
+                <h1 id="title">🌳 树形DP — 最大独立集</h1>
+                <div id="subtitle">带权树 · 不相邻节点选择 · 权重和最大化</div>
+            </div>
+            <div class="header-right">
+                <span class="result-pill" id="top-result">🔍 初始化中...</span>
+                <span class="result-pill final">✅ 答案：<span id="top-solution">14</span></span>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Code card -->
+            <div class="card">
+                <div class="card-label">📝 算法代码</div>
+                <div id="code"></div>
+            </div>
+
+            <!-- Canvas card -->
+            <div class="card">
+                <div class="card-label">🎯 算法视图</div>
+                <div id="canvas">
+                    <canvas id="particles-layer" width="400" height="300"></canvas>
+                    <div class="tree-viz" id="tree-viz-inner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step info & controls -->
+        <div class="card">
+            <div class="step-info-row">
+                <span id="step-title">🔧 初始化</span>
+                <span id="op">准备</span>
+            </div>
+            <div id="step-desc" style="margin-top:4px;">加载树结构，准备后序遍历...</div>
+            <div class="controls-row mt-sm">
+                <button class="btn" id="prev" title="上一步 (← 键)" aria-label="上一步">◀</button>
+                <button class="btn play-btn" id="play" title="播放/暂停 (空格键)" aria-label="播放暂停">▶</button>
+                <button class="btn" id="next" title="下一步 (→ 键)" aria-label="下一步">▶</button>
+                <input type="range" id="range" min="1" max="6" value="1" title="拖动切换步骤" aria-label="步骤滑块">
+                <span id="counter">1 / 6</span>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-label">📋 步骤时间线</div>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Teaching + Checkpoint -->
+        <div class="card">
+            <div class="card-label">📖 讲解 & 检测点</div>
+            <div id="teaching"></div>
+            <div id="checkpoint-container"></div>
+        </div>
+
+        <!-- Prediction Panel (always visible) -->
+        <div class="card" id="prediction-panel-card">
+            <div class="card-label">🧠 预测面板 — 输入你的答案</div>
+            <div id="prediction-panel">
+                <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:6px;" id="prediction-prompt">
+                    观察当前步骤，预测相关DP值：
+                </p>
+                <div class="prediction-input-row" id="prediction-inputs">
+                    <input type="number" id="pred-input" placeholder="输入数值..." aria-label="预测输入">
+                    <button class="btn-sm btn-submit" id="pred-submit">✅ 提交预测</button>
+                </div>
+                <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn-sm btn-hint" id="btn-global-hint">💡 提示</button>
+                    <button class="btn-sm btn-show" id="btn-global-show">👁 显示答案</button>
+                </div>
+                <div class="feedback-area" id="pred-feedback"></div>
+            </div>
+            <div id="checkpoint-mc-options" style="margin-top:6px;"></div>
+        </div>
+
+        <!-- State & Evidence -->
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-label">📊 当前DP状态</div>
+                <div id="state"></div>
+            </div>
+            <div class="card">
+                <div class="card-label">🔍 步骤证据</div>
+                <div id="step-evidence"></div>
+            </div>
+        </div>
+
+        <!-- Answer & Log -->
+        <div class="card">
+            <div class="flex-row">
+                <div class="card-label" style="margin-bottom:0;">✅ 最终答案</div>
+                <span id="answer">14</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">📝 学习日志</div>
+            <div id="learning-log">等待交互...</div>
+        </div>
+    </div>
+
+    <!-- Completion overlay (hidden by default) -->
+    <div class="completion-overlay hidden" id="completion-overlay">
+        <div class="completion-card">
+            <div class="celebration-emoji">🎉</div>
+            <h2>恭喜完成！树形DP最大独立集</h2>
+            <div class="final-score" id="completion-score">14</div>
+            <p style="color:var(--text-secondary);margin:6px 0;">最大独立集权重为 <strong>14</strong>（选择节点 1、4、5）</p>
+            <p style="font-size:0.8rem;color:var(--text-secondary);">权重和 = 3 + 10 + 1 = 14</p>
+            <button id="btn-restart">🔄 重新学习</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ TREE DATA ============
+            const treeData = {
+                nodes: [
+                    { id: "1", value: 3 }, { id: "2", value: 2 }, { id: "3", value: 1 },
+                    { id: "4", value: 10 }, { id: "5", value: 1 }
+                ],
+                edges: [
+                    ["1", "2"],
+                    ["1", "3"],
+                    ["2", "4"],
+                    ["2", "5"]
+                ]
+            };
+
+            const nodeValues = {};
+            treeData.nodes.forEach(n => { nodeValues[n.id] = n.value; });
+
+            const adj = {};
+            Object.keys(nodeValues).forEach(id => { adj[id] = []; });
+            treeData.edges.forEach(([a, b]) => { adj[a].push(b);
+                adj[b].push(a); });
+
+            function buildRootedTree(rootId) {
+                const ch = {};
+                const par = {};
+                Object.keys(nodeValues).forEach(id => { ch[id] = []; });
+                const visited = new Set();
+
+                function dfs(u, p) {
+                    visited.add(u);
+                    par[u] = p;
+                    (adj[u] || []).forEach(v => {
+                        if (!visited.has(v) && v !== p) { ch[u].push(v);
+                            dfs(v, u); }
+                    });
+                }
+                dfs(rootId, null);
+                return { children: ch, parentMap: par };
+            }
+            const rooted = buildRootedTree("1");
+            const chMap = rooted.children;
+            const PROCESS_ORDER = ["4", "5", "3", "2", "1"];
+
+            const dpTake = {};
+            const dpSkip = {};
+            Object.keys(nodeValues).forEach(id => { dpTake[id] = null;
+                dpSkip[id] = null; });
+
+            // ============ STEPS DEFINITION ============
+            const N_STEPS = 6;
+            const steps = [];
+
+            steps.push({
+                title: '步骤1：初始化',
+                desc: '加载树结构，所有节点的 dp_take 和 dp_skip 均为未计算状态。后序遍历顺序：4 → 5 → 3 → 2 → 1（从叶子到根）。',
+                tickLabel: '初始化',
+                tickOp: '准备',
+                opText: '🔧 初始化',
+                highlightLines: [0, 1, 2],
+                processNode: null,
+                dpTakeSnap: { ...dpTake },
+                dpSkipSnap: { ...dpSkip },
+                teaching: '我们使用<strong>树形DP</strong>求解最大独立集。核心思想：对每个节点维护两个值——<strong>dp_take[u]</strong>（选择节点u时的子树最优值）和<strong>dp_skip[u]</strong>（不选择节点u时的子树最优值）。后序遍历确保处理节点时其所有子节点已计算完毕。',
+                evidence: '树结构：根节点1（值3），子节点2（值2）和3（值1）；节点2的子节点4（值10）和5（值1）。\n后序遍历顺序：[4, 5, 3, 2, 1]\n所有dp值初始为 null。',
+                stateText: 'dp_take: {1:?, 2:?, 3:?, 4:?, 5:?}\ndp_skip: {1:?, 2:?, 3:?, 4:?, 5:?}',
+                hasCheckpoint: false,
+                checkpointData: null,
+                nodeStatus: { "1": "pending", "2": "pending", "3": "pending", "4": "pending", "5": "pending" },
+                activeEdges: [],
+                predictionTarget: null,
+                predictionAnswer: null
+            });
+
+            const snap1Take = { ...dpTake };
+            snap1Take["4"] = 10;
+            const snap1Skip = { ...dpSkip };
+            snap1Skip["4"] = 0;
+            steps.push({
+                title: '步骤2：处理叶子节点4',
+                desc: '节点4是叶子节点（无子节点）。dp_take[4] = value[4] = 10，dp_skip[4] = 0。',
+                tickLabel: '节点4',
+                tickOp: '计算叶子',
+                opText: '🍃 计算叶子节点4',
+                highlightLines: [4, 5],
+                processNode: "4",
+                dpTakeSnap: snap1Take,
+                dpSkipSnap: snap1Skip,
+                teaching: '对于<strong>叶子节点4</strong>（值=10）：由于没有子节点，<strong>dp_take[4] = 10</strong>（选择该节点获得其权重），<strong>dp_skip[4] = 0</strong>（不选则贡献为0）。这是DP的边界条件。',
+                evidence: 'dp_take[4] = value[4] + Σ(dp_skip[child]) = 10 + 0 = 10\ndp_skip[4] = Σ(max(dp_take[child], dp_skip[child])) = 0',
+                stateText: 'dp_take: {1:?, 2:?, 3:?, 4:10, 5:?}\ndp_skip: {1:?, 2:?, 3:?, 4:0, 5:?}',
+                hasCheckpoint: true,
+                checkpointData: {
+                    question: '叶子节点4的 dp_skip[4] 值是多少？',
+                    options: ['0', '10', '2', 'null'],
+                    correct: 0,
+                    explanation_correct: '✅ 正确！叶子节点没有子节点，不选择它时子树贡献为0。',
+                    explanation_wrong: '❌ 注意：叶子节点没有子节点，dp_skip[leaf] = 0（不选叶子时该子树贡献为0）。'
+                },
+                nodeStatus: { "1": "pending", "2": "pending", "3": "pending", "4": "done", "5": "pending" },
+                activeEdges: [],
+                predictionTarget: 'dp_skip[4]',
+                predictionAnswer: 0
+            });
+
+            const snap2Take = { ...snap1Take };
+            snap2Take["5"] = 1;
+            const snap2Skip = { ...snap1Skip };
+            snap2Skip["5"] = 0;
+            steps.push({
+                title: '步骤3：处理叶子节点5',
+                desc: '节点5也是叶子节点。dp_take[5] = value[5] = 1，dp_skip[5] = 0。',
+                tickLabel: '节点5',
+                tickOp: '计算叶子',
+                opText: '🍃 计算叶子节点5',
+                highlightLines: [4, 5],
+                processNode: "5",
+                dpTakeSnap: snap2Take,
+                dpSkipSnap: snap2Skip,
+                teaching: '同样地，<strong>叶子节点5</strong>（值=1）：<strong>dp_take[5] = 1</strong>，<strong>dp_skip[5] = 0</strong>。所有叶子节点的dp值都是直接可得的。',
+                evidence: 'dp_take[5] = value[5] + Σ(dp_skip[child]) = 1 + 0 = 1\ndp_skip[5] = Σ(max(dp_take[child], dp_skip[child])) = 0',
+                stateText: 'dp_take: {1:?, 2:?, 3:?, 4:10, 5:1}\ndp_skip: {1:?, 2:?, 3:?, 4:0, 5:0}',
+                hasCheckpoint: true,
+                checkpointData: {
+                    question: '叶子节点5的 dp_take[5] 值是多少？',
+                    options: ['0', '2', '1', '10'],
+                    correct: 2,
+                    explanation_correct: '✅ 正确！dp_take[5] = value[5] = 1。',
+                    explanation_wrong: '❌ dp_take[5] = value[5] = 1（叶子节点选择时获得其自身权重）。'
+                },
+                nodeStatus: { "1": "pending", "2": "pending", "3": "pending", "4": "done", "5": "done" },
+                activeEdges: [],
+                predictionTarget: 'dp_take[5]',
+                predictionAnswer: 1
+            });
+
+            const snap3Take = { ...snap2Take };
+            snap3Take["3"] = 1;
+            const snap3Skip = { ...snap2Skip };
+            snap3Skip["3"] = 0;
+            steps.push({
+                title: '步骤4：处理叶子节点3',
+                desc: '节点3是叶子节点（仅连接根节点1）。dp_take[3] = 1，dp_skip[3] = 0。',
+                tickLabel: '节点3',
+                tickOp: '计算叶子',
+                opText: '🍃 计算叶子节点3',
+                highlightLines: [4, 5],
+                processNode: "3",
+                dpTakeSnap: snap3Take,
+                dpSkipSnap: snap3Skip,
+                teaching: '<strong>叶子节点3</strong>（值=1）完成计算。现在三个叶子节点（4、5、3）都已就绪，可以向上聚合到它们的父节点。',
+                evidence: 'dp_take[3] = value[3] = 1\ndp_skip[3] = 0\n\n所有叶子节点已计算完毕：\n  节点4: take=10, skip=0\n  节点5: take=1, skip=0\n  节点3: take=1, skip=0',
+                stateText: 'dp_take: {1:?, 2:?, 3:1, 4:10, 5:1}\ndp_skip: {1:?, 2:?, 3:0, 4:0, 5:0}',
+                hasCheckpoint: false,
+                checkpointData: null,
+                nodeStatus: { "1": "pending", "2": "pending", "3": "done", "4": "done", "5": "done" },
+                activeEdges: [],
+                predictionTarget: 'dp_take[3]',
+                predictionAnswer: 1
+            });
+
+            const snap4Take = { ...snap3Take };
+            snap4Take["2"] = 2;
+            const snap4Skip = { ...snap3Skip };
+            snap4Skip["2"] = 11;
+            steps.push({
+                title: '步骤5：聚合节点2',
+                desc: '节点2有两个子节点4和5。dp_take[2]=2+0+0=2，dp_skip[2]=max(10,0)+max(1,0)=11。',
+                tickLabel: '节点2',
+                tickOp: '聚合子节点',
+                opText: '🔄 聚合节点2',
+                highlightLines: [6, 7, 8],
+                processNode: "2",
+                dpTakeSnap: snap4Take,
+                dpSkipSnap: snap4Skip,
+                teaching: '<strong>节点2</strong>（值=2）的子节点4和5已完成计算。\n• <strong>dp_take[2]</strong> = value[2] + dp_skip[4] + dp_skip[5] = 2 + 0 + 0 = <strong>2</strong>\n• <strong>dp_skip[2]</strong> = max(dp_take[4],dp_skip[4]) + max(dp_take[5],dp_skip[5]) = max(10,0)+max(1,0) = <strong>11</strong>\n注意：不选节点2时，对每个子节点可以自由选择选或不选，取最优。',
+                evidence: 'dp_take[2] = 2 + dp_skip[4] + dp_skip[5]\n          = 2 + 0 + 0 = 2\n\ndp_skip[2] = max(dp_take[4],dp_skip[4]) + max(dp_take[5],dp_skip[5])\n           = max(10,0) + max(1,0)\n           = 10 + 1 = 11',
+                stateText: 'dp_take: {1:?, 2:2, 3:1, 4:10, 5:1}\ndp_skip: {1:?, 2:11, 3:0, 4:0, 5:0}',
+                hasCheckpoint: true,
+                checkpointData: {
+                    question: '节点2的 dp_skip[2] 值是多少？（提示：对每个子节点取max）',
+                    options: ['2', '11', '10', '13'],
+                    correct: 1,
+                    explanation_correct: '✅ 正确！dp_skip[2] = max(10,0)+max(1,0) = 10+1 = 11。',
+                    explanation_wrong: '❌ 请仔细看公式：dp_skip[2] = max(dp_take[4],dp_skip[4]) + max(dp_take[5],dp_skip[5]) = max(10,0)+max(1,0) = 11。'
+                },
+                nodeStatus: { "1": "pending", "2": "done", "3": "done", "4": "done", "5": "done" },
+                activeEdges: ["2-4", "2-5"],
+                predictionTarget: 'dp_skip[2]',
+                predictionAnswer: 11
+            });
+
+            const snap5Take = { ...snap4Take };
+            snap5Take["1"] = 14;
+            const snap5Skip = { ...snap4Skip };
+            snap5Skip["1"] = 12;
+            steps.push({
+                title: '步骤6：聚合根节点1 — 得出最终答案',
+                desc: '根节点1聚合子节点2和3。dp_take[1]=3+11+0=14，dp_skip[1]=max(2,11)+max(1,0)=12。最终答案=max(14,12)=14。',
+                tickLabel: '节点1(根)',
+                tickOp: '聚合&答案',
+                opText: '🏁 根节点聚合',
+                highlightLines: [6, 7, 8, 10],
+                processNode: "1",
+                dpTakeSnap: snap5Take,
+                dpSkipSnap: snap5Skip,
+                teaching: '<strong>根节点1</strong>（值=3）聚合子节点2和3：\n• <strong>dp_take[1]</strong> = 3 + dp_skip[2] + dp_skip[3] = 3 + 11 + 0 = <strong>14</strong>\n• <strong>dp_skip[1]</strong> = max(dp_take[2],dp_skip[2]) + max(dp_take[3],dp_skip[3]) = max(2,11)+max(1,0) = <strong>12</strong>\n\n<strong>🎉 最终答案 = max(dp_take[1], dp_skip[1]) = max(14, 12) = 14</strong>\n\n这意味着选择节点1、4、5（权重和=3+10+1=14）可获得最大独立集权重。',
+                evidence: 'dp_take[1] = 3 + dp_skip[2] + dp_skip[3]\n          = 3 + 11 + 0 = 14\n\ndp_skip[1] = max(dp_take[2],dp_skip[2]) + max(dp_take[3],dp_skip[3])\n           = max(2,11) + max(1,0)\n           = 11 + 1 = 12\n\n最终答案 = max(14, 12) = 14 ✅',
+                stateText: 'dp_take: {1:14, 2:2, 3:1, 4:10, 5:1}\ndp_skip: {1:12, 2:11, 3:0, 4:0, 5:0}\n\n✅ 最终答案 = max(14, 12) = 14',
+                hasCheckpoint: true,
+                checkpointData: {
+                    question: '这棵树的最大独立集权重是多少？',
+                    options: ['12', '14', '16', '11'],
+                    correct: 1,
+                    explanation_correct: '✅ 正确！最大独立集权重为14（选择节点1、4、5）。',
+                    explanation_wrong: '❌ 最终答案 = max(dp_take[1], dp_skip[1]) = max(14, 12) = 14。'
+                },
+                nodeStatus: { "1": "done", "2": "done", "3": "done", "4": "done", "5": "done" },
+                activeEdges: ["1-2", "1-3"],
+                predictionTarget: '最终答案',
+                predictionAnswer: 14
+            });
+
+            // ============ CODE TEXT ============
+            const codeLines = [
+                'def tree_dp_max_independent_set(root):',
+                '    # 后序遍历DP',
+                '    def dfs(u):',
+                '        # 初始化当前节点',
+                '        dp_take[u] = value[u]',
+                '        dp_skip[u] = 0',
+                '        ',
+                '        for v in children[u]:',
+                '            dfs(v)                    # 先处理子节点',
+                '            dp_take[u] += dp_skip[v]  # 选u则子节点必不选',
+                '            dp_skip[u] += max(        # 不选u则子节点可选可不选',
+                '                dp_take[v],',
+                '                dp_skip[v]',
+                '            )',
+                '    ',
+                '    dfs(root)',
+                '    return max(dp_take[root], dp_skip[root])',
+            ];
+
+            function renderCode(highlightIndices) {
+                const codeEl = document.getElementById('code');
+                let html = '';
+                codeLines.forEach((line, i) => {
+                    let cls = 'code-line';
+                    if (highlightIndices.includes(i)) cls += ' highlight';
+                    html += '<span class="' + cls + '">' + escapeHTML(line) + '</span>';
+                });
+                codeEl.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============ NODE POSITIONS ============
+            const nodePositions = {
+                "1": { x: 200, y: 36 },
+                "2": { x: 120, y: 130 },
+                "3": { x: 280, y: 130 },
+                "4": { x: 62, y: 230 },
+                "5": { x: 168, y: 230 },
+            };
+            const edgeList = [
+                { from: "1", to: "2", id: "1-2" },
+                { from: "1", to: "3", id: "1-3" },
+                { from: "2", to: "4", id: "2-4" },
+                { from: "2", to: "5", id: "2-5" },
+            ];
+
+            function renderCanvas(stepData) {
+                const container = document.getElementById('tree-viz-inner');
+                const nodeStatus = stepData.nodeStatus || {};
+                const activeEdges = stepData.activeEdges || [];
+                const processNode = stepData.processNode;
+                const dpTakeSnap = stepData.dpTakeSnap || {};
+                const dpSkipSnap = stepData.dpSkipSnap || {};
+
+                const svgWidth = 400;
+                const svgHeight = 280;
+                let svgHTML = '<svg width="' + svgWidth + '" height="' + svgHeight +
+                    '" style="position:absolute;top:0;left:0;z-index:1;pointer-events:none;">';
+                edgeList.forEach(edge => {
+                    const fromPos = nodePositions[edge.from];
+                    const toPos = nodePositions[edge.to];
+                    if (!fromPos || !toPos) return;
+                    let edgeClass = 'tree-edge';
+                    if (activeEdges.includes(edge.id)) edgeClass += ' active';
+                    else if (nodeStatus[edge.from] === 'done' && nodeStatus[edge.to] === 'done')
+                        edgeClass += ' done';
+                    svgHTML += '<g class="' + edgeClass + '">';
+                    svgHTML += '<line x1="' + fromPos.x + '" y1="' + (fromPos.y + 27) + '" x2="' + toPos
+                        .x + '" y2="' + (toPos.y - 27) + '" />';
+                    svgHTML += '</g>';
+                });
+                svgHTML += '</svg>';
+
+                let nodesHTML = '';
+                Object.keys(nodePositions).forEach(nodeId => {
+                    const pos = nodePositions[nodeId];
+                    let statusClass = 'default';
+                    if (nodeId === processNode) statusClass = 'current';
+                    else if (nodeStatus[nodeId] === 'done') statusClass = 'done';
+                    else if (nodeStatus[nodeId] === 'pending') statusClass = 'pending';
+
+                    nodesHTML += '<div class="tree-node ' + statusClass + '" style="left:' + (pos.x -
+                        27) + 'px;top:' + pos.y + 'px;" data-node="' + nodeId + '">';
+                    nodesHTML += '<span>' + nodeId + '</span>';
+                    nodesHTML += '<span class="node-val">(' + nodeValues[nodeId] + ')</span>';
+                    nodesHTML += '</div>';
+
+                    const takeVal = dpTakeSnap[nodeId];
+                    const skipVal = dpSkipSnap[nodeId];
+                    if (takeVal !== null && takeVal !== undefined) {
+                        nodesHTML +=
+                            '<div class="dp-label take" style="left:' + (pos.x + 22) + 'px;top:' + (
+                                pos.y - 8) + 'px;">t=' + takeVal + '</div>';
+                    }
+                    if (skipVal !== null && skipVal !== undefined) {
+                        nodesHTML +=
+                            '<div class="dp-label skip" style="left:' + (pos.x + 22) + 'px;top:' + (
+                                pos.y + 18) + 'px;">s=' + skipVal + '</div>';
+                    }
+                });
+
+                container.innerHTML = svgHTML + nodesHTML;
+            }
+
+            // ============ CHECKPOINT STATE ============
+            const checkpointStates = {};
+
+            function getCheckpointState(stepIndex) {
+                if (!checkpointStates[stepIndex]) {
+                    checkpointStates[stepIndex] = {
+                        selected: null,
+                        submitted: false,
+                        shownAnswer: false,
+                        hintUsed: false,
+                        predSubmitted: false,
+                        predCorrect: null
+                    };
+                }
+                return checkpointStates[stepIndex];
+            }
+
+            function renderCheckpoint(stepData, stepIndex) {
+                const container = document.getElementById('checkpoint-container');
+                const mcContainer = document.getElementById('checkpoint-mc-options');
+                if (!stepData.hasCheckpoint || !stepData.checkpointData) {
+                    container.innerHTML = '';
+                    container.classList.add('hidden');
+                    mcContainer.innerHTML = '';
+                    return;
+                }
+                container.classList.remove('hidden');
+                const cp = stepData.checkpointData;
+                const ckState = getCheckpointState(stepIndex);
+
+                let html = '<div class="checkpoint-area active-checkpoint">';
+                html += '<div class="ck-question">🧠 检测点：' + cp.question + '</div>';
+                html += '<div id="ck-options-' + stepIndex + '">';
+                cp.options.forEach((opt, i) => {
+                    let optCls = 'opt-btn';
+                    if (ckState.selected === i) optCls += ' selected';
+                    html += '<button class="' + optCls + '" data-opt="' + i + '" ' + (ckState
+                        .submitted ? 'disabled' : '') + '>' + opt + '</button>';
+                });
+                html += '</div>';
+                html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">';
+                html += '<button class="btn-sm btn-submit" id="ck-submit-' + stepIndex + '" ' + (ckState
+                    .submitted ? 'disabled' : '') + '>✅ 提交选择</button> ';
+                html += '<button class="btn-sm btn-hint" id="ck-hint-' + stepIndex + '">💡 提示</button> ';
+                html += '<button class="btn-sm btn-show" id="ck-show-' + stepIndex + '">👁 显示答案</button>';
+                html += '</div>';
+                let fbClass = 'feedback-area';
+                if (ckState.submitted || ckState.shownAnswer) fbClass += ' show';
+                if (ckState.submitted && ckState.selected !== null) {
+                    fbClass += (ckState.selected === cp.correct ? ' correct' : ' wrong');
+                } else if (ckState.shownAnswer) {
+                    fbClass += ' info';
+                }
+                html += '<div class="' + fbClass + '" id="ck-feedback-' + stepIndex + '">';
+                if (ckState.submitted && ckState.selected !== null) {
+                    html += (ckState.selected === cp.correct ? cp.explanation_correct : cp.explanation_wrong);
+                } else if (ckState.shownAnswer) {
+                    html += '💡 正确答案：<strong>' + cp.options[cp.correct] + '</strong> — ' + cp
+                        .explanation_correct.replace('✅ 正确！', '').replace('❌ ', '');
+                } else {
+                    html += '等待提交...';
+                }
+                html += '</div>';
+                html += '</div>';
+                container.innerHTML = html;
+
+                // Bind MC events immediately
+                const optBtns = container.querySelectorAll('#ck-options-' + stepIndex + ' .opt-btn');
+                optBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        if (ckState.submitted) return;
+                        optBtns.forEach(b => b.classList.remove('selected'));
+                        this.classList.add('selected');
+                        ckState.selected = parseInt(this.dataset.opt);
+                    });
+                });
+                const submitBtn = container.querySelector('#ck-submit-' + stepIndex);
+                if (submitBtn) {
+                    submitBtn.addEventListener('click', function() {
+                        if (ckState.selected === null || ckState.submitted) return;
+                        ckState.submitted = true;
+                        logCheckpoint(stepIndex, cp, ckState.selected);
+                        renderCheckpoint(stepData, stepIndex);
+                        updatePredictionPanel(stepData, stepIndex);
+                    });
+                }
+                const hintBtn = container.querySelector('#ck-hint-' + stepIndex);
+                if (hintBtn) {
+                    hintBtn.addEventListener('click', function() {
+                        ckState.hintUsed = true;
+                        const fb = container.querySelector('#ck-feedback-' + stepIndex);
+                        fb.classList.add('show', 'info');
+                        fb.innerHTML =
+                            '💡 提示：仔细查看公式。dp_skip需要取每个子节点dp_take和dp_skip的<strong>最大值</strong>再求和。对于叶子节点，dp_skip始终为0。';
+                        addLogEntry('💡 步骤' + (stepIndex + 1) + ' 使用了提示');
+                    });
+                }
+                const showBtn = container.querySelector('#ck-show-' + stepIndex);
+                if (showBtn) {
+                    showBtn.addEventListener('click', function() {
+                        ckState.shownAnswer = true;
+                        ckState.submitted = true;
+                        const fb = container.querySelector('#ck-feedback-' + stepIndex);
+                        fb.classList.add('show', 'info');
+                        fb.innerHTML = '💡 正确答案：<strong>' + cp.options[cp.correct] +
+                            '</strong> — ' + cp.explanation_correct.replace('✅ 正确！', '').replace(
+                                '❌ ', '');
+                        addLogEntry('👁 步骤' + (stepIndex + 1) + ' 查看了答案：' + cp.options[cp
+                            .correct]);
+                        renderCheckpoint(stepData, stepIndex);
+                        updatePredictionPanel(stepData, stepIndex);
+                    });
+                }
+
+                // Also populate MC options in the prediction panel area
+                let mcHTML = '<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;">📋 选择题选项：</div>';
+                cp.options.forEach((opt, i) => {
+                    mcHTML +=
+                        '<button class="opt-btn" id="pred-mc-' + stepIndex + '-' + i +
+                        '" style="display:inline-block;width:auto;margin:3px 4px;" data-opt="' + i + '">' +
+                        opt + '</button>';
+                });
+                mcContainer.innerHTML = mcHTML;
+                mcContainer.querySelectorAll('.opt-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        if (ckState.submitted) return;
+                        mcContainer.querySelectorAll('.opt-btn').forEach(b => b.classList
+                            .remove('selected'));
+                        this.classList.add('selected');
+                        ckState.selected = parseInt(this.dataset.opt);
+                        // Also update checkpoint area selection
+                        const cpOpts = container.querySelectorAll('#ck-options-' +
+                            stepIndex + ' .opt-btn');
+                        cpOpts.forEach(b => b.classList.remove('selected'));
+                        const targetCp = container.querySelector(
+                            '#ck-options-' + stepIndex + ' .opt-btn[data-opt="' + this
+                            .dataset.opt + '"]');
+                        if (targetCp) targetCp.classList.add('selected');
+                    });
+                });
+            }
+
+            // ============ PREDICTION PANEL ============
+            function updatePredictionPanel(stepData, stepIndex) {
+                const ckState = getCheckpointState(stepIndex);
+                const predInput = document.getElementById('pred-input');
+                const predFeedback = document.getElementById('pred-feedback');
+                const predPrompt = document.getElementById('prediction-prompt');
+                const predSubmit = document.getElementById('pred-submit');
+
+                // Reset input styles
+                predInput.classList.remove('correct-input', 'wrong-input');
+                predInput.value = '';
+                predFeedback.classList.remove('show', 'correct', 'wrong', 'info');
+                predFeedback.textContent = '';
+
+                if (stepData.predictionTarget) {
+                    predPrompt.textContent = '🎯 当前步骤预测目标：' + stepData.predictionTarget +
+                        '（输入你计算的数值）';
+                    predInput.placeholder = '输入 ' + stepData.predictionTarget + ' 的值...';
+                    predInput.disabled = ckState.predSubmitted;
+                    predSubmit.disabled = ckState.predSubmitted;
+                    if (ckState.predSubmitted) {
+                        predFeedback.classList.add('show');
+                        if (ckState.predCorrect === true) {
+                            predFeedback.classList.add('correct');
+                            predFeedback.textContent = '✅ 预测正确！' + stepData.predictionTarget + ' = ' +
+                                stepData.predictionAnswer;
+                            predInput.classList.add('correct-input');
+                        } else if (ckState.predCorrect === false) {
+                            predFeedback.classList.add('wrong');
+                            predFeedback.textContent = '❌ 预测错误。正确答案：' + stepData.predictionAnswer +
+                                '。请查看讲解理解公式。';
+                            predInput.classList.add('wrong-input');
+                        }
+                    }
+                } else {
+                    predPrompt.textContent = '📝 观察当前步骤，理解DP状态变化。可以尝试预测后续节点的值。';
+                    predInput.placeholder = '输入预测值...';
+                    predInput.disabled = false;
+                    predSubmit.disabled = false;
+                }
+
+                // Store current prediction context
+                predInput.dataset.stepIndex = stepIndex;
+                predInput.dataset.predAnswer = stepData.predictionAnswer || '';
+                predInput.dataset.predTarget = stepData.predictionTarget || '';
+            }
+
+            function handlePredictionSubmit() {
+                const predInput = document.getElementById('pred-input');
+                const stepIndex = parseInt(predInput.dataset.stepIndex || '0');
+                const predAnswer = parseInt(predInput.dataset.predAnswer);
+                const predTarget = predInput.dataset.predTarget;
+                const ckState = getCheckpointState(stepIndex);
+                const predFeedback = document.getElementById('pred-feedback');
+
+                if (ckState.predSubmitted || !predTarget || isNaN(predAnswer)) return;
+
+                const userVal = parseInt(predInput.value);
+                if (isNaN(userVal)) {
+                    predFeedback.classList.add('show', 'info');
+                    predFeedback.textContent = '⚠️ 请输入有效的数值。';
+                    return;
+                }
+
+                ckState.predSubmitted = true;
+                ckState.predCorrect = (userVal === predAnswer);
+
+                predFeedback.classList.add('show');
+                if (ckState.predCorrect) {
+                    predFeedback.classList.add('correct');
+                    predFeedback.textContent = '✅ 预测正确！' + predTarget + ' = ' + predAnswer;
+                    predInput.classList.add('correct-input');
+                    addLogEntry('✅ 步骤' + (stepIndex + 1) + ' 预测正确：' + predTarget + ' = ' + userVal);
+                } else {
+                    predFeedback.classList.add('wrong');
+                    predFeedback.textContent = '❌ 预测错误。你输入了 ' + userVal + '，正确答案是 ' + predAnswer +
+                        '。请查看讲解理解公式。';
+                    predInput.classList.add('wrong-input');
+                    addLogEntry('❌ 步骤' + (stepIndex + 1) + ' 预测错误：输入' + userVal + '，正确答案' + predAnswer);
+                }
+                predInput.disabled = true;
+                document.getElementById('pred-submit').disabled = true;
+            }
+
+            function handleGlobalHint() {
+                const stepIndex = currentStepIndex;
+                const stepData = steps[stepIndex];
+                const ckState = getCheckpointState(stepIndex);
+                const predFeedback = document.getElementById('pred-feedback');
+                ckState.hintUsed = true;
+
+                predFeedback.classList.add('show', 'info');
+                let hintMsg = '💡 提示：';
+                if (stepData.processNode) {
+                    const n = stepData.processNode;
+                    const isLeaf = !chMap[n] || chMap[n].length === 0;
+                    if (isLeaf) {
+                        hintMsg += '节点' + n + '是叶子节点。dp_take[' + n + '] = value[' + n + '] = ' + nodeValues[
+                            n] + '，dp_skip[' + n + '] = 0。';
+                    } else {
+                        hintMsg += '节点' + n + '有子节点。dp_take[' + n + '] = value[' + n +
+                            '] + Σ(dp_skip[child])，dp_skip[' + n + '] = Σ(max(dp_take[child], dp_skip[child]))。';
+                    }
+                } else {
+                    hintMsg += '后序遍历顺序为 4→5→3→2→1。叶子节点的dp_skip始终为0，dp_take等于其权重。';
+                }
+                predFeedback.textContent = hintMsg;
+                addLogEntry('💡 步骤' + (stepIndex + 1) + ' 使用了全局提示');
+            }
+
+            function handleGlobalShow() {
+                const stepIndex = currentStepIndex;
+                const stepData = steps[stepIndex];
+                const ckState = getCheckpointState(stepIndex);
+                const predFeedback = document.getElementById('pred-feedback');
+                ckState.shownAnswer = true;
+                ckState.predSubmitted = true;
+
+                predFeedback.classList.add('show', 'info');
+                let answerMsg = '👁 当前步骤关键值：';
+                if (stepData.predictionTarget && stepData.predictionAnswer !== null && stepData.predictionAnswer !==
+                    undefined) {
+                    answerMsg += stepData.predictionTarget + ' = ' + stepData.predictionAnswer;
+                } else if (stepData.processNode) {
+                    const n = stepData.processNode;
+                    const t = stepData.dpTakeSnap[n];
+                    const s = stepData.dpSkipSnap[n];
+                    answerMsg += '节点' + n + ': dp_take=' + (t !== null ? t : '?') + ', dp_skip=' + (s !== null ? s :
+                        '?');
+                } else {
+                    answerMsg += '请前进到后续步骤查看具体值。最终答案为14。';
+                }
+                predFeedback.textContent = answerMsg;
+                document.getElementById('pred-input').value = stepData.predictionAnswer || '';
+                document.getElementById('pred-input').disabled = true;
+                document.getElementById('pred-submit').disabled = true;
+                addLogEntry('👁 步骤' + (stepIndex + 1) + ' 查看了答案');
+            }
+
+            function logCheckpoint(stepIndex, cp, selected) {
+                const isCorrect = selected === cp.correct;
+                const resultText = isCorrect ? '✅ 正确' : '❌ 错误';
+                const detail = '步骤' + (stepIndex + 1) + ' 检测点：' + resultText + ' — 选择了「' + cp.options[selected] +
+                    '」，正确答案「' + cp.options[cp.correct] + '」';
+                addLogEntry(detail);
+            }
+
+            function addLogEntry(msg) {
+                const logEl = document.getElementById('learning-log');
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2,
+                    '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+                const entryHTML = '<div class="log-entry"><span class="log-time">[' + timeStr + ']</span> ' + msg +
+                    '</div>';
+                if (logEl.textContent.trim() === '等待交互...') {
+                    logEl.innerHTML = entryHTML;
+                } else {
+                    logEl.innerHTML += entryHTML;
+                }
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+
+            // ============ TOP RESULT ============
+            function updateTopResult(stepData, stepIndex) {
+                const topResult = document.getElementById('top-result');
+                if (stepIndex === N_STEPS - 1) {
+                    topResult.textContent = '🏆 14 (最终答案)';
+                    topResult.classList.add('final');
+                } else if (stepData.processNode && stepData.dpTakeSnap[stepData.processNode] !== null) {
+                    const n = stepData.processNode;
+                    topResult.textContent = '节点' + n + ': take=' + stepData.dpTakeSnap[n] + ', skip=' + stepData
+                        .dpSkipSnap[n];
+                    topResult.classList.remove('final');
+                } else {
+                    topResult.textContent = '🔍 初始化中...';
+                    topResult.classList.remove('final');
+                }
+            }
+
+            // ============ TIMELINE ============
+            function renderTimeline(activeIndex) {
+                const timeline = document.getElementById('timeline');
+                let html = '';
+                steps.forEach((s, i) => {
+                    let cls = 'tick';
+                    if (i === activeIndex) cls += ' active';
+                    if (i < activeIndex) cls += ' done';
+                    html += '<button class="' + cls + '" data-step="' + i + '" aria-label="跳转到步骤' + (i + 1) +
+                        '">';
+                    html += '<span class="tick-label">' + s.tickLabel + '</span>';
+                    html += '<span class="tick-op">' + s.tickOp + '</span>';
+                    html += '</button>';
+                });
+                timeline.innerHTML = html;
+                timeline.querySelectorAll('.tick').forEach(tick => {
+                    tick.addEventListener('click', function() {
+                        const si = parseInt(this.dataset.step);
+                        goToStep(si);
+                    });
+                });
+            }
+
+            // ============ NAVIGATION ============
+            let currentStepIndex = 0;
+            let playInterval = null;
+            let isPlaying = false;
+
+            function goToStep(index) {
+                if (index < 0 || index >= N_STEPS) return;
+                currentStepIndex = index;
+                const stepData = steps[index];
+                renderCode(stepData.highlightLines);
+                renderCanvas(stepData);
+                document.getElementById('state').textContent = stepData.stateText;
+                document.getElementById('step-evidence').textContent = stepData.evidence;
+                document.getElementById('teaching').textContent = stepData.teaching;
+                renderCheckpoint(stepData, index);
+                updatePredictionPanel(stepData, index);
+                renderTimeline(index);
+                updateTopResult(stepData, index);
+                updateCounter(index);
+                updateRange(index);
+                updatePlayButton();
+                document.getElementById('step-title').textContent = stepData.title;
+                document.getElementById('step-desc').textContent = stepData.desc;
+                document.getElementById('op').textContent = stepData.opText;
+
+                // Show completion overlay on final step
+                if (index === N_STEPS - 1) {
+                    setTimeout(() => {
+                        const overlay = document.getElementById('completion-overlay');
+                        if (overlay && currentStepIndex === N_STEPS - 1) {
+                            overlay.classList.remove('hidden');
+                            triggerConfetti();
+                        }
+                    }, 1200);
+                } else {
+                    document.getElementById('completion-overlay').classList.add('hidden');
+                }
+            }
+
+            function updateCounter(index) {
+                document.getElementById('counter').textContent = (index + 1) + ' / ' + N_STEPS;
+            }
+
+            function updateRange(index) {
+                document.getElementById('range').value = index + 1;
+            }
+
+            function updatePlayButton() {
+                const playBtn = document.getElementById('play');
+                if (isPlaying) {
+                    playBtn.textContent = '⏸';
+                    playBtn.classList.add('playing');
+                } else {
+                    playBtn.textContent = '▶';
+                    playBtn.classList.remove('playing');
+                }
+            }
+
+            function stopPlay() {
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+                isPlaying = false;
+                updatePlayButton();
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                updatePlayButton();
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < N_STEPS - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2000);
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= N_STEPS - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ============ CONFETTI ============
+            function triggerConfetti() {
+                const colors = ['#4f6ef6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4',
+                '#f97316'];
+                const body = document.body;
+                const particleCount = 80;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.style.cssText = `
+                        position: fixed;
+                        width: ${6 + Math.random() * 10}px;
+                        height: ${6 + Math.random() * 10}px;
+                        background: ${colors[Math.floor(Math.random() * colors.length)]};
+                        top: -30px;
+                        left: ${Math.random() * 100}%;
+                        border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                        z-index: 200;
+                        pointer-events: none;
+                        animation: confettiFall ${2 + Math.random() * 3}s ease-in forwards;
+                        animation-delay: ${Math.random() * 0.8}s;
+                        transform: rotate(${Math.random() * 360}deg);
+                    `;
+                    body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 4000);
+                }
+            }
+
+            // Inject confetti keyframes if not present
+            if (!document.getElementById('confetti-style')) {
+                const styleEl = document.createElement('style');
+                styleEl.id = 'confetti-style';
+                styleEl.textContent = `
+                    @keyframes confettiFall {
+                        0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+                        100% { transform: translateY(105vh) rotate(${360 + Math.random() * 720}deg) scale(0.3); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(styleEl);
+            }
+
+            // ============ PARTICLES CANVAS ============
+            const particlesCanvas = document.getElementById('particles-layer');
+            const particlesCtx = particlesCanvas.getContext('2d');
+            const particles = [];
+            const MAX_PARTICLES = 25;
+
+            function initParticles() {
+                particles.length = 0;
+                for (let i = 0; i < MAX_PARTICLES; i++) {
+                    particles.push({
+                        x: Math.random() * particlesCanvas.width,
+                        y: Math.random() * particlesCanvas.height,
+                        vx: (Math.random() - 0.5) * 0.35,
+                        vy: (Math.random() - 0.5) * 0.35,
+                        radius: 1.2 + Math.random() * 2.5,
+                        alpha: 0.15 + Math.random() * 0.35,
+                        color: Math.random() > 0.5 ? '79,110,246' : '16,185,129'
+                    });
+                }
+            }
+
+            function animateParticles() {
+                particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < -10) p.x = particlesCanvas.width + 10;
+                    if (p.x > particlesCanvas.width + 10) p.x = -10;
+                    if (p.y < -10) p.y = particlesCanvas.height + 10;
+                    if (p.y > particlesCanvas.height + 10) p.y = -10;
+                    particlesCtx.beginPath();
+                    particlesCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    particlesCtx.fillStyle = 'rgba(' + p.color + ',' + p.alpha + ')';
+                    particlesCtx.fill();
+                });
+                requestAnimationFrame(animateParticles);
+            }
+
+            function resizeParticlesCanvas() {
+                const canvasContainer = document.getElementById('canvas');
+                if (canvasContainer) {
+                    particlesCanvas.width = canvasContainer.clientWidth || 400;
+                    particlesCanvas.height = canvasContainer.clientHeight || 300;
+                }
+                initParticles();
+            }
+
+            // ============ EVENT BINDINGS ============
+            document.getElementById('prev').addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            document.getElementById('next').addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < N_STEPS - 1) goToStep(currentStepIndex + 1);
+            });
+            document.getElementById('play').addEventListener('click', togglePlay);
+            document.getElementById('range').addEventListener('input', function() {
+                stopPlay();
+                const val = parseInt(this.value) - 1;
+                goToStep(val);
+            });
+
+            // Prediction panel events
+            document.getElementById('pred-submit').addEventListener('click', handlePredictionSubmit);
+            document.getElementById('pred-input').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handlePredictionSubmit();
+                }
+            });
+            document.getElementById('btn-global-hint').addEventListener('click', handleGlobalHint);
+            document.getElementById('btn-global-show').addEventListener('click', handleGlobalShow);
+
+            // Completion overlay restart
+            document.getElementById('btn-restart').addEventListener('click', function() {
+                document.getElementById('completion-overlay').classList.add('hidden');
+                stopPlay();
+                goToStep(0);
+                addLogEntry('🔄 重新开始学习');
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'number') return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex < N_STEPS - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                document.getElementById('answer').textContent = '14';
+                document.getElementById('top-solution').textContent = '14';
+                document.getElementById('learning-log').textContent = '等待交互...';
+                document.getElementById('range').setAttribute('max', N_STEPS);
+                document.getElementById('completion-overlay').classList.add('hidden');
+                resizeParticlesCanvas();
+                initParticles();
+                animateParticles();
+                goToStep(0);
+                updateCounter(0);
+                updateRange(0);
+                renderTimeline(0);
+                addLogEntry('🚀 树形DP最大独立集教学页面已就绪');
+            }
+
+            // Handle resize
+            window.addEventListener('resize', resizeParticlesCanvas);
+
+            init();
+            console.log('🌳 树形DP最大独立集 — 交互式教学页面已就绪。总共 ' + N_STEPS + ' 个步骤。');
+            console.log('✅ 预测面板、提示、显示答案、检测点、学习日志、完成庆祝均已配置。');
+        })();
+    </script>
+</body>
+</html>

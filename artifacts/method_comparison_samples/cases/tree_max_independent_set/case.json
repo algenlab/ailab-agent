@@ -1,0 +1,130 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "tree_max_independent_set",
+  "algorithm_id": "tree_max_independent_set",
+  "title": "树形 DP 最大独立集",
+  "family": "树形 DP",
+  "difficulty": "medium",
+  "problem": "在城市新区规划中，有一片树形街道，每个地段（节点）具有开发价值。相邻地段不能同时开发，以免交通拥堵。给定一棵树 tree，节点表示地段，value 表示开发价值，边表示相邻关系。请计算能获得的最大总开发价值，只需返回最大数值。输入中 tree 对象包含 nodes （id, value）和 edges （无向边）。",
+  "strategy": "dp_take[u] 表示选择 u 的最优值，dp_skip[u] 表示不选择 u 的最优值。",
+  "input_contract": "输入带 value 权重的 tree。",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "理解 dp_take[u]（选中 u 时的最优值）与 dp_skip[u]（不选 u 时的最优值）的定义与递推关系",
+    "能够根据子节点的 dp 值预测父节点的状态更新",
+    "通过修改节点权重观察全局最优解的变化，建立对状态依赖的直观感受"
+  ],
+  "required_views": [
+    "tree",
+    "dp_table",
+    "node_details"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！dp_take 只累加子节点 skip，dp_skip 取子节点最优之和。",
+      "feedback_wrong": "检查公式：take 依赖子节点 skip，skip 依赖子节点最优值。再算一次。",
+      "id": "task_1",
+      "oracle": "比对预测的 (take, skip) 是否等于 (5+0+0=5, max(3,0)+max(4,0)=7)。允许浮点误差。",
+      "prompt": "当前正遍历节点 u（id='A'），其 value=5，两个子节点 B（value=3）和 C（value=4）的 dp 状态已知：B: take=3, skip=0；C: take=4, skip=0。请预测节点 A 的 dp_take 和 dp_skip 值。",
+      "stage2_affordance": "在树视图中高亮节点 A 及其子节点，dp_table 显示相关值，点击后自动填入预测结果。",
+      "trace_anchor": [
+        "dp_take",
+        "dp_skip",
+        "value",
+        "id"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "完美！这个不变式确实在每步都成立。",
+      "feedback_wrong": "你提出的式子在某个步骤会失效，请观察叶节点处 dp_take 与 value 的关系。",
+      "id": "task_2",
+      "oracle": "检查学生提出的不变式是否在 verifier 或 trace 的所有步骤中成立。可抽样验证或使用符号检查。",
+      "prompt": "给定当前 trace 中任意步骤的状态，请写出一个在算法执行过程中始终成立的不变式（例如关于 dp_take 和 value 的关系）。",
+      "stage2_affordance": "展示 trace 步骤列表，高亮违反不变式的位置，可翻阅不同节点的 dp 值。",
+      "trace_anchor": [
+        "dp_take",
+        "value"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确！修改节点 4 后，因为其父节点 2 不选，它带来的增益直接增加。",
+      "feedback_wrong": "节点 4 是叶节点，增加的价值会如何影响父节点的 take/skip 决策？回想递推公式。",
+      "id": "task_3",
+      "oracle": "运行 verifier 得到修改后树的最优值（预期变为 18），比对用户答案。",
+      "prompt": "当前树为样例 0，最大开发价值为 14。请将 id='4' 节点的 value 从 10 改为 15，预测新的最大开发价值是多少？",
+      "stage2_affordance": "节点 value 可拖拽修改，实时重新计算并更新 dp_table 和树色。",
+      "trace_anchor": [
+        "tree",
+        "value",
+        "id"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释清晰！dp_take 必须加上子节点 skip，dp_skip 独立取每个子节点最优。",
+      "feedback_wrong": "注意：dp_take 累加的是子节点的 skip，而不是直接加 value 或 max。再仔细分析。",
+      "id": "task_4",
+      "oracle": "检查解释中是否明确提到 dp_take[2] = 2 + dp_skip[4] + dp_skip[5] = 2，dp_skip[2] = max(10,0)+max(1,0)=11。可使用自然语言匹配或公式提取。",
+      "prompt": "对于树中节点 2（value=2），其子节点 4（value=10）和 5（value=1）的 dp 值已知：dp_take(4)=10, dp_skip(4)=0；dp_take(5)=1, dp_skip(5)=0。请解释节点 2 的 dp_take 与 dp_skip 是如何从子节点聚合上来的。",
+      "stage2_affordance": "树视图显示聚合箭头，dp_table 突出显示计算的来源单元格。",
+      "trace_anchor": [
+        "dp_take",
+        "dp_skip",
+        "id",
+        "value"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 14,
+    "index": 0,
+    "input_data": {
+      "tree": {
+        "edges": [
+          [
+            "1",
+            "2"
+          ],
+          [
+            "1",
+            "3"
+          ],
+          [
+            "2",
+            "4"
+          ],
+          [
+            "2",
+            "5"
+          ]
+        ],
+        "nodes": [
+          {
+            "id": "1",
+            "value": 3
+          },
+          {
+            "id": "2",
+            "value": 2
+          },
+          {
+            "id": "3",
+            "value": 1
+          },
+          {
+            "id": "4",
+            "value": 10
+          },
+          {
+            "id": "5",
+            "value": 1
+          }
+        ]
+      }
+    }
+  }
+}

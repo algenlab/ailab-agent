@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二叉树最近公共祖先 - AlgoLab 教学</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #16191e;
+            --bg-alt: #1b1e24;
+            --panel-bg: #1e2128;
+            --panel-bg-hover: #23272f;
+            --border: #2d323b;
+            --border-light: #353b47;
+            --text: #e2e5ea;
+            --text-secondary: #9ba1af;
+            --text-muted: #6b7280;
+            --accent: #5da8f0;
+            --accent2: #e2b96f;
+            --green: #8bc47d;
+            --orange: #d89a63;
+            --red: #e0707a;
+            --purple: #c678dd;
+            --gold: #f2c644;
+            --gold-dim: #c49d2a;
+            --blue-highlight: #528bff;
+            --code-bg: #1a1d25;
+            --tick-bg: #21252e;
+            --tick-active: #2a3342;
+            --tick-done: #252d33;
+            --button-bg: #2a2f3a;
+            --button-hover: #353c49;
+            --success: #8bc47d;
+            --warning: #e2b96f;
+            --error: #e0707a;
+            --info: #5da8f0;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+            --shadow-glow-gold: 0 0 16px rgba(242, 198, 68, 0.25);
+            --radius-sm: 6px;
+            --radius: 8px;
+            --radius-lg: 10px;
+            --radius-xl: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 50% 0%, #1f2530 0%, #16191e 65%),
+                radial-gradient(ellipse at 85% 15%, #1c2230 0%, transparent 50%),
+                radial-gradient(ellipse at 15% 80%, #1a202a 0%, transparent 40%);
+            color: var(--text);
+            font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 24px;
+            letter-spacing: -0.01em;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px 8px;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3a3f4b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a5060;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Top bar */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: linear-gradient(135deg, #1f232c 0%, #1c1f28 100%);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xl);
+            padding: 16px 22px;
+            box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+        .top-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+            pointer-events: none;
+        }
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.2px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+        }
+        #subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 5px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        .result-badge {
+            background: linear-gradient(135deg, #232832 0%, #1d2129 100%);
+            border: 1px solid #3a3f4d;
+            border-radius: var(--radius);
+            padding: 7px 16px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .result-badge:first-of-type {
+            border-color: #4a3f2a;
+            box-shadow: var(--shadow-sm), var(--shadow-glow-gold);
+            animation: badgeGlow 3s ease-in-out infinite;
+        }
+        @keyframes badgeGlow {
+            0%,
+            100% {
+                box-shadow: var(--shadow-sm), 0 0 10px rgba(242, 198, 68, 0.2);
+            }
+            50% {
+                box-shadow: var(--shadow-sm), 0 0 22px rgba(242, 198, 68, 0.4);
+            }
+        }
+        .result-badge .label {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+        #top-result,
+        #answer {
+            font-weight: 700;
+            color: var(--gold);
+            font-size: 1.3rem;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            text-shadow: 0 0 12px rgba(242, 198, 68, 0.3);
+        }
+        #top-solution {
+            color: var(--green);
+            font-weight: 600;
+            font-size: 0.88rem;
+            white-space: nowrap;
+            background: rgba(139, 196, 125, 0.08);
+            padding: 5px 10px;
+            border-radius: 5px;
+            letter-spacing: 0.1px;
+        }
+
+        /* Main content area */
+        .content-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 1000px) {
+            .content-row {
+                flex-direction: column;
+            }
+        }
+
+        /* Canvas panel */
+        .canvas-panel {
+            flex: 1 1 580px;
+            min-width: 480px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: var(--shadow-md);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .canvas-panel:hover {
+            border-color: var(--border-light);
+            box-shadow: var(--shadow-lg);
+        }
+        @media (max-width: 1000px) {
+            .canvas-panel {
+                min-width: auto;
+            }
+        }
+        #canvas {
+            position: relative;
+            width: 100%;
+            min-height: 420px;
+            background: #181b22;
+            background-image:
+                radial-gradient(circle, #252a34 1px, transparent 1px);
+            background-size: 24px 24px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid #262b35;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        #canvas svg {
+            width: 100%;
+            height: 100%;
+            max-width: 600px;
+            max-height: 400px;
+            position: relative;
+            z-index: 1;
+        }
+        .canvas-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-align: center;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        /* Info panel */
+        .info-panel {
+            flex: 1 1 480px;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        @media (max-width: 1000px) {
+            .info-panel {
+                min-width: auto;
+            }
+        }
+
+        /* Code block */
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .code-block:hover {
+            border-color: var(--border-light);
+            box-shadow: var(--shadow-md);
+        }
+        .code-block .code-header {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            padding: 9px 16px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #1e222b 0%, #1a1d25 100%);
+            font-weight: 600;
+        }
+        #code {
+            padding: 14px 18px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.84rem;
+            line-height: 1.75;
+            white-space: pre;
+            color: #a9b2c3;
+            overflow-x: auto;
+            margin: 0;
+            background: var(--code-bg);
+            counter-reset: code-line;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 10px;
+            margin: 0 -10px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            cursor: default;
+            position: relative;
+        }
+        #code .code-line::before {
+            counter-increment: code-line;
+            content: counter(code-line);
+            display: inline-block;
+            width: 24px;
+            margin-right: 12px;
+            color: #4a5060;
+            text-align: right;
+            font-size: 0.75rem;
+            user-select: none;
+        }
+        #code .code-line.highlight {
+            background: #2a3d54;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 var(--accent), 0 0 0 1px rgba(93, 168, 240, 0.15);
+        }
+        #code .code-line.highlight::before {
+            color: var(--accent);
+        }
+        #code .code-line.dim {
+            opacity: 0.4;
+        }
+
+        /* State & teaching */
+        .info-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 13px 16px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .info-card:hover {
+            border-color: var(--border-light);
+            box-shadow: var(--shadow-md);
+        }
+        .info-card .card-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-bottom: 7px;
+            font-weight: 600;
+        }
+        #state {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.78rem;
+            color: #c4cdd9;
+            white-space: pre-wrap;
+            background: #181b22;
+            padding: 9px 12px;
+            border-radius: 5px;
+            max-height: 140px;
+            overflow-y: auto;
+            border: 1px solid #262b35;
+            line-height: 1.5;
+        }
+        #teaching {
+            font-size: 0.87rem;
+            color: #cdd4de;
+            line-height: 1.6;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #b0b9c5;
+            background: #181b22;
+            padding: 9px 12px;
+            border-radius: 5px;
+            border-left: 3px solid var(--accent);
+            line-height: 1.5;
+        }
+
+        /* Step navigation */
+        .step-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-md);
+            transition: border-color 0.3s ease;
+        }
+        .step-nav:hover {
+            border-color: var(--border-light);
+        }
+        .step-nav button {
+            background: var(--button-bg);
+            border: 1px solid #353b47;
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.88rem;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            white-space: nowrap;
+            font-weight: 500;
+            letter-spacing: 0.1px;
+            font-family: inherit;
+        }
+        .step-nav button:hover {
+            background: var(--button-hover);
+            border-color: #4a5265;
+            color: #fff;
+        }
+        .step-nav button:active {
+            transform: scale(0.96);
+            background: #404858;
+            transition: transform 0.1s ease, background 0.1s ease;
+        }
+        .step-nav button.current-step-btn {
+            background: var(--accent);
+            color: #111418;
+            border-color: var(--accent);
+            font-weight: 700;
+            box-shadow: 0 0 12px rgba(93, 168, 240, 0.3);
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        #range::-webkit-slider-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(93, 168, 240, 0.4);
+            transition: box-shadow 0.2s ease;
+        }
+        #range::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 16px rgba(93, 168, 240, 0.6);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #fff;
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+        #step-title {
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: #fff;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            max-width: 200px;
+        }
+        #op {
+            font-size: 0.78rem;
+            color: var(--accent2);
+            white-space: nowrap;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            background: rgba(226, 185, 111, 0.1);
+            border: 1px solid rgba(226, 185, 111, 0.2);
+            padding: 4px 9px;
+            border-radius: 4px;
+            letter-spacing: 0.2px;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        .tick {
+            flex: 1 1 60px;
+            min-width: 72px;
+            background: var(--tick-bg);
+            border: 2px solid transparent;
+            border-radius: var(--radius);
+            padding: 9px 7px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-family: inherit;
+            color: var(--text);
+            font-size: 0.78rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .tick:hover {
+            border-color: #4a5265;
+            background: #2d3340;
+            box-shadow: var(--shadow-md);
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: #243044;
+            box-shadow: 0 0 16px rgba(93, 168, 240, 0.25), var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .tick.done {
+            border-color: #2e3d30;
+            background: #202824;
+            opacity: 0.85;
+        }
+        .tick.done:hover {
+            border-color: #3d5240;
+            opacity: 1;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.73rem;
+            color: #bcc3ce;
+            letter-spacing: 0.4px;
+        }
+        .tick .tick-op {
+            font-size: 0.66rem;
+            color: var(--text-secondary);
+            font-family: 'Fira Code', 'Consolas', monospace;
+            word-break: break-word;
+        }
+        .tick.active .tick-label {
+            color: #fff;
+        }
+        .tick.active .tick-op {
+            color: var(--accent);
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            background: #1e222b;
+            border: 1px solid #3d4455;
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-top: 4px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .checkpoint-area:hover {
+            border-color: #4e5668;
+            box-shadow: var(--shadow-md);
+        }
+        .checkpoint-area h4 {
+            font-size: 0.83rem;
+            color: var(--warning);
+            margin-bottom: 9px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .checkpoint-area .question {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .checkpoint-area .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .checkpoint-area .options button {
+            background: var(--button-bg);
+            border: 1px solid #353b47;
+            color: var(--text);
+            padding: 7px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            font-family: inherit;
+            font-weight: 500;
+        }
+        .checkpoint-area .options button:hover {
+            background: var(--button-hover);
+            border-color: #5a6275;
+            color: #fff;
+        }
+        .checkpoint-area .options button.selected {
+            background: #2d4058;
+            border-color: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 0 8px rgba(93, 168, 240, 0.2);
+        }
+        .checkpoint-area .options button.correct-flash {
+            background: #2d4a2d !important;
+            border-color: #4caf50 !important;
+            color: #fff !important;
+            font-weight: 700;
+            animation: pulse-green 0.6s ease-out;
+        }
+        .checkpoint-area .options button.wrong-flash {
+            background: #4a2828 !important;
+            border-color: #e0707a !important;
+            color: #fff !important;
+            animation: shake 0.5s ease-out;
+        }
+        @keyframes pulse-green {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(76, 175, 80, 0);
+            }
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-6px);
+            }
+            40% {
+                transform: translateX(6px);
+            }
+            60% {
+                transform: translateX(-4px);
+            }
+            80% {
+                transform: translateX(4px);
+            }
+        }
+        .checkpoint-area .feedback {
+            font-size: 0.84rem;
+            padding: 9px 13px;
+            border-radius: 5px;
+            margin-top: 7px;
+            min-height: 20px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        .checkpoint-area .feedback.correct {
+            background: #1a2f1d;
+            color: #8bc47d;
+            border: 1px solid #2d4a2d;
+        }
+        .checkpoint-area .feedback.wrong {
+            background: #2f1a1a;
+            color: #e0707a;
+            border: 1px solid #4a2828;
+        }
+        .checkpoint-area .feedback.info {
+            background: #1a2430;
+            color: #5da8f0;
+            border: 1px solid #2d4058;
+        }
+        .checkpoint-area .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-area .btn-row button {
+            background: #2a2f3a;
+            border: 1px solid #454c5a;
+            color: #d0d5de;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            font-family: inherit;
+            font-weight: 500;
+        }
+        .checkpoint-area .btn-row button:hover {
+            background: #353c49;
+            color: #fff;
+            border-color: #5a6275;
+        }
+        .checkpoint-area input[type="text"] {
+            background: #181b22;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 7px 11px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            width: 140px;
+            transition: border-color 0.2s ease;
+        }
+        .checkpoint-area input[type="text"]:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(93, 168, 240, 0.1);
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: #181b22;
+            border: 1px solid #262b35;
+            border-radius: var(--radius);
+            padding: 11px 15px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.76rem;
+            color: #9ba1af;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        .learning-log .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #212630;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.73rem;
+            line-height: 1.5;
+            transition: color 0.2s ease;
+        }
+        .learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        .learning-log .log-entry.correct-log {
+            color: #8bc47d;
+            background: rgba(139, 196, 125, 0.04);
+            padding: 5px 6px;
+            margin: 0 -6px;
+            border-radius: 3px;
+        }
+        .learning-log .log-entry.wrong-log {
+            color: #e0707a;
+            background: rgba(224, 112, 122, 0.04);
+            padding: 5px 6px;
+            margin: 0 -6px;
+            border-radius: 3px;
+        }
+        .learning-log .log-entry.info-log {
+            color: #5da8f0;
+        }
+        .section-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        /* Step desc */
+        #step-desc {
+            font-size: 0.84rem;
+            color: #b0b9c5;
+            line-height: 1.6;
+            min-height: 20px;
+        }
+
+        /* SVG tree styles */
+        .tree-node-circle {
+            transition: all 0.35s ease;
+            cursor: pointer;
+        }
+        .tree-node-circle.default {
+            fill: #323d4e;
+            stroke: #506680;
+            stroke-width: 2;
+        }
+        .tree-node-circle.p-node {
+            fill: #4d3422;
+            stroke: #d89a63;
+            stroke-width: 3;
+        }
+        .tree-node-circle.q-node {
+            fill: #263d2e;
+            stroke: #8bc47d;
+            stroke-width: 3;
+        }
+        .tree-node-circle.current {
+            fill: #3d4a2e;
+            stroke: #e2b96f;
+            stroke-width: 3.5;
+            filter: drop-shadow(0 0 8px rgba(226, 185, 111, 0.6));
+        }
+        .tree-node-circle.lca-found {
+            fill: #4d3d18;
+            stroke: #f2c644;
+            stroke-width: 4;
+            filter: drop-shadow(0 0 14px rgba(242, 198, 68, 0.8));
+        }
+        .tree-node-circle.hit {
+            fill: #304a28;
+            stroke: #6db858;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 6px rgba(109, 184, 88, 0.5));
+        }
+        .tree-edge {
+            stroke: #4a5568;
+            stroke-width: 2;
+            transition: all 0.35s ease;
+        }
+        .tree-edge.highlight-edge {
+            stroke: #e2b96f;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 4px rgba(226, 185, 111, 0.5));
+        }
+        .tree-edge.dim-edge {
+            stroke: #2d333d;
+            stroke-width: 1.5;
+            opacity: 0.45;
+        }
+        .tree-label {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            fill: #fff;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .tree-tag {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-size: 10px;
+            text-anchor: middle;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        /* Responsive refinements */
+        @media (max-width: 768px) {
+            .top-bar {
+                padding: 12px 14px;
+                gap: 8px;
+            }
+            #title {
+                font-size: 1.2rem;
+            }
+            .canvas-panel {
+                min-width: auto;
+                padding: 10px;
+            }
+            #canvas {
+                min-height: 300px;
+            }
+            .info-panel {
+                min-width: auto;
+            }
+            .step-nav {
+                padding: 8px 10px;
+                gap: 6px;
+            }
+            .step-nav button {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            #timeline {
+                gap: 4px;
+            }
+            .tick {
+                min-width: 56px;
+                padding: 6px 4px;
+                font-size: 0.7rem;
+            }
+            .tick .tick-label {
+                font-size: 0.65rem;
+            }
+            .tick .tick-op {
+                font-size: 0.6rem;
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 6px 4px;
+            }
+            .top-bar {
+                border-radius: var(--radius);
+                padding: 10px;
+            }
+            #canvas {
+                min-height: 250px;
+            }
+            #canvas svg {
+                max-height: 280px;
+            }
+            .step-nav button {
+                padding: 5px 8px;
+                font-size: 0.72rem;
+            }
+            .tick {
+                min-width: 44px;
+                padding: 4px 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <span id="title">二叉树最近公共祖先</span>
+                <span id="subtitle">LeetCode 236 · DFS 递归解法</span>
+            </div>
+            <div class="top-bar-right">
+                <div class="result-badge">
+                    <span class="label">答案</span>
+                    <span id="answer">3</span>
+                </div>
+                <div class="result-badge">
+                    <span class="label">结果</span>
+                    <span id="top-result">3</span>
+                </div>
+                <span id="top-solution">LCA(5,1) = 节点 3</span>
+            </div>
+        </div>
+
+        <!-- Content Row -->
+        <div class="content-row">
+            <!-- Canvas Panel -->
+            <div class="canvas-panel">
+                <div class="canvas-label">📐 算法视图 · 二叉树结构</div>
+                <div id="canvas">
+                    <svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Edges -->
+                        <line id="edge-3-5" class="tree-edge" x1="300" y1="50" x2="160" y2="140"/>
+                        <line id="edge-3-1" class="tree-edge" x1="300" y1="50" x2="440" y2="140"/>
+                        <line id="edge-5-6" class="tree-edge" x1="160" y1="140" x2="80" y2="230"/>
+                        <line id="edge-5-2" class="tree-edge" x1="160" y1="140" x2="240" y2="230"/>
+                        <line id="edge-1-0" class="tree-edge" x1="440" y1="140" x2="380" y2="230"/>
+                        <line id="edge-1-8" class="tree-edge" x1="440" y1="140" x2="510" y2="230"/>
+                        <line id="edge-2-7" class="tree-edge" x1="240" y1="230" x2="200" y2="310"/>
+                        <line id="edge-2-4" class="tree-edge" x1="240" y1="230" x2="290" y2="310"/>
+                        <!-- Nodes -->
+                        <g id="node-group-3">
+                            <circle id="node-3" class="tree-node-circle default" cx="300" cy="50" r="24"/>
+                            <text class="tree-label" x="300" y="50">3</text>
+                            <text id="tag-3" class="tree-tag" x="300" y="78" fill="#a0a6b4">root</text>
+                        </g>
+                        <g id="node-group-5">
+                            <circle id="node-5" class="tree-node-circle p-node" cx="160" cy="140" r="22"/>
+                            <text class="tree-label" x="160" y="140">5</text>
+                            <text id="tag-5" class="tree-tag" x="160" y="166" fill="#d19a66">p</text>
+                        </g>
+                        <g id="node-group-1">
+                            <circle id="node-1" class="tree-node-circle q-node" cx="440" cy="140" r="22"/>
+                            <text class="tree-label" x="440" y="140">1</text>
+                            <text id="tag-1" class="tree-tag" x="440" y="166" fill="#98c379">q</text>
+                        </g>
+                        <g id="node-group-6">
+                            <circle id="node-6" class="tree-node-circle default" cx="80" cy="230" r="20"/>
+                            <text class="tree-label" x="80" y="230">6</text>
+                        </g>
+                        <g id="node-group-2">
+                            <circle id="node-2" class="tree-node-circle default" cx="240" cy="230" r="20"/>
+                            <text class="tree-label" x="240" y="230">2</text>
+                        </g>
+                        <g id="node-group-0">
+                            <circle id="node-0" class="tree-node-circle default" cx="380" cy="230" r="20"/>
+                            <text class="tree-label" x="380" y="230">0</text>
+                        </g>
+                        <g id="node-group-8">
+                            <circle id="node-8" class="tree-node-circle default" cx="510" cy="230" r="20"/>
+                            <text class="tree-label" x="510" y="230">8</text>
+                        </g>
+                        <g id="node-group-7">
+                            <circle id="node-7" class="tree-node-circle default" cx="200" cy="310" r="20"/>
+                            <text class="tree-label" x="200" y="310">7</text>
+                        </g>
+                        <g id="node-group-4">
+                            <circle id="node-4" class="tree-node-circle default" cx="290" cy="310" r="20"/>
+                            <text class="tree-label" x="290" y="310">4</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="info-panel">
+                <!-- Code -->
+                <div class="code-block">
+                    <div class="code-header">📝 伪代码 · DFS 递归</div>
+                    <pre id="code"><span class="code-line" data-line="1">function dfs(node, p, q):</span><span class="code-line" data-line="2">    if node is null: return null</span><span class="code-line" data-line="3">    if node == p or node == q: return node</span><span class="code-line" data-line="4">    left = dfs(node.left, p, q)</span><span class="code-line" data-line="5">    right = dfs(node.right, p, q)</span><span class="code-line" data-line="6">    if left and right: return node</span><span class="code-line" data-line="7">    return left if left else right</span></pre>
+                </div>
+
+                <!-- State -->
+                <div class="info-card">
+                    <div class="card-label">📊 当前状态 (State JSON)</div>
+                    <div id="state">{"phase":"init","currentNode":"3","p":"5","q":"1","leftResult":null,"rightResult":null,"lca":null}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step Info Row -->
+        <div class="info-card">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+                <span id="step-title" style="font-weight:700;color:#fff;font-size:1rem;">初始化 DFS</span>
+                <span id="op" style="font-size:0.8rem;color:var(--accent2);background:#2c313a;padding:3px 8px;border-radius:4px;font-family:'Fira Code',monospace;">init</span>
+            </div>
+            <div id="step-desc">准备从根节点 3 开始深度优先搜索，目标找到 p=5 和 q=1 的最近公共祖先。</div>
+        </div>
+
+        <!-- Teaching & Evidence -->
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+            <div class="info-card" style="flex:1;min-width:280px;">
+                <div class="card-label">💡 教学讲解</div>
+                <div id="teaching">我们使用 DFS 递归遍历二叉树。每个节点返回其子树中是否包含 p 或 q。当某个节点的左右子树分别包含 p 和 q（或节点自身就是其中之一），该节点即为 LCA。初始时从根节点 3 开始。</div>
+            </div>
+            <div class="info-card" style="flex:1;min-width:280px;">
+                <div class="card-label">🔍 步骤证据</div>
+                <div id="step-evidence"><strong>operation:</strong> init<br><strong>targets:</strong> p=5, q=1, root=3<br><strong>before:</strong> 未开始遍历<br><strong>after:</strong> 准备从根节点递归</div>
+            </div>
+        </div>
+
+        <!-- Checkpoint Area -->
+        <div id="checkpoint-container" class="checkpoint-area" style="display:none;">
+            <h4>🎯 学习检查点 (Learner Checkpoint)</h4>
+            <div class="question" id="cp-question"></div>
+            <div class="options" id="cp-options"></div>
+            <div class="btn-row">
+                <button id="cp-submit">✅ 提交</button>
+                <button id="cp-hint">💡 提示</button>
+                <button id="cp-show-answer">👁️ 显示答案</button>
+            </div>
+            <div class="feedback info" id="cp-feedback" style="margin-top:8px;">请选择一个选项并点击提交。</div>
+        </div>
+
+        <!-- Learning Log -->
+        <div>
+            <div class="section-label">📋 学习日志 (Learning Log)</div>
+            <div class="learning-log" id="learning-log">
+                <div class="log-entry info-log">[系统] 页面加载完成，准备学习 LCA 算法。</div>
+            </div>
+        </div>
+
+        <!-- Step Navigation -->
+        <div class="step-nav">
+            <button id="prev" title="上一步">◀ 上一步</button>
+            <button id="play" title="自动播放">▶ 播放</button>
+            <button id="next" title="下一步">下一步 ▶</button>
+            <input type="range" id="range" min="1" max="8" value="1" step="1" title="步骤滑块">
+            <span id="counter">1 / 8</span>
+            <span id="step-title-mini" style="font-weight:600;color:#fff;font-size:0.9rem;">初始化 DFS</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline">
+            <button class="tick active" data-step="1"><span class="tick-label">阶段1</span><span class="tick-op">初始化</span></button>
+            <button class="tick" data-step="2"><span class="tick-label">阶段2</span><span class="tick-op">访问根节点3</span></button>
+            <button class="tick" data-step="3"><span class="tick-label">阶段3</span><span class="tick-op">递归左子树5</span></button>
+            <button class="tick" data-step="4"><span class="tick-label">阶段4</span><span class="tick-op">命中p=5</span></button>
+            <button class="tick" data-step="5"><span class="tick-label">阶段5</span><span class="tick-op">递归右子树1</span></button>
+            <button class="tick" data-step="6"><span class="tick-label">阶段6</span><span class="tick-op">命中q=1</span></button>
+            <button class="tick" data-step="7"><span class="tick-label">阶段7</span><span class="tick-op">确定LCA=3</span></button>
+            <button class="tick" data-step="8"><span class="tick-label">阶段8</span><span class="tick-op">返回结果</span></button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // === DOM refs ===
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const dom = {
+                title: $('#title'),
+                subtitle: $('#subtitle'),
+                topResult: $('#top-result'),
+                topSolution: $('#top-solution'),
+                answer: $('#answer'),
+                code: $('#code'),
+                stepTitle: $('#step-title'),
+                stepDesc: $('#step-desc'),
+                op: $('#op'),
+                canvas: $('#canvas'),
+                prev: $('#prev'),
+                play: $('#play'),
+                next: $('#next'),
+                range: $('#range'),
+                counter: $('#counter'),
+                timeline: $('#timeline'),
+                teaching: $('#teaching'),
+                state: $('#state'),
+                stepEvidence: $('#step-evidence'),
+                stepTitleMini: $('#step-title-mini'),
+                checkpointContainer: $('#checkpoint-container'),
+                cpQuestion: $('#cp-question'),
+                cpOptions: $('#cp-options'),
+                cpSubmit: $('#cp-submit'),
+                cpHint: $('#cp-hint'),
+                cpShowAnswer: $('#cp-show-answer'),
+                cpFeedback: $('#cp-feedback'),
+                learningLog: $('#learning-log'),
+                svgRoot: document.querySelector('#canvas svg'),
+            };
+
+            const TOTAL_STEPS = 8;
+            let currentStep = 1;
+            let playInterval = null;
+            let isPlaying = false;
+            let checkpointAnswered = {};
+            let selectedCpOption = null;
+            let cpRevealed = false;
+
+            // === Step Data ===
+            const steps = [];
+            // Step 1: Init
+            steps[1] = {
+                title: '初始化 DFS',
+                desc: '准备从根节点 3 开始深度优先搜索，目标找到 p=5 和 q=1 的最近公共祖先。',
+                op: 'init',
+                stateJSON: '{"phase":"init","currentNode":"3","p":"5","q":"1","leftResult":null,"rightResult":null,"lca":null}',
+                teaching: '我们使用 DFS 递归遍历二叉树。每个节点返回其子树中是否包含 p 或 q。当某个节点的左右子树分别包含 p 和 q（或节点自身就是其中之一），该节点即为 LCA。初始时从根节点 3 开始。',
+                evidence: '<strong>operation:</strong> init<br><strong>targets:</strong> p=5, q=1, root=3<br><strong>before:</strong> 未开始遍历<br><strong>after:</strong> 准备从根节点递归',
+                codeLine: 1,
+                highlightNodes: [],
+                highlightEdges: [],
+                nodeClasses: { '3': 'default', '5': 'p-node', '1': 'q-node', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'root', '5': 'p', '1': 'q' },
+                hasCheckpoint: false,
+            };
+
+            // Step 2: Visit root node 3
+            steps[2] = {
+                title: '访问根节点 3',
+                desc: '当前节点为 3。检查是否等于 p(5) 或 q(1)——都不是。需要继续递归检查左右子树。',
+                op: 'visit(node=3)',
+                stateJSON: '{"phase":"visiting","currentNode":"3","p":"5","q":"1","nodeIsP":false,"nodeIsQ":false,"leftResult":null,"rightResult":null,"lca":null}',
+                teaching: '访问节点 3，它既不是 p=5 也不是 q=1，因此不能直接返回。根据 DFS 逻辑，我们需要先递归左子树，再递归右子树，然后综合判断。节点 3 自身不命中，所以 current=false。',
+                evidence: '<strong>operation:</strong> visit node 3<br><strong>targets:</strong> check if node==p or node==q<br><strong>before:</strong> 未访问<br><strong>after:</strong> 节点3不命中，需递归子树',
+                codeLine: 3,
+                highlightNodes: ['3'],
+                highlightEdges: [],
+                nodeClasses: { '3': 'current', '5': 'p-node', '1': 'q-node', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'root ⬅', '5': 'p', '1': 'q' },
+                hasCheckpoint: false,
+            };
+
+            // Step 3: Recurse left to node 5
+            steps[3] = {
+                title: '递归左子树 → 节点 5',
+                desc: '从节点 3 递归进入左子节点 5。当前节点为 5，检查是否等于 p(5) 或 q(1)——命中 p=5！',
+                op: 'dfs(left→5)',
+                stateJSON: '{"phase":"left_recursion","currentNode":"5","p":"5","q":"1","nodeIsP":true,"nodeIsQ":false,"hit":"p","lca":null}',
+                teaching: '递归进入左子树节点 5。节点 5 等于 p，根据 DFS 逻辑（代码第3行），当 node==p 或 node==q 时直接返回该节点。这意味着左子树递归将返回节点 5（非 null），表示在左子树中找到了目标节点。',
+                evidence: '<strong>operation:</strong> dfs(node.left) → node 5<br><strong>targets:</strong> check node 5 == p? yes<br><strong>before:</strong> left=null<br><strong>after:</strong> 命中 p=5，左子树将返回节点5',
+                codeLine: 4,
+                highlightNodes: ['5', '3'],
+                highlightEdges: ['edge-3-5'],
+                nodeClasses: { '3': 'default', '5': 'current', '1': 'q-node', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'root', '5': 'p ⬅', '1': 'q' },
+                hasCheckpoint: true,
+                checkpoint: {
+                    question: '当 DFS 访问节点 5 时，发现 node==p，此时函数应该返回什么？',
+                    options: ['返回 null', '返回节点 5', '返回节点 3', '继续递归节点5的子节点'],
+                    correctIndex: 1,
+                    hint: '回顾代码第3行：if node == p or node == q: return node。节点5正好等于p。',
+                    answerExplanation: '正确！当节点等于 p 或 q 时，根据 DFS 逻辑（代码第3行），直接返回该节点。节点 5 等于 p，因此返回节点 5，表示在左子树中找到了 p。',
+                    wrongExplanations: [
+                        '返回 null 意味着没有找到任何目标，但节点5恰好是p，应该返回它。',
+                        '返回节点3是父节点，但当前函数在节点5的上下文中执行，返回的应该是节点5自身。',
+                        '虽然节点5有子节点6和2，但因为它本身就是p，不需要继续递归子节点。代码第3行在递归之前就触发了。',
+                    ],
+                },
+            };
+
+            // Step 4: Left returns true (hit p=5)
+            steps[4] = {
+                title: '左子树命中 p=5 ✓',
+                desc: '节点 5 命中 p，左子树递归返回节点 5（非 null）。在节点 3 的视角，left = 节点5（truthy）。',
+                op: 'left=node5(truthy)',
+                stateJSON: '{"phase":"left_done","currentNode":"3","p":"5","q":"1","leftResult":"node5","rightResult":null,"lca":null}',
+                teaching: '左子树递归完成，返回了节点 5（非 null 值）。对于节点 3 来说，left 变量现在指向节点 5。但这还不足以确定 LCA——我们还需要检查右子树的结果。如果右子树也为 truthy，则节点 3 就是 LCA。',
+                evidence: '<strong>operation:</strong> left = dfs(3.left) = node 5<br><strong>targets:</strong> 左子树结果<br><strong>before:</strong> left=null<br><strong>after:</strong> left=node5（命中p），需继续检查右子树',
+                codeLine: 4,
+                highlightNodes: ['5', '3'],
+                highlightEdges: ['edge-3-5'],
+                nodeClasses: { '3': 'default', '5': 'hit', '1': 'q-node', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'root', '5': 'p ✓', '1': 'q' },
+                hasCheckpoint: false,
+            };
+
+            // Step 5: Recurse right to node 1
+            steps[5] = {
+                title: '递归右子树 → 节点 1',
+                desc: '从节点 3 递归进入右子节点 1。当前节点为 1，检查是否等于 p(5) 或 q(1)——命中 q=1！',
+                op: 'dfs(right→1)',
+                stateJSON: '{"phase":"right_recursion","currentNode":"1","p":"5","q":"1","nodeIsP":false,"nodeIsQ":true,"hit":"q","lca":null}',
+                teaching: '递归进入右子树节点 1。节点 1 等于 q，根据 DFS 逻辑直接返回节点 1。这意味着右子树递归将返回节点 1（非 null），表示在右子树中找到了目标节点 q。',
+                evidence: '<strong>operation:</strong> dfs(node.right) → node 1<br><strong>targets:</strong> check node 1 == q? yes<br><strong>before:</strong> right=null<br><strong>after:</strong> 命中 q=1，右子树将返回节点1',
+                codeLine: 5,
+                highlightNodes: ['1', '3'],
+                highlightEdges: ['edge-3-1'],
+                nodeClasses: { '3': 'default', '5': 'hit', '1': 'current', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'root', '5': 'p ✓', '1': 'q ⬅' },
+                hasCheckpoint: true,
+                checkpoint: {
+                    question: '右子树递归访问节点 1 时命中 q。此时节点 3 的 left=节点5，right 将等于什么？',
+                    options: ['null', '节点 1', '节点 3', 'undefined'],
+                    correctIndex: 1,
+                    hint: '节点1等于q，代码第3行触发直接返回。所以right将被赋值为节点1。',
+                    answerExplanation: '正确！节点 1 等于 q，根据代码第3行直接返回节点 1。因此 right = 节点1（truthy）。现在节点 3 的 left 和 right 都是 truthy 值。',
+                    wrongExplanations: [
+                        'null 意味着没找到，但节点1就是q，应该返回节点1。',
+                        '节点3是父节点，不会作为right的结果返回。right接收的是dfs(3.right)的返回值。',
+                        'undefined 不是有效的返回值，DFS函数总是返回节点或null。',
+                    ],
+                },
+            };
+
+            // Step 6: Right returns true (hit q=1)
+            steps[6] = {
+                title: '右子树命中 q=1 ✓',
+                desc: '节点 1 命中 q，右子树递归返回节点 1（非 null）。在节点 3 的视角，right = 节点1（truthy）。此时 left 和 right 都为 truthy！',
+                op: 'right=node1(truthy)',
+                stateJSON: '{"phase":"right_done","currentNode":"3","p":"5","q":"1","leftResult":"node5","rightResult":"node1","bothTruthy":true,"lca":null}',
+                teaching: '右子树递归完成，返回了节点 1。现在节点 3 的 left=节点5（truthy），right=节点1（truthy）。根据代码第6行：if left and right: return node——这意味着左右子树各命中一个目标，当前节点 3 就是最近公共祖先！',
+                evidence: '<strong>operation:</strong> right = dfs(3.right) = node 1<br><strong>targets:</strong> 右子树结果<br><strong>before:</strong> right=null<br><strong>after:</strong> right=node1（命中q），left=node5，两者都truthy→触发LCA判断',
+                codeLine: 5,
+                highlightNodes: ['1', '3', '5'],
+                highlightEdges: ['edge-3-1', 'edge-3-5'],
+                nodeClasses: { '3': 'default', '5': 'hit', '1': 'hit', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'root', '5': 'p ✓', '1': 'q ✓' },
+                hasCheckpoint: false,
+            };
+
+            // Step 7: LCA determined = 3
+            steps[7] = {
+                title: '确定 LCA = 节点 3 🎯',
+                desc: '节点 3 发现 left 和 right 都为 truthy（分别命中了 p 和 q），根据代码第6行返回节点 3。节点 3 是最近公共祖先！',
+                op: 'return node 3 (LCA)',
+                stateJSON: '{"phase":"lca_found","currentNode":"3","p":"5","q":"1","leftResult":"node5","rightResult":"node1","lca":"3","reason":"left && right both truthy"}',
+                teaching: '这是关键步骤！当节点 3 的 left（节点5，命中p）和 right（节点1，命中q）都为 truthy 时，说明 p 和 q 分别位于当前节点的左右子树中。因此当前节点 3 就是它们的最近公共祖先。代码第6行：if left and right: return node 正是这个逻辑。',
+                evidence: '<strong>operation:</strong> check left && right → both truthy → return node 3<br><strong>targets:</strong> left=node5, right=node1<br><strong>before:</strong> LCA未知<br><strong>after:</strong> 确定LCA=节点3，因为p在左子树、q在右子树',
+                codeLine: 6,
+                highlightNodes: ['3', '5', '1'],
+                highlightEdges: ['edge-3-5', 'edge-3-1'],
+                nodeClasses: { '3': 'lca-found', '5': 'hit', '1': 'hit', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'LCA! 🎯', '5': 'p ✓', '1': 'q ✓' },
+                hasCheckpoint: true,
+                checkpoint: {
+                    question: '为什么节点 3 是 p=5 和 q=1 的最近公共祖先？',
+                    options: [
+                        '因为节点3的左右子树分别包含p和q，且深度最大',
+                        '因为节点3是根节点',
+                        '因为节点3距离p和q最近',
+                        '因为节点5和节点1都是节点3的子节点'
+                    ],
+                    correctIndex: 0,
+                    hint: 'LCA的条件是：同时是p和q的祖先，且深度最大。节点3满足：p在左子树，q在右子树，没有更深的节点同时包含两者。',
+                    answerExplanation: '正确！节点3的左右子树分别包含p和q，这意味着节点3同时是p和q的祖先。而且由于p和q分属左右子树，节点3的任何子节点都无法同时包含p和q，因此节点3是深度最大的公共祖先。',
+                    wrongExplanations: [
+                        '根节点确实是公共祖先，但"最近"意味着深度最大。节点3恰好是根节点且是最深的公共祖先，但理由应该是左右子树分别包含p和q。',
+                        '距离最近不是充分条件，需要严格满足"左右子树各包含一个目标"或"节点自身是目标且子树包含另一个"。',
+                        '虽然节点5和1都是节点3的子节点，但p=5在左子树深层、q=1在右子树，仅凭"是子节点"不足以说明LCA——关键是他们分属左右两侧。',
+                    ],
+                },
+            };
+
+            // Step 8: Return result
+            steps[8] = {
+                title: '返回最终结果 ✅',
+                desc: 'DFS 完成，最终返回节点 3 作为 LCA。算法结束，答案确认为 3。',
+                op: 'final_answer=3',
+                stateJSON: '{"phase":"complete","lca":"3","p":"5","q":"1","verified":true}',
+                teaching: '算法执行完毕。从根节点开始的 DFS 递归成功找到了 LCA。这个算法的时间复杂度为 O(n)（每个节点访问一次），空间复杂度为 O(h)（递归栈深度，h为树高）。最终答案：节点 3。',
+                evidence: '<strong>operation:</strong> return final LCA<br><strong>targets:</strong> 最终答案<br><strong>before:</strong> LCA=3已确定<br><strong>after:</strong> 算法返回节点3，与期望输出一致',
+                codeLine: 7,
+                highlightNodes: ['3'],
+                highlightEdges: [],
+                nodeClasses: { '3': 'lca-found', '5': 'hit', '1': 'hit', '6': 'default', '2': 'default',
+                    '0': 'default', '8': 'default', '7': 'default', '4': 'default' },
+                tags: { '3': 'LCA ✅', '5': 'p ✓', '1': 'q ✓' },
+                hasCheckpoint: false,
+            };
+
+            // === Apply step to DOM ===
+            function applyStep(stepNum) {
+                const s = steps[stepNum];
+                if (!s) return;
+
+                // Update text elements
+                dom.stepTitle.textContent = s.title;
+                dom.stepDesc.textContent = s.desc;
+                dom.op.textContent = s.op;
+                dom.state.textContent = s.stateJSON;
+                dom.teaching.innerHTML = s.teaching;
+                dom.stepEvidence.innerHTML = s.evidence;
+                dom.counter.textContent = stepNum + ' / ' + TOTAL_STEPS;
+                dom.stepTitleMini.textContent = s.title;
+                dom.range.value = stepNum;
+                dom.answer.textContent = '3';
+                dom.topResult.textContent = '3';
+                dom.topSolution.textContent = 'LCA(5,1) = 节点 3';
+
+                // Highlight code line
+                const codeLines = dom.code.querySelectorAll('.code-line');
+                codeLines.forEach((cl, i) => {
+                    cl.classList.remove('highlight', 'dim');
+                    if (i + 1 === s.codeLine) {
+                        cl.classList.add('highlight');
+                    } else if (Math.abs(i + 1 - s.codeLine) > 2) {
+                        cl.classList.add('dim');
+                    }
+                });
+
+                // Update SVG node classes
+                const allNodeIds = ['3', '5', '1', '6', '2', '0', '8', '7', '4'];
+                allNodeIds.forEach(nid => {
+                    const circle = document.getElementById('node-' + nid);
+                    const tag = document.getElementById('tag-' + nid);
+                    if (circle) {
+                        circle.classList.remove('default', 'p-node', 'q-node', 'current', 'lca-found',
+                            'hit');
+                        const cls = s.nodeClasses[nid] || 'default';
+                        circle.classList.add(cls);
+                    }
+                    if (tag && s.tags[nid]) {
+                        tag.textContent = s.tags[nid];
+                        if (s.tags[nid].includes('LCA') || s.tags[nid].includes('🎯') || s.tags[nid]
+                            .includes('✅')) {
+                            tag.setAttribute('fill', '#f0c040');
+                        } else if (s.tags[nid].includes('p')) {
+                            tag.setAttribute('fill', '#d19a66');
+                        } else if (s.tags[nid].includes('q')) {
+                            tag.setAttribute('fill', '#98c379');
+                        } else if (s.tags[nid].includes('⬅')) {
+                            tag.setAttribute('fill', '#e5c07b');
+                        } else {
+                            tag.setAttribute('fill', '#a0a6b4');
+                        }
+                    } else if (tag && !s.tags[nid]) {
+                        tag.textContent = '';
+                    }
+                });
+
+                // Update edges
+                const allEdgeIds = ['edge-3-5', 'edge-3-1', 'edge-5-6', 'edge-5-2', 'edge-1-0', 'edge-1-8',
+                    'edge-2-7', 'edge-2-4'
+                ];
+                allEdgeIds.forEach(eid => {
+                    const edge = document.getElementById(eid);
+                    if (edge) {
+                        edge.classList.remove('highlight-edge', 'dim-edge');
+                        if (s.highlightEdges.includes(eid)) {
+                            edge.classList.add('highlight-edge');
+                        } else if (s.highlightNodes.length > 0 && !s.highlightEdges.includes(eid) &&
+                            stepNum > 2) {
+                            edge.classList.add('dim-edge');
+                        }
+                    }
+                });
+
+                // Update timeline ticks
+                const ticks = dom.timeline.querySelectorAll('.tick');
+                ticks.forEach(tick => {
+                    const ts = parseInt(tick.getAttribute('data-step'));
+                    tick.classList.remove('active', 'done');
+                    if (ts === stepNum) {
+                        tick.classList.add('active');
+                    } else if (ts < stepNum) {
+                        tick.classList.add('done');
+                    }
+                });
+
+                // Update prev/next button states
+                dom.prev.disabled = (stepNum <= 1);
+                dom.next.disabled = (stepNum >= TOTAL_STEPS);
+                if (stepNum <= 1) dom.prev.style.opacity = '0.5';
+                else dom.prev.style.opacity = '1';
+                if (stepNum >= TOTAL_STEPS) dom.next.style.opacity = '0.5';
+                else dom.next.style.opacity = '1';
+
+                // Checkpoint
+                updateCheckpoint(stepNum);
+
+                currentStep = stepNum;
+            }
+
+            // === Checkpoint logic ===
+            function updateCheckpoint(stepNum) {
+                const s = steps[stepNum];
+                dom.checkpointContainer.style.display = s.hasCheckpoint ? 'block' : 'none';
+                if (!s.hasCheckpoint) {
+                    selectedCpOption = null;
+                    cpRevealed = false;
+                    return;
+                }
+
+                const cp = s.checkpoint;
+                dom.cpQuestion.textContent = cp.question;
+                dom.cpOptions.innerHTML = '';
+                selectedCpOption = null;
+                cpRevealed = false;
+
+                cp.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.textContent = opt;
+                    btn.setAttribute('data-opt-index', idx);
+                    btn.addEventListener('click', () => {
+                        // Deselect all
+                        dom.cpOptions.querySelectorAll('button').forEach(b => b.classList.remove(
+                            'selected'));
+                        btn.classList.add('selected');
+                        selectedCpOption = idx;
+                        cpRevealed = false;
+                        dom.cpFeedback.textContent = '已选择: ' + opt + ' — 请点击提交。';
+                        dom.cpFeedback.className = 'feedback info';
+                        // Remove flash classes
+                        dom.cpOptions.querySelectorAll('button').forEach(b => {
+                            b.classList.remove('correct-flash', 'wrong-flash');
+                        });
+                    });
+                    dom.cpOptions.appendChild(btn);
+                });
+
+                dom.cpFeedback.textContent = '请选择一个选项并点击提交。';
+                dom.cpFeedback.className = 'feedback info';
+
+                // If already answered for this step, restore
+                if (checkpointAnswered[stepNum]) {
+                    const prev = checkpointAnswered[stepNum];
+                    selectedCpOption = prev.selected;
+                    cpRevealed = prev.revealed;
+                    if (selectedCpOption !== null) {
+                        const btns = dom.cpOptions.querySelectorAll('button');
+                        btns.forEach(b => {
+                            b.classList.remove('selected');
+                            if (parseInt(b.getAttribute('data-opt-index')) === selectedCpOption) {
+                                b.classList.add('selected');
+                                if (prev.isCorrect) b.classList.add('correct-flash');
+                                else if (prev.submitted && !prev.isCorrect) b.classList.add(
+                                    'wrong-flash');
+                            }
+                        });
+                    }
+                    if (prev.submitted && prev.isCorrect) {
+                        dom.cpFeedback.textContent = '✅ ' + cp.answerExplanation;
+                        dom.cpFeedback.className = 'feedback correct';
+                    } else if (prev.submitted && !prev.isCorrect) {
+                        dom.cpFeedback.textContent = '❌ ' + (cp.wrongExplanations[prev.selected] ||
+                            '答案不正确，请再试一次。');
+                        dom.cpFeedback.className = 'feedback wrong';
+                    }
+                }
+            }
+
+            function submitCheckpoint() {
+                const stepNum = currentStep;
+                const s = steps[stepNum];
+                if (!s || !s.hasCheckpoint) return;
+                const cp = s.checkpoint;
+
+                if (selectedCpOption === null) {
+                    dom.cpFeedback.textContent = '⚠️ 请先选择一个选项。';
+                    dom.cpFeedback.className = 'feedback info';
+                    return;
+                }
+
+                const isCorrect = (selectedCpOption === cp.correctIndex);
+                const btns = dom.cpOptions.querySelectorAll('button');
+                btns.forEach(b => {
+                    b.classList.remove('correct-flash', 'wrong-flash');
+                    if (parseInt(b.getAttribute('data-opt-index')) === selectedCpOption) {
+                        if (isCorrect) b.classList.add('correct-flash');
+                        else b.classList.add('wrong-flash');
+                    }
+                });
+
+                if (isCorrect) {
+                    dom.cpFeedback.textContent = '✅ ' + cp.answerExplanation;
+                    dom.cpFeedback.className = 'feedback correct';
+                } else {
+                    dom.cpFeedback.textContent = '❌ ' + (cp.wrongExplanations[selectedCpOption] ||
+                        '答案不正确。');
+                    dom.cpFeedback.className = 'feedback wrong';
+                }
+
+                cpRevealed = true;
+                checkpointAnswered[stepNum] = {
+                    selected: selectedCpOption,
+                    submitted: true,
+                    isCorrect: isCorrect,
+                    revealed: true,
+                };
+
+                // Log to learning log
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry ' + (isCorrect ? 'correct-log' : 'wrong-log');
+                const ts = new Date().toLocaleTimeString();
+                logEntry.textContent = '[' + ts + '] 步骤' + stepNum + ' 检查点: ' + (isCorrect ? '✅ 正确' :
+                    '❌ 错误') + ' — 选择了"' + cp.options[selectedCpOption] + '"';
+                dom.learningLog.appendChild(logEntry);
+                dom.learningLog.scrollTop = dom.learningLog.scrollHeight;
+            }
+
+            function showCheckpointHint() {
+                const stepNum = currentStep;
+                const s = steps[stepNum];
+                if (!s || !s.hasCheckpoint) return;
+                dom.cpFeedback.textContent = '💡 提示: ' + s.checkpoint.hint;
+                dom.cpFeedback.className = 'feedback info';
+                // Log
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry info-log';
+                const ts = new Date().toLocaleTimeString();
+                logEntry.textContent = '[' + ts + '] 步骤' + stepNum + ' 查看提示: ' + s.checkpoint.hint;
+                dom.learningLog.appendChild(logEntry);
+                dom.learningLog.scrollTop = dom.learningLog.scrollHeight;
+            }
+
+            function showCheckpointAnswer() {
+                const stepNum = currentStep;
+                const s = steps[stepNum];
+                if (!s || !s.hasCheckpoint) return;
+                const cp = s.checkpoint;
+                selectedCpOption = cp.correctIndex;
+                cpRevealed = true;
+                const btns = dom.cpOptions.querySelectorAll('button');
+                btns.forEach(b => {
+                    b.classList.remove('selected', 'correct-flash', 'wrong-flash');
+                    if (parseInt(b.getAttribute('data-opt-index')) === cp.correctIndex) {
+                        b.classList.add('selected', 'correct-flash');
+                    }
+                });
+                dom.cpFeedback.textContent = '👁️ 正确答案: ' + cp.options[cp.correctIndex] + ' — ' + cp
+                    .answerExplanation;
+                dom.cpFeedback.className = 'feedback correct';
+                checkpointAnswered[stepNum] = {
+                    selected: cp.correctIndex,
+                    submitted: true,
+                    isCorrect: true,
+                    revealed: true,
+                };
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry info-log';
+                const ts = new Date().toLocaleTimeString();
+                logEntry.textContent = '[' + ts + '] 步骤' + stepNum + ' 显示答案: ' + cp.options[cp.correctIndex];
+                dom.learningLog.appendChild(logEntry);
+                dom.learningLog.scrollTop = dom.learningLog.scrollHeight;
+            }
+
+            // === Navigation ===
+            function goToStep(stepNum) {
+                stepNum = Math.max(1, Math.min(TOTAL_STEPS, stepNum));
+                if (stepNum === currentStep && steps[stepNum]) {
+                    applyStep(stepNum);
+                    return;
+                }
+                applyStep(stepNum);
+                dom.range.value = stepNum;
+            }
+
+            function nextStep() {
+                if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+                else stopPlay();
+            }
+
+            function prevStep() {
+                if (currentStep > 1) goToStep(currentStep - 1);
+                else stopPlay();
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                dom.play.textContent = '⏸ 暂停';
+                dom.play.style.background = '#5a3d28';
+                dom.play.style.borderColor = '#d19a66';
+                playInterval = setInterval(() => {
+                    if (currentStep < TOTAL_STEPS) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                dom.play.textContent = '▶ 播放';
+                dom.play.style.background = '';
+                dom.play.style.borderColor = '';
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) stopPlay();
+                else startPlay();
+            }
+
+            // === Event Listeners ===
+            dom.prev.addEventListener('click', () => { stopPlay();
+                prevStep(); });
+            dom.next.addEventListener('click', () => { stopPlay();
+                nextStep(); });
+            dom.play.addEventListener('click', togglePlay);
+            dom.range.addEventListener('input', () => {
+                stopPlay();
+                goToStep(parseInt(dom.range.value));
+            });
+            dom.range.addEventListener('change', () => {
+                goToStep(parseInt(dom.range.value));
+            });
+
+            // Timeline ticks
+            dom.timeline.addEventListener('click', (e) => {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                stopPlay();
+                const stepNum = parseInt(tick.getAttribute('data-step'));
+                if (stepNum) goToStep(stepNum);
+            });
+
+            // Checkpoint buttons
+            dom.cpSubmit.addEventListener('click', submitCheckpoint);
+            dom.cpHint.addEventListener('click', showCheckpointHint);
+            dom.cpShowAnswer.addEventListener('click', showCheckpointAnswer);
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+                if (e.key === 'ArrowRight') { e.preventDefault();
+                    stopPlay();
+                    nextStep(); }
+                if (e.key === 'ArrowLeft') { e.preventDefault();
+                    stopPlay();
+                    prevStep(); }
+                if (e.key === ' ') { e.preventDefault();
+                    togglePlay(); }
+                if (e.key >= '1' && e.key <= '8') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(parseInt(e.key));
+                }
+            });
+
+            // === Initialize ===
+            function init() {
+                dom.answer.textContent = '3';
+                dom.topResult.textContent = '3';
+                dom.topSolution.textContent = 'LCA(5,1) = 节点 3';
+                dom.range.setAttribute('max', TOTAL_STEPS);
+                dom.range.setAttribute('min', '1');
+                dom.range.value = 1;
+                dom.counter.textContent = '1 / ' + TOTAL_STEPS;
+                dom.prev.disabled = true;
+                dom.prev.style.opacity = '0.5';
+                dom.next.disabled = false;
+                dom.next.style.opacity = '1';
+                dom.checkpointContainer.style.display = 'none';
+                goToStep(1);
+                // Initial log
+                const initLog = document.createElement('div');
+                initLog.className = 'log-entry info-log';
+                const ts = new Date().toLocaleTimeString();
+                initLog.textContent = '[' + ts + '] 系统初始化完成。树结构已加载，p=5, q=1，期望LCA=3。';
+                dom.learningLog.appendChild(initLog);
+            }
+
+            init();
+
+            console.log('AlgoLab LCA 教学页面已就绪。使用方向键 ← → 切换步骤，空格键播放/暂停，数字键1-8跳转。');
+        })();
+    </script>
+</body>
+</html>

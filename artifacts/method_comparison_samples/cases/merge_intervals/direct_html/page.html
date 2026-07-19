@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合并区间 - AlgoLab 算法教学</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --accent-light: #eff6ff;
+            --green: #10b981;
+            --green-bg: #ecfdf5;
+            --yellow: #f59e0b;
+            --yellow-bg: #fffbeb;
+            --red: #ef4444;
+            --red-bg: #fef2f2;
+            --blue: #6366f1;
+            --blue-bg: #eef2ff;
+            --orange: #f97316;
+            --orange-bg: #fff7ed;
+            --pending: #93c5fd;
+            --pending-bg: #dbeafe;
+            --current: #fbbf24;
+            --current-bg: #fef3c7;
+            --result: #6ee7b7;
+            --result-bg: #d1fae5;
+            --overlap: #fca5a5;
+            --overlap-bg: #fee2e2;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'DejaVu Sans Mono', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: #f1f5f9;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        #title {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+            margin: 0;
+        }
+
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-weight: 400;
+        }
+
+        .top-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .top-row .card {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 18px;
+        }
+
+        .top-row .card .label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        #top-result,
+        #top-solution {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #0f172a;
+            word-break: break-all;
+            background: #f8fafc;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            min-height: 32px;
+            border: 1px dashed var(--border);
+        }
+
+        #top-solution {
+            color: #059669;
+            border-color: #a7f3d0;
+            background: #f0fdf4;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width: 850px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .top-row {
+                flex-direction: column;
+            }
+        }
+
+        #canvas {
+            min-height: 260px;
+            position: relative;
+            background: #fdfdfd;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            padding: 16px 12px 12px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .canvas-section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .timeline-row {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            min-height: 44px;
+            padding: 6px 0;
+        }
+
+        .timeline-row .row-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #64748b;
+            min-width: 50px;
+            text-align: right;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .interval-bar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            cursor: default;
+            white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            border: 2px solid transparent;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .bar-pending {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1e40af;
+        }
+        .bar-current {
+            background: #fef3c7;
+            border-color: #fbbf24;
+            color: #92400e;
+            animation: pulse-current 1.2s ease-in-out infinite;
+            box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.18);
+            z-index: 2;
+        }
+        .bar-result {
+            background: #d1fae5;
+            border-color: #6ee7b7;
+            color: #065f46;
+        }
+        .bar-overlap-highlight {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #991b1b;
+            box-shadow: 0 0 0 8px rgba(252, 165, 165, 0.25);
+            z-index: 3;
+        }
+        .bar-merged {
+            background: #c7d2fe;
+            border-color: #818cf8;
+            color: #3730a3;
+            font-size: 0.88rem;
+            padding: 10px 16px;
+            box-shadow: 0 0 0 5px rgba(129, 140, 248, 0.2);
+            z-index: 3;
+        }
+        .bar-dependency {
+            border-style: dashed;
+            border-width: 3px;
+            border-color: #f97316;
+            box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.15);
+        }
+
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.18);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(251, 191, 36, 0.06);
+            }
+        }
+
+        .time-axis {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            color: #94a3b8;
+            padding-left: 56px;
+            position: relative;
+            height: 20px;
+            margin-top: 0;
+        }
+        .time-axis span {
+            flex: 1;
+            text-align: center;
+            min-width: 18px;
+        }
+
+        #code {
+            background: #1e293b;
+            color: #e2e8f0;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.7;
+            max-height: 340px;
+            overflow-y: auto;
+            border: 1px solid #334155;
+            position: relative;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        #code .code-line.highlight {
+            background: #fbbf24;
+            color: #1e293b;
+            font-weight: 700;
+            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.35);
+            border-radius: 4px;
+        }
+        #code .code-line.highlight-dim {
+            background: rgba(251, 191, 36, 0.18);
+            color: #fde68a;
+            border-radius: 3px;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 9px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: #334155;
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            user-select: none;
+        }
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-md);
+        }
+        .btn:active {
+            transform: scale(0.96);
+            background: #f1f5f9;
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.accent:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        .btn.play-btn {
+            background: #10b981;
+            color: #fff;
+            border-color: #10b981;
+            font-weight: 700;
+        }
+        .btn.play-btn:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+        .btn.play-btn.paused {
+            background: #f59e0b;
+            border-color: #f59e0b;
+        }
+
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e293b;
+            min-width: 50px;
+            text-align: center;
+            padding: 4px 10px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 6px 0;
+        }
+
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 10px 13px;
+            border-radius: 20px;
+            border: 2px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: var(--font-sans);
+            text-align: center;
+            min-width: 70px;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+            box-shadow: var(--shadow-md);
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: #eff6ff;
+            box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.12);
+            font-weight: 700;
+        }
+        .tick.completed {
+            border-color: #6ee7b7;
+            background: #f0fdf4;
+            opacity: 0.85;
+        }
+        .tick .tick-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: 0.02em;
+        }
+        .tick .tick-op {
+            font-size: 0.6rem;
+            color: #64748b;
+            font-family: var(--font-mono);
+            letter-spacing: 0.01em;
+            line-height: 1.2;
+        }
+        .tick.active .tick-label {
+            color: #1d4ed8;
+        }
+        .tick.active .tick-op {
+            color: #3b82f6;
+        }
+
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-top: 2px;
+        }
+        #op {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 5px 12px;
+            border-radius: 14px;
+            margin-top: 6px;
+            border: 1px solid #fcd34d;
+            letter-spacing: 0.02em;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 140px;
+            overflow-y: auto;
+            color: #334155;
+            line-height: 1.5;
+        }
+        #teaching {
+            font-size: 0.85rem;
+            color: #1e293b;
+            line-height: 1.7;
+            padding: 8px 0;
+        }
+        #step-evidence {
+            font-size: 0.76rem;
+            font-family: var(--font-mono);
+            background: #fffbeb;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #fde68a;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #78350f;
+            line-height: 1.5;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 700;
+            background: #f0fdf4;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 2px solid #6ee7b7;
+            color: #065f46;
+            text-align: center;
+            letter-spacing: 0.02em;
+        }
+
+        .checkpoint-block {
+            background: #fefce8;
+            border: 2px solid #fde68a;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-top: 8px;
+        }
+        .checkpoint-block h4 {
+            font-size: 0.85rem;
+            margin: 0 0 8px 0;
+            color: #78350f;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .checkpoint-block .quiz-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .checkpoint-block .quiz-opt {
+            padding: 8px 16px;
+            border-radius: 18px;
+            border: 2px solid #d4d4d8;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-family: var(--font-mono);
+        }
+        .checkpoint-block .quiz-opt:hover {
+            border-color: #a1a1aa;
+            background: #fafafa;
+        }
+        .checkpoint-block .quiz-opt.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #1d4ed8;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .checkpoint-block .quiz-opt.correct-flash {
+            border-color: #10b981 !important;
+            background: #d1fae5 !important;
+            color: #065f46 !important;
+            animation: flash-green 0.6s ease-out;
+        }
+        .checkpoint-block .quiz-opt.wrong-flash {
+            border-color: #ef4444 !important;
+            background: #fee2e2 !important;
+            color: #991b1b !important;
+            animation: flash-red 0.6s ease-out;
+        }
+        @keyframes flash-green {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            100% {
+                box-shadow: 0 0 0 18px rgba(16, 185, 129, 0);
+            }
+        }
+        @keyframes flash-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            100% {
+                box-shadow: 0 0 0 18px rgba(239, 68, 68, 0);
+            }
+        }
+        .checkpoint-block .feedback-area {
+            font-size: 0.8rem;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            margin-top: 6px;
+            min-height: 28px;
+            font-weight: 600;
+        }
+        .feedback-correct {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .feedback-wrong {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .learning-log {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: #64748b;
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            max-height: 100px;
+            overflow-y: auto;
+            border: 1px dashed #e2e8f0;
+        }
+        .learning-log .log-entry {
+            padding: 2px 0;
+            border-bottom: 1px dotted #e2e8f0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        button {
+            font-family: var(--font-sans);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 标题 -->
+        <div class="card" style="padding:16px 20px;">
+            <h1 id="title">合并区间</h1>
+            <p id="subtitle">贪心算法 · 按起点排序 · 维护已合并结果并扩展</p>
+        </div>
+
+        <!-- 顶部结果展示 -->
+        <div class="top-row">
+            <div class="card">
+                <div class="label">当前合并进度</div>
+                <div id="top-result">[]</div>
+            </div>
+            <div class="card">
+                <div class="label">期望最终答案</div>
+                <div id="top-solution">[[1, 6], [8, 10], [15, 18]]</div>
+            </div>
+        </div>
+
+        <!-- 主体：canvas + code -->
+        <div class="main-grid">
+            <div class="card" style="padding:14px 16px;">
+                <div class="canvas-section-label">📐 算法视图</div>
+                <div id="canvas">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+            <div class="card" style="padding:14px 16px;">
+                <div class="canvas-section-label" style="margin-bottom:6px;">💻 算法代码</div>
+                <pre id="code"></pre>
+            </div>
+        </div>
+
+        <!-- 控制区 -->
+        <div class="card" style="padding:12px 18px;">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="上一步">◀ 上一步</button>
+                <button class="btn play-btn" id="play" title="自动播放">▶ 播放</button>
+                <button class="btn" id="next" title="下一步">下一步 ▶</button>
+                <span id="counter">1 / 6</span>
+                <input type="range" id="range" min="1" max="6" value="1" step="1" title="步骤滑块">
+            </div>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- 步骤详情 -->
+        <div class="card" style="padding:16px 20px;">
+            <h3 id="step-title">步骤 1：初始化</h3>
+            <p id="step-desc">准备输入数据，按起点排序区间列表。</p>
+            <span id="op">排序区间</span>
+            <div style="margin-top:8px;">
+                <div class="canvas-section-label">状态摘要</div>
+                <div id="state"></div>
+            </div>
+            <div style="margin-top:8px;">
+                <div class="canvas-section-label">讲解</div>
+                <div id="teaching"></div>
+            </div>
+            <div style="margin-top:8px;">
+                <div class="canvas-section-label">步骤证据</div>
+                <div id="step-evidence"></div>
+            </div>
+            <!-- Checkpoint 区域 -->
+            <div id="checkpoint-container"></div>
+            <!-- Learning Log -->
+            <div class="learning-log" id="learning-log">
+                <strong>📝 学习日志</strong>
+                <div id="log-entries">暂无记录</div>
+            </div>
+        </div>
+
+        <!-- 最终答案 -->
+        <div class="card" style="padding:14px 20px; text-align:center;">
+            <div class="canvas-section-label">✅ 最终答案</div>
+            <div id="answer">[[1, 6], [8, 10], [15, 18]]</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ 数据定义 ============
+            const intervals = [
+                [1, 3],
+                [2, 6],
+                [8, 10],
+                [15, 18]
+            ];
+            const sortedIntervals = [...intervals].sort((a, b) => a[0] - b[0]); // [[1,3],[2,6],[8,10],[15,18]]
+            const finalAnswer = [
+                [1, 6],
+                [8, 10],
+                [15, 18]
+            ];
+            const totalSteps = 6;
+
+            // 步骤定义
+            const steps = [{
+                id: 1,
+                title: '步骤 1：初始化与排序',
+                desc: '将输入区间按起点升序排序。输入已有序：[[1,3],[2,6],[8,10],[15,18]]。结果列表初始为空。',
+                op: '排序 & 初始化',
+                resultState: [],
+                currentIdx: -1,
+                currentInterval: null,
+                lastResult: null,
+                overlapDetected: false,
+                mergedResult: null,
+                action: 'init',
+                codeHighlightLines: [1, 2, 3],
+                teaching: '首先，将所有区间按起点排序。这是贪心策略的关键——只有排序后，我们才能保证按顺序处理时，重叠区间一定是相邻的。结果列表 <code>merged</code> 初始为空。',
+                evidence: 'operation: sort_and_init\ntargets: intervals = [[1,3],[2,6],[8,10],[15,18]]\nbefore: 原始输入\nafter: sorted = [[1,3],[2,6],[8,10],[15,18]], merged = []',
+                tickLabel: '初始化',
+                tickOp: '排序区间',
+                canvasBars: {
+                    inputBars: [
+                        { val: [1, 3], cls: 'bar-pending' },
+                        { val: [2, 6], cls: 'bar-pending' },
+                        { val: [8, 10], cls: 'bar-pending' },
+                        { val: [15, 18], cls: 'bar-pending' }
+                    ],
+                    resultBars: [],
+                    highlightIdx: -1,
+                    dependencyIdx: -1,
+                    overlapPair: null,
+                    mergedBar: null,
+                },
+                checkpoint: null,
+            }, {
+                id: 2,
+                title: '步骤 2：处理第一个区间 [1,3]',
+                desc: '结果列表为空，直接将 [1,3] 加入 merged。merged = [[1,3]]。',
+                op: '加入 [1,3] 到结果',
+                resultState: [
+                    [1, 3]
+                ],
+                currentIdx: 0,
+                currentInterval: [1, 3],
+                lastResult: [1, 3],
+                overlapDetected: false,
+                mergedResult: null,
+                action: 'add_first',
+                codeHighlightLines: [4, 5],
+                teaching: '处理第 1 个区间 <strong>[1,3]</strong>。由于 merged 为空，直接将其加入结果。这是基准情况——第一个区间总是直接加入。',
+                evidence: 'operation: add_first\n targets: interval=[1,3], merged=[]\nbefore: merged = []\nafter: merged = [[1,3]]\nreason: 结果为空，无需比较，直接加入',
+                tickLabel: '区间1',
+                tickOp: '加入[1,3]',
+                canvasBars: {
+                    inputBars: [
+                        { val: [1, 3], cls: 'bar-current' },
+                        { val: [2, 6], cls: 'bar-pending' },
+                        { val: [8, 10], cls: 'bar-pending' },
+                        { val: [15, 18], cls: 'bar-pending' }
+                    ],
+                    resultBars: [
+                        { val: [1, 3], cls: 'bar-result' }
+                    ],
+                    highlightIdx: 0,
+                    dependencyIdx: -1,
+                    overlapPair: null,
+                    mergedBar: null,
+                },
+                checkpoint: null,
+            }, {
+                id: 3,
+                title: '步骤 3：处理 [2,6]，检测重叠并合并',
+                desc: '当前区间 [2,6] 与 merged 最后一个 [1,3] 重叠（2 ≤ 3），合并为 [1,6]。merged = [[1,6]]。',
+                op: '合并 [2,6] → [1,6]',
+                resultState: [
+                    [1, 6]
+                ],
+                currentIdx: 1,
+                currentInterval: [2, 6],
+                lastResult: [1, 3],
+                overlapDetected: true,
+                mergedResult: [1, 6],
+                action: 'merge',
+                codeHighlightLines: [6, 7, 8, 9],
+                teaching: '处理第 2 个区间 <strong>[2,6]</strong>。检查它是否与 merged 的最后一个区间 <strong>[1,3]</strong> 重叠：判断条件为 <code>2 ≤ 3</code>（当前起点 ≤ 上一个终点），成立！因此合并，取 <code>max(3,6)=6</code> 作为新终点，得到 <strong>[1,6]</strong>。',
+                evidence: 'operation: merge\n targets: current=[2,6], last_merged=[1,3]\nbefore: merged = [[1,3]], checking [2,6]\noverlap_check: 2 <= 3 → true\nafter: merged = [[1,6]] (合并完成)\nmerged_end = max(3, 6) = 6',
+                tickLabel: '区间2',
+                tickOp: '合并→[1,6]',
+                canvasBars: {
+                    inputBars: [
+                        { val: [1, 3], cls: 'bar-result bar-dependency' },
+                        { val: [2, 6], cls: 'bar-overlap-highlight' },
+                        { val: [8, 10], cls: 'bar-pending' },
+                        { val: [15, 18], cls: 'bar-pending' }
+                    ],
+                    resultBars: [
+                        { val: [1, 6], cls: 'bar-merged' }
+                    ],
+                    highlightIdx: 1,
+                    dependencyIdx: 0,
+                    overlapPair: [0, 1],
+                    mergedBar: { val: [1, 6], cls: 'bar-merged' },
+                },
+                checkpoint: {
+                    question: '当前 merged = [[1,6]]，下一个待处理区间是 [8,10]。请问 [8,10] 会与 [1,6] 合并吗？',
+                    options: ['A. 会合并，因为区间相邻', 'B. 不会合并，因为 8 > 6 无重叠', 'C. 会合并，因为 8 < 10'],
+                    correctIdx: 1,
+                    hint: '判断条件：当前区间的起点 ≤ 上一个结果的终点。8 ≤ 6 成立吗？',
+                    explanationCorrect: '正确！8 > 6，所以 [8,10] 与 [1,6] 不重叠，将直接加入结果。重叠判断条件是 current[0] ≤ last[1]。',
+                    explanationWrong: '再想想：重叠判断条件是 current[0] ≤ last[1]。这里 8 ≤ 6 为 false，所以不会合并。常见误区是混淆起点和终点。',
+                },
+            }, {
+                id: 4,
+                title: '步骤 4：处理 [8,10]，无重叠直接加入',
+                desc: '当前区间 [8,10] 与 merged 最后一个 [1,6] 不重叠（8 > 6），直接加入。merged = [[1,6],[8,10]]。',
+                op: '加入 [8,10]',
+                resultState: [
+                    [1, 6],
+                    [8, 10]
+                ],
+                currentIdx: 2,
+                currentInterval: [8, 10],
+                lastResult: [1, 6],
+                overlapDetected: false,
+                mergedResult: null,
+                action: 'add_no_overlap',
+                codeHighlightLines: [6, 7, 10, 11],
+                teaching: '处理第 3 个区间 <strong>[8,10]</strong>。检查与 merged 最后一个 <strong>[1,6]</strong> 的重叠：<code>8 ≤ 6</code> 为 false，不重叠。因此直接将 [8,10] 加入结果。',
+                evidence: 'operation: add_no_overlap\n targets: current=[8,10], last_merged=[1,6]\nbefore: merged = [[1,6]]\noverlap_check: 8 <= 6 → false\nafter: merged = [[1,6],[8,10]]\nreason: 无重叠，直接追加',
+                tickLabel: '区间3',
+                tickOp: '加入[8,10]',
+                canvasBars: {
+                    inputBars: [
+                        { val: [1, 3], cls: 'bar-result' },
+                        { val: [2, 6], cls: 'bar-result' },
+                        { val: [8, 10], cls: 'bar-current' },
+                        { val: [15, 18], cls: 'bar-pending' }
+                    ],
+                    resultBars: [
+                        { val: [1, 6], cls: 'bar-result' },
+                        { val: [8, 10], cls: 'bar-result' }
+                    ],
+                    highlightIdx: 2,
+                    dependencyIdx: -1,
+                    overlapPair: null,
+                    mergedBar: null,
+                },
+                checkpoint: null,
+            }, {
+                id: 5,
+                title: '步骤 5：处理 [15,18]，无重叠直接加入',
+                desc: '当前区间 [15,18] 与 merged 最后一个 [8,10] 不重叠（15 > 10），直接加入。merged = [[1,6],[8,10],[15,18]]。',
+                op: '加入 [15,18]',
+                resultState: [
+                    [1, 6],
+                    [8, 10],
+                    [15, 18]
+                ],
+                currentIdx: 3,
+                currentInterval: [15, 18],
+                lastResult: [8, 10],
+                overlapDetected: false,
+                mergedResult: null,
+                action: 'add_no_overlap_final',
+                codeHighlightLines: [6, 7, 10, 11],
+                teaching: '处理最后一个区间 <strong>[15,18]</strong>。检查与 merged 最后一个 <strong>[8,10]</strong>：<code>15 ≤ 10</code> 为 false，不重叠。直接加入。所有区间处理完毕！',
+                evidence: 'operation: add_no_overlap_final\n targets: current=[15,18], last_merged=[8,10]\nbefore: merged = [[1,6],[8,10]]\noverlap_check: 15 <= 10 → false\nafter: merged = [[1,6],[8,10],[15,18]]\nreason: 无重叠，直接追加。所有区间已处理完毕。',
+                tickLabel: '区间4',
+                tickOp: '加入[15,18]',
+                canvasBars: {
+                    inputBars: [
+                        { val: [1, 3], cls: 'bar-result' },
+                        { val: [2, 6], cls: 'bar-result' },
+                        { val: [8, 10], cls: 'bar-result' },
+                        { val: [15, 18], cls: 'bar-current' }
+                    ],
+                    resultBars: [
+                        { val: [1, 6], cls: 'bar-result' },
+                        { val: [8, 10], cls: 'bar-result' },
+                        { val: [15, 18], cls: 'bar-result' }
+                    ],
+                    highlightIdx: 3,
+                    dependencyIdx: -1,
+                    overlapPair: null,
+                    mergedBar: null,
+                },
+                checkpoint: {
+                    question: '所有区间处理完毕。最终合并结果是什么？（请选择）',
+                    options: [
+                        'A. [[1,6],[8,10],[15,18]]',
+                        'B. [[1,3],[2,6],[8,10],[15,18]]',
+                        'C. [[1,10],[15,18]]',
+                        'D. [[1,6],[8,18]]'
+                    ],
+                    correctIdx: 0,
+                    hint: '回顾合并过程：[1,3]和[2,6]合并为[1,6]，[8,10]和[15,18]互不重叠且与[1,6]也不重叠。',
+                    explanationCorrect: '正确！最终结果为 [[1,6],[8,10],[15,18]]，三个互不重叠的区间。',
+                    explanationWrong: '不对。回顾：只有 [1,3] 和 [2,6] 发生了合并，其他区间之间没有重叠。所以应该是三个区间。',
+                },
+            }, {
+                id: 6,
+                title: '步骤 6：返回最终结果',
+                desc: '所有区间处理完毕，返回 merged = [[1,6],[8,10],[15,18]]。算法结束。',
+                op: '返回结果',
+                resultState: [
+                    [1, 6],
+                    [8, 10],
+                    [15, 18]
+                ],
+                currentIdx: -1,
+                currentInterval: null,
+                lastResult: null,
+                overlapDetected: false,
+                mergedResult: null,
+                action: 'return',
+                codeHighlightLines: [12],
+                teaching: '算法完成！返回合并后的区间列表 <strong>[[1,6],[8,10],[15,18]]</strong>。时间复杂度 O(n log n)（排序主导），空间复杂度 O(n)（存储结果）。这是贪心算法的典型应用。',
+                evidence: 'operation: return_result\nresult: [[1,6],[8,10],[15,18]]\ntotal_intervals_processed: 4\nmerged_count: 3\nstatus: 完成',
+                tickLabel: '完成',
+                tickOp: '返回结果',
+                canvasBars: {
+                    inputBars: [
+                        { val: [1, 3], cls: 'bar-result' },
+                        { val: [2, 6], cls: 'bar-result' },
+                        { val: [8, 10], cls: 'bar-result' },
+                        { val: [15, 18], cls: 'bar-result' }
+                    ],
+                    resultBars: [
+                        { val: [1, 6], cls: 'bar-result' },
+                        { val: [8, 10], cls: 'bar-result' },
+                        { val: [15, 18], cls: 'bar-result' }
+                    ],
+                    highlightIdx: -1,
+                    dependencyIdx: -1,
+                    overlapPair: null,
+                    mergedBar: null,
+                },
+                checkpoint: null,
+            }];
+
+            // 代码行定义
+            const codeLines = [
+                'def merge_intervals(intervals):',
+                '    if not intervals: return []',
+                '    intervals.sort(key=lambda x: x[0])  # 按起点排序',
+                '    merged = []',
+                '    for interval in intervals:',
+                '        if not merged:',
+                '            merged.append(interval)',
+                '        else:',
+                '            last = merged[-1]',
+                '            if interval[0] <= last[1]:  # 重叠',
+                '                last[1] = max(last[1], interval[1])',
+                '            else:',
+                '                merged.append(interval)',
+                '    return merged',
+            ];
+
+            // ============ DOM 引用 ============
+            const $canvas = document.getElementById('canvas');
+            const $code = document.getElementById('code');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $logEntries = document.getElementById('log-entries');
+            const $learningLog = document.getElementById('learning-log');
+
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let learningLogEntries = [];
+
+            // ============ 初始化 #answer ============
+            $answer.textContent = JSON.stringify(finalAnswer);
+
+            // ============ 初始化 #top-solution ============
+            $topSolution.textContent = JSON.stringify(finalAnswer);
+
+            // ============ 渲染代码 ============
+            function renderCode(highlightLines) {
+                let html = '';
+                for (let i = 0; i < codeLines.length; i++) {
+                    const lineNum = i + 1;
+                    let cls = 'code-line';
+                    if (highlightLines && highlightLines.includes(lineNum)) {
+                        cls += ' highlight';
+                    }
+                    html += '<span class="' + cls + '">' + escapeHTML(codeLines[i]) + '</span>\n';
+                }
+                $code.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============ 渲染 Canvas ============
+            function renderCanvas(canvasBars) {
+                if (!canvasBars) {
+                    $canvas.innerHTML = '<div style="color:#94a3b8;text-align:center;padding:40px;">暂无可视化数据</div>';
+                    return;
+                }
+                let html = '';
+
+                // 原始区间行
+                html += '<div class="canvas-section-label">📋 输入区间（已排序）</div>';
+                html += '<div class="timeline-row">';
+                html += '<span class="row-label">输入</span>';
+                if (canvasBars.inputBars && canvasBars.inputBars.length > 0) {
+                    for (let i = 0; i < canvasBars.inputBars.length; i++) {
+                        const bar = canvasBars.inputBars[i];
+                        html += '<span class="interval-bar ' + bar.cls + '">[' + bar.val[0] + ', ' + bar.val[1] +
+                            ']</span>';
+                    }
+                } else {
+                    html += '<span style="color:#94a3b8;font-size:0.75rem;">（空）</span>';
+                }
+                html += '</div>';
+
+                // 分隔
+                html +=
+                    '<div style="border-top:2px dashed #e2e8f0;margin:4px 0;position:relative;"><span style="position:absolute;right:8px;top:-10px;background:#fff;padding:0 6px;font-size:0.6rem;color:#94a3b8;">↓ 处理 ↓</span></div>';
+
+                // 结果行
+                html += '<div class="canvas-section-label">✅ 合并结果</div>';
+                html += '<div class="timeline-row">';
+                html += '<span class="row-label">结果</span>';
+                if (canvasBars.resultBars && canvasBars.resultBars.length > 0) {
+                    for (let i = 0; i < canvasBars.resultBars.length; i++) {
+                        const bar = canvasBars.resultBars[i];
+                        html += '<span class="interval-bar ' + bar.cls + '">[' + bar.val[0] + ', ' + bar.val[1] +
+                            ']</span>';
+                    }
+                } else {
+                    html += '<span style="color:#94a3b8;font-size:0.75rem;">（空）</span>';
+                }
+                html += '</div>';
+
+                // 合并提示
+                if (canvasBars.mergedBar) {
+                    html +=
+                        '<div style="text-align:center;margin-top:6px;font-size:0.75rem;color:#6366f1;font-weight:700;">🔀 合并：[' +
+                        canvasBars.mergedBar.val[0] + ', ' + canvasBars.mergedBar.val[1] + ']</div>';
+                }
+                if (canvasBars.overlapPair) {
+                    html +=
+                        '<div style="text-align:center;margin-top:4px;font-size:0.7rem;color:#ef4444;font-weight:600;">⚠ 检测到重叠</div>';
+                }
+
+                $canvas.innerHTML = html;
+            }
+
+            // ============ 渲染 Timeline ============
+            function renderTimeline(activeStepId) {
+                let html = '';
+                for (let i = 0; i < steps.length; i++) {
+                    const s = steps[i];
+                    let cls = 'tick';
+                    if (s.id === activeStepId) cls += ' active';
+                    if (s.id < activeStepId) cls += ' completed';
+                    html += '<button class="' + cls + '" data-step="' + s.id + '" title="跳转到步骤 ' + s.id + '">';
+                    html += '<span class="tick-label">' + escapeHTML(s.tickLabel) + '</span>';
+                    html += '<span class="tick-op">' + escapeHTML(s.tickOp) + '</span>';
+                    html += '</button>';
+                }
+                $timeline.innerHTML = html;
+
+                // 绑定点击事件
+                $timeline.querySelectorAll('.tick').forEach(tick => {
+                    tick.addEventListener('click', function() {
+                        const stepId = parseInt(this.getAttribute('data-step'));
+                        goToStep(stepId);
+                    });
+                });
+            }
+
+            // ============ 渲染 Checkpoint ============
+            function renderCheckpoint(checkpointData) {
+                if (!checkpointData) {
+                    $checkpointContainer.innerHTML = '';
+                    return;
+                }
+                let html = '<div class="checkpoint-block">';
+                html += '<h4>🎯 学习检测点</h4>';
+                html += '<p style="font-size:0.82rem;margin-bottom:8px;color:#1e293b;">' + escapeHTML(checkpointData
+                    .question) + '</p>';
+                html += '<div class="quiz-options" id="quiz-options">';
+                for (let i = 0; i < checkpointData.options.length; i++) {
+                    html += '<button class="quiz-opt" data-idx="' + i + '">' + escapeHTML(checkpointData.options[i]) +
+                        '</button>';
+                }
+                html += '</div>';
+                html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+                html += '<button class="btn" id="btn-submit" style="font-size:0.78rem;">✅ 提交</button>';
+                html += '<button class="btn" id="btn-hint" style="font-size:0.78rem;">💡 提示</button>';
+                html += '<button class="btn" id="btn-show-answer" style="font-size:0.78rem;">👁 显示答案</button>';
+                html += '</div>';
+                html += '<div class="feedback-area" id="feedback-area"></div>';
+                html += '</div>';
+                $checkpointContainer.innerHTML = html;
+
+                // 绑定事件
+                const quizOpts = $checkpointContainer.querySelectorAll('.quiz-opt');
+                let selectedIdx = -1;
+                quizOpts.forEach(opt => {
+                    opt.addEventListener('click', function() {
+                        quizOpts.forEach(o => o.classList.remove('selected'));
+                        this.classList.add('selected');
+                        selectedIdx = parseInt(this.getAttribute('data-idx'));
+                    });
+                });
+
+                const btnSubmit = document.getElementById('btn-submit');
+                const btnHint = document.getElementById('btn-hint');
+                const btnShowAnswer = document.getElementById('btn-show-answer');
+                const feedbackArea = document.getElementById('feedback-area');
+
+                btnSubmit.addEventListener('click', function() {
+                    if (selectedIdx < 0) {
+                        feedbackArea.textContent = '请先选择一个选项。';
+                        feedbackArea.className = 'feedback-area feedback-wrong';
+                        return;
+                    }
+                    const isCorrect = (selectedIdx === checkpointData.correctIdx);
+                    if (isCorrect) {
+                        feedbackArea.textContent = '✅ 正确！' + checkpointData.explanationCorrect;
+                        feedbackArea.className = 'feedback-area feedback-correct';
+                        quizOpts[selectedIdx].classList.add('correct-flash');
+                    } else {
+                        feedbackArea.textContent = '❌ 不正确。' + checkpointData.explanationWrong;
+                        feedbackArea.className = 'feedback-area feedback-wrong';
+                        quizOpts[selectedIdx].classList.add('wrong-flash');
+                    }
+                    // 记录到学习日志
+                    const logMsg = (isCorrect ? '✅' : '❌') + ' 步骤' + currentStep + '检测点：选择"' + checkpointData
+                        .options[selectedIdx] + '" - ' + (isCorrect ? '正确' : '错误');
+                    addLogEntry(logMsg);
+                });
+
+                btnHint.addEventListener('click', function() {
+                    feedbackArea.textContent = '💡 提示：' + checkpointData.hint;
+                    feedbackArea.className = 'feedback-area';
+                    feedbackArea.style.background = '#fefce8';
+                    feedbackArea.style.color = '#78350f';
+                    feedbackArea.style.border = '1px solid #fde68a';
+                    addLogEntry('💡 步骤' + currentStep + '：查看了提示');
+                });
+
+                btnShowAnswer.addEventListener('click', function() {
+                    const correctOpt = checkpointData.options[checkpointData.correctIdx];
+                    feedbackArea.textContent = '👁 正确答案是：' + correctOpt + ' — ' + checkpointData
+                        .explanationCorrect;
+                    feedbackArea.className = 'feedback-area feedback-correct';
+                    // 高亮正确选项
+                    quizOpts.forEach((o, i) => {
+                        if (i === checkpointData.correctIdx) o.classList.add('correct-flash');
+                    });
+                    addLogEntry('👁 步骤' + currentStep + '：查看了答案');
+                });
+            }
+
+            function addLogEntry(msg) {
+                const timestamp = new Date().toLocaleTimeString();
+                learningLogEntries.push('[' + timestamp + '] ' + msg);
+                if (learningLogEntries.length > 20) learningLogEntries.shift();
+                $logEntries.innerHTML = learningLogEntries.map(e => '<div class="log-entry">' + escapeHTML(e) +
+                    '</div>').join('');
+                if (learningLogEntries.length === 0) {
+                    $logEntries.innerHTML = '暂无记录';
+                }
+            }
+
+            // ============ 更新所有 UI ============
+            function updateUI(stepData) {
+                // 更新步骤标题和描述
+                $stepTitle.textContent = stepData.title;
+                $stepDesc.textContent = stepData.desc;
+                $op.textContent = stepData.op;
+
+                // 更新状态摘要
+                const stateObj = {
+                    intervals: sortedIntervals,
+                    merged: stepData.resultState,
+                    current_index: stepData.currentIdx >= 0 ? stepData.currentIdx : null,
+                    current_interval: stepData.currentInterval,
+                    last_merged: stepData.lastResult,
+                    overlap_detected: stepData.overlapDetected,
+                    action: stepData.action,
+                };
+                $state.textContent = JSON.stringify(stateObj, null, 2);
+
+                // 更新讲解
+                $teaching.innerHTML = stepData.teaching;
+
+                // 更新步骤证据
+                $stepEvidence.textContent = stepData.evidence;
+
+                // 更新顶部结果
+                $topResult.textContent = JSON.stringify(stepData.resultState);
+
+                // 更新代码高亮
+                renderCode(stepData.codeHighlightLines);
+
+                // 更新 Canvas
+                renderCanvas(stepData.canvasBars);
+
+                // 更新 Checkpoint
+                renderCheckpoint(stepData.checkpoint);
+
+                // 更新计数器
+                $counter.textContent = stepData.id + ' / ' + totalSteps;
+
+                // 更新滑块
+                $range.value = stepData.id;
+
+                // 更新 Timeline 激活状态
+                const allTicks = $timeline.querySelectorAll('.tick');
+                allTicks.forEach(tick => {
+                    const tickStep = parseInt(tick.getAttribute('data-step'));
+                    tick.classList.remove('active', 'completed');
+                    if (tickStep === stepData.id) tick.classList.add('active');
+                    if (tickStep < stepData.id) tick.classList.add('completed');
+                });
+            }
+
+            function goToStep(stepId) {
+                if (stepId < 1 || stepId > totalSteps) return;
+                currentStep = stepId;
+                const stepData = steps[stepId - 1];
+                updateUI(stepData);
+                // 滚动 canvas 到可见
+                $canvas.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // ============ 播放控制 ============
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                $play.textContent = '⏸ 暂停';
+                $play.classList.add('paused');
+                playInterval = setInterval(() => {
+                    if (currentStep < totalSteps) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                clearInterval(playInterval);
+                playInterval = null;
+                $play.textContent = '▶ 播放';
+                $play.classList.remove('paused');
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStep >= totalSteps) {
+                        goToStep(1);
+                        setTimeout(() => startPlay(), 300);
+                    } else {
+                        startPlay();
+                    }
+                }
+            }
+
+            // ============ 事件绑定 ============
+            $prev.addEventListener('click', () => {
+                stopPlay();
+                if (currentStep > 1) goToStep(currentStep - 1);
+            });
+            $next.addEventListener('click', () => {
+                stopPlay();
+                if (currentStep < totalSteps) goToStep(currentStep + 1);
+            });
+            $play.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt($range.value);
+                goToStep(val);
+            });
+
+            // 键盘导航
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    if (currentStep > 1) goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    if (currentStep < totalSteps) goToStep(currentStep + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ============ 初始化 ============
+            function init() {
+                renderTimeline(1);
+                goToStep(1);
+                $topSolution.textContent = JSON.stringify(finalAnswer);
+                $answer.textContent = JSON.stringify(finalAnswer);
+                $logEntries.innerHTML = '暂无记录';
+                learningLogEntries = [];
+                addLogEntry('📖 页面加载，开始学习"合并区间"算法');
+            }
+
+            init();
+            console.log('AlgoLab-style 合并区间教学页面已就绪。共 ' + totalSteps + ' 个步骤。');
+            console.log('使用 ← → 方向键切换步骤，空格键播放/暂停。');
+        })();
+    </script>
+</body>
+</html>

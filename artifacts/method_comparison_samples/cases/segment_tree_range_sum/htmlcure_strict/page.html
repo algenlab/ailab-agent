@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线段树区间和 - AlgoLab 教学</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --border: #e2e6ea;
+            --text: #1a1d23;
+            --text-secondary: #5a5f6b;
+            --accent: #4361ee;
+            --accent-light: #eef0fd;
+            --accent-dark: #3651d4;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --warning-dark: #d97706;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --success-dark: #059669;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --info: #3b82f6;
+            --info-light: #eff6ff;
+            --info-dark: #1d4ed8;
+            --node-default: #f1f5f9;
+            --node-current: #fef3c7;
+            --node-covered: #d1fae5;
+            --node-updated: #fee2e2;
+            --node-answer: #dbeafe;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, .04);
+            --shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .05);
+            --shadow-md: 0 4px 8px rgba(0, 0, 0, .07), 0 2px 4px rgba(0, 0, 0, .05);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, .1), 0 4px 10px rgba(0, 0, 0, .06);
+            --shadow-xl: 0 20px 50px rgba(0, 0, 0, .15), 0 8px 20px rgba(0, 0, 0, .08);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 5px;
+            --transition: 0.3s cubic-bezier(.4, 0, .2, 1);
+            --transition-fast: 0.18s cubic-bezier(.4, 0, .2, 1);
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --font-sans: 'Inter', 'Noto Sans SC', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, #e8ecf1 0%, #dce1e8 30%, #eef1f5 60%, #e4e8ef 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 18px;
+            -webkit-font-smoothing: antialiased;
+            animation: bgShift 12s ease-in-out infinite;
+        }
+        @keyframes bgShift {
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+            25% {
+                background-position: 50% 0%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            75% {
+                background-position: 50% 100%;
+            }
+        }
+
+        .page-container {
+            width: 100%;
+            max-width: 1140px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeSlideIn 0.6s ease-out;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px 28px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            border-left: 6px solid var(--accent);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition);
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(67, 97, 238, .07) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .header:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .header-left h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #111827;
+            position: relative;
+            z-index: 1;
+        }
+        #subtitle {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-top: 3px;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        #top-result {
+            background: var(--info-light);
+            color: #1e40af;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+            min-width: 130px;
+            text-align: center;
+            border: 2px solid #bfdbfe;
+            transition: all var(--transition);
+        }
+        #top-result.pulse-once {
+            animation: resultPulse 0.7s ease-out;
+        }
+        @keyframes resultPulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.06);
+                box-shadow: 0 0 20px rgba(59, 130, 246, .35);
+            }
+        }
+        #top-solution {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            max-width: 280px;
+            text-align: right;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #1e40af;
+            background: #dbeafe;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 0.88rem;
+            letter-spacing: 0.02em;
+            display: inline-block;
+            border: 2px solid #93c5fd;
+            transition: all var(--transition);
+        }
+        .answer-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .completion-badge {
+            display: none;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 7px 15px;
+            border-radius: 20px;
+            animation: popIn 0.5s ease-out;
+            letter-spacing: 0.02em;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, .3);
+        }
+        .completion-badge.visible {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.15);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 16px;
+        }
+        @media (max-width: 920px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            #top-solution {
+                text-align: left;
+                max-width: 100%;
+            }
+        }
+
+        .canvas-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px 26px;
+            box-shadow: var(--shadow);
+            min-height: 380px;
+            position: relative;
+            transition: box-shadow var(--transition);
+        }
+        .canvas-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .canvas-card h3 {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #6b7280;
+            margin-bottom: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #canvas {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            position: relative;
+            gap: 8px;
+        }
+        .tree-section {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .tree-layer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            position: relative;
+            width: 100%;
+            z-index: 2;
+        }
+        .tree-layer.layer-0 {
+            gap: 0;
+        }
+        .tree-layer.layer-1 {
+            gap: 90px;
+        }
+        .tree-layer.layer-2 {
+            gap: 32px;
+        }
+        .tree-node {
+            background: var(--node-default);
+            border: 3px solid #cbd5e1;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: all var(--transition);
+            cursor: default;
+            position: relative;
+            z-index: 3;
+            min-width: 75px;
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.01em;
+            backdrop-filter: blur(4px);
+        }
+        .tree-node .node-range {
+            font-size: 0.68rem;
+            color: #64748b;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 3px;
+            letter-spacing: 0.03em;
+        }
+        .tree-node .node-sum {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .tree-node.current {
+            background: var(--node-current);
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, .16);
+            transform: scale(1.06);
+            z-index: 6;
+            animation: nodeGlow 1.2s ease-in-out infinite;
+        }
+        @keyframes nodeGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(245, 158, 11, .16);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(245, 158, 11, .06);
+            }
+        }
+        .tree-node.covered {
+            background: var(--node-covered);
+            border-color: #10b981;
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, .13);
+            animation: coveredReveal 0.5s ease-out;
+        }
+        @keyframes coveredReveal {
+            from {
+                transform: scale(0.85);
+                opacity: 0.5;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .tree-node.updated {
+            background: var(--node-updated);
+            border-color: #ef4444;
+            box-shadow: 0 0 0 6px rgba(239, 68, 68, .14);
+            animation: pulse-update 0.65s ease-out;
+        }
+        .tree-node.answer-node {
+            background: var(--node-answer);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 6px rgba(59, 130, 246, .15);
+            animation: answerShimmer 2s ease-in-out infinite;
+        }
+        @keyframes answerShimmer {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(59, 130, 246, .15);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(59, 130, 246, .04), 0 0 25px rgba(59, 130, 246, .12);
+            }
+        }
+        @keyframes pulse-update {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            30% {
+                transform: scale(1.1);
+                border-color: #dc2626;
+            }
+            60% {
+                transform: scale(0.97);
+            }
+        }
+        .connector-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .connector-svg line {
+            stroke: #cbd5e1;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            transition: stroke var(--transition), stroke-width var(--transition);
+        }
+        .connector-svg line.active-connector {
+            stroke: #f59e0b;
+            stroke-width: 3.5;
+            stroke-dasharray: 6 3;
+            animation: dashFlow 0.8s linear infinite;
+        }
+        @keyframes dashFlow {
+            to {
+                stroke-dashoffset: -18;
+            }
+        }
+        .array-strip {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            border: 2px dashed #e2e8f0;
+            transition: all var(--transition);
+        }
+        .array-strip .arr-cell {
+            background: #fff;
+            border: 3px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 7px 13px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            font-size: 0.88rem;
+            text-align: center;
+            min-width: 40px;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .array-strip .arr-cell.highlight {
+            border-color: #f59e0b;
+            background: #fef3c7;
+            animation: cellBounce 0.5s ease-out;
+        }
+        @keyframes cellBounce {
+            0% {
+                transform: translateY(-8px);
+            }
+            50% {
+                transform: translateY(3px);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+        .array-strip .arr-cell.changed {
+            border-color: #ef4444;
+            background: #fee2e2;
+            animation: pulse-update 0.6s ease-out;
+        }
+        .array-strip .arr-cell.in-query {
+            border-color: #10b981;
+            background: #d1fae5;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, .1);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .info-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 17px 20px;
+            box-shadow: var(--shadow);
+            font-size: 0.86rem;
+            transition: box-shadow var(--transition);
+        }
+        .info-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .info-card h4 {
+            font-size: 0.73rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #6b7280;
+            margin-bottom: 9px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 11px 13px;
+            white-space: pre-wrap;
+            max-height: 155px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            line-height: 1.55;
+            color: #334155;
+            transition: all var(--transition);
+        }
+        #teaching {
+            color: #374151;
+            line-height: 1.6;
+            font-size: 0.84rem;
+            transition: all var(--transition);
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #4b5563;
+            line-height: 1.55;
+            background: #fffbeb;
+            border-radius: var(--radius-sm);
+            padding: 11px 13px;
+            border-left: 4px solid #f59e0b;
+            transition: all var(--transition);
+        }
+
+        .code-card {
+            background: #1e293b;
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            color: #e2e8f0;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.75;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative;
+            transition: box-shadow var(--transition);
+        }
+        .code-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .code-card h4 {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 9px;
+            font-weight: 700;
+            font-family: var(--font-sans);
+        }
+        #code {
+            white-space: pre;
+            counter-reset: line;
+        }
+        #code .line {
+            display: block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            transition: background var(--transition-fast);
+            counter-increment: line;
+        }
+        #code .line::before {
+            content: counter(line);
+            display: inline-block;
+            width: 28px;
+            color: #64748b;
+            text-align: right;
+            margin-right: 14px;
+            font-size: 0.68rem;
+            user-select: none;
+        }
+        #code .line.active {
+            background: rgba(245, 158, 11, .25);
+            color: #fbbf24;
+            font-weight: 600;
+            border-left: 3px solid #f59e0b;
+        }
+        #code .line.active::before {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+        #code .keyword {
+            color: #c084fc;
+        }
+        #code .fn {
+            color: #60a5fa;
+        }
+        #code .comment {
+            color: #64748b;
+            font-style: italic;
+        }
+        #code .num {
+            color: #fbbf24;
+        }
+        #code .str {
+            color: #34d399;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 13px 18px;
+            box-shadow: var(--shadow);
+            transition: box-shadow var(--transition);
+        }
+        .controls-row:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .btn {
+            padding: 9px 17px;
+            border-radius: 22px;
+            border: 2.5px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.84rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(67, 97, 238, .25);
+        }
+        .btn.accent:hover {
+            background: var(--accent-dark);
+            border-color: var(--accent-dark);
+            box-shadow: 0 6px 18px rgba(67, 97, 238, .35);
+            transform: translateY(-2px);
+        }
+        .btn.accent.playing {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, .3);
+            animation: playGlow 1s ease-in-out infinite;
+        }
+        @keyframes playGlow {
+            0%,
+            100% {
+                box-shadow: 0 2px 8px rgba(245, 158, 11, .3);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(245, 158, 11, .5);
+            }
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: var(--font-mono);
+            color: #374151;
+            min-width: 55px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            height: 7px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1a1a2e;
+            white-space: nowrap;
+        }
+        #step-desc {
+            font-size: 0.78rem;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 4px 11px;
+            border-radius: 14px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .btn-reset {
+            background: #fff;
+            border: 2.5px solid #fecaca;
+            color: #dc2626;
+            padding: 9px 15px;
+            border-radius: 22px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.84rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-reset:hover {
+            background: #fef2f2;
+            border-color: #ef4444;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, .15);
+        }
+
+        #timeline {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 9px 13px;
+            border-radius: var(--radius-sm);
+            border: 2.5px solid #e5e7eb;
+            background: #fff;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            min-width: 58px;
+            text-align: center;
+            user-select: none;
+            position: relative;
+        }
+        .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .06);
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: #eef0fd;
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, .1);
+            font-weight: 700;
+            transform: translateY(-2px);
+        }
+        .tick.has-checkpoint {
+            border-color: #fcd34d;
+        }
+        .tick.has-checkpoint::after {
+            content: '⭐';
+            position: absolute;
+            top: -8px;
+            right: -6px;
+            font-size: 0.7rem;
+            animation: starBounce 2s ease-in-out infinite;
+        }
+        @keyframes starBounce {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-6px) scale(1.2);
+            }
+            50% {
+                transform: translateY(0);
+            }
+        }
+        .tick .tick-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #374151;
+            letter-spacing: 0.02em;
+        }
+        .tick .tick-op {
+            font-size: 0.63rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .tick.active .tick-label {
+            color: #4338ca;
+        }
+        .tick.active .tick-op {
+            color: #4f46e5;
+        }
+
+        .checkpoint-card {
+            background: linear-gradient(135deg, #fffdf7 0%, #fff9ed 50%, #fffbeb 100%);
+            border: 3px dashed #fcd34d;
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            display: none;
+            animation: checkpointSlide 0.4s ease-out;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, .08);
+        }
+        @keyframes checkpointSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                max-height: 400px;
+            }
+        }
+        .checkpoint-card.visible {
+            display: block;
+        }
+        .checkpoint-card h4 {
+            font-size: 0.82rem;
+            color: #92400e;
+            margin-bottom: 9px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .checkpoint-card .quiz-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .quiz-opt {
+            padding: 9px 17px;
+            border-radius: 22px;
+            border: 2.5px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            user-select: none;
+        }
+        .quiz-opt:hover {
+            border-color: #f59e0b;
+            background: #fffbeb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, .12);
+        }
+        .quiz-opt.selected {
+            border-color: #f59e0b;
+            background: #fef3c7;
+            box-shadow: 0 0 0 5px rgba(245, 158, 11, .13);
+            transform: scale(1.03);
+        }
+        .quiz-opt.correct {
+            border-color: #10b981 !important;
+            background: #d1fae5 !important;
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, .18) !important;
+            animation: correctPop 0.5s ease-out;
+        }
+        @keyframes correctPop {
+            0% {
+                transform: scale(1);
+            }
+            30% {
+                transform: scale(1.12);
+            }
+            100% {
+                transform: scale(1.03);
+            }
+        }
+        .quiz-opt.wrong {
+            border-color: #ef4444 !important;
+            background: #fee2e2 !important;
+            box-shadow: 0 0 0 6px rgba(239, 68, 68, .14) !important;
+            animation: shake 0.5s ease-out;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-6px);
+            }
+            40% {
+                transform: translateX(6px);
+            }
+            60% {
+                transform: translateX(-4px);
+            }
+            80% {
+                transform: translateX(3px);
+            }
+        }
+        .quiz-input {
+            padding: 9px 15px;
+            border-radius: 22px;
+            border: 2.5px solid #d1d5db;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            width: 150px;
+            text-align: center;
+            font-weight: 600;
+            transition: all var(--transition);
+            background: #fff;
+        }
+        .quiz-input:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 5px rgba(245, 158, 11, .1);
+            transform: scale(1.02);
+        }
+        .quiz-input.correct-input {
+            border-color: #10b981 !important;
+            background: #d1fae5 !important;
+            box-shadow: 0 0 0 5px rgba(16, 185, 129, .15) !important;
+        }
+        .quiz-input.wrong-input {
+            border-color: #ef4444 !important;
+            background: #fee2e2 !important;
+            box-shadow: 0 0 0 5px rgba(239, 68, 68, .12) !important;
+            animation: shake 0.5s ease-out;
+        }
+        .feedback-area {
+            font-size: 0.8rem;
+            padding: 9px 13px;
+            border-radius: var(--radius-sm);
+            margin-top: 7px;
+            font-weight: 500;
+            min-height: 30px;
+            transition: all var(--transition);
+            line-height: 1.5;
+        }
+        .feedback-area.correct-fb {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .feedback-area.wrong-fb {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .feedback-area.hint-fb {
+            background: #eff6ff;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        .feedback-area.answer-fb {
+            background: #f0fdf4;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.76rem;
+            border-radius: 16px;
+            border: 2px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            user-select: none;
+        }
+        .btn-sm:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            transform: translateY(-2px);
+        }
+        .btn-sm.btn-hint {
+            border-color: #93c5fd;
+            color: #1d4ed8;
+            background: #eff6ff;
+        }
+        .btn-sm.btn-hint:hover {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+        .btn-sm.btn-show {
+            border-color: #a7f3d0;
+            color: #065f46;
+            background: #ecfdf5;
+        }
+        .btn-sm.btn-show:hover {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+        .btn-sm.btn-submit {
+            border-color: #fcd34d;
+            color: #92400e;
+            background: #fffbeb;
+            font-weight: 700;
+        }
+        .btn-sm.btn-submit:hover {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        #learning-log {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.76rem;
+            border: 1px solid #e2e8f0;
+            margin-top: 5px;
+            transition: all var(--transition);
+        }
+        #learning-log .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #f1f5f9;
+            color: #475569;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            animation: logSlide 0.3s ease-out;
+        }
+        @keyframes logSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        #learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        #learning-log .log-time {
+            font-size: 0.62rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            min-width: 48px;
+            font-family: var(--font-mono);
+        }
+
+        .progress-bar-wrap {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+            flex: 1;
+            min-width: 60px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4361ee, #3b82f6, #60a5fa);
+            border-radius: 2px;
+            transition: width 0.4s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        .celebrate-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .celebrate-overlay.active {
+            display: block;
+            animation: confettiFade 3s ease-out forwards;
+        }
+        @keyframes confettiFade {
+            0% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(110vh) rotate(720deg) scale(0.3);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .tree-layer.layer-1 {
+                gap: 32px;
+            }
+            .tree-layer.layer-2 {
+                gap: 10px;
+            }
+            .tree-node {
+                padding: 7px 9px;
+                font-size: 0.7rem;
+                min-width: 52px;
+            }
+            .tree-node .node-sum {
+                font-size: 0.88rem;
+            }
+            .tree-node .node-range {
+                font-size: 0.6rem;
+            }
+            .controls-row {
+                gap: 6px;
+                padding: 10px 12px;
+            }
+            .btn {
+                padding: 7px 12px;
+                font-size: 0.76rem;
+            }
+            #step-desc {
+                max-width: 100px;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1 id="title">🌲 线段树区间和</h1>
+                <p id="subtitle">查询区间 [1,3] 的和 → 单点更新 pos=2 为 6 → 再次查询</p>
+            </div>
+            <div class="header-right">
+                <span class="completion-badge" id="completion-badge">🏆 全部完成！</span>
+                <span class="answer-wrap">📌 最终答案：<span id="answer">{"before":10,"after":12}</span></span>
+                <span id="top-result">⏳ 等待执行</span>
+                <span id="top-solution">线段树：先查询更新前区间和，再执行单点更新并查询更新后区间和</span>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left: Canvas + Code -->
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <!-- Canvas -->
+                <div class="canvas-card">
+                    <h3>📐 算法视图 — 线段树结构</h3>
+                    <div id="canvas">
+                        <div class="tree-section" id="tree-container">
+                            <!-- Built dynamically -->
+                        </div>
+                        <svg class="connector-svg" id="connector-svg"></svg>
+                        <div class="array-strip" id="array-strip">
+                            <!-- Built dynamically -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Code -->
+                <div class="code-card">
+                    <h4>💻 线段树实现 (JavaScript)</h4>
+                    <div id="code"></div>
+                </div>
+            </div>
+
+            <!-- Right: Sidebar -->
+            <div class="sidebar">
+                <!-- State -->
+                <div class="info-card">
+                    <h4>📋 当前状态 (State JSON)</h4>
+                    <div id="state">{ }</div>
+                </div>
+                <!-- Teaching -->
+                <div class="info-card">
+                    <h4>📖 讲解 (Teaching)</h4>
+                    <div id="teaching">准备开始线段树教学...</div>
+                </div>
+                <!-- Step Evidence -->
+                <div class="info-card">
+                    <h4>🔍 步骤证据 (Step Evidence)</h4>
+                    <div id="step-evidence">等待第一步...</div>
+                </div>
+                <!-- Checkpoint -->
+                <div class="checkpoint-card" id="checkpoint-card">
+                    <h4>✅ Learner Checkpoint</h4>
+                    <div id="checkpoint-content"></div>
+                </div>
+                <!-- Learning Log -->
+                <div class="info-card">
+                    <h4>📝 学习日志 (Learning Log)</h4>
+                    <div id="learning-log">
+                        <div class="log-entry"><span class="log-time">--</span> 📝 等待交互...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <span id="step-title" style="font-weight:700;">初始化</span>
+            <span id="step-desc" style="font-size:0.8rem;color:#6b7280;">构建线段树</span>
+            <span id="op" style="font-family:monospace;font-size:0.75rem;background:#eef2ff;color:#4338ca;padding:3px 10px;border-radius:12px;font-weight:600;">build_start</span>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" id="progress-bar-fill" style="width:12.5%;"></div>
+            </div>
+            <button class="btn" id="prev" title="上一步 (← 键)">◀ 上一步</button>
+            <button class="btn accent" id="play" title="自动播放 (空格键)">▶ 播放</button>
+            <button class="btn" id="next" title="下一步 (→ 键)">下一步 ▶</button>
+            <button class="btn-reset" id="reset-btn" title="重置到第一步">🔄 重置</button>
+            <span id="counter">1 / 8</span>
+            <input type="range" id="range" min="1" max="8" value="1" step="1" title="拖动切换步骤">
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline" style="display:flex;gap:7px;flex-wrap:wrap;justify-content:center;"></div>
+    </div>
+
+    <!-- Celebration overlay -->
+    <div class="celebrate-overlay" id="celebrate-overlay"></div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Data & constants
+            // ──────────────────────────────────────
+            const nums = [2, 1, 4, 5];
+            const queryRange = [1, 3];
+            const updatePos = 2;
+            const updateVal = 6;
+            const totalSteps = 8;
+
+            const n = nums.length;
+            const treeSize = 4 * n;
+            const initialTree = new Array(treeSize).fill(0);
+            const initialCoverage = new Array(treeSize).fill(null);
+
+            function buildTree(node, start, end) {
+                initialCoverage[node] = [start, end];
+                if (start === end) {
+                    initialTree[node] = nums[start];
+                    return initialTree[node];
+                }
+                const mid = Math.floor((start + end) / 2);
+                const leftSum = buildTree(node * 2, start, mid);
+                const rightSum = buildTree(node * 2 + 1, mid + 1, end);
+                initialTree[node] = leftSum + rightSum;
+                return initialTree[node];
+            }
+            buildTree(1, 0, n - 1);
+
+            const updatedTree = [...initialTree];
+            const updatedNums = [...nums];
+            updatedNums[updatePos] = updateVal;
+
+            function updateTreeArr(tree, node, start, end, pos, val) {
+                if (start === end) {
+                    tree[node] = val;
+                    return;
+                }
+                const mid = Math.floor((start + end) / 2);
+                if (pos <= mid) {
+                    updateTreeArr(tree, node * 2, start, mid, pos, val);
+                } else {
+                    updateTreeArr(tree, node * 2 + 1, mid + 1, end, pos, val);
+                }
+                tree[node] = tree[node * 2] + tree[node * 2 + 1];
+            }
+            updateTreeArr(updatedTree, 1, 0, n - 1, updatePos, updateVal);
+
+            const beforeResult = 10;
+            const afterResult = 12;
+            const finalAnswer = '{"before":10,"after":12}';
+
+            // ──────────────────────────────────────
+            // Step definitions (enhanced with more checkpoints)
+            // ──────────────────────────────────────
+            const steps = [{
+                id: 1,
+                title: '初始化',
+                desc: '加载数组 nums = [2, 1, 4, 5]，准备构建线段树',
+                op: 'build_start',
+                stateJSON: { operation: 'build_start', nums: [2, 1, 4, 5], treeStatus: 'building',
+                    currentNode: 'root' },
+                teaching: '线段树是一种二叉树结构，每个节点存储一个区间的聚合信息（这里是区间和）。根节点覆盖整个数组 [0,3]。我们使用数组下标 1-indexed 存储，节点 i 的左子节点为 2i，右子节点为 2i+1。',
+                evidence: 'operation: build_start | targets: nums=[2,1,4,5] | 开始递归构建线段树，从根节点 [0,3] 开始。',
+                codeLines: [1, 2, 3],
+                highlightNodes: [],
+                coveredNodes: [],
+                updatedNodes: [],
+                answerNodes: [],
+                treeData: initialTree,
+                coverageData: initialCoverage,
+                arrayNums: [...nums],
+                arrayHighlights: [],
+                arrayChanged: [],
+                arrayInQuery: [],
+                topResult: '⏳ 构建中...',
+                checkpoint: null,
+                hasCheckpoint: false,
+            }, {
+                id: 2,
+                title: '线段树构建完成',
+                desc: '线段树已构建完成，展示完整树结构及每个节点的覆盖区间与区间和',
+                op: 'build_complete',
+                stateJSON: { operation: 'build_complete', tree: { 'node1_[0,3]': 12, 'node2_[0,1]': 3,
+                        'node3_[2,3]': 9, 'node4_[0,0]': 2, 'node5_[1,1]': 1, 'node6_[2,2]': 4,
+                    'node7_[3,3]': 5 }, totalSum: 12 },
+                teaching: '构建完成！根节点 [0,3] 的和为 12（=2+1+4+5）。左子树覆盖 [0,1] 和为 3，右子树覆盖 [2,3] 和为 9。叶子节点直接存储数组元素值。每个内部节点的值等于其左右子节点值之和。',
+                evidence: 'operation: build_complete | after: 线段树 7 个节点全部就绪 | 根节点 [0,3]=12, 左子 [0,1]=3, 右子 [2,3]=9, 叶子分别存储 2,1,4,5。',
+                codeLines: [4, 5, 6, 7, 8],
+                highlightNodes: [],
+                coveredNodes: [],
+                updatedNodes: [],
+                answerNodes: [1],
+                treeData: initialTree,
+                coverageData: initialCoverage,
+                arrayNums: [...nums],
+                arrayHighlights: [],
+                arrayChanged: [],
+                arrayInQuery: [],
+                topResult: '树已就绪 ✓',
+                checkpoint: {
+                    type: 'choice',
+                    question: '🏗️ 构建完成后，根节点 [0,3] 的区间和是多少？',
+                    options: ['8', '10', '12', '14'],
+                    correctIndex: 2,
+                    hint: '把数组所有元素加起来：2+1+4+5 = ?',
+                    explanation_correct: '✅ 正确！2+1+4+5=12，根节点 [0,3] 存储了整个数组的区间和。',
+                    explanation_wrong: '❌ 再算算：2+1+4+5 = 12。根节点覆盖整个数组，存储总和。'
+                },
+                hasCheckpoint: true,
+            }, {
+                id: 3,
+                title: '查询区间 [1,3] — 开始',
+                desc: '从根节点开始查询区间 [1,3] 的区间和，检查根节点覆盖情况',
+                op: 'query_start',
+                stateJSON: { operation: 'query_start', queryRange: [1, 3], currentNode: 'root_[0,3]',
+                    rootSum: 12, action: '检查根节点是否完全在查询区间内' },
+                teaching: '查询区间 [1,3] 的和。从根节点 [0,3] 开始：根节点覆盖 [0,3] 并不完全包含在 [1,3] 中（因为 0 不在查询范围内），所以需要向左右子树递归查询。如果节点区间完全在查询区间内，则直接返回该节点的和。',
+                evidence: 'operation: query_start | targets: query=[1,3] | 根节点 [0,3] 与 [1,3] 有交集但不完全包含，继续递归查询左右子节点。',
+                codeLines: [10, 11, 12, 13],
+                highlightNodes: [1],
+                coveredNodes: [],
+                updatedNodes: [],
+                answerNodes: [],
+                treeData: initialTree,
+                coverageData: initialCoverage,
+                arrayNums: [...nums],
+                arrayHighlights: [],
+                arrayChanged: [],
+                arrayInQuery: [1, 2, 3],
+                topResult: '🔍 查询中...',
+                checkpoint: null,
+                hasCheckpoint: false,
+            }, {
+                id: 4,
+                title: '查询过程 — 收集覆盖节点',
+                desc: '递归查询，找到完全覆盖区间 [1,3] 的节点：[1,1] 和 [2,3]',
+                op: 'query_collect',
+                stateJSON: { operation: 'query_collect', queryRange: [1, 3], coveredNodes: ['[1,1]:1',
+                        '[2,3]:9'
+                    ], partialSum: '1+9=10', nodesVisited: ['[0,3]', '[0,1]', '[1,1]', '[2,3]'] },
+                teaching: '查询路径：根 [0,3]→左子 [0,1]（部分覆盖，继续）→[0,0]（不覆盖，跳过）→[1,1]（完全覆盖！返回 1）。右子 [2,3] 完全在 [1,3] 内，直接返回 9。最终和 = 1+9 = 10。这体现了线段树的优势：不需要遍历所有元素。',
+                evidence: 'operation: query_collect | targets: 覆盖节点 [1,1] 和 [2,3] | before: 节点 [1,1]=1, 节点 [2,3]=9 | 求和得 10。',
+                codeLines: [14, 15, 16, 17, 18],
+                highlightNodes: [5, 3],
+                coveredNodes: [5, 3],
+                updatedNodes: [],
+                answerNodes: [],
+                treeData: initialTree,
+                coverageData: initialCoverage,
+                arrayNums: [...nums],
+                arrayHighlights: [],
+                arrayChanged: [],
+                arrayInQuery: [1, 2, 3],
+                topResult: '📊 收集: [1,1]=1 + [2,3]=9',
+                checkpoint: {
+                    type: 'input',
+                    question: '🔢 查询区间 [1,3] 的区间和 (before) 是多少？请在输入框中键入数值。',
+                    correctAnswer: '10',
+                    hint: '覆盖节点 [1,1]=1 和 [2,3]=9，把它们加起来。',
+                    explanation_correct: '✅ 正确！1+9=10，区间 [1,3] 包含索引 1、2、3 的元素：1+4+5=10。',
+                    explanation_wrong: '❌ 再想想：覆盖节点是 [1,1]（值为 1）和 [2,3]（值为 4+5=9），总和是 1+9=10。'
+                },
+                hasCheckpoint: true,
+            }, {
+                id: 5,
+                title: '查询结果 — before = 10',
+                desc: '确认更新前区间 [1,3] 的查询结果为 10',
+                op: 'query_result',
+                stateJSON: { operation: 'query_result', before: 10, queryRange: [1, 3],
+                    coveredNodes: ['[1,1]:1', '[2,3]:9'], method: '线段树区间查询' },
+                teaching: '更新前查询完成！before = 10。这验证了线段树查询的正确性。接下来我们将执行单点更新操作，将位置 2（即数组索引 2，值 4）更新为 6，然后再次查询同一区间。',
+                evidence: 'operation: query_result | before: 10 | 覆盖节点 [1,1]=1 和 [2,3]=9，求和确认 before=10。',
+                codeLines: [18, 19],
+                highlightNodes: [],
+                coveredNodes: [5, 3],
+                updatedNodes: [],
+                answerNodes: [5, 3],
+                treeData: initialTree,
+                coverageData: initialCoverage,
+                arrayNums: [...nums],
+                arrayHighlights: [],
+                arrayChanged: [],
+                arrayInQuery: [1, 2, 3],
+                topResult: '✅ before = 10',
+                checkpoint: null,
+                hasCheckpoint: false,
+            }, {
+                id: 6,
+                title: '单点更新 — 定位叶子节点',
+                desc: '将位置 2 的值从 4 更新为 6，定位到叶子节点 [2,2]',
+                op: 'update_leaf',
+                stateJSON: { operation: 'update_leaf', pos: 2, oldValue: 4, newValue: 6,
+                    targetLeaf: '[2,2]', action: '从根递归定位到叶子节点 [2,2]' },
+                teaching: '单点更新：从根节点 [0,3] 出发，pos=2 落在右子树（mid=1，2>1），进入右子节点 [2,3]；继续，pos=2 落在左子树（mid=2，2<=2），进入左子节点 [2,2]。找到叶子节点后，将其值从 4 更新为 6。',
+                evidence: 'operation: update_leaf | targets: pos=2, leaf [2,2] | before: tree[6]=4 | after: tree[6]=6 | 路径：根[0,3]→右[2,3]→左[2,2]。',
+                codeLines: [21, 22, 23, 24, 25],
+                highlightNodes: [6],
+                coveredNodes: [],
+                updatedNodes: [6],
+                answerNodes: [],
+                treeData: updatedTree,
+                coverageData: initialCoverage,
+                arrayNums: [...updatedNums],
+                arrayHighlights: [2],
+                arrayChanged: [2],
+                arrayInQuery: [],
+                topResult: '🔄 更新叶子 [2,2]: 4→6',
+                checkpoint: {
+                    type: 'choice',
+                    question: '🔄 更新后，叶子节点 [2,2] 的新值是多少？',
+                    options: ['4', '5', '6', '7'],
+                    correctIndex: 2,
+                    hint: '题目要求将位置 2 的值更新为 6，所以叶子节点 [2,2] 的新值就是 6。',
+                    explanation_correct: '✅ 正确！单点更新将索引 2 的值从 4 改为 6，叶子节点 [2,2] 存储的就是 6。',
+                    explanation_wrong: '❌ 题目明确说 update=[2,6]，即把位置 2 的值更新为 6。叶子节点 [2,2] 直接存储这个值。'
+                },
+                hasCheckpoint: true,
+            }, {
+                id: 7,
+                title: '回溯更新父节点',
+                desc: '从叶子节点 [2,2] 向上回溯，更新父节点 [2,3] 和根节点 [0,3]',
+                op: 'update_backtrack',
+                stateJSON: { operation: 'update_backtrack', updates: [{ node: '[2,3]', old: 9, new: 11 },
+                        { node: '[0,3]', old: 12, new: 14 }
+                    ], path: ['[2,2]→[2,3]→[0,3]'] },
+                teaching: '叶子节点更新后，必须回溯更新所有祖先节点。节点 [2,3] = [2,2] + [3,3] = 6+5 = 11（旧值 9）。根节点 [0,3] = [0,1] + [2,3] = 3+11 = 14（旧值 12）。这是线段树维护的关键：每次更新后沿路径回溯，保证聚合信息正确。',
+                evidence: 'operation: update_backtrack | targets: 祖先节点 [2,3] 和 [0,3] | before: [2,3]=9, [0,3]=12 | after: [2,3]=11, [0,3]=14 | 回溯路径完整。',
+                codeLines: [26, 27, 28],
+                highlightNodes: [3, 1],
+                coveredNodes: [],
+                updatedNodes: [6, 3, 1],
+                answerNodes: [],
+                treeData: updatedTree,
+                coverageData: initialCoverage,
+                arrayNums: [...updatedNums],
+                arrayHighlights: [],
+                arrayChanged: [2],
+                arrayInQuery: [],
+                topResult: '🔄 回溯完成：[0,3]=14',
+                checkpoint: null,
+                hasCheckpoint: false,
+            }, {
+                id: 8,
+                title: '更新后查询 — after = 12',
+                desc: '在更新后的线段树上查询区间 [1,3]，得到 after = 12，确认最终答案',
+                op: 'final_query',
+                stateJSON: { operation: 'final_query', after: 12, queryRange: [1, 3],
+                    coveredNodes: ['[1,1]:1', '[2,3]:11'], finalAnswer: { before: 10, after: 12 } },
+                teaching: '更新后再次查询 [1,3]：覆盖节点 [1,1]=1 和 [2,3]=11（其中 [2,3] 已更新为 6+5=11），总和 = 1+11 = 12。最终答案：{"before":10,"after":12}。线段树在 O(log n) 时间内完成了查询和更新。',
+                evidence: 'operation: final_query | after: 12 | 覆盖节点 [1,1]=1 和 [2,3]=11，求和得 12 | 最终答案确认：before=10, after=12。',
+                codeLines: [18, 19, 29],
+                highlightNodes: [5, 3],
+                coveredNodes: [5, 3],
+                updatedNodes: [3],
+                answerNodes: [5, 3],
+                treeData: updatedTree,
+                coverageData: initialCoverage,
+                arrayNums: [...updatedNums],
+                arrayHighlights: [],
+                arrayChanged: [],
+                arrayInQuery: [1, 2, 3],
+                topResult: '✅ after = 12 | 最终答案',
+                checkpoint: {
+                    type: 'choice',
+                    question: '🏁 更新后区间 [1,3] 的查询结果 (after) 是多少？',
+                    options: ['10', '11', '12', '14'],
+                    correctIndex: 2,
+                    hint: '更新后 nums=[2,1,6,5]，区间 [1,3] 包含 1+6+5。',
+                    explanation_correct: '✅ 正确！更新后 nums=[2,1,6,5]，区间 [1,3]=1+6+5=12。线段树覆盖节点 [1,1]=1 和 [2,3]=11，总和 12。',
+                    explanation_wrong: '❌ 注意：更新后 [2,3] 节点变为 11（=6+5），加上 [1,1]=1，总和是 12。'
+                },
+                hasCheckpoint: true,
+            }];
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const domCode = $('#code');
+            const domCanvas = $('#canvas');
+            const domTreeContainer = $('#tree-container');
+            const domConnectorSvg = $('#connector-svg');
+            const domArrayStrip = $('#array-strip');
+            const domCounter = $('#counter');
+            const domRange = $('#range');
+            const domTimeline = $('#timeline');
+            const domStepTitle = $('#step-title');
+            const domStepDesc = $('#step-desc');
+            const domOp = $('#op');
+            const domState = $('#state');
+            const domTeaching = $('#teaching');
+            const domStepEvidence = $('#step-evidence');
+            const domTopResult = $('#top-result');
+            const domTopSolution = $('#top-solution');
+            const domAnswer = $('#answer');
+            const domCheckpointCard = $('#checkpoint-card');
+            const domCheckpointContent = $('#checkpoint-content');
+            const domLearningLog = $('#learning-log');
+            const domPrev = $('#prev');
+            const domNext = $('#next');
+            const domPlay = $('#play');
+            const domReset = $('#reset-btn');
+            const domTitle = $('#title');
+            const domSubtitle = $('#subtitle');
+            const domProgressFill = $('#progress-bar-fill');
+            const domCompletionBadge = $('#completion-badge');
+            const domCelebrateOverlay = $('#celebrate-overlay');
+
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let completedCheckpoints = new Set();
+            let allCheckpointsDone = false;
+
+            // ──────────────────────────────────────
+            // Build code display
+            // ──────────────────────────────────────
+            const codeLinesText = [
+                'class SegmentTree {',
+                '  constructor(nums) {',
+                '    this.n = nums.length;',
+                '    this.tree = new Array(4 * this.n).fill(0);',
+                '    this._build(1, 0, this.n - 1, nums);',
+                '  }',
+                '  _build(node, start, end, nums) {',
+                '    if (start === end) {',
+                '      this.tree[node] = nums[start];',
+                '      return this.tree[node];',
+                '    }',
+                '    const mid = Math.floor((start + end) / 2);',
+                '    const left = this._build(node*2, start, mid, nums);',
+                '    const right = this._build(node*2+1, mid+1, end, nums);',
+                '    this.tree[node] = left + right;',
+                '    return this.tree[node];',
+                '  }',
+                '  query(l, r) {',
+                '    return this._query(1, 0, this.n-1, l, r);',
+                '  }',
+                '  _query(node, start, end, l, r) {',
+                '    if (l <= start && end <= r) return this.tree[node];',
+                '    if (end < l || r < start) return 0;',
+                '    const mid = Math.floor((start+end)/2);',
+                '    return this._query(node*2,start,mid,l,r)',
+                '           + this._query(node*2+1,mid+1,end,l,r);',
+                '  }',
+                '  update(pos, value) {',
+                '    this._update(1, 0, this.n-1, pos, value);',
+                '  }',
+                '  _update(node, start, end, pos, value) {',
+                '    if (start === end) {',
+                '      this.tree[node] = value;',
+                '      return;',
+                '    }',
+                '    const mid = Math.floor((start+end)/2);',
+                '    if (pos <= mid) this._update(node*2,start,mid,pos,value);',
+                '    else this._update(node*2+1,mid+1,end,pos,value);',
+                '    this.tree[node]=this.tree[node*2]+this.tree[node*2+1];',
+                '  }',
+                '}',
+            ];
+
+            function renderCode(activeLineNumbers) {
+                const activeSet = new Set(activeLineNumbers || []);
+                let html = '';
+                codeLinesText.forEach((lineText, idx) => {
+                    const lineNum = idx + 1;
+                    const isActive = activeSet.has(lineNum);
+                    let highlighted = lineText
+                        .replace(/(class|constructor|const|if|else|return|this|function|let|var|new)/g,
+                            '<span class="keyword">$1</span>')
+                        .replace(/(_build|_query|_update|query|update|SegmentTree)/g,
+                            '<span class="fn">$1</span>')
+                        .replace(/(\/\/.*)/g, '<span class="comment">$1</span>')
+                        .replace(/\b(\d+)\b/g, '<span class="num">$1</span>')
+                        .replace(/('.*?'|".*?")/g, '<span class="str">$1</span>');
+                    html +=
+                        `<span class="line${isActive ? ' active' : ''}" data-line="${lineNum}">${highlighted}</span>`;
+                });
+                domCode.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // Build tree visualization + SVG connectors
+            // ──────────────────────────────────────
+            function renderTreeVisualization(treeData, coverageData, highlightNodes, coveredNodes, updatedNodes,
+                answerNodes) {
+                const highlightSet = new Set(highlightNodes || []);
+                const coveredSet = new Set(coveredNodes || []);
+                const updatedSet = new Set(updatedNodes || []);
+                const answerSet = new Set(answerNodes || []);
+
+                const layers = [
+                    [1],
+                    [2, 3],
+                    [4, 5, 6, 7],
+                ];
+
+                function getNodeClass(nodeIdx) {
+                    const classes = [];
+                    if (highlightSet.has(nodeIdx)) classes.push('current');
+                    if (coveredSet.has(nodeIdx)) classes.push('covered');
+                    if (updatedSet.has(nodeIdx)) classes.push('updated');
+                    if (answerSet.has(nodeIdx)) classes.push('answer-node');
+                    return classes.join(' ');
+                }
+
+                function formatNode(nodeIdx) {
+                    const cov = coverageData[nodeIdx];
+                    const sum = treeData[nodeIdx];
+                    if (!cov) return { range: '?', sum: sum !== undefined ? sum : '?' };
+                    return { range: `[${cov[0]},${cov[1]}]`, sum: sum !== undefined ? sum : '?' };
+                }
+
+                let treeHTML = '';
+                layers.forEach((layerNodes, layerIdx) => {
+                    treeHTML += `<div class="tree-layer layer-${layerIdx}">`;
+                    layerNodes.forEach((nodeIdx) => {
+                        const info = formatNode(nodeIdx);
+                        const cls = getNodeClass(nodeIdx);
+                        treeHTML += `
+                  <div class="tree-node ${cls}" data-node="${nodeIdx}">
+                    <span class="node-range">${info.range}</span>
+                    <span class="node-sum">${info.sum}</span>
+                  </div>`;
+                    });
+                    treeHTML += `</div>`;
+                });
+
+                domTreeContainer.innerHTML = treeHTML;
+
+                // Draw SVG connectors after DOM update
+                requestAnimationFrame(() => {
+                    drawConnectors(layers, highlightSet);
+                });
+            }
+
+            function drawConnectors(layers, highlightSet) {
+                const containerRect = domTreeContainer.getBoundingClientRect();
+                const svg = domConnectorSvg;
+                svg.setAttribute('width', containerRect.width);
+                svg.setAttribute('height', containerRect.height);
+                svg.style.position = 'absolute';
+                svg.style.top = '0';
+                svg.style.left = '0';
+                svg.style.pointerEvents = 'none';
+                svg.style.zIndex = '1';
+
+                let svgHTML = '';
+                const parentMap = { 2: 1, 3: 1, 4: 2, 5: 2, 6: 3, 7: 3 };
+
+                for (let layerIdx = 0; layerIdx < layers.length - 1; layerIdx++) {
+                    const parentLayer = layers[layerIdx];
+                    const childLayer = layers[layerIdx + 1];
+
+                    parentLayer.forEach((parentIdx, pi) => {
+                        const children = childLayer.filter(c => parentMap[c] === parentIdx);
+                        const parentEl = domTreeContainer.querySelector(`[data-node="${parentIdx}"]`);
+                        if (!parentEl) return;
+
+                        children.forEach(childIdx => {
+                            const childEl = domTreeContainer.querySelector(`[data-node="${childIdx}"]`);
+                            if (!childEl) return;
+
+                            const pRect = parentEl.getBoundingClientRect();
+                            const cRect = childEl.getBoundingClientRect();
+                            const x1 = pRect.left - containerRect.left + pRect.width / 2;
+                            const y1 = pRect.top - containerRect.top + pRect.height;
+                            const x2 = cRect.left - containerRect.left + cRect.width / 2;
+                            const y2 = cRect.top - containerRect.top;
+
+                            const isActive = highlightSet.has(parentIdx) || highlightSet.has(
+                            childIdx);
+                            const connectorClass = isActive ? 'active-connector' : '';
+                            svgHTML +=
+                                `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${connectorClass}" />`;
+                        });
+                    });
+                }
+                svg.innerHTML = svgHTML;
+            }
+
+            function renderArrayStrip(arrayNums, arrayHighlights, arrayChanged, arrayInQuery) {
+                const hlSet = new Set(arrayHighlights || []);
+                const chSet = new Set(arrayChanged || []);
+                const qSet = new Set(arrayInQuery || []);
+                let html =
+                    '<span style="font-weight:600;margin-right:8px;font-size:0.8rem;color:#64748b;">nums:</span>';
+                arrayNums.forEach((val, idx) => {
+                    let cls = 'arr-cell';
+                    if (hlSet.has(idx)) cls += ' highlight';
+                    if (chSet.has(idx)) cls += ' changed';
+                    if (qSet.has(idx)) cls += ' in-query';
+                    html +=
+                        `<span class="${cls}"><span style="font-size:0.6rem;color:#94a3b8;">[${idx}]</span> ${val}</span>`;
+                });
+                domArrayStrip.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                domTimeline.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    if (step.hasCheckpoint) tick.className += ' has-checkpoint';
+                    tick.setAttribute('data-step', idx);
+                    tick.innerHTML =
+                        `<span class="tick-label">步骤${idx+1}</span><span class="tick-op">${step.op}</span>`;
+                    tick.addEventListener('click', () => {
+                        goToStep(idx);
+                        stopPlay();
+                    });
+                    domTimeline.appendChild(tick);
+                });
+            }
+
+            function updateTimelineActive(stepIdx) {
+                const ticks = domTimeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.toggle('active', i === stepIdx);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Render checkpoint
+            // ──────────────────────────────────────
+            function renderCheckpoint(checkpoint) {
+                window._currentCheckpoint = checkpoint;
+                window._checkpointSubmitted = false;
+                window._checkpointSelectedIndex = -1;
+                window._checkpointInputValue = '';
+
+                if (!checkpoint) {
+                    domCheckpointCard.classList.remove('visible');
+                    domCheckpointContent.innerHTML = '';
+                    return;
+                }
+                domCheckpointCard.classList.add('visible');
+                let html = `<p style="font-weight:600;margin-bottom:7px;font-size:0.88rem;">${checkpoint.question}</p>`;
+
+                if (checkpoint.type === 'choice') {
+                    html += '<div class="quiz-options">';
+                    checkpoint.options.forEach((opt, i) => {
+                        html +=
+                            `<button class="quiz-opt" data-opt-index="${i}" onclick="window._checkpointSelect(${i}, this)">${opt}</button>`;
+                    });
+                    html += '</div>';
+                } else if (checkpoint.type === 'input') {
+                    html +=
+                        `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                  <input type="number" class="quiz-input" id="quiz-input-field" placeholder="输入数值..." onkeydown="if(event.key==='Enter')window._checkpointSubmitInput()">
+                  <button class="btn-sm btn-submit" onclick="window._checkpointSubmitInput()">✅ 提交</button>
+                </div>`;
+                }
+
+                html +=
+                    `<button class="btn-sm btn-hint" onclick="window._checkpointHint()" style="margin-right:6px;">💡 提示</button>`;
+                html += `<button class="btn-sm btn-show" onclick="window._checkpointShowAnswer()">👁 显示答案</button>`;
+                html += `<div class="feedback-area" id="checkpoint-feedback"></div>`;
+                domCheckpointContent.innerHTML = html;
+
+                // Focus input if present
+                if (checkpoint.type === 'input') {
+                    setTimeout(() => {
+                        const inputField = $('#quiz-input-field');
+                        if (inputField) inputField.focus();
+                    }, 150);
+                }
+            }
+
+            window._checkpointSelect = function(optIndex, btnEl) {
+                if (window._checkpointSubmitted) return;
+                const cp = window._currentCheckpoint;
+                if (!cp) return;
+                const allOpts = domCheckpointContent.querySelectorAll('.quiz-opt');
+                allOpts.forEach(o => o.classList.remove('selected'));
+                btnEl.classList.add('selected');
+                window._checkpointSelectedIndex = optIndex;
+                window._checkpointSubmit(optIndex);
+            };
+
+            window._checkpointSubmit = function(optIndex) {
+                if (window._checkpointSubmitted) return;
+                window._checkpointSubmitted = true;
+                const cp = window._currentCheckpoint;
+                if (!cp) return;
+                const fbEl = $('#checkpoint-feedback');
+                const allOpts = domCheckpointContent.querySelectorAll('.quiz-opt');
+                const isCorrect = (optIndex === cp.correctIndex);
+
+                allOpts.forEach((o, i) => {
+                    if (i === cp.correctIndex) o.classList.add('correct');
+                    if (i === optIndex && !isCorrect) o.classList.add('wrong');
+                    o.style.pointerEvents = 'none';
+                });
+
+                if (isCorrect) {
+                    fbEl.className = 'feedback-area correct-fb';
+                    fbEl.textContent = cp.explanation_correct;
+                    completedCheckpoints.add(currentStepIndex);
+                    checkAllComplete();
+                } else {
+                    fbEl.className = 'feedback-area wrong-fb';
+                    fbEl.textContent = cp.explanation_wrong;
+                }
+                addLogEntry(isCorrect ? 'correct' : 'wrong',
+                    `步骤 ${currentStepIndex+1}: ${cp.question.replace(/[🏗️🔢🔄🏁]/g,'').trim()} 选择了 "${cp.options ? cp.options[optIndex] : optIndex}" — ${isCorrect ? '正确 ✅' : '错误 ❌'}`,
+                    isCorrect ? cp.explanation_correct : cp.explanation_wrong
+                );
+            };
+
+            window._checkpointSubmitInput = function() {
+                if (window._checkpointSubmitted) return;
+                const cp = window._currentCheckpoint;
+                if (!cp || cp.type !== 'input') return;
+                const inputField = $('#quiz-input-field');
+                if (!inputField) return;
+                const userAnswer = inputField.value.trim();
+                const isCorrect = (userAnswer === cp.correctAnswer);
+                window._checkpointSubmitted = true;
+                const fbEl = $('#checkpoint-feedback');
+
+                if (isCorrect) {
+                    inputField.classList.add('correct-input');
+                    fbEl.className = 'feedback-area correct-fb';
+                    fbEl.textContent = cp.explanation_correct;
+                    completedCheckpoints.add(currentStepIndex);
+                    checkAllComplete();
+                } else {
+                    inputField.classList.add('wrong-input');
+                    fbEl.className = 'feedback-area wrong-fb';
+                    fbEl.textContent = cp.explanation_wrong;
+                }
+                inputField.disabled = true;
+                // Disable submit button
+                const submitBtn = domCheckpointContent.querySelector('.btn-submit');
+                if (submitBtn) submitBtn.disabled = true;
+
+                addLogEntry(isCorrect ? 'correct' : 'wrong',
+                    `步骤 ${currentStepIndex+1}: ${cp.question.replace(/[🔢]/g,'').trim()} 输入了 "${userAnswer}" — ${isCorrect ? '正确 ✅' : '错误 ❌'}`,
+                    isCorrect ? cp.explanation_correct : cp.explanation_wrong
+                );
+            };
+
+            window._checkpointHint = function() {
+                const cp = window._currentCheckpoint;
+                if (!cp) return;
+                const fbEl = $('#checkpoint-feedback');
+                fbEl.className = 'feedback-area hint-fb';
+                fbEl.textContent = '💡 提示: ' + cp.hint;
+                addLogEntry('hint', `步骤 ${currentStepIndex+1}: 查看了提示`, cp.hint);
+            };
+
+            window._checkpointShowAnswer = function() {
+                const cp = window._currentCheckpoint;
+                if (!cp) return;
+                const fbEl = $('#checkpoint-feedback');
+                const answerText = cp.type === 'choice' ? cp.options[cp.correctIndex] : cp.correctAnswer;
+                fbEl.className = 'feedback-area answer-fb';
+                fbEl.textContent = '👁 答案: ' + answerText + ' — ' + cp.explanation_correct;
+
+                if (!window._checkpointSubmitted) {
+                    window._checkpointSubmitted = true;
+                    if (cp.type === 'choice') {
+                        const allOpts = domCheckpointContent.querySelectorAll('.quiz-opt');
+                        allOpts.forEach((o, i) => {
+                            if (i === cp.correctIndex) o.classList.add('correct');
+                            o.style.pointerEvents = 'none';
+                        });
+                    } else {
+                        const inputField = $('#quiz-input-field');
+                        if (inputField) {
+                            inputField.value = cp.correctAnswer;
+                            inputField.classList.add('correct-input');
+                            inputField.disabled = true;
+                        }
+                        const submitBtn = domCheckpointContent.querySelector('.btn-submit');
+                        if (submitBtn) submitBtn.disabled = true;
+                    }
+                    completedCheckpoints.add(currentStepIndex);
+                    checkAllComplete();
+                    addLogEntry('reveal', `步骤 ${currentStepIndex+1}: 查看了答案 — ${answerText}`,
+                        cp.explanation_correct);
+                }
+            };
+
+            function checkAllComplete() {
+                const allCpSteps = steps.map((s, i) => s.hasCheckpoint ? i : -1).filter(i => i >= 0);
+                const allDone = allCpSteps.every(idx => completedCheckpoints.has(idx));
+                if (allDone && !allCheckpointsDone) {
+                    allCheckpointsDone = true;
+                    domCompletionBadge.classList.add('visible');
+                    triggerCelebration();
+                    addLogEntry('complete', '🏆 所有检查点已完成！', '恭喜！你已经掌握了线段树区间和的核心概念。');
+                }
+            }
+
+            function triggerCelebration() {
+                const overlay = domCelebrateOverlay;
+                overlay.innerHTML = '';
+                const colors = ['#4361ee', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4',
+                '#f97316'];
+                for (let i = 0; i < 80; i++) {
+                    const piece = document.createElement('div');
+                    piece.className = 'confetti-piece';
+                    piece.style.left = Math.random() * 100 + '%';
+                    piece.style.top = -(Math.random() * 30) + 'px';
+                    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    piece.style.width = (6 + Math.random() * 10) + 'px';
+                    piece.style.height = (6 + Math.random() * 10) + 'px';
+                    piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+                    piece.style.animationDelay = Math.random() * 1.5 + 's';
+                    overlay.appendChild(piece);
+                }
+                overlay.classList.add('active');
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                    overlay.innerHTML = '';
+                }, 4000);
+            }
+
+            function addLogEntry(type, summary, detail) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry';
+                const icon = type === 'correct' ? '✅' : type === 'wrong' ? '❌' : type === 'reveal' ? '👁' : type ===
+                    'hint' ? '💡' : type === 'complete' ? '🏆' : '📝';
+                entryDiv.innerHTML =
+                    `<span class="log-time">${timeStr}</span> <span>${icon} ${summary}</span> <span style="font-size:0.68rem;color:#94a3b8;display:block;">${detail || ''}</span>`;
+                // Remove placeholder if exists
+                const placeholder = domLearningLog.querySelector('.log-entry:first-child');
+                if (placeholder && placeholder.textContent.includes('等待交互')) {
+                    placeholder.remove();
+                }
+                domLearningLog.appendChild(entryDiv);
+                domLearningLog.scrollTop = domLearningLog.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // Go to step
+            // ──────────────────────────────────────
+            function goToStep(stepIdx) {
+                if (stepIdx < 0 || stepIdx >= steps.length) return;
+                currentStepIndex = stepIdx;
+                const step = steps[stepIdx];
+
+                domCounter.textContent = `${stepIdx + 1} / ${totalSteps}`;
+                domRange.value = stepIdx + 1;
+                domStepTitle.textContent = step.title;
+                domStepDesc.textContent = step.desc;
+                domOp.textContent = step.op;
+                domState.textContent = JSON.stringify(step.stateJSON, null, 2);
+                domTeaching.textContent = step.teaching;
+                domStepEvidence.textContent = step.evidence;
+                domTopResult.textContent = step.topResult;
+                domTopResult.classList.remove('pulse-once');
+                void domTopResult.offsetWidth;
+                domTopResult.classList.add('pulse-once');
+                domProgressFill.style.width = ((stepIdx + 1) / totalSteps * 100) + '%';
+
+                renderCode(step.codeLines);
+                renderTreeVisualization(step.treeData, step.coverageData, step.highlightNodes, step.coveredNodes, step
+                    .updatedNodes, step.answerNodes);
+                renderArrayStrip(step.arrayNums, step.arrayHighlights, step.arrayChanged, step.arrayInQuery);
+                updateTimelineActive(stepIdx);
+                renderCheckpoint(step.checkpoint);
+
+                domAnswer.textContent = finalAnswer;
+                domTopSolution.textContent =
+                    '线段树：先查询更新前区间和(before=10)，再执行单点更新并查询更新后区间和(after=12)';
+
+                const activeLine = domCode.querySelector('.line.active');
+                if (activeLine) {
+                    activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                // Log navigation
+                if (stepIdx > 0 || !window._initialStepLogged) {
+                    addLogEntry('navigate', `导航到步骤 ${stepIdx+1}: ${step.title}`, step.op);
+                }
+                window._initialStepLogged = true;
+            }
+
+            // ──────────────────────────────────────
+            // Play / auto-advance
+            // ──────────────────────────────────────
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                domPlay.textContent = '⏸ 暂停';
+                domPlay.classList.add('playing');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < steps.length - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                        if (!allCheckpointsDone) {
+                            const allCpSteps = steps.map((s, i) => s.hasCheckpoint ? i : -1).filter(i => i >=
+                                0);
+                            const allDone = allCpSteps.every(idx => completedCheckpoints.has(idx));
+                            if (allDone) {
+                                allCheckpointsDone = true;
+                                domCompletionBadge.classList.add('visible');
+                                triggerCelebration();
+                                addLogEntry('complete', '🏆 所有检查点已完成！',
+                                    '恭喜！你已经掌握了线段树区间和的核心概念。');
+                            }
+                        }
+                    }
+                }, 2500);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                domPlay.textContent = '▶ 播放';
+                domPlay.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= steps.length - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            function resetAll() {
+                stopPlay();
+                completedCheckpoints = new Set();
+                allCheckpointsDone = false;
+                domCompletionBadge.classList.remove('visible');
+                domCelebrateOverlay.classList.remove('active');
+                domCelebrateOverlay.innerHTML = '';
+                window._currentCheckpoint = null;
+                window._checkpointSubmitted = false;
+                window._checkpointSelectedIndex = -1;
+                window._checkpointInputValue = '';
+                window._initialStepLogged = false;
+                domLearningLog.innerHTML =
+                    '<div class="log-entry"><span class="log-time">--</span> 📝 学习日志已重置，交互记录将在此显示。</div>';
+                goToStep(0);
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            domPrev.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            domNext.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < steps.length - 1) goToStep(currentStepIndex + 1);
+            });
+            domPlay.addEventListener('click', togglePlay);
+            domReset.addEventListener('click', resetAll);
+            domRange.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(domRange.value);
+                goToStep(val - 1);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStepIndex < steps.length - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.key === 'r' || e.key === 'R') {
+                    e.preventDefault();
+                    resetAll();
+                }
+            });
+
+            // Handle window resize for SVG connectors
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    const step = steps[currentStepIndex];
+                    if (step) {
+                        renderTreeVisualization(step.treeData, step.coverageData, step.highlightNodes, step
+                            .coveredNodes, step.updatedNodes, step.answerNodes);
+                    }
+                }, 300);
+            });
+
+            // ──────────────────────────────────────
+            // Initial render
+            // ──────────────────────────────────────
+            function init() {
+                window._initialStepLogged = false;
+                window._currentCheckpoint = null;
+                window._checkpointSubmitted = false;
+                window._checkpointSelectedIndex = -1;
+                window._checkpointInputValue = '';
+                completedCheckpoints = new Set();
+                allCheckpointsDone = false;
+
+                domTitle.textContent = '🌲 线段树区间和';
+                domSubtitle.textContent =
+                    '给定整数数组 nums=[2,1,4,5]、闭区间 query=[1,3] 和单点赋值 update=[2,6]，使用线段树先查询更新前区间和，再执行单点更新并查询更新后区间和。';
+                domAnswer.textContent = finalAnswer;
+                domTopSolution.textContent =
+                    '线段树：先查询更新前区间和(before=10)，再执行单点更新并查询更新后区间和(after=12)';
+                domRange.min = 1;
+                domRange.max = totalSteps;
+                domRange.value = 1;
+                domCounter.textContent = `1 / ${totalSteps}`;
+                domProgressFill.style.width = '12.5%';
+                domCompletionBadge.classList.remove('visible');
+                domCelebrateOverlay.classList.remove('active');
+                domCelebrateOverlay.innerHTML = '';
+
+                buildTimeline();
+                renderCode(steps[0].codeLines);
+                domLearningLog.innerHTML =
+                    '<div class="log-entry"><span class="log-time">--</span> 📝 学习日志已就绪，交互记录将在此显示。</div>';
+                domCheckpointCard.classList.remove('visible');
+                goToStep(0);
+
+                console.log('✅ AlgoLab 线段树区间和教学页已就绪');
+                console.log('   - 共 ' + totalSteps + ' 个步骤，其中 ' + steps.filter(s => s.hasCheckpoint).length +
+                    ' 个包含检查点');
+                console.log('   - 最终答案: ' + finalAnswer);
+                console.log('   - 使用键盘 ← → 切换步骤，空格键播放/暂停，R键重置');
+                console.log('   - 检查点类型：选择题 + 数值输入');
+                console.log('   - 完成所有检查点将触发庆祝动画 🎉');
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "graph_topological_sort",
+  "algorithm_id": "graph_topological_sort",
+  "title": "拓扑排序",
+  "family": "BFS/DFS 基础图",
+  "difficulty": "medium",
+  "problem": "你正在为教务系统开发选课推荐功能。给定课程依赖图 graph（邻接表），每门课用字符串表示。请返回一个合法的选课顺序列表，使得每门课的所有前导课程都出现在它之前。",
+  "strategy": "维护入度表和零入度队列，每弹出一个节点就删除它的出边。",
+  "input_contract": "输入 DAG 邻接表 graph。",
+  "time_complexity": "O(V+E)",
+  "space_complexity": "O(V)",
+  "learning_objectives": [
+    "理解入度表 indegree 如何记录剩余依赖数",
+    "掌握队列 queue 管理零入度节点的策略",
+    "能够从 trace 预测每一步弹出节点后状态的更新"
+  ],
+  "required_views": [
+    "graph",
+    "queue",
+    "map"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！你已掌握 indegree 更新规则。",
+      "feedback_wrong": "仔细检查当前 indegree 表，弹出节点后只影响其直接邻居。",
+      "id": "task_1",
+      "oracle": "判断学生回答中是否准确包含了 graph['B'] 邻居中 indegree 减为 0 的节点。",
+      "prompt": "当前 queue 头部是节点 'B'，请预测弹出 'B' 后，哪些邻居的 indegree 会变为 0 并将加入队列？",
+      "stage2_affordance": "点击节点 'B'，观察邻居 indegree 的变化动画。",
+      "trace_anchor": [
+        "state.queue",
+        "state.indegree"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错，这正是 Kahn 算法的核心不变式。",
+      "feedback_wrong": "请查看入度表，队列里的节点在 indegree 中是什么值？",
+      "id": "task_2",
+      "oracle": "自动检查回答是否包含“队列中所有节点的 indegree 均为 0”。",
+      "prompt": "在整个算法运行过程中，队列里始终满足什么不变性质？（提示：关注 indegree）",
+      "stage2_affordance": "打开入度表视图，逐帧观察队列和 indegree 的对应关系。",
+      "trace_anchor": [
+        "state.queue",
+        "state.indegree"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "对，有环图不存在拓扑序，队列最终会变空且还有节点剩余。",
+      "feedback_wrong": "试试思考：有环时，哪些节点永远不会有 indegree 为 0 的机会？",
+      "id": "task_3",
+      "oracle": "检查回答是否指出算法最终无法处理所有节点，或队列提前清空。",
+      "prompt": "在原图 graph 中添加一条边 D->A，使图产生环。描述这将如何影响算法行为？",
+      "stage2_affordance": "拖拽鼠标在图中添加边 D->A，重新运行算法观察结果。",
+      "trace_anchor": [
+        "input_data.graph",
+        "state.queue"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释很清晰，你完全理解了状态转移逻辑。",
+      "feedback_wrong": "请聚焦 'C' 在邻接表中的直接邻居，检查它们的 indegree 前后变化。",
+      "id": "task_4",
+      "oracle": "自动验证解释是否包含：'C' 邻居 indegree 减 1，减为 0 则入队。",
+      "prompt": "当节点 'C' 从队列弹出后，indegree 和 queue 发生了哪些具体变化？为什么？",
+      "stage2_affordance": "点击时间线上的每一步，回放 indegree 和 queue 的同步更新。",
+      "trace_anchor": [
+        "state.indegree",
+        "state.queue"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "index": 0,
+    "input_data": {
+      "graph": {
+        "A": [
+          "B",
+          "C"
+        ],
+        "B": [
+          "D"
+        ],
+        "C": [
+          "D"
+        ],
+        "D": []
+      }
+    }
+  }
+}

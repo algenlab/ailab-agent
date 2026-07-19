@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KMP 字符串匹配 — AlgoLab</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --warning: #ea580c;
+            --warning-light: #fff7ed;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --muted: #94a3b8;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', 'DejaVu Sans Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            background: #f1f5f9;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 24px;
+        }
+        .header-card .title-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .badge-result {
+            background: var(--success-light);
+            color: var(--success);
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #bbf7d0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge-solution {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #bfdbfe;
+        }
+        #top-result,
+        #top-solution {
+            font-family: var(--font-mono);
+            font-weight: 700;
+        }
+
+        /* Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 800px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .card-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Code */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 420px;
+            overflow-y: auto;
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 8px;
+            border-radius: 3px;
+            transition: all 0.25s;
+        }
+        #code .code-line.highlight {
+            background: #334155;
+            color: #f8fafc;
+            font-weight: 600;
+        }
+        #code .code-line.dim {
+            opacity: 0.38;
+            transition: opacity 0.3s;
+        }
+        #code .code-line.highlight-green {
+            background: #14532d;
+            color: #bbf7d0;
+            font-weight: 600;
+        }
+        #code .code-line.highlight-orange {
+            background: #7c2d12;
+            color: #fed7aa;
+            font-weight: 600;
+        }
+        #code .code-line.highlight-blue {
+            background: #1e3a5f;
+            color: #bfdbfe;
+            font-weight: 600;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 180px;
+            background: #fefce8;
+            border-radius: 8px;
+            padding: 16px;
+            border: 2px dashed #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        #canvas .viz-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #canvas .char-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            transition: all 0.3s;
+            position: relative;
+        }
+        #canvas .char-box.active-i {
+            border-color: #2563eb;
+            background: #dbeafe;
+            color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+            z-index: 2;
+        }
+        #canvas .char-box.active-j {
+            border-color: #ea580c;
+            background: #fff7ed;
+            color: #c2410c;
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.18);
+            z-index: 2;
+        }
+        #canvas .char-box.matched {
+            border-color: #16a34a;
+            background: #dcfce7;
+            color: #15803d;
+        }
+        #canvas .char-box.mismatch {
+            border-color: #dc2626;
+            background: #fef2f2;
+            color: #b91c1c;
+            animation: shake 0.4s ease;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-4px);
+            }
+            50% {
+                transform: translateX(4px);
+            }
+            75% {
+                transform: translateX(-3px);
+            }
+        }
+        #canvas .pointer-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #64748b;
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        #canvas .arrow-down {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+        #canvas .prefix-table-display {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        #canvas .prefix-cell {
+            background: #e0e7ff;
+            border: 2px solid #818cf8;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #3730a3;
+            min-width: 40px;
+            text-align: center;
+        }
+        #canvas .info-tag {
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 14px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        /* State & Evidence */
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            word-break: break-all;
+        }
+        #step-evidence {
+            font-size: 0.84rem;
+            color: #475569;
+            padding: 6px 10px;
+            background: #fffbeb;
+            border-left: 3px solid #f59e0b;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+
+        /* Teaching */
+        #teaching {
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.7;
+        }
+        #teaching strong {
+            color: #0f172a;
+        }
+        #teaching code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+        }
+
+        /* Step title/desc */
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        #step-desc {
+            font-size: 0.88rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        #op {
+            display: inline-block;
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: stretch;
+            padding: 4px 0;
+            overflow-x: auto;
+        }
+        #timeline .tick {
+            flex: 1 1 0;
+            min-width: 90px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+        #timeline .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        #timeline .tick.active-tick {
+            border-color: #2563eb;
+            background: #dbeafe;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+            font-weight: 700;
+        }
+        #timeline .tick-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #475569;
+        }
+        #timeline .tick.active-tick .tick-label {
+            color: #1e40af;
+        }
+        #timeline .tick-op {
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        #timeline .tick.active-tick .tick-op {
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        /* Nav */
+        .nav-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn.active-btn {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #334155;
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: #2563eb;
+            cursor: pointer;
+        }
+
+        /* Checkpoint */
+        #checkpoint-container {
+            transition: all 0.3s;
+        }
+        #checkpoint-container.hidden-checkpoint {
+            display: none;
+        }
+        .checkpoint-card {
+            background: #fffbeb;
+            border: 2px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+        }
+        .checkpoint-card h4 {
+            margin: 0 0 8px;
+            color: #92400e;
+            font-size: 0.95rem;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .option-btn {
+            padding: 7px 14px;
+            border-radius: 18px;
+            border: 2px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.84rem;
+            transition: all 0.2s;
+        }
+        .option-btn:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .option-btn.selected {
+            border-color: #2563eb;
+            background: #dbeafe;
+            font-weight: 700;
+            color: #1e40af;
+        }
+        .option-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .action-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-submit {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+            font-weight: 700;
+        }
+        .btn-submit:hover {
+            background: #1d4ed8;
+        }
+        .btn-hint {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+        .btn-reveal {
+            background: #fce7f3;
+            border-color: #ec4899;
+            color: #9d174d;
+        }
+        .feedback-box {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            margin-top: 6px;
+        }
+        .feedback-box.correct {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .feedback-box.incorrect {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .feedback-box.info {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #16a34a;
+            background: #f0fdf4;
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 2px solid #bbf7d0;
+            display: inline-block;
+        }
+        .answer-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Learn log */
+        #learn-log {
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            line-height: 1.5;
+        }
+        #learn-log .log-entry {
+            padding: 2px 0;
+            border-bottom: 1px dotted #e2e8f0;
+        }
+        #learn-log .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 8px;
+            }
+            .header-card {
+                padding: 12px 14px;
+                gap: 8px;
+            }
+            #title {
+                font-size: 1.2rem;
+            }
+            #canvas .char-box {
+                width: 30px;
+                height: 30px;
+                font-size: 0.8rem;
+            }
+            #code {
+                font-size: 0.7rem;
+                max-height: 260px;
+            }
+            #timeline .tick {
+                min-width: 65px;
+                padding: 6px 4px;
+            }
+            #timeline .tick-label {
+                font-size: 0.68rem;
+            }
+            #timeline .tick-op {
+                font-size: 0.62rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="title-group">
+                <div id="title">KMP 字符串匹配</div>
+                <div id="subtitle">LeetCode 28 · 前缀表 + 失配回退</div>
+            </div>
+            <div class="header-badges">
+                <span class="badge-result">📋 结果：<span id="top-result">2</span></span>
+                <span class="badge-solution">✅ 解：<span id="top-solution">2</span></span>
+                <span id="answer">2</span>
+            </div>
+        </div>
+
+        <!-- Main content grid -->
+        <div class="content-grid">
+            <!-- Code card -->
+            <div class="card">
+                <h3>📝 算法代码</h3>
+                <div id="code"></div>
+            </div>
+
+            <!-- Canvas + State card -->
+            <div class="card">
+                <h3>🔬 算法视图区</h3>
+                <div id="canvas"></div>
+                <div style="margin-top:8px;">
+                    <span style="font-size:0.78rem;color:#64748b;font-weight:600;">状态：</span>
+                    <div id="state" style="margin-top:3px;">text="ababc", pattern="abc", i=0, j=0</div>
+                </div>
+                <div id="step-evidence" style="margin-top:6px;"></div>
+            </div>
+        </div>
+
+        <!-- Step info row -->
+        <div class="card">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span id="op">初始化</span>
+                <span id="step-title" style="flex:1;min-width:150px;">🔍 初始化</span>
+            </div>
+            <div id="step-desc" style="margin-top:4px;">设置text和pattern，初始化指针</div>
+        </div>
+
+        <!-- Teaching card -->
+        <div class="card">
+            <h3>📖 讲解</h3>
+            <div id="teaching"></div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <h3>⏱ 步骤时间线</h3>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="card nav-row">
+            <button class="btn" id="prev">◀ 上一步</button>
+            <button class="btn" id="play">▶ 播放</button>
+            <button class="btn" id="next">下一步 ▶</button>
+            <input type="range" id="range" min="1" max="4" value="1" step="1">
+            <span id="counter">1 / 4</span>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="card" id="checkpoint-container"></div>
+
+        <!-- Learning log -->
+        <div class="card">
+            <h3>📋 学习日志</h3>
+            <div id="learn-log">暂无记录。完成 checkpoint 后此处会追加记录。</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ DOM REFS ============
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $teaching = document.getElementById('teaching');
+            const $timeline = document.getElementById('timeline');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $answer = document.getElementById('answer');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $learnLog = document.getElementById('learn-log');
+
+            // ============ CONSTANTS ============
+            const finalAnswer = 2;
+            const totalSteps = 4;
+            let currentStep = 1;
+            let autoPlayInterval = null;
+            const checkpointAnswers = {};
+            const learningLogEntries = [];
+
+            // ============ KMP CODE TEXT ============
+            const codeLinesText = [
+                'function kmp(text, pattern) {',
+                '  if (pattern === "") return 0;',
+                '  // 构建前缀表 (failure function)',
+                '  const prefix = [0];',
+                '  let k = 0;',
+                '  for (let q = 1; q < pattern.length; q++) {',
+                '    while (k > 0 && pattern[k] !== pattern[q]) {',
+                '      k = prefix[k - 1];',
+                '    }',
+                '    if (pattern[k] === pattern[q]) k++;',
+                '    prefix[q] = k;',
+                '  }',
+                '  // 开始匹配',
+                '  let j = 0;',
+                '  for (let i = 0; i < text.length; i++) {',
+                '    while (j > 0 && text[i] !== pattern[j]) {',
+                '      j = prefix[j - 1];  // 失配回退',
+                '    }',
+                '    if (text[i] === pattern[j]) j++;',
+                '    if (j === pattern.length) {',
+                '      return i - j + 1;  // 匹配成功',
+                '    }',
+                '  }',
+                '  return -1;',
+                '}',
+            ];
+
+            // ============ STEPS DATA ============
+            const stepsData = [{
+                id: 1,
+                title: '🔍 初始化',
+                desc: '设置 text="ababc" 和 pattern="abc"，指针 i=0, j=0 指向起始位置。',
+                op: '初始化',
+                state: 'text="ababc", pattern="abc", i=0, j=0',
+                evidence: '指针 i 指向 text[0]=\'a\'，指针 j 指向 pattern[0]=\'a\'，两者相等，准备开始匹配。',
+                teaching: '<p>KMP（Knuth-Morris-Pratt）算法通过<strong>前缀表</strong>（也叫 failure function）来避免暴力匹配中的无效回退。</p><p>当前步骤完成<strong>初始化</strong>：<code>i=0</code> 在文本上移动，<code>j=0</code> 在模式串上移动。若 <code>pattern</code> 为空则直接返回 <code>0</code>。</p>',
+                codeLines: [1, 2, 13],
+                canvasData: {
+                    type: 'init',
+                    text: 'ababc',
+                    pattern: 'abc',
+                    i: 0,
+                    j: 0,
+                },
+                checkpoint: null,
+            }, {
+                id: 2,
+                title: '📊 构建前缀表',
+                desc: '为 pattern "abc" 构建 KMP 前缀表，得到 [0, 0, 0]。',
+                op: '构建前缀表',
+                state: '前缀表 prefix = [0, 0, 0]',
+                evidence: 'pattern "abc" 的每个位置：p[0]=\'a\'→0（单字符无前后缀），p[1]=\'b\'→0（"ab"无相等前后缀），p[2]=\'c\'→0（"abc"无相等前后缀）。',
+                teaching: '<p><strong>前缀表</strong>记录了模式串每个位置之前子串的<strong>最长相等前后缀长度</strong>。</p><p>对于 <code>"abc"</code>：<br>• 索引0：子串"a"，无真前后缀 → <code>prefix[0]=0</code><br>• 索引1：子串"ab"，前缀"a"≠后缀"b" → <code>prefix[1]=0</code><br>• 索引2：子串"abc"，无相等前后缀 → <code>prefix[2]=0</code></p><p>前缀表 <code>[0,0,0]</code> 意味着任何位置失配时都回退到 <code>j=0</code>。</p>',
+                codeLines: [3, 4, 5, 6, 7, 8, 9, 10, 11],
+                canvasData: {
+                    type: 'prefix_table',
+                    pattern: 'abc',
+                    prefix: [0, 0, 0],
+                },
+                checkpoint: {
+                    id: 'cp1',
+                    question: 'pattern "abc" 的 KMP 前缀表（failure function）是什么？',
+                    options: ['[0, 0, 0]', '[0, 1, 0]', '[0, 0, 1]', '[0, 1, 2]'],
+                    correctIndex: 0,
+                    hint: '思考"abc"是否存在相等的前后缀对。前缀"a"与后缀"b"、"c"都不相等，"ab"与"bc"也不相等。',
+                    explanation_correct: '✅ 正确！"abc"没有重复的前后缀，前缀表全为0。这意味着失配时j总是回退到0。',
+                    explanation_wrong: '❌ 错误。"abc"中没有任何相等的前后缀对，所以前缀表应该是[0,0,0]。',
+                },
+            }, {
+                id: 3,
+                title: '⚠️ 失配与回退',
+                desc: 'text[2]=\'a\' 与 pattern[2]=\'c\' 失配，利用前缀表将 j 从 2 回退到 0。',
+                op: '失配回退',
+                state: '失配点 i=2, j=2; 回退 j = prefix[1] = 0; 然后继续匹配',
+                evidence: '匹配到i=2时，text[2]=\'a\' ≠ pattern[2]=\'c\'。此时j=2，查prefix[1]=0，j回退到0。这避免了暴力法中i回退的开销。',
+                teaching: '<p>这是KMP的<strong>核心优势</strong>：失配时<strong>i保持不变</strong>，只回退<code>j</code>。</p><p>当前失配：<code>text[2]=\'a\'</code> vs <code>pattern[2]=\'c\'</code>。<br>根据前缀表 <code>prefix[1]=0</code>，将 <code>j</code> 回退到 <code>0</code>。<br>然后从 <code>i=2, j=0</code> 继续比较：<code>text[2]=\'a\'</code> 等于 <code>pattern[0]=\'a\'</code>，匹配继续！</p>',
+                codeLines: [14, 15, 16, 17],
+                canvasData: {
+                    type: 'mismatch',
+                    text: 'ababc',
+                    pattern: 'abc',
+                    i: 2,
+                    j: 2,
+                    fallbackJ: 0,
+                },
+                checkpoint: {
+                    id: 'cp2',
+                    question: '在 i=2 处失配后，j 回退到了哪个值？',
+                    options: ['0', '1', '2', '-1'],
+                    correctIndex: 0,
+                    hint: '失配时j=2，查prefix[j-1]=prefix[1]，而prefix[1]=0。',
+                    explanation_correct: '✅ 正确！j回退到0，然后text[2]与pattern[0]重新比较，节省了时间。',
+                    explanation_wrong: '❌ 错误。失配时j=2，回退值=prefix[1]=0，所以j回退到0。',
+                },
+            }, {
+                id: 4,
+                title: '✅ 匹配成功',
+                desc: '在 text 索引 2 处找到完整匹配 "abc"，返回 i-j+1=5-3=2。',
+                op: '匹配成功',
+                state: '匹配成功！j=3 达到 pattern 长度，返回 i-j+1 = 5-3 = 2',
+                evidence: '经过回退后继续匹配：i=2,j=0匹配\'a\'；i=3,j=1匹配\'b\'；i=4,j=2匹配\'c\'；j增至3等于pattern长度，匹配完成。计算结果：i=4时j变成3，返回i-j+1=4-3+1=2。',
+                teaching: '<p><strong>匹配成功！</strong>当 <code>j</code> 达到 <code>pattern.length</code>（即3）时，说明在text中找到了完整的pattern。</p><p>返回值计算：<code>i - j + 1 = 4 - 3 + 1 = <strong>2</strong></code>。</p><p>验证：<code>text[2..4] = "abc" = pattern</code>，索引2确实是最早出现的匹配位置。✅</p>',
+                codeLines: [18, 19, 20],
+                canvasData: {
+                    type: 'success',
+                    text: 'ababc',
+                    pattern: 'abc',
+                    matchStart: 2,
+                },
+                checkpoint: {
+                    id: 'cp3',
+                    question: '最终返回的匹配起始索引是多少？',
+                    options: ['0', '1', '2', '-1'],
+                    correctIndex: 2,
+                    hint: '在text="ababc"中，"abc"从索引2开始：text[2]=\'a\', text[3]=\'b\', text[4]=\'c\'。',
+                    explanation_correct: '✅ 正确！text[2..4]="abc"，索引2是正确答案。',
+                    explanation_wrong: '❌ 错误。查看text="ababc"，子串"abc"从索引2开始（0-based）。',
+                },
+            }];
+
+            // ============ BUILD CODE HTML ============
+            function buildCodeHTML() {
+                let html = '';
+                for (let i = 0; i < codeLinesText.length; i++) {
+                    const ln = i + 1;
+                    html += '<span class="code-line" data-line="' + ln + '">' +
+                        String(ln).padStart(2, ' ') + '  ' + escapeHTML(codeLinesText[i]) + '</span>';
+                }
+                $code.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function highlightCode(lineNumbers) {
+                const allLines = $code.querySelectorAll('.code-line');
+                allLines.forEach(el => {
+                    const ln = parseInt(el.getAttribute('data-line'));
+                    el.classList.remove('highlight', 'highlight-green', 'highlight-orange', 'highlight-blue', 'dim');
+                    if (lineNumbers.includes(ln)) {
+                        // Use different highlight colors based on context
+                        if (ln >= 3 && ln <= 11) {
+                            el.classList.add('highlight-blue');
+                        } else if (ln >= 16 && ln <= 17) {
+                            el.classList.add('highlight-orange');
+                        } else if (ln >= 18 && ln <= 20) {
+                            el.classList.add('highlight-green');
+                        } else {
+                            el.classList.add('highlight');
+                        }
+                    } else {
+                        el.classList.add('dim');
+                    }
+                });
+            }
+
+            // ============ RENDER CANVAS ============
+            function renderCanvas(canvasData) {
+                if (!canvasData) {
+                    $canvas.innerHTML = '<div class="info-tag">暂无可视化数据</div>';
+                    return;
+                }
+                const cd = canvasData;
+                let html = '';
+
+                if (cd.type === 'init') {
+                    // Show text and pattern with pointers
+                    html += '<div style="font-weight:600;font-size:0.85rem;color:#475569;margin-bottom:4px;">📌 文本 Text</div>';
+                    html += '<div class="viz-row">';
+                    for (let ti = 0; ti < cd.text.length; ti++) {
+                        const cls = (ti === cd.i) ? 'char-box active-i' : 'char-box';
+                        html += '<div class="' + cls + '">' + cd.text[ti] + '</div>';
+                    }
+                    html += '</div>';
+                    if (cd.i < cd.text.length) {
+                        html += '<div style="font-size:0.7rem;color:#2563eb;font-weight:700;margin-top:2px;">i=' + cd.i +
+                            ' ↑</div>';
+                    }
+                    html +=
+                        '<div style="font-weight:600;font-size:0.85rem;color:#475569;margin-top:10px;margin-bottom:4px;">🔎 模式串 Pattern</div>';
+                    html += '<div class="viz-row">';
+                    for (let pj = 0; pj < cd.pattern.length; pj++) {
+                        const cls = (pj === cd.j) ? 'char-box active-j' : 'char-box';
+                        html += '<div class="' + cls + '">' + cd.pattern[pj] + '</div>';
+                    }
+                    html += '</div>';
+                    if (cd.j < cd.pattern.length) {
+                        html += '<div style="font-size:0.7rem;color:#ea580c;font-weight:700;margin-top:2px;">j=' + cd.j +
+                            ' ↑</div>';
+                    }
+                } else if (cd.type === 'prefix_table') {
+                    html += '<div style="font-weight:600;font-size:0.85rem;color:#475569;margin-bottom:6px;">📊 前缀表构建结果</div>';
+                    html += '<div class="prefix-table-display">';
+                    html += '<span style="font-size:0.78rem;color:#64748b;font-weight:600;">Pattern:</span>';
+                    for (let pi = 0; pi < cd.pattern.length; pi++) {
+                        html += '<div class="prefix-cell" style="background:#fff;border-color:#cbd5e1;color:#334155;">' +
+                            cd.pattern[pi] + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<div class="prefix-table-display" style="margin-top:6px;">';
+                    html += '<span style="font-size:0.78rem;color:#64748b;font-weight:600;">Prefix:</span>';
+                    for (let pi = 0; pi < cd.prefix.length; pi++) {
+                        html += '<div class="prefix-cell">' + cd.prefix[pi] + '</div>';
+                    }
+                    html += '</div>';
+                    html +=
+                        '<div class="info-tag" style="margin-top:8px;">前缀表 = [' + cd.prefix.join(', ') + '] — 失配时回退参考</div>';
+                } else if (cd.type === 'mismatch') {
+                    html += '<div style="font-weight:600;font-size:0.85rem;color:#dc2626;margin-bottom:4px;">⚠️ 失配发生</div>';
+                    html += '<div class="viz-row">';
+                    for (let ti = 0; ti < cd.text.length; ti++) {
+                        let cls = 'char-box';
+                        if (ti === cd.i) cls = 'char-box mismatch';
+                        html += '<div class="' + cls + '">' + cd.text[ti] + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<div style="font-size:0.7rem;color:#dc2626;font-weight:700;margin-top:2px;">i=' + cd.i +
+                        ' (text[' + cd.i + ']=\'' + cd.text[cd.i] + '\')</div>';
+                    html +=
+                        '<div style="font-weight:600;font-size:0.85rem;color:#475569;margin-top:8px;margin-bottom:4px;">模式串（失配位置）</div>';
+                    html += '<div class="viz-row">';
+                    for (let pj = 0; pj < cd.pattern.length; pj++) {
+                        let cls = 'char-box';
+                        if (pj === cd.j) cls = 'char-box mismatch';
+                        html += '<div class="' + cls + '">' + cd.pattern[pj] + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<div style="font-size:0.7rem;color:#dc2626;font-weight:700;margin-top:2px;">j=' + cd.j +
+                        ' (pattern[' + cd.j + ']=\'' + cd.pattern[cd.j] + '\')</div>';
+                    html += '<div class="info-tag" style="margin-top:8px;background:#fef2f2;color:#991b1b;">';
+                    html += '失配！j 从 ' + cd.j + ' 回退到 ' + cd.fallbackJ + '（prefix[' + (cd.j - 1) + ']=' + cd
+                        .fallbackJ + '）';
+                    html += '</div>';
+                } else if (cd.type === 'success') {
+                    html += '<div style="font-weight:600;font-size:0.85rem;color:#16a34a;margin-bottom:4px;">✅ 匹配成功</div>';
+                    html += '<div class="viz-row">';
+                    for (let ti = 0; ti < cd.text.length; ti++) {
+                        let cls = 'char-box';
+                        if (ti >= cd.matchStart && ti < cd.matchStart + cd.pattern.length) {
+                            cls = 'char-box matched';
+                        }
+                        html += '<div class="' + cls + '">' + cd.text[ti] + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<div style="font-size:0.75rem;color:#16a34a;font-weight:700;margin-top:4px;">';
+                    html += '匹配区间：text[' + cd.matchStart + '..' + (cd.matchStart + cd.pattern.length - 1) +
+                        '] = "' + cd.pattern + '"';
+                    html += '</div>';
+                    html += '<div class="info-tag" style="margin-top:6px;background:#dcfce7;color:#166534;">';
+                    html += '返回 i-j+1 = ' + cd.matchStart + ' ✅';
+                    html += '</div>';
+                } else {
+                    html += '<div class="info-tag">步骤可视化</div>';
+                }
+
+                $canvas.innerHTML = html;
+            }
+
+            // ============ BUILD TIMELINE ============
+            function buildTimeline() {
+                let html = '';
+                for (let s = 0; s < totalSteps; s++) {
+                    const sd = stepsData[s];
+                    html += '<div class="tick" data-step="' + (s + 1) + '">';
+                    html += '<span class="tick-label">步骤' + (s + 1) + '</span>';
+                    html += '<span class="tick-op">' + sd.op + '</span>';
+                    html += '</div>';
+                }
+                $timeline.innerHTML = html;
+
+                // Bind click events on ticks
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach(tick => {
+                    tick.addEventListener('click', function() {
+                        const step = parseInt(this.getAttribute('data-step'));
+                        if (step >= 1 && step <= totalSteps) {
+                            goToStep(step);
+                        }
+                    });
+                });
+            }
+
+            // ============ RENDER STEP ============
+            function renderStep(stepIndex) {
+                const sd = stepsData[stepIndex - 1];
+                if (!sd) return;
+
+                $stepTitle.textContent = sd.title;
+                $stepDesc.textContent = sd.desc;
+                $op.textContent = sd.op;
+                $state.textContent = sd.state;
+                $teaching.innerHTML = sd.teaching;
+                $stepEvidence.textContent = sd.evidence;
+                $counter.textContent = stepIndex + ' / ' + totalSteps;
+                $range.value = stepIndex;
+
+                // Code highlight
+                highlightCode(sd.codeLines);
+
+                // Canvas
+                renderCanvas(sd.canvasData);
+
+                // Timeline active
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach(t => {
+                    t.classList.remove('active-tick');
+                    if (parseInt(t.getAttribute('data-step')) === stepIndex) {
+                        t.classList.add('active-tick');
+                    }
+                });
+
+                // Checkpoint
+                renderCheckpoint(sd);
+
+                // Scroll active tick into view
+                const activeTick = $timeline.querySelector('.tick.active-tick');
+                if (activeTick && typeof activeTick.scrollIntoView === 'function') {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // ============ CHECKPOINT ============
+            function renderCheckpoint(sd) {
+                if (!sd.checkpoint) {
+                    $checkpointContainer.innerHTML = '';
+                    $checkpointContainer.classList.add('hidden-checkpoint');
+                    return;
+                }
+                $checkpointContainer.classList.remove('hidden-checkpoint');
+                const cp = sd.checkpoint;
+                const cpId = cp.id;
+                const alreadyAnswered = checkpointAnswers[cpId] !== undefined;
+                const wasCorrect = checkpointAnswers[cpId] === true;
+
+                let html = '<div class="checkpoint-card">';
+                html += '<h4>🧠 Learner Checkpoint</h4>';
+                html += '<p style="font-size:0.88rem;color:#374151;font-weight:500;">' + cp.question + '</p>';
+                html += '<div class="options">';
+                for (let oi = 0; oi < cp.options.length; oi++) {
+                    html += '<button class="option-btn" data-cp="' + cpId + '" data-opt="' + oi + '" ' +
+                        (alreadyAnswered ? 'disabled' : '') + '>' + cp.options[oi] + '</button>';
+                }
+                html += '</div>';
+                html += '<div class="action-row">';
+                html += '<button class="btn btn-submit" id="btn-submit-' + cpId + '" ' + (alreadyAnswered ?
+                    'disabled' : '') + '>提交答案</button>';
+                html += '<button class="btn btn-hint" id="btn-hint-' + cpId + '">💡 提示</button>';
+                html += '<button class="btn btn-reveal" id="btn-reveal-' + cpId + '">👁 显示答案</button>';
+                html += '</div>';
+                html += '<div id="feedback-' + cpId + '" style="min-height:20px;"></div>';
+                if (alreadyAnswered) {
+                    html += '<div class="feedback-box ' + (wasCorrect ? 'correct' : 'incorrect') +
+                        '" style="margin-top:6px;">' +
+                        (wasCorrect ? cp.explanation_correct : cp.explanation_wrong) + '</div>';
+                }
+                html += '</div>';
+                $checkpointContainer.innerHTML = html;
+
+                // Bind events
+                if (!alreadyAnswered) {
+                    const optionBtns = $checkpointContainer.querySelectorAll('.option-btn');
+                    let selectedOpt = null;
+                    optionBtns.forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            optionBtns.forEach(b => b.classList.remove('selected'));
+                            this.classList.add('selected');
+                            selectedOpt = parseInt(this.getAttribute('data-opt'));
+                        });
+                    });
+
+                    const submitBtn = document.getElementById('btn-submit-' + cpId);
+                    if (submitBtn) {
+                        submitBtn.addEventListener('click', function() {
+                            if (selectedOpt === null) {
+                                const fb = document.getElementById('feedback-' + cpId);
+                                fb.innerHTML =
+                                    '<div class="feedback-box info">请先选择一个选项再提交。</div>';
+                                return;
+                            }
+                            const isCorrect = (selectedOpt === cp.correctIndex);
+                            checkpointAnswers[cpId] = isCorrect;
+                            const fb = document.getElementById('feedback-' + cpId);
+                            if (isCorrect) {
+                                fb.innerHTML = '<div class="feedback-box correct">' + cp
+                                    .explanation_correct + '</div>';
+                            } else {
+                                fb.innerHTML = '<div class="feedback-box incorrect">' + cp
+                                    .explanation_wrong + '</div>';
+                            }
+                            // Disable all option buttons and submit
+                            optionBtns.forEach(b => b.disabled = true);
+                            submitBtn.disabled = true;
+                            const hintBtn = document.getElementById('btn-hint-' + cpId);
+                            const revealBtn = document.getElementById('btn-reveal-' + cpId);
+                            if (hintBtn) hintBtn.disabled = true;
+                            if (revealBtn) revealBtn.disabled = true;
+                            // Log
+                            addLearningLog('Checkpoint "' + cpId + '" @步骤' + sd.id + ': 选择 "' + cp
+                                .options[selectedOpt] + '" → ' + (isCorrect ? '✅正确' : '❌错误') +
+                                ' (正确答案: ' + cp.options[cp.correctIndex] + ')');
+                        });
+                    }
+
+                    const hintBtn = document.getElementById('btn-hint-' + cpId);
+                    if (hintBtn) {
+                        hintBtn.addEventListener('click', function() {
+                            const fb = document.getElementById('feedback-' + cpId);
+                            fb.innerHTML = '<div class="feedback-box info">💡 提示：' + cp.hint +
+                                '</div>';
+                            addLearningLog('Checkpoint "' + cpId + '" @步骤' + sd.id + ': 请求了提示');
+                        });
+                    }
+
+                    const revealBtn = document.getElementById('btn-reveal-' + cpId);
+                    if (revealBtn) {
+                        revealBtn.addEventListener('click', function() {
+                            checkpointAnswers[cpId] = false;
+                            const fb = document.getElementById('feedback-' + cpId);
+                            fb.innerHTML = '<div class="feedback-box info">🔍 正确答案：' + cp.options[
+                                cp.correctIndex
+                            ] + ' — ' + cp.explanation_correct + '</div>';
+                            optionBtns.forEach(b => b.disabled = true);
+                            const submitBtn2 = document.getElementById('btn-submit-' + cpId);
+                            if (submitBtn2) submitBtn2.disabled = true;
+                            if (hintBtn) hintBtn.disabled = true;
+                            revealBtn.disabled = true;
+                            addLearningLog('Checkpoint "' + cpId + '" @步骤' + sd.id +
+                                ': 查看了答案 → 正确答案: ' + cp.options[cp.correctIndex]);
+                        });
+                    }
+                }
+            }
+
+            function addLearningLog(entry) {
+                const timestamp = new Date().toLocaleTimeString();
+                learningLogEntries.push('[' + timestamp + '] ' + entry);
+                updateLearningLog();
+            }
+
+            function updateLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    $learnLog.textContent = '暂无记录。完成 checkpoint 后此处会追加记录。';
+                } else {
+                    $learnLog.innerHTML = learningLogEntries.map(e => '<div class="log-entry">' + e + '</div>').join('');
+                }
+            }
+
+            // ============ NAVIGATION ============
+            function goToStep(step) {
+                if (step < 1 || step > totalSteps) return;
+                currentStep = step;
+                renderStep(currentStep);
+                updateNavButtons();
+            }
+
+            function updateNavButtons() {
+                $prev.disabled = (currentStep <= 1);
+                $next.disabled = (currentStep >= totalSteps);
+                $range.value = currentStep;
+                $counter.textContent = currentStep + ' / ' + totalSteps;
+            }
+
+            $prev.addEventListener('click', () => {
+                if (currentStep > 1) goToStep(currentStep - 1);
+            });
+            $next.addEventListener('click', () => {
+                if (currentStep < totalSteps) goToStep(currentStep + 1);
+            });
+            $range.addEventListener('input', () => {
+                goToStep(parseInt($range.value));
+            });
+
+            // Play
+            $play.addEventListener('click', () => {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                    $play.textContent = '▶ 播放';
+                    $play.classList.remove('active-btn');
+                } else {
+                    $play.textContent = '⏸ 暂停';
+                    $play.classList.add('active-btn');
+                    autoPlayInterval = setInterval(() => {
+                        if (currentStep < totalSteps) {
+                            goToStep(currentStep + 1);
+                        } else {
+                            clearInterval(autoPlayInterval);
+                            autoPlayInterval = null;
+                            $play.textContent = '▶ 播放';
+                            $play.classList.remove('active-btn');
+                        }
+                    }, 1800);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (currentStep < totalSteps) goToStep(currentStep + 1);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (currentStep > 1) goToStep(currentStep - 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    $play.click();
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                // Set final answer from the start
+                $answer.textContent = finalAnswer;
+                $topResult.textContent = finalAnswer;
+                $topSolution.textContent = finalAnswer;
+                // Build code HTML
+                buildCodeHTML();
+                // Build timeline
+                buildTimeline();
+                // Set range max
+                $range.max = totalSteps;
+                $range.min = 1;
+                // Go to step 1
+                goToStep(1);
+                updateNavButtons();
+                updateLearningLog();
+                console.log('✅ KMP AlgoLab 教学页已就绪 | 最终答案: ' + finalAnswer + ' | 总步骤: ' + totalSteps);
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

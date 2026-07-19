@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>不同路径 - DP 教学</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel: #16213e;
+            --card: #1a2744;
+            --text: #e0e0e0;
+            --accent: #4fc3f7;
+            --gold: #ffd54f;
+            --green: #81c784;
+            --red: #e57373;
+            --border: #2a3a5c;
+            --hover: #253555;
+            --active: #1e3a5f;
+            --code-bg: #0d1b2a;
+            --highlight: #2a4a6b;
+            --cell-filled: #1b5e20;
+            --cell-current: #ff8f00;
+            --cell-empty: #263238;
+            --tick-active: #4fc3f7;
+            --tick-done: #81c784;
+            --tick-pending: #546e7a;
+            --radius: 10px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            --font-sans: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--panel);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            justify-content: space-between;
+        }
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: #90a4ae;
+            letter-spacing: 0.2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        #top-result {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gold);
+            background: #1e2d3d;
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: #b0bec5;
+            white-space: nowrap;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 14px;
+        }
+        @media (max-width: 780px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .card-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #78909c;
+            font-weight: 600;
+        }
+        .card-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+            background: #0f1b2d;
+            border-radius: 8px;
+            padding: 16px;
+            overflow: auto;
+        }
+        .dp-grid {
+            display: grid;
+            gap: 3px;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .dp-cell {
+            width: 48px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            position: relative;
+            user-select: none;
+        }
+        .dp-cell.filled {
+            background: var(--cell-filled);
+            color: #c8e6c9;
+            border: 1px solid #2e7d32;
+        }
+        .dp-cell.current {
+            background: var(--cell-current);
+            color: #1a1a1a;
+            border: 2px solid #ffb300;
+            font-weight: 700;
+            z-index: 2;
+            box-shadow: 0 0 16px rgba(255, 143, 0, 0.5);
+            animation: pulse 0.8s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 12px rgba(255, 143, 0, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 24px rgba(255, 143, 0, 0.75);
+            }
+        }
+        .dp-cell.empty {
+            background: var(--cell-empty);
+            color: #546e7a;
+            border: 1px dashed #37474f;
+        }
+        .dp-cell.header-cell {
+            background: #1a237e;
+            color: #bbdefb;
+            font-size: 0.7rem;
+            font-weight: 400;
+            border: 1px solid #283593;
+        }
+        .dp-arrow-indicator {
+            font-size: 0.75rem;
+            color: #ffcc80;
+            margin-top: 2px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 6px 0;
+        }
+        button {
+            background: var(--border);
+            color: #e0e0e0;
+            border: 1px solid #3a5070;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        button:hover {
+            background: var(--hover);
+            border-color: #5a7a9a;
+        }
+        button:active {
+            background: var(--active);
+            transform: scale(0.97);
+        }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #play {
+            background: #1b5e20;
+            border-color: #2e7d32;
+            color: #c8e6c9;
+            font-weight: 600;
+            min-width: 80px;
+        }
+        #play.playing {
+            background: #b71c1c;
+            border-color: #c62828;
+            color: #ffcdd2;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: #4fc3f7;
+            height: 6px;
+            cursor: pointer;
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            background: #1e2d3d;
+            padding: 6px 12px;
+            border-radius: 14px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Op */
+        #op {
+            background: #1a2744;
+            border: 1px solid var(--accent);
+            border-left: 4px solid var(--accent);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            color: #b3e5fc;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: all 0.3s;
+        }
+
+        /* Step title & desc */
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: #b0bec5;
+            line-height: 1.5;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 10px 4px;
+            align-items: flex-end;
+            min-height: 80px;
+            scroll-behavior: smooth;
+        }
+        #timeline::-webkit-scrollbar {
+            height: 4px;
+        }
+        #timeline::-webkit-scrollbar-thumb {
+            background: #3a5070;
+            border-radius: 4px;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 52px;
+            cursor: pointer;
+            padding: 6px 4px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .tick:hover {
+            background: var(--hover);
+        }
+        .tick.active {
+            background: #1e3a5f;
+            border: 1px solid var(--tick-active);
+        }
+        .tick.done {
+            opacity: 0.85;
+        }
+        .tick .tick-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #90a4ae;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .tick.active .tick-label {
+            color: var(--tick-active);
+        }
+        .tick.done .tick-label {
+            color: var(--tick-done);
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: #78909c;
+            text-align: center;
+            line-height: 1.2;
+            max-width: 60px;
+            word-break: break-all;
+        }
+        .tick.active .tick-op {
+            color: #b3e5fc;
+        }
+        .tick-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--tick-pending);
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .tick.active .tick-dot {
+            background: var(--tick-active);
+            box-shadow: 0 0 8px var(--tick-active);
+            width: 13px;
+            height: 13px;
+        }
+        .tick.done .tick-dot {
+            background: var(--tick-done);
+        }
+
+        /* Code */
+        #code {
+            background: var(--code-bg);
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            white-space: pre;
+            overflow-x: auto;
+            color: #b0bec5;
+            border: 1px solid #1e2d3d;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #code .cline {
+            display: block;
+            padding: 1px 8px;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        #code .cline.highlight {
+            background: #1e3a5f;
+            color: #fff;
+            font-weight: 600;
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Teaching & State & Evidence */
+        #teaching {
+            font-size: 0.88rem;
+            color: #cfd8dc;
+            line-height: 1.6;
+            padding: 6px 0;
+        }
+        #state {
+            background: #0d1b2a;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: #a5d6a7;
+            white-space: pre-wrap;
+            max-height: 160px;
+            overflow-y: auto;
+            border: 1px solid #1e2d3d;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #ffcc80;
+            background: #1e2d3d;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--gold);
+            letter-spacing: 0.2px;
+            transition: all 0.3s;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-align: center;
+            padding: 8px;
+            letter-spacing: 1px;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            background: #1a2744;
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            border: 1px solid #3a5070;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cp-question {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .cp-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .cp-row input {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #0d1b2a;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+        }
+        .cp-row input:disabled {
+            opacity: 0.5;
+        }
+        .cp-feedback {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: none;
+        }
+        .cp-feedback.correct {
+            background: #1b3a1b;
+            color: #a5d6a7;
+            border: 1px solid #2e7d32;
+            display: block;
+        }
+        .cp-feedback.incorrect {
+            background: #3a1b1b;
+            color: #ef9a9a;
+            border: 1px solid #b71c1c;
+            display: block;
+        }
+        .cp-feedback.hint-show {
+            background: #2a2a1b;
+            color: #ffe082;
+            border: 1px solid #f9a825;
+            display: block;
+        }
+
+        /* Learning log */
+        #learning-log {
+            list-style: none;
+            max-height: 140px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            background: #0d1b2a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            border: 1px solid #1e2d3d;
+        }
+        #learning-log li {
+            padding: 4px 0;
+            border-bottom: 1px solid #1e2d3d;
+            color: #b0bec5;
+        }
+        #learning-log .correct-entry {
+            color: #a5d6a7;
+        }
+        #learning-log .incorrect-entry {
+            color: #ef9a9a;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <span id="title">不同路径</span>
+                <span id="subtitle">巡检机器人 · m=3, n=7 · 二维DP</span>
+            </div>
+            <div class="header-right">
+                <span id="top-result">📦 答案：28</span>
+                <span id="top-solution">共 28 条不同路线</span>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Canvas card -->
+            <div class="card card-full" style="min-height:260px;">
+                <span class="card-label">📐 算法视图 (DP表格)</span>
+                <div id="canvas">
+                    <div class="dp-grid" id="dp-grid-container"></div>
+                    <div class="dp-arrow-indicator" id="dp-arrow-hint"></div>
+                </div>
+            </div>
+
+            <!-- Step info + Op -->
+            <div class="card">
+                <span class="card-label">🔧 当前步骤</span>
+                <div id="step-title">初始化</div>
+                <div id="step-desc">准备创建DP表格</div>
+                <div id="op">🔧 操作：创建dp数组</div>
+                <div id="step-evidence">📐 证据：等待初始化</div>
+            </div>
+
+            <!-- Controls card -->
+            <div class="card">
+                <span class="card-label">🎮 步骤控制</span>
+                <div class="controls-row">
+                    <button id="prev" title="上一步">◀ 上一步</button>
+                    <button id="play" title="播放/暂停">▶ 播放</button>
+                    <button id="next" title="下一步">下一步 ▶</button>
+                </div>
+                <div class="controls-row">
+                    <input type="range" id="range" min="1" value="1" step="1" title="拖动切换步骤">
+                    <span id="counter">1 / 15</span>
+                </div>
+            </div>
+
+            <!-- Timeline card -->
+            <div class="card card-full">
+                <span class="card-label">⏱ 步骤时间线</span>
+                <div id="timeline"></div>
+            </div>
+
+            <!-- Code card -->
+            <div class="card">
+                <span class="card-label">💻 伪代码</span>
+                <div id="code"></div>
+            </div>
+
+            <!-- Teaching + State card -->
+            <div class="card">
+                <span class="card-label">📖 讲解</span>
+                <div id="teaching"></div>
+                <span class="card-label" style="margin-top:6px;">📊 当前DP状态</span>
+                <div id="state"></div>
+            </div>
+
+            <!-- Answer card -->
+            <div class="card card-full" style="text-align:center;">
+                <span class="card-label">✅ 最终答案</span>
+                <div id="answer">28</div>
+            </div>
+
+            <!-- Checkpoint card -->
+            <div class="checkpoint-area card-full">
+                <span class="card-label">🧠 学习检测点</span>
+                <div class="cp-question" id="cp-question">🧠 学习检测点（在关键步骤会出现题目）</div>
+                <div class="cp-row">
+                    <input type="text" id="cp-input" placeholder="暂无题目，继续浏览..." disabled>
+                    <button id="cp-submit" disabled>提交</button>
+                    <button id="cp-hint">💡 提示</button>
+                    <button id="cp-show-answer">👁 显示答案</button>
+                </div>
+                <div class="cp-feedback" id="cp-feedback"></div>
+                <span class="card-label" style="margin-top:4px;">📝 学习日志</span>
+                <ul id="learning-log"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ DOM REFS ============
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $dpGridContainer = document.getElementById('dp-grid-container');
+            const $dpArrowHint = document.getElementById('dp-arrow-hint');
+            const $prev = document.getElementById('prev');
+            const $playBtn = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $cpQuestion = document.getElementById('cp-question');
+            const $cpInput = document.getElementById('cp-input');
+            const $cpSubmit = document.getElementById('cp-submit');
+            const $cpHint = document.getElementById('cp-hint');
+            const $cpShowAnswer = document.getElementById('cp-show-answer');
+            const $cpFeedback = document.getElementById('cp-feedback');
+            const $learningLog = document.getElementById('learning-log');
+
+            // ============ CONSTANTS ============
+            const M = 3;
+            const N = 7;
+            const FINAL_ANSWER = 28;
+            const totalSteps = 15;
+
+            // Ensure answer is always the final answer as bare JSON
+            $answer.textContent = '28';
+
+            // ============ PSEUDOCODE LINES ============
+            const pseudoCodeLines = [
+                'function uniquePaths(m, n):',
+                '  dp = 二维数组[m][n]',
+                '  // 初始化第一行',
+                '  for j in 0..n-1:',
+                '    dp[0][j] = 1',
+                '  // 初始化第一列',
+                '  for i in 0..m-1:',
+                '    dp[i][0] = 1',
+                '  // 填充剩余格子',
+                '  for i in 1..m-1:',
+                '    for j in 1..n-1:',
+                '      dp[i][j] = dp[i-1][j] + dp[i][j-1]',
+                '  return dp[m-1][n-1]',
+            ];
+
+            function renderCode(highlightIndices) {
+                const hSet = new Set(highlightIndices || []);
+                let html = '';
+                pseudoCodeLines.forEach((line, i) => {
+                    const cls = hSet.has(i) ? 'cline highlight' : 'cline';
+                    html += `<span class="${cls}">${escapeHTML(line)}</span>`;
+                });
+                $code.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============ STEPS DATA ============
+            // dp state is a 3x7 array; null = unfilled, number = filled
+            function createEmptyDP() {
+                const dp = [];
+                for (let i = 0; i < M; i++) {
+                    dp[i] = [];
+                    for (let j = 0; j < N; j++) {
+                        dp[i][j] = null;
+                    }
+                }
+                return dp;
+            }
+
+            function cloneDP(dp) {
+                return dp.map(row => row.slice());
+            }
+
+            // Build all step snapshots
+            const steps = [];
+            const dp0 = createEmptyDP();
+
+            // Step 1: Initialize
+            steps.push({
+                id: 1,
+                title: '初始化DP表',
+                desc: '创建 m×n 的二维数组dp，所有格子初始为空（待填充）。',
+                op: '创建 dp[3][7] 二维数组',
+                dp: cloneDP(dp0),
+                currentCell: null,
+                codeHighlights: [1],
+                teaching: '动态规划的核心是定义状态。这里dp[i][j]表示从起点(0,0)到达(i,j)的不同路径数。我们先创建好表格框架。',
+                evidence: 'dp = 3×7 空数组，准备逐格填充。',
+                tickLabel: '步骤1',
+                tickOp: '初始化',
+            });
+
+            // Step 2: Fill first row
+            const dp2 = cloneDP(dp0);
+            for (let j = 0; j < N; j++) dp2[0][j] = 1;
+            steps.push({
+                id: 2,
+                title: '填充第一行',
+                desc: '第一行所有格子只能从左边走过来（或起点），每条路径唯一，所以dp[0][j]=1。',
+                op: 'dp[0][0..6] = 1',
+                dp: cloneDP(dp2),
+                currentCell: [0, N - 1],
+                codeHighlights: [2, 3, 4],
+                teaching: '第一行的机器人只能向右移动，每一步只有一种走法，因此整行都是1。这是DP的边界条件之一。',
+                evidence: 'dp[0][j] = 1 (j=0..6)，共7个格子。',
+                tickLabel: '步骤2',
+                tickOp: '填充第一行',
+            });
+
+            // Step 3: Fill first column (skip [0][0] already filled)
+            const dp3 = cloneDP(dp2);
+            for (let i = 1; i < M; i++) dp3[i][0] = 1;
+            steps.push({
+                id: 3,
+                title: '填充第一列',
+                desc: '第一列（除起点外）只能从上方走过来，所以dp[i][0]=1。',
+                op: 'dp[1][0]=1, dp[2][0]=1',
+                dp: cloneDP(dp3),
+                currentCell: [M - 1, 0],
+                codeHighlights: [5, 6, 7],
+                teaching: '第一列的机器人只能向下移动，同样只有一种走法。至此，DP表的边界全部初始化完毕。',
+                evidence: 'dp[1][0]=1, dp[2][0]=1。边界条件全部就绪。',
+                tickLabel: '步骤3',
+                tickOp: '填充第一列',
+            });
+
+            // Steps 4-15: Fill inner cells row by row
+            const fillOrder = [];
+            for (let i = 1; i < M; i++) {
+                for (let j = 1; j < N; j++) {
+                    fillOrder.push([i, j]);
+                }
+            }
+            // fillOrder: [1,1],[1,2],[1,3],[1,4],[1,5],[1,6],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6]
+            let runningDP = cloneDP(dp3);
+            fillOrder.forEach(([i, j], idx) => {
+                const above = runningDP[i - 1][j];
+                const left = runningDP[i][j - 1];
+                const val = above + left;
+                runningDP[i][j] = val;
+                const stepNum = 4 + idx;
+                const isLast = (i === M - 1 && j === N - 1);
+                steps.push({
+                    id: stepNum,
+                    title: isLast ? '填充最终格子 dp[2][6]' : `填充 dp[${i}][${j}]`,
+                    desc: isLast ?
+                        '计算右下角目标格子的值，也是最终答案。' :
+                        `根据递推公式计算 dp[${i}][${j}] = dp[${i-1}][${j}] + dp[${i}][${j-1}]。`,
+                    op: `dp[${i}][${j}] = dp[${i-1}][${j}] + dp[${i}][${j-1}] = ${above} + ${left} = ${val}`,
+                    dp: cloneDP(runningDP),
+                    currentCell: [i, j],
+                    codeHighlights: isLast ? [8, 9, 10, 11] : [8, 9, 10],
+                    teaching: isLast ?
+                        `最终答案dp[2][6]=${val}。这与组合数学公式C(m+n-2, m-1)=C(8,2)=28完全一致。` :
+                        `递推：到达(${i},${j})的路径数 = 到达上方(${i-1},${j})的路径数(${above}) + 到达左侧(${i},${j-1})的路径数(${left}) = ${val}。`,
+                    evidence: `dp[${i}][${j}] = dp[${i-1}][${j}] + dp[${i}][${j-1}] = ${above} + ${left} = ${val}`,
+                    tickLabel: `步骤${stepNum}`,
+                    tickOp: `dp[${i}][${j}]=${val}`,
+                });
+            });
+
+            // ============ BUILD TIMELINE TICKS ============
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-index', idx);
+                    tick.innerHTML = `
+                <span class="tick-label">${step.tickLabel}</span>
+                <span class="tick-dot"></span>
+                <span class="tick-op">${step.tickOp}</span>
+              `;
+                    tick.addEventListener('click', () => {
+                        stopPlay();
+                        goToStep(idx);
+                    });
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            // ============ RENDER CANVAS (DP GRID) ============
+            function renderCanvas(step) {
+                const dp = step.dp;
+                const [ci, cj] = step.currentCell || [-1, -1];
+                let html = '';
+                // Column headers
+                html += '<div class="dp-cell header-cell"></div>';
+                for (let j = 0; j < N; j++) {
+                    html += `<div class="dp-cell header-cell">j=${j}</div>`;
+                }
+                for (let i = 0; i < M; i++) {
+                    html += `<div class="dp-cell header-cell">i=${i}</div>`;
+                    for (let j = 0; j < N; j++) {
+                        const val = dp[i][j];
+                        const isCurrent = (i === ci && j === cj);
+                        let cls = 'dp-cell';
+                        let displayVal;
+                        if (val === null) {
+                            cls += ' empty';
+                            displayVal = '·';
+                        } else {
+                            cls += ' filled';
+                            displayVal = val;
+                        }
+                        if (isCurrent) {
+                            cls += ' current';
+                        }
+                        html += `<div class="${cls}">${displayVal}</div>`;
+                    }
+                }
+                $dpGridContainer.innerHTML = html;
+                $dpGridContainer.style.gridTemplateColumns = `repeat(${N + 1}, 48px)`;
+                $dpGridContainer.style.gridTemplateRows = `repeat(${M + 1}, 40px)`;
+
+                // Arrow hint
+                if (ci >= 0 && cj >= 0) {
+                    $dpArrowHint.textContent =
+                        `⬆ 上方 dp[${ci-1}][${cj}] + ⬅ 左侧 dp[${ci}][${cj-1}] → 当前 dp[${ci}][${cj}]`;
+                } else {
+                    $dpArrowHint.textContent = '';
+                }
+            }
+
+            // ============ UPDATE ALL UI ============
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointActive = false;
+            let currentCheckpointData = null;
+            let checkpointAnswered = false;
+
+            function goToStep(index) {
+                if (index < 0) index = 0;
+                if (index >= totalSteps) index = totalSteps - 1;
+                currentStepIndex = index;
+                const step = steps[index];
+
+                // Update step info
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = '🔧 操作：' + step.op;
+                $stepEvidence.textContent = '📐 证据：' + step.evidence;
+                $teaching.textContent = step.teaching;
+                $counter.textContent = (index + 1) + ' / ' + totalSteps;
+                $range.value = index + 1;
+                $range.max = totalSteps;
+
+                // State JSON
+                const stateObj = {
+                    step: step.id,
+                    title: step.title,
+                    dp: step.dp,
+                    currentCell: step.currentCell,
+                    description: step.desc,
+                };
+                $state.textContent = JSON.stringify(stateObj, null, 2);
+
+                // Canvas
+                renderCanvas(step);
+
+                // Code highlight
+                renderCode(step.codeHighlights);
+
+                // Timeline ticks
+                const allTicks = $timeline.querySelectorAll('.tick');
+                allTicks.forEach((tick, i) => {
+                    tick.classList.remove('active', 'done');
+                    if (i < index) tick.classList.add('done');
+                    if (i === index) tick.classList.add('active');
+                });
+
+                // Scroll active tick into view
+                if (allTicks[index]) {
+                    allTicks[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+
+                // Update buttons
+                $prev.disabled = (index === 0);
+                $next.disabled = (index >= totalSteps - 1);
+
+                // Update checkpoint
+                updateCheckpointForStep(step);
+
+                // Auto-stop play at end
+                if (index >= totalSteps - 1 && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            // ============ CHECKPOINT LOGIC ============
+            function updateCheckpointForStep(step) {
+                checkpointAnswered = false;
+                $cpFeedback.className = 'cp-feedback';
+                $cpFeedback.textContent = '';
+                $cpFeedback.style.display = 'none';
+                $cpInput.value = '';
+                $cpInput.disabled = false;
+                $cpSubmit.disabled = false;
+
+                // Define checkpoints
+                if (step.id === 9) {
+                    // After dp[1][6]=7 (row 1 complete)
+                    checkpointActive = true;
+                    currentCheckpointData = {
+                        stepId: 9,
+                        question: '第二行已全部填充完毕。请问dp[2][1]（第三行第二列）的值是多少？提示：dp[2][1] = dp[1][1] + dp[2][0]',
+                        answer: 3,
+                        hint: 'dp[1][1]=2（上方），dp[2][0]=1（左侧），两者相加即可。',
+                        explanation_correct: '完全正确！dp[2][1] = dp[1][1] + dp[2][0] = 2 + 1 = 3。',
+                        explanation_incorrect: '常见误区：依赖格搞错了。dp[2][1]依赖上方dp[1][1]=2和左侧dp[2][0]=1，之和为3。',
+                    };
+                    $cpQuestion.textContent = '🧠 ' + currentCheckpointData.question;
+                    $cpInput.placeholder = '输入数值';
+                    $cpInput.setAttribute('type', 'number');
+                    checkpointAnswered = false;
+                } else if (step.id === 14) {
+                    checkpointActive = true;
+                    currentCheckpointData = {
+                        stepId: 14,
+                        question: '只剩最后一个格子dp[2][6]了！根据当前DP表，请预测它的值（即最终答案）。提示：dp[2][6] = dp[1][6] + dp[2][5]',
+                        answer: 28,
+                        hint: 'dp[1][6]=7（上方），dp[2][5]=21（左侧），7+21=?',
+                        explanation_correct: '太棒了！dp[2][6] = 7 + 21 = 28，这就是最终答案。',
+                        explanation_incorrect: '请再检查：dp[1][6]=7，dp[2][5]=21，7+21=28。',
+                    };
+                    $cpQuestion.textContent = '🧠 ' + currentCheckpointData.question;
+                    $cpInput.placeholder = '输入预测值';
+                    $cpInput.setAttribute('type', 'number');
+                    checkpointAnswered = false;
+                } else if (step.id === 15) {
+                    checkpointActive = true;
+                    currentCheckpointData = {
+                        stepId: 15,
+                        question: '✅ 答案已确认为28。思考题：若网格变为4×7（m=4,n=7），答案是多少？提示：C(m+n-2, m-1)=C(9,3)',
+                        answer: 84,
+                        hint: 'C(9,3) = 9×8×7/(3×2×1) = 504/6 = 84。',
+                        explanation_correct: '非常好！C(9,3)=84。DP和组合数学相通。',
+                        explanation_incorrect: 'C(9,3) = 9×8×7/(3×2×1) = 504/6 = 84。',
+                    };
+                    $cpQuestion.textContent = '🧠 ' + currentCheckpointData.question;
+                    $cpInput.placeholder = '输入答案';
+                    $cpInput.setAttribute('type', 'number');
+                    checkpointAnswered = false;
+                } else {
+                    checkpointActive = false;
+                    currentCheckpointData = null;
+                    $cpQuestion.textContent = '🧠 学习检测点（在关键步骤会出现题目）';
+                    $cpInput.placeholder = '暂无题目，继续浏览...';
+                    $cpInput.disabled = true;
+                    $cpSubmit.disabled = true;
+                    $cpFeedback.className = 'cp-feedback';
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.style.display = 'none';
+                }
+            }
+
+            function submitCheckpoint() {
+                if (!checkpointActive || !currentCheckpointData || checkpointAnswered) return;
+                const userAnswer = parseInt($cpInput.value.trim());
+                if (isNaN(userAnswer)) {
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                    $cpFeedback.textContent = '⚠️ 请输入有效的数字。';
+                    $cpFeedback.style.display = 'block';
+                    return;
+                }
+                checkpointAnswered = true;
+                const isCorrect = (userAnswer === currentCheckpointData.answer);
+                const logEntry = document.createElement('li');
+                if (isCorrect) {
+                    $cpFeedback.className = 'cp-feedback correct';
+                    $cpFeedback.textContent = '✅ ' + currentCheckpointData.explanation_correct;
+                    $cpFeedback.style.display = 'block';
+                    logEntry.className = 'correct-entry';
+                    logEntry.textContent =
+                        `✅ 步骤${currentCheckpointData.stepId}：回答正确！答案=${userAnswer} — ${currentCheckpointData.explanation_correct}`;
+                } else {
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                    $cpFeedback.textContent = '❌ ' + currentCheckpointData.explanation_incorrect;
+                    $cpFeedback.style.display = 'block';
+                    logEntry.className = 'incorrect-entry';
+                    logEntry.textContent =
+                        `❌ 步骤${currentCheckpointData.stepId}：回答错误。你的答案=${userAnswer}，正确答案=${currentCheckpointData.answer}。`;
+                }
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+                $cpInput.disabled = true;
+                $cpSubmit.disabled = true;
+            }
+
+            function showHint() {
+                if (!checkpointActive || !currentCheckpointData) return;
+                $cpFeedback.className = 'cp-feedback hint-show';
+                $cpFeedback.textContent = '💡 提示：' + currentCheckpointData.hint;
+                $cpFeedback.style.display = 'block';
+                const logEntry = document.createElement('li');
+                logEntry.textContent = `💡 步骤${currentCheckpointData.stepId}：查看了提示 — ${currentCheckpointData.hint}`;
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function showAnswer() {
+                if (!checkpointActive || !currentCheckpointData) return;
+                checkpointAnswered = true;
+                $cpFeedback.className = 'cp-feedback correct';
+                $cpFeedback.textContent = '👁 正确答案是：' + currentCheckpointData.answer + '。' + currentCheckpointData
+                    .explanation_correct;
+                $cpFeedback.style.display = 'block';
+                $cpInput.value = currentCheckpointData.answer;
+                $cpInput.disabled = true;
+                $cpSubmit.disabled = true;
+                const logEntry = document.createElement('li');
+                logEntry.textContent =
+                    `👁 步骤${currentCheckpointData.stepId}：查看了答案 — 正确答案=${currentCheckpointData.answer}`;
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            // ============ PLAY / STOP ============
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                $playBtn.textContent = '⏸ 暂停';
+                $playBtn.classList.add('playing');
+                if (currentStepIndex >= totalSteps - 1) {
+                    goToStep(0);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStepIndex >= totalSteps - 1) {
+                        stopPlay();
+                        return;
+                    }
+                    goToStep(currentStepIndex + 1);
+                }, 1400);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $playBtn.textContent = '▶ 播放';
+                $playBtn.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT LISTENERS ============
+            $prev.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex - 1);
+            });
+            $next.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex + 1);
+            });
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt($range.value);
+                goToStep(val - 1);
+            });
+            $cpSubmit.addEventListener('click', submitCheckpoint);
+            $cpHint.addEventListener('click', showHint);
+            $cpShowAnswer.addEventListener('click', showAnswer);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.key === 'Enter') {
+                    if (document.activeElement === $cpInput && checkpointActive && !checkpointAnswered) {
+                        e.preventDefault();
+                        submitCheckpoint();
+                    }
+                }
+            });
+
+            // ============ INITIALIZE ============
+            buildTimeline();
+            goToStep(0);
+            $range.max = totalSteps;
+            $range.value = 1;
+            // Ensure answer stays as bare JSON
+            $answer.textContent = '28';
+
+            console.log('🚀 AlgoLab教学页面就绪 | 不同路径 | m=3, n=7 | 总步骤=' + totalSteps + ' | 答案=28');
+            console.log('💡 左右箭头键切换步骤 | 空格键播放/暂停 | Enter提交检测题');
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>快速幂取模 - Interactive Algorithm Visualization</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --gray: #6b7280;
+      --dark: #1e293b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+      color: var(--dark);
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .header {
+      text-align: center;
+      color: white;
+      padding: 24px 16px 8px;
+    }
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .header .subtitle {
+      font-size: 1rem;
+      opacity: 0.85;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--primary);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .input-output {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+    }
+    .io-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 100px;
+      text-align: center;
+      flex: 1;
+    }
+    .io-item .label {
+      font-size: 0.85rem;
+      color: var(--gray);
+      margin-bottom: 4px;
+    }
+    .io-item .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--dark);
+    }
+    .expected {
+      background: #e0f2fe;
+      border-color: var(--primary-light);
+    }
+    .expected .value {
+      color: #2563eb;
+    }
+    .step-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .state-var {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 500;
+      flex: 1 1 auto;
+      min-width: 80px;
+      text-align: center;
+    }
+    .state-var span.label {
+      color: var(--gray);
+      font-size: 0.8rem;
+      display: block;
+    }
+    .state-var span.val {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .step-description {
+      background: #fffbeb;
+      border-left: 4px solid var(--warning);
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 1rem;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    .step-table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: center;
+    }
+    th {
+      background: #f1f5f9;
+      color: var(--dark);
+      font-weight: 600;
+    }
+    tr.active {
+      background: #ede9fe;
+    }
+    tr.active td {
+      font-weight: 600;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; pointer-events: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-secondary { background: #e2e8f0; color: var(--dark); }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-warning:hover { background: #d97706; }
+    .checkpoint-area {
+      border: 2px dashed var(--primary-light);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 16px;
+      background: #faf5ff;
+      display: none;
+    }
+    .checkpoint-area.active { display: block; }
+    .checkpoint-area h3 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+    .checkpoint-input {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .checkpoint-input input {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      width: 150px;
+    }
+    .feedback {
+      margin-top: 10px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 500;
+      display: none;
+    }
+    .feedback.correct { background: #d1fae5; color: #065f46; display: block; }
+    .feedback.wrong { background: #fee2e2; color: #991b1b; display: block; }
+    .hint-box {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: #fffbeb;
+      border-left: 4px solid var(--warning);
+      border-radius: 6px;
+      display: none;
+      line-height: 1.5;
+    }
+    .hint-box.visible { display: block; }
+    .activity-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      list-style: none;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+    .activity-log li {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .activity-log li:last-child { border-bottom: none; }
+    @media (max-width: 768px) {
+      .header h1 { font-size: 1.5rem; }
+      .card { padding: 16px; }
+      .input-output { flex-direction: column; align-items: stretch; }
+      .state-var { flex: 1 1 40%; }
+      .btn { padding: 8px 12px; font-size: 0.85rem; }
+      table { font-size: 0.8rem; }
+      th, td { padding: 6px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ 快速幂取模</h1>
+      <div class="subtitle">Interactive Algorithm Visualization · 数学与位运算</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 问题描述</div>
+      <p>在一个安全验证场景中，给定底数 <code>base</code>、指数 <code>exponent</code> 和模数 <code>mod</code>，计算 <code>base<sup>exponent</sup> mod mod</code>。</p>
+      <p style="margin-top:8px;">核心策略：<strong>把指数拆成二进制</strong>，维护 <code>cur</code> 平方表，遇到 1 位就乘入答案。</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📥 具体输入 / 📤 预期输出</div>
+      <div class="input-output">
+        <div class="io-item"><div class="label">base</div><div class="value" id="ioBase">3</div></div>
+        <div class="io-item"><div class="label">exponent</div><div class="value" id="ioExp">5</div></div>
+        <div class="io-item"><div class="label">mod</div><div class="value" id="ioMod">13</div></div>
+        <div class="io-item expected" id="finalAnswerDisplay"><div class="label">预期答案</div><div class="value">9</div></div>
+      </div>
+    </div>
+
+    <div class="card" id="vizCard">
+      <div class="card-title">🔍 步骤可视化</div>
+      <div class="step-info" id="stepInfo">
+        <div class="state-var"><span class="label">当前步骤</span><span class="val" id="stepIdxDisplay">0</span></div>
+        <div class="state-var"><span class="label">answer</span><span class="val" id="answerDisplay">1</span></div>
+        <div class="state-var"><span class="label">cur</span><span class="val" id="curDisplay">3</span></div>
+        <div class="state-var"><span class="label">e (指数)</span><span class="val" id="eDisplay">5</span></div>
+      </div>
+      <div class="step-description" id="stepDesc"></div>
+      <div class="step-table-wrapper">
+        <table>
+          <thead>
+            <tr><th>步骤</th><th>二进制位 (bit)</th><th>answer</th><th>cur</th><th>e</th></tr>
+          </thead>
+          <tbody id="stepTableBody"></tbody>
+        </table>
+      </div>
+      <div class="controls">
+        <button class="btn btn-secondary" id="prevBtn">◀ 上一步</button>
+        <button class="btn btn-primary" id="nextBtn">下一步 ▶</button>
+        <button class="btn btn-secondary" id="resetBtn">↺ 重置</button>
+        <button class="btn btn-secondary" id="autoPlayBtn">▶ 自动播放</button>
+        <button class="btn btn-warning" id="hintBtn">💡 提示</button>
+        <button class="btn btn-danger" id="showAnswerBtn">👁️ 显示答案</button>
+      </div>
+      <div class="hint-box" id="hintBox"></div>
+      <div class="checkpoint-area" id="checkpointArea">
+        <h3>🧠 学习检验</h3>
+        <p id="checkpointQuestion"></p>
+        <div class="checkpoint-input">
+          <input type="number" id="checkpointInput" placeholder="输入你的答案" />
+          <button class="btn btn-primary" id="checkpointSubmitBtn">提交</button>
+        </div>
+        <div class="feedback" id="checkpointFeedback"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📜 活动日志</div>
+      <ul class="activity-log" id="activityLog">
+        <li>— 页面已加载 —</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Immutable problem constants
+      var BASE = 3;
+      var EXP = 5;
+      var MOD = 13;
+      var EXPECTED = 9;
+
+      // Compute all steps of the fast-power modulo algorithm
+      function computeSteps(b, exp, m) {
+        var steps = [];
+        var answer = 1;
+        var cur = b % m;
+        var e = exp;
+        var binaryStr = exp.toString(2);
+
+        // Step 0: initial state
+        steps.push({
+          idx: 0,
+          bit: '—',
+          answer: answer,
+          cur: cur,
+          e: e,
+          desc: '初始状态：answer = 1，cur = base % mod = ' + cur + '，e = ' + e + ' (二进制: ' + binaryStr + ')'
+        });
+
+        var i = 0;
+        while (e > 0) {
+          var bit = e & 1;
+          var prev = steps[steps.length - 1];
+          if (bit === 1) {
+            answer = (answer * cur) % m;
+          }
+          cur = (cur * cur) % m;
+          e = e >>> 1;
+          i++;
+          steps.push({
+            idx: i,
+            bit: bit,
+            answer: answer,
+            cur: cur,
+            e: e,
+            desc: ''
+          });
+        }
+
+        // Fill in descriptions
+        for (var s = 1; s < steps.length; s++) {
+          var step = steps[s];
+          var prev = steps[s - 1];
+          var posLabel = '位 ' + (s - 1) + ' (权重 2^' + (s - 1) + ')';
+          if (step.bit === 1) {
+            step.desc = posLabel + ' = 1：answer = (' + prev.answer + ' × ' + prev.cur + ') % ' + m +
+                        ' = <strong>' + step.answer + '</strong>；cur = ' + prev.cur + '² % ' + m + ' = ' + step.cur;
+          } else {
+            step.desc = posLabel + ' = 0：answer 不变 = <strong>' + step.answer + '</strong>；cur = ' + prev.cur + '² % ' + m + ' = ' + step.cur;
+          }
+        }
+        steps[steps.length - 1].desc += '。<br>✅ 循环结束，最终结果：<strong>' + steps[steps.length - 1].answer + '</strong>';
+
+        return steps;
+      }
+
+      var steps = computeSteps(BASE, EXP, MOD);
+
+      // ---------- Application State ----------
+      var currentIdx = 0;
+      var checkpointPassed = false;
+      var autoTimer = null;
+      var autoPlaying = false;
+      var hintTimer = null;
+      var logEntries = [];
+
+      // DOM refs
+      var $stepIdx  = document.getElementById('stepIdxDisplay');
+      var $answer   = document.getElementById('answerDisplay');
+      var $cur      = document.getElementById('curDisplay');
+      var $eDisp    = document.getElementById('eDisplay');
+      var $stepDesc = document.getElementById('stepDesc');
+      var $tbody    = document.getElementById('stepTableBody');
+      var $prev     = document.getElementById('prevBtn');
+      var $next     = document.getElementById('nextBtn');
+      var $reset    = document.getElementById('resetBtn');
+      var $auto     = document.getElementById('autoPlayBtn');
+      var $hint     = document.getElementById('hintBtn');
+      var $showAns  = document.getElementById('showAnswerBtn');
+      var $hintBox  = document.getElementById('hintBox');
+      var $cpArea   = document.getElementById('checkpointArea');
+      var $cpQ      = document.getElementById('checkpointQuestion');
+      var $cpInput  = document.getElementById('checkpointInput');
+      var $cpSubmit = document.getElementById('checkpointSubmitBtn');
+      var $cpFb     = document.getElementById('checkpointFeedback');
+      var $final    = document.getElementById('finalAnswerDisplay');
+      var $log      = document.getElementById('activityLog');
+
+      // ---------- Log ----------
+      function addLog(msg) {
+        var t = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        logEntries.push('[' + t + '] ' + msg);
+        renderLog();
+      }
+      function renderLog() {
+        var entries = logEntries.slice(-20);
+        $log.innerHTML = entries.length === 0
+          ? '<li>— 暂无活动 —</li>'
+          : entries.map(function(e) { return '<li>' + e + '</li>'; }).join('');
+      }
+
+      // ---------- Render ----------
+      function renderStep() {
+        var s = steps[currentIdx];
+        $stepIdx.textContent  = s.idx;
+        $answer.textContent   = s.answer;
+        $cur.textContent      = (s.cur != null) ? s.cur : '—';
+        $eDisp.textContent    = s.e;
+        $stepDesc.innerHTML   = s.desc;
+
+        var rows = $tbody.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+          rows[i].className = (i === currentIdx) ? 'active' : '';
+        }
+
+        if (currentIdx === 0 && !checkpointPassed) {
+          $cpArea.classList.add('active');
+          $cpQ.textContent = '当前 answer=1, cur=3, e=5，最低位 bit=1。请问经过这一步处理后，answer 会变成多少？';
+          $cpInput.value = '';
+          $cpFb.className = 'feedback';
+          $cpFb.textContent = '';
+        } else {
+          $cpArea.classList.remove('active');
+        }
+      }
+
+      function buildTable() {
+        $tbody.innerHTML = steps.map(function(s, i) {
+          var bit = (s.bit != null) ? s.bit : '—';
+          var cur = (s.cur != null) ? s.cur : '—';
+          return '<tr class="' + (i === currentIdx ? 'active' : '') + '">' +
+            '<td>' + s.idx + '</td>' +
+            '<td>' + bit + '</td>' +
+            '<td>' + s.answer + '</td>' +
+            '<td>' + cur + '</td>' +
+            '<td>' + s.e + '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function syncButtons() {
+        $prev.disabled = (currentIdx === 0);
+        $next.disabled = (currentIdx === steps.length - 1);
+        $auto.textContent = autoPlaying ? '⏸️ 暂停' : '▶ 自动播放';
+      }
+
+      function renderAll() {
+        buildTable();
+        renderStep();
+        syncButtons();
+      }
+
+      // ---------- Navigation ----------
+      function goTo(idx) {
+        if (idx < 0 || idx >= steps.length) return;
+        currentIdx = idx;
+        renderAll();
+        clearHints();
+      }
+
+      function nextStep() {
+        if (currentIdx === 0 && !checkpointPassed) {
+          $cpArea.classList.add('active');
+          addLog('⛔ 需先完成学习检验才能继续');
+          return;
+        }
+        if (currentIdx < steps.length - 1) {
+          addLog('→ 进入步骤 ' + steps[currentIdx + 1].idx);
+          goTo(currentIdx + 1);
+        }
+      }
+
+      function prevStep() {
+        if (currentIdx > 0) {
+          addLog('← 返回步骤 ' + steps[currentIdx - 1].idx);
+          goTo(currentIdx - 1);
+        }
+      }
+
+      function resetAll() {
+        stopAuto();
+        addLog('↺ 重置到初始状态');
+        currentIdx = 0;
+        checkpointPassed = false;
+        $cpFb.className = 'feedback';
+        $cpFb.textContent = '';
+        $cpArea.classList.add('active');
+        clearHints();
+        renderAll();
+      }
+
+      // ---------- Auto Play ----------
+      function startAuto() {
+        if (autoPlaying) return;
+        autoPlaying = true;
+        syncButtons();
+        addLog('▶ 自动播放开始');
+        autoTimer = setInterval(function() {
+          if (currentIdx === 0 && !checkpointPassed) {
+            stopAuto();
+            addLog('⏸️ 自动播放遇到检验点，已暂停');
+            return;
+          }
+          if (currentIdx < steps.length - 1) {
+            goTo(currentIdx + 1);
+          } else {
+            stopAuto();
+            addLog('⏹️ 自动播放完成');
+          }
+        }, 1200);
+      }
+
+      function stopAuto() {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        autoPlaying = false;
+        syncButtons();
+      }
+
+      function toggleAuto() {
+        autoPlaying ? stopAuto() : startAuto();
+      }
+
+      // ---------- Checkpoint ----------
+      function submitCheckpoint() {
+        var val = parseInt($cpInput.value, 10);
+        if (isNaN(val)) {
+          $cpFb.className = 'feedback wrong';
+          $cpFb.textContent = '⚠️ 请输入一个有效数字';
+          return;
+        }
+        if (val === 3) {
+          $cpFb.className = 'feedback correct';
+          $cpFb.textContent = '✅ 正确！answer = (1 × 3) % 13 = 3';
+          addLog('✅ 检验点回答正确：answer = ' + val);
+          checkpointPassed = true;
+          $cpArea.classList.remove('active');
+          setTimeout(function() {
+            if (currentIdx === 0 && currentIdx < steps.length - 1) {
+              addLog('→ 通过检验点，自动进入步骤 1');
+              goTo(1);
+            }
+          }, 800);
+        } else {
+          $cpFb.className = 'feedback wrong';
+          $cpFb.textContent = '❌ 错误！你输入的是 ' + val + '，请再试一次。提示：answer = (当前answer × cur) % mod';
+          addLog('❌ 检验点回答错误：输入 ' + val + '（预期 3）');
+        }
+      }
+
+      // ---------- Hint ----------
+      function showHint() {
+        var text = '';
+        if (currentIdx === 0 && !checkpointPassed) {
+          text = '提示：最低位为 1，answer 应更新为 (answer × cur) % mod = (1 × 3) % 13 = <strong>3</strong>。cur 随后平方取模变为 9。';
+        } else if (currentIdx === 0 && checkpointPassed) {
+          text = '已通过检验点！点击"下一步"处理最低位。';
+        } else {
+          var s = steps[currentIdx];
+          if (s.bit === 1) {
+            text = '当前位 = 1：answer = (上一步answer × 上一步cur) % mod，然后 cur = cur² % mod，e 右移 1 位。';
+          } else if (s.bit === 0) {
+            text = '当前位 = 0：answer 保持不变，cur = cur² % mod，e 右移 1 位。';
+          } else {
+            text = '已到最终步骤。最终答案：<strong>' + s.answer + '</strong>。<br>验证：' + BASE + '<sup>' + EXP + '</sup> mod ' + MOD + ' = ' + s.answer + '。';
+          }
+        }
+        $hintBox.innerHTML = text;
+        $hintBox.classList.add('visible');
+        addLog('💡 查看提示');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(clearHints, 6000);
+      }
+
+      function clearHints() {
+        $hintBox.classList.remove('visible');
+        clearTimeout(hintTimer);
+      }
+
+      // ---------- Show Answer ----------
+      function showFinalAnswer() {
+        stopAuto();
+        addLog('👁️ 显示最终答案');
+        if (!checkpointPassed) {
+          checkpointPassed = true;
+          $cpArea.classList.remove('active');
+          $cpFb.className = 'feedback';
+          $cpFb.textContent = '';
+        }
+        goTo(steps.length - 1);
+        $final.style.transition = 'transform 0.3s ease';
+        $final.style.transform = 'scale(1.08)';
+        setTimeout(function() { $final.style.transform = 'scale(1)'; }, 350);
+      }
+
+      // ---------- Events ----------
+      $prev.addEventListener('click', prevStep);
+      $next.addEventListener('click', nextStep);
+      $reset.addEventListener('click', resetAll);
+      $auto.addEventListener('click', toggleAuto);
+      $hint.addEventListener('click', showHint);
+      $showAns.addEventListener('click', showFinalAnswer);
+      $cpSubmit.addEventListener('click', submitCheckpoint);
+      $cpInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') submitCheckpoint();
+      });
+
+      // ---------- Init ----------
+      addLog('📄 页面加载完成，快速幂取模可视化已就绪');
+      renderAll();
+      $cpArea.classList.add('active');
+    })();
+  </script>
+</body>
+</html>

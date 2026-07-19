@@ -1,0 +1,93 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "binary_search",
+  "algorithm_id": "binary_search",
+  "title": "二分查找",
+  "family": "二分",
+  "difficulty": "medium",
+  "problem": "你在图书馆工作，书架上有序排列着无重复索书号的书籍。给定书架数组 nums（每个位置 i 存放索书号 nums[i]），以及读者需要的目标索书号 target。请返回 target 所在的下标，如果不存在则返回 -1。",
+  "strategy": "维护闭区间，每次比较中点后丢弃一半。",
+  "input_contract": "输入有序 nums 数组和 target。",
+  "time_complexity": "O(log n)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "掌握闭区间二分查找中 left 和 right 指针的更新规则",
+    "能够根据当前 mid 值和 target 的对比预测下一步搜索区间",
+    "理解搜索过程中区间长度单调递减且保持 target 在区间内的不变性"
+  ],
+  "required_views": [
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！left 更新为 mid+1，舍弃左半部分。",
+      "feedback_wrong": "再观察比较逻辑：当 nums[mid] < target 时，搜索区间变为 [mid+1, right]。",
+      "id": "task_1",
+      "oracle": "根据代码，当 nums[mid] < target 时，left = mid + 1，right 不变。所以下一步 left=3, right=5。可在 trace 中核对下一步状态。",
+      "prompt": "当前搜索区间 left=0, right=5, mid=2，nums=[-1,0,3,5,9,12]，target=9。nums[mid]=3<target，下一步 left 和 right 将如何更新？",
+      "stage2_affordance": "在可视化中，点击下一步按钮，观察 left 指针移动到 mid+1 位置。",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.mid",
+        "state.nums"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错！这是二分查找正确性的核心不变式。",
+      "feedback_wrong": "提示：思考如果 target 存在，为什么每次比较后可以安全地缩小范围？",
+      "id": "task_2",
+      "oracle": "正确答案是 B。验证方法：初始区间包含整个数组，若 target 存在，每次更新区间都不会丢弃包含 target 的部分。检查 trace 中每一步的 left/right，target 索引总在该区间内。",
+      "prompt": "在二分查找的任意步骤，关于搜索区间和 target 的关系，哪个陈述始终成立？A. target 一定在区间内 B. 如果 target 在数组中，则它一定在当前区间内 C. 区间长度总是偶数 D. left 一定小于 right。请选择并解释。",
+      "stage2_affordance": "高亮区间，并展示 target 可能的位置范围。",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.target"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确！修改 target 为已存在的值，减少了搜索步骤。",
+      "feedback_wrong": "想想什么情况下算法会提前结束？当 mid 恰好等于 target 时。",
+      "id": "task_3",
+      "oracle": "将 target 改为数组中存在的值，如 5。这样算法在 mid 碰到 5 时立即返回，减少循环次数。检查：原始 target=4 不存在，循环 3 次；改后只循环 1-2 次。expected 应为对应索引。",
+      "prompt": "假设 nums=[1,3,5,7,9]，target=4。修改 target 的值，使得查找过程能够早停（即循环次数少于原始查找）。请给出新的 target 值。",
+      "stage2_affordance": "提供一个输入框，让学生输入新的 target 并运行可视化。",
+      "trace_anchor": [
+        "state.nums",
+        "state.target"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "很好！这展示了基本二分查找在重复元素下的局限性。",
+      "feedback_wrong": "尝试构造包含重复元素的数组，并让二分查找可能返回非首次出现的位置。",
+      "id": "task_4",
+      "oracle": "反例：nums=[1,2,2,2,3], target=2，期望返回第一个 2 的索引 1。但基本二分查找可能返回中间 2 的索引（如 2）。用 verifier 检查 expected 应为 1，但算法输出可能是 2。用户构造的输入需要产生错误结果。",
+      "prompt": "某学生说：“二分查找只要 nums 有序，无论是否有重复元素，都能正确返回任意一个 target 的索引。” 请你构造一个反例 nums 和 target，用存在重复元素的数组证明该说法错误（假设要求返回 target 第一次出现的位置）。",
+      "stage2_affordance": "拖拽数组元素以创建重复值，并观察 mid 位置变化。",
+      "trace_anchor": [
+        "state.nums",
+        "state.target"
+      ],
+      "type": "find_counterexample"
+    }
+  ],
+  "sample": {
+    "expected": 4,
+    "index": 0,
+    "input_data": {
+      "nums": [
+        -1,
+        0,
+        3,
+        5,
+        9,
+        12
+      ],
+      "target": 9
+    }
+  }
+}

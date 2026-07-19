@@ -1,0 +1,99 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "provinces",
+  "algorithm_id": "provinces",
+  "title": "省份数量",
+  "family": "并查集",
+  "difficulty": "medium",
+  "problem": "在一个大型企业网络中，计算机之间的物理连接由对称矩阵 isConnected 表示，其中 isConnected[i][j] = 1 表示计算机 i 与 j 直接连通，0 表示不直连；对角线元素均为 1（每台计算机与自身连通）。如果两台计算机通过一系列直接连接能够互通，则它们属于同一个网络区域（称为“省份”）。请计算整个网络中不同省份的总数。",
+  "strategy": "相连城市执行 union，最后统计根节点数量。",
+  "input_contract": "输入 isConnected 矩阵。",
+  "time_complexity": "O(n^2 α(n))",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "能够追踪并查集合并过程中 parent 数组的状态变化",
+    "识别并查集中路径压缩对 find 操作的优化效果",
+    "通过观察合并操作预测省份数量的减少趋势"
+  ],
+  "required_views": [
+    "matrix",
+    "union_find"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！你准确预测了合并操作的效果，继续观察其他对。",
+      "feedback_wrong": "再想想：如果两个集合根不同，合并通常会让一个根的父指针指向另一个根。提示：查看当前 state 中 find(0) 和 find(1) 的值。",
+      "id": "task_1",
+      "oracle": "检查学生预测的 parent 数组中，parent[0] 应该变为 1（或 parent[1] 变为 0，依据实现）且其余元素不变。对比 trace 中下一步的 parent 字典。",
+      "prompt": "当前状态：处理到 i=0, j=1，isConnected[0][1]=1，且 find(0)=0, find(1)=1。请预测执行 union 后 parent 数组会如何变化？",
+      "stage2_affordance": "在 Stage2 中拖动城市节点以手动合并，验证预测。",
+      "trace_anchor": [
+        "state.union_find.parent",
+        "state.i",
+        "state.j"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错，这就是并查集的基础不变式。",
+      "feedback_wrong": "不对，再观察一下：parent 不会形成环路，最终可到达自指节点。",
+      "id": "task_2",
+      "oracle": "正确选项应为“对于每个 i，经过若干次 find(i) 总能到达一个满足 parent[root]==root 的根节点”。利用 verifier 结果间接验证该性质。",
+      "prompt": "在整个算法过程中，parent 数组始终保持一个关键不变性，请从以下选择正确的描述：",
+      "stage2_affordance": "点击节点可追踪到根，可视化不变性。",
+      "trace_anchor": [
+        "state.union_find.parent"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "修改正确，你理解了连通性对省份数量的影响。",
+      "feedback_wrong": "注意：新增连接可能合并两个原本独立的省份，可以通过并查集模拟检验。",
+      "id": "task_3",
+      "oracle": "用 verifier 计算新矩阵的预期省份数，与学生的答案对比。若修改导致一个连接，省份数应减少 1。",
+      "prompt": "在给定的 isConnected 矩阵中，修改一个 0 为 1（但不要形成多连通区域），预测省份数量会如何改变？请给出修改后的矩阵与预期答案。",
+      "stage2_affordance": "在 Stage2 中点击空白单元格添加连接，观察省份变化。",
+      "trace_anchor": [
+        "state.isConnected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "你的解释抓住了并查集的核心动作。",
+      "feedback_wrong": "回顾 code 行的判断条件：当 isConnected[i][j]==1 且 find(i)!=find(j) 时执行 union。",
+      "id": "task_4",
+      "oracle": "根据 trace 中 i 和 j 的值以及 isConnected[i][j]==1，当它们当前不在同一集合时执行 union。解释应提及集合合并和根节点变化。评价可用关键词匹配。",
+      "prompt": "在追踪的过程中，步骤 step=3 执行了 union 操作，请解释为何此时需要进行 union？它如何影响省份结构？",
+      "stage2_affordance": "在 Stage2 时间轴上拖动到该步，高亮合并的两个节点。",
+      "trace_anchor": [
+        "state.i",
+        "state.j",
+        "state.union_find.parent"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 2,
+    "index": 0,
+    "input_data": {
+      "isConnected": [
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ]
+    }
+  }
+}

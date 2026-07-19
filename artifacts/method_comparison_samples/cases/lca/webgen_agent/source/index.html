@@ -1,0 +1,85 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>二叉树最近公共祖先 - 交互式学习</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>二叉树最近公共祖先（LCA）</h1>
+      <span class="badge">树 / BST / LCA</span>
+    </header>
+
+    <div class="main-layout">
+      <!-- 左侧：输入与输出 -->
+      <aside class="sidebar">
+        <section class="card">
+          <h2>📥 输入数据</h2>
+          <pre id="input-json"></pre>
+        </section>
+        <section class="card answer-card">
+          <h2>📤 期望答案</h2>
+          <div class="answer-display" id="answer-display">?</div>
+          <button class="btn btn-outline btn-sm" id="btn-show-answer">显示答案</button>
+        </section>
+        <section class="card">
+          <h2>📚 算法策略</h2>
+          <p>DFS 返回当前子树是否命中 p 或 q；左右都命中时当前节点为 LCA。</p>
+        </section>
+        <section class="card">
+          <h2>📝 活动日志</h2>
+          <div class="log-container" id="log-container">
+            <div class="log-empty">暂无记录</div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- 中间：可视化 -->
+      <main class="main-content">
+        <div class="tree-container" id="tree-container">
+          <svg id="tree-svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <div class="step-info" id="step-info">
+          <span id="step-number">步骤 0 / 0</span>
+          <span id="step-description">点击"下一步"开始遍历</span>
+        </div>
+
+        <div class="controls">
+          <button class="btn" id="btn-reset" title="重置">⏮ 重置</button>
+          <button class="btn" id="btn-prev" title="上一步">◀ 上一步</button>
+          <button class="btn btn-primary" id="btn-next" title="下一步">下一步 ▶</button>
+          <button class="btn" id="btn-auto" title="自动播放">▶ 自动播放</button>
+          <button class="btn btn-outline" id="btn-hint">💡 提示</button>
+        </div>
+
+        <div class="checkpoint" id="checkpoint" style="display:none;">
+          <h3>🧠 学习者检查点</h3>
+          <p id="checkpoint-question"></p>
+          <div class="checkpoint-options" id="checkpoint-options"></div>
+          <div class="checkpoint-feedback" id="checkpoint-feedback" style="display:none;"></div>
+        </div>
+      </main>
+
+      <!-- 右侧：递归状态 -->
+      <aside class="sidebar-right">
+        <section class="card">
+          <h2>📞 递归调用栈</h2>
+          <div class="call-stack" id="call-stack">
+            <div class="stack-empty">空</div>
+          </div>
+        </section>
+        <section class="card">
+          <h2>🔍 当前返回信息</h2>
+          <div id="return-info">—</div>
+        </section>
+      </aside>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

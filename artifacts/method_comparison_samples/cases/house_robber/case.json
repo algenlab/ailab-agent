@@ -1,0 +1,91 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "house_robber",
+  "algorithm_id": "house_robber",
+  "title": "打家劫舍",
+  "family": "一维 DP",
+  "difficulty": "medium",
+  "problem": "一位窃贼计划盗窃一条街上的若干房屋。房屋排列在一条直线上，每间房内藏有不同数额的现金，用一个整数数组 nums 表示，其中 nums[i] 为第 i 间房的现金额（0‑based 索引）。由于相邻房屋安装有联动警报，若连续盗窃相邻房屋，警报会被触发。请帮助窃贼计算在不触发警报的前提下，能够盗窃到的最高总金额。",
+  "strategy": "使用 dp[i] 记录前 i 间房屋的最大收益。",
+  "input_contract": "输入 nums 数组。",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "理解状态 dp[i] 代表前 i 间房的最大收益及其递推关系",
+    "从 trace 中的 dp 数组变化预测下一步计算",
+    "识别并验证算法中的单调不变式（如 dp[i] >= dp[i-1]）"
+  ],
+  "required_views": [
+    "array",
+    "dp_table"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！根据转移方程，dp[2] 取不偷当前房（沿用 dp[1]）或偷当前房（dp[0]+9）的最优值。",
+      "feedback_wrong": "请回忆递推公式 dp[i] = max(dp[i-1], dp[i-2]+nums[i])，再看看 dp[0], dp[1], nums[2] 的值。",
+      "id": "task_1",
+      "oracle": "判断学生回答是否为 max(dp[1], dp[0]+nums[2]) = max(7, 2+9)=11，可使用 verifier 或直接计算。",
+      "prompt": "给定房屋金额 nums = [2,7,9,3,1]，当前 dp 已完成 dp[0]=2, dp[1]=7。当计算到 i=2 时，dp[2] 的值应为多少？",
+      "stage2_affordance": "在表格中填入预测值并播放该步演示。",
+      "trace_anchor": [
+        "dp[0]",
+        "dp[1]",
+        "nums[2]"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "很好！dp 的单调性保证了每一步的最优解不会退化。",
+      "feedback_wrong": "提示：dp[i] 代表前 i 间房的最优解，它可能比 dp[i-1] 小吗？再思考一下。",
+      "id": "task_2",
+      "oracle": "检查学生回答是否包含 dp[i] ≥ dp[i-1] 或单调不减性质，或不超过前缀和。接受语义等价的表述。",
+      "prompt": "观察整个算法执行过程中 dp 数组的变化，指出一个始终成立的不变式（例如：dp[i] 满足什么性质？）。",
+      "stage2_affordance": "切换至数值对比模式，高亮相邻 dp 值的变化。",
+      "trace_anchor": [
+        "dp",
+        "i"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确！你成功将算法应用到了新数据。",
+      "feedback_wrong": "提示：考虑是否偷第 4 间房（金额1），或不偷，比较之前的收益。试着手动运行一遍算法。",
+      "id": "task_3",
+      "oracle": "用 verifier 计算 expected = 4，判断学生答案是否为 4。",
+      "prompt": "如果房屋金额改为 nums = [1,2,3,1]，请手动计算此时的最高可偷金额。",
+      "stage2_affordance": "在数组编辑区修改 nums，视图和结果自动更新。",
+      "trace_anchor": [
+        "nums",
+        "expected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释清晰！你准确描述了偷与不偷的权衡。",
+      "feedback_wrong": "回顾转移方程：dp[i] 要么从上一步直接继承（不偷），要么从 i-2 步加上当前房（偷）。请重新描述。",
+      "id": "task_4",
+      "oracle": "检查学生是否说明：dp[3] = max(dp[2], dp[1]+nums[3]) = max(11, 7+3)=11，决策为不偷第 3 间房。",
+      "prompt": "在 trace 中，当 i=3，nums=[2,7,9,3]，dp[2]=11 已算出，正要计算 dp[3]。请解释从状态 dp[2] 到 dp[3] 的决策过程。",
+      "stage2_affordance": "点击该步骤，高亮 dp[i-1] 和 dp[i-2] 单元格。",
+      "trace_anchor": [
+        "dp[2]",
+        "dp[3]",
+        "nums[3]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 12,
+    "index": 0,
+    "input_data": {
+      "nums": [
+        2,
+        7,
+        9,
+        3,
+        1
+      ]
+    }
+  }
+}

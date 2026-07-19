@@ -1,0 +1,114 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "merge_intervals",
+  "algorithm_id": "merge_intervals",
+  "title": "合并区间",
+  "family": "贪心",
+  "difficulty": "medium",
+  "problem": "会议中心收到多批场地占用申请，intervals 中每个闭区间 [开始时间, 结束时间] 表示一个预约时段。由于同房间不能同时使用，需要将所有相互重叠或首尾相接的时段合并，返回按开始时间排序且互不重叠的最终占用区间列表。",
+  "strategy": "按起点排序，维护已合并结果的最后一个区间并按需扩展。",
+  "input_contract": "输入 intervals，每个区间为 [start, end]。",
+  "time_complexity": "O(n log n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "理解排序后线性扫描时 merged 列表的状态变化（追加新区间 vs 扩展右端点）。",
+    "根据当前区间与 merged 最后一区间的重叠关系，预测下一次操作结果。",
+    "运用不变式（如 merged 始终保持不重叠且按起点排序）验证中间状态。"
+  ],
+  "required_views": [
+    "matrix",
+    "interval_pool",
+    "merged_trace"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！区间 [2,5] 与 [1,3] 重叠，因此扩展为 [1,5]。",
+      "feedback_wrong": "注意当前区间起点 2 ≤ merged 最后一区间的终点 3，因此应扩展终点为 max(3,5)=5。",
+      "id": "task_1",
+      "oracle": "检查回答是否将 merged 更新为 [[1,5]]，即扩展右端点。",
+      "prompt": "当前 merged 为 [[1,3]]，即将处理区间 [2,5]。请预测 merged 的下一步状态。",
+      "stage2_affordance": "拖动 [2,5] 到 [1,3] 上，观察色块合并成 [1,5]。",
+      "trace_anchor": [
+        "state.merged",
+        "state.current"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "正确！merged 必须正确反映已处理区间的并集，此处丢失了 [1,4] 的终点 4。",
+      "feedback_wrong": "观察 intervals 前两个区间 [1,4] 和 [2,3]，合并应得到 [1,4] 而非 [1,3]。",
+      "id": "task_2",
+      "oracle": "检查回答是否指出 merged 内 [1,3] 与 [5,6] 不重叠但 [1,3] 的终点 3 大于下一区间起点 2？更准确：算法应合并 [1,4] 和 [2,3] 得到 [1,4]，而不是 [1,3]，因此 merged 可能是错误的，或不变式 'merged 中的区间均来自输入区间的正确合并' 被违反。简单回答：merged 应保持覆盖原始区间，这里 [1,3] 未覆盖 [1,4] 的右端点。",
+      "prompt": "给出排序后 intervals = [[1,4],[2,3],[5,6]] 和某步 merged = [[1,3],[5,6]]。违反了哪个不变式？",
+      "stage2_affordance": "点击不变式检查器，系统高亮违反的约束。",
+      "trace_anchor": [
+        "state.intervals",
+        "state.merged"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "对，将 [8,10] 改为 [8,9] 即可。",
+      "feedback_wrong": "提示：只需修改一个区间的终点，使最终合并结果右端点变小。",
+      "id": "task_3",
+      "oracle": "检查学生是否将一个区间的终点改为 9，如修改 [8,10] 为 [8,9]。",
+      "prompt": "现有 intervals = [[1,3],[2,6],[8,10]]，若希望合并结果变为 [[1,6],[8,9]]，该如何修改其中一个输入区间？",
+      "stage2_affordance": "在输入区间的数值上双击并修改数字，立即重新计算。",
+      "trace_anchor": [
+        "state.intervals",
+        "state.expected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "正确！两区间之间有空隙，属于不同占用块。",
+      "feedback_wrong": "比较起点 4 与终点 3 的大小关系，起点大于终点时无重叠。",
+      "id": "task_4",
+      "oracle": "检查回答是否解释：因为当前区间起点 4 > 最后一区间终点 3，无重叠，故追加。",
+      "prompt": "当处理区间 [4,5] 且 merged = [[1,3]] 时，为何会追加新区间而不是扩展？",
+      "stage2_affordance": "逐步播放动画，观察追加新区间时的视觉分离。",
+      "trace_anchor": [
+        "state.merged",
+        "state.current"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      [
+        1,
+        6
+      ],
+      [
+        8,
+        10
+      ],
+      [
+        15,
+        18
+      ]
+    ],
+    "index": 0,
+    "input_data": {
+      "intervals": [
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          15,
+          18
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlgoLab - 全排列（回溯算法）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0d14;
+            --bg2: #11141f;
+            --surface: #181b28;
+            --surface2: #1e2132;
+            --surface3: #242738;
+            --border: #2a2e3d;
+            --border2: #353a4d;
+            --text: #e2e5f0;
+            --text2: #a6acbb;
+            --text3: #7a8094;
+            --accent: #5b9cf5;
+            --accent-glow: rgba(91, 156, 245, 0.35);
+            --accent2: #7c6ff0;
+            --accent2-glow: rgba(124, 111, 240, 0.3);
+            --green: #4ec9b0;
+            --green-glow: rgba(78, 201, 176, 0.3);
+            --orange: #f0a060;
+            --orange-glow: rgba(240, 160, 96, 0.3);
+            --red: #f06070;
+            --red-glow: rgba(240, 96, 112, 0.3);
+            --yellow: #e8d44d;
+            --yellow-glow: rgba(232, 212, 77, 0.3);
+            --pink: #e87fb8;
+            --radius: 12px;
+            --radius-sm: 7px;
+            --radius-xs: 4px;
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            --font-sans: 'Inter', 'Noto Sans SC', 'Segoe UI', system-ui, sans-serif;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+            --backdrop: blur(12px) saturate(140%);
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            background: var(--bg);
+            background-image: radial-gradient(ellipse at 50% 0%, #1a1f35 0%, transparent 65%),
+                radial-gradient(ellipse at 85% 20%, #1a2530 0%, transparent 50%),
+                radial-gradient(ellipse at 15% 60%, #1a1a2e 0%, transparent 45%);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 16px 40px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .main-container {
+            max-width: 1120px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        /* Header */
+        .header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2), var(--pink), var(--accent));
+            background-size: 200% 100%;
+            animation: headerShimmer 4s ease-in-out infinite;
+        }
+        @keyframes headerShimmer {
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 6px 0;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #title .icon {
+            font-size: 1.8rem;
+        }
+        #subtitle {
+            font-size: 0.88rem;
+            color: var(--text2);
+            margin: 0;
+            font-weight: 500;
+        }
+        /* Top info */
+        .top-info {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #top-result,
+        #top-solution {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            color: var(--green);
+            flex: 1;
+            min-width: 200px;
+            box-shadow: var(--shadow-sm);
+            word-break: break-all;
+            max-height: 85px;
+            overflow-y: auto;
+            transition: all var(--transition);
+        }
+        #top-result:hover,
+        #top-solution:hover {
+            border-color: var(--border2);
+            box-shadow: var(--shadow);
+        }
+        #top-solution {
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+        #top-result {
+            border-left: 3px solid var(--green);
+        }
+        /* Code */
+        #code {
+            background: #0e111b;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            line-height: 1.8;
+            overflow-x: auto;
+            white-space: pre;
+            color: #c8ccd6;
+            box-shadow: var(--shadow);
+            max-height: 380px;
+            overflow-y: auto;
+            counter-reset: code-line;
+            position: relative;
+        }
+        #code::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 36px;
+            background: rgba(255, 255, 255, 0.012);
+            border-right: 1px solid var(--border);
+            pointer-events: none;
+            border-radius: var(--radius) 0 0 var(--radius);
+        }
+        #code .cline {
+            display: block;
+            padding: 2px 8px 2px 44px;
+            border-radius: 3px;
+            transition: all var(--transition-fast);
+            position: relative;
+            margin: 1px 0;
+        }
+        #code .cline.highlight {
+            background: rgba(91, 156, 245, 0.2);
+            color: #fff;
+            font-weight: 600;
+            border-left: 3px solid var(--accent);
+            padding-left: 41px;
+            box-shadow: inset 0 0 20px rgba(91, 156, 245, 0.08);
+        }
+        #code .cline.highlight-recording {
+            background: rgba(78, 201, 176, 0.22);
+            color: #fff;
+            font-weight: 600;
+            border-left: 3px solid var(--green);
+            padding-left: 41px;
+            box-shadow: inset 0 0 20px rgba(78, 201, 176, 0.1);
+            animation: codeGlowGreen 2s ease-in-out infinite;
+        }
+        @keyframes codeGlowGreen {
+            0%,
+            100% {
+                box-shadow: inset 0 0 20px rgba(78, 201, 176, 0.08);
+            }
+            50% {
+                box-shadow: inset 0 0 35px rgba(78, 201, 176, 0.18);
+            }
+        }
+        #code .cline.highlight-push {
+            background: rgba(240, 160, 96, 0.22);
+            color: #fff;
+            font-weight: 600;
+            border-left: 3px solid var(--orange);
+            padding-left: 41px;
+            box-shadow: inset 0 0 20px rgba(240, 160, 96, 0.1);
+        }
+        #code .cline.highlight-pop {
+            background: rgba(240, 96, 112, 0.22);
+            color: #fff;
+            font-weight: 600;
+            border-left: 3px solid var(--red);
+            padding-left: 41px;
+            box-shadow: inset 0 0 20px rgba(240, 96, 112, 0.1);
+        }
+        /* Step info bar */
+        .step-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition);
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #fff;
+            min-width: 150px;
+            letter-spacing: -0.2px;
+        }
+        #step-desc {
+            font-size: 0.84rem;
+            color: var(--text2);
+            flex: 1;
+            min-width: 180px;
+        }
+        #op {
+            background: var(--accent2);
+            color: #fff;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+            box-shadow: 0 2px 10px var(--accent2-glow);
+            transition: all var(--transition);
+        }
+        /* Visualization Canvas Area */
+        #canvas {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 18px;
+            min-height: 240px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.55;
+            border-radius: var(--radius);
+        }
+        .canvas-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        .canvas-label {
+            font-weight: 700;
+            font-size: 0.76rem;
+            color: var(--text2);
+            min-width: 70px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            flex-shrink: 0;
+        }
+        .num-card {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            transition: all var(--transition);
+            border: 2px solid transparent;
+            position: relative;
+            cursor: default;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .num-card.normal {
+            background: #252836;
+            color: #c8ccd6;
+            border-color: #3a3d4a;
+        }
+        .num-card.used {
+            background: #1e2d24;
+            color: var(--green);
+            border-color: var(--green);
+            box-shadow: 0 0 14px var(--green-glow);
+        }
+        .num-card.in-path {
+            background: #1f2538;
+            color: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 14px var(--accent-glow);
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        .num-card.available {
+            background: #252836;
+            color: #e0e2ea;
+            border-color: #4a4d58;
+        }
+        .num-card.picking {
+            background: #2e2418;
+            color: var(--orange);
+            border-color: var(--orange);
+            box-shadow: 0 0 16px var(--orange-glow);
+            animation: pulsePick 0.6s ease-in-out infinite;
+            transform: scale(1.08);
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 14px var(--accent-glow);
+            }
+            50% {
+                transform: scale(1.07);
+                box-shadow: 0 0 22px var(--accent-glow);
+            }
+        }
+        @keyframes pulsePick {
+            0%,
+            100% {
+                transform: scale(1.06);
+                box-shadow: 0 0 16px var(--orange-glow);
+            }
+            50% {
+                transform: scale(1.14);
+                box-shadow: 0 0 28px var(--orange-glow);
+            }
+        }
+        .path-display {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .path-slot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            background: #1e202d;
+            color: #a8adb8;
+            border: 2px dashed #3a3d4a;
+            transition: all var(--transition);
+        }
+        .path-slot.filled {
+            background: #1f2538;
+            color: var(--accent);
+            border: 2px solid var(--accent);
+            border-style: solid;
+            box-shadow: 0 0 10px var(--accent-glow);
+            animation: slotPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes slotPopIn {
+            0% {
+                transform: scale(0.7);
+                opacity: 0.4;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .path-arrow {
+            color: var(--text3);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .result-badge {
+            display: inline-block;
+            background: #182820;
+            color: var(--green);
+            padding: 4px 12px;
+            border-radius: var(--radius-xs);
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            border: 1px solid #2a4a38;
+            margin: 2px;
+            transition: all var(--transition);
+            animation: badgeAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes badgeAppear {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .depth-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .depth-bar {
+            width: 130px;
+            height: 9px;
+            background: #1a1d28;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+        .depth-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent2), var(--accent));
+            border-radius: 5px;
+            transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px var(--accent2-glow);
+        }
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 11px 18px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-sm);
+        }
+        #prev,
+        #play,
+        #next {
+            padding: 9px 20px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border2);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.84rem;
+            transition: all var(--transition);
+            background: var(--surface2);
+            color: var(--text);
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        #prev:hover,
+        #play:hover,
+        #next:hover {
+            background: #2a2e3d;
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(91, 156, 245, 0.2);
+            transform: translateY(-1px);
+        }
+        #prev:active,
+        #play:active,
+        #next:active {
+            transform: scale(0.96);
+            transition: transform 0.08s ease;
+        }
+        #play.playing {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 2px 16px var(--accent-glow);
+            animation: playPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes playPulse {
+            0%,
+            100% {
+                box-shadow: 0 2px 16px var(--accent-glow);
+            }
+            50% {
+                box-shadow: 0 4px 28px rgba(91, 156, 245, 0.55);
+            }
+        }
+        #play.completed-state {
+            background: var(--green);
+            color: #000;
+            border-color: var(--green);
+            box-shadow: 0 2px 18px var(--green-glow);
+            animation: completeGlow 1s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes completeGlow {
+            0%,
+            100% {
+                box-shadow: 0 2px 18px var(--green-glow);
+            }
+            50% {
+                box-shadow: 0 6px 36px rgba(78, 201, 176, 0.6);
+            }
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+            border-radius: 3px;
+        }
+        #range::-webkit-slider-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            transition: all var(--transition-fast);
+        }
+        #range::-webkit-slider-thumb:hover {
+            box-shadow: 0 4px 16px var(--accent-glow);
+            transform: scale(1.1);
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #fff;
+            min-width: 60px;
+            text-align: center;
+            background: var(--surface3);
+            padding: 5px 12px;
+            border-radius: var(--radius-sm);
+            letter-spacing: 0.3px;
+        }
+        /* Timeline */
+        #timeline {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 8px;
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            box-shadow: var(--shadow-sm);
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            min-height: 56px;
+            align-items: center;
+        }
+        #timeline::-webkit-scrollbar {
+            height: 5px;
+        }
+        #timeline::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #timeline::-webkit-scrollbar-thumb {
+            background: #3a3d4a;
+            border-radius: 3px;
+        }
+        #timeline::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .tick {
+            flex: 0 0 auto;
+            min-width: 72px;
+            padding: 8px 9px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            background: var(--surface2);
+            text-align: center;
+            transition: all var(--transition);
+            font-size: 0.68rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            color: var(--text2);
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            background: #2a2e3d;
+            border-color: #5a5d6a;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .tick.active {
+            background: #1f2838;
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 14px var(--accent-glow);
+            transform: translateY(-2px);
+            font-weight: 600;
+        }
+        .tick.recording {
+            background: #182820;
+            border-color: var(--green);
+            color: #fff;
+            box-shadow: 0 0 10px var(--green-glow);
+        }
+        .tick.backtracking {
+            background: #281a1a;
+            border-color: var(--red);
+            color: #fff;
+            box-shadow: 0 0 10px var(--red-glow);
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.7rem;
+            letter-spacing: 0.3px;
+            display: block;
+            white-space: nowrap;
+        }
+        .tick-op {
+            font-size: 0.62rem;
+            opacity: 0.8;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 68px;
+        }
+        /* Info grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        @media (max-width: 700px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            .top-info {
+                flex-direction: column;
+            }
+            .controls {
+                gap: 6px;
+            }
+            #prev,
+            #play,
+            #next {
+                padding: 8px 14px;
+                font-size: 0.78rem;
+            }
+        }
+        #teaching,
+        #state,
+        #step-evidence {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.81rem;
+            transition: all var(--transition);
+        }
+        #teaching {
+            border-left: 3px solid var(--accent2);
+            color: #d0d4de;
+            line-height: 1.7;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            color: var(--green);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #0e111b;
+        }
+        #step-evidence {
+            border-left: 3px solid var(--orange);
+            color: #d0d4de;
+            font-size: 0.77rem;
+            line-height: 1.6;
+        }
+        #teaching strong {
+            color: var(--accent2);
+        }
+        /* Answer */
+        #answer {
+            background: #0e111b;
+            border: 1px solid #2a4a38;
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            font-family: var(--font-mono);
+            font-size: 0.74rem;
+            color: var(--green);
+            box-shadow: var(--shadow-sm);
+            word-break: break-all;
+            border-left: 3px solid var(--green);
+        }
+        /* Checkpoint */
+        .checkpoint-container {
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            margin-top: 6px;
+            transition: all var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+        .checkpoint-container h4 {
+            color: var(--yellow);
+            margin: 0 0 10px 0;
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            margin-bottom: 10px;
+        }
+        .checkpoint-options label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            background: #151822;
+            border: 1px solid transparent;
+            transition: all var(--transition);
+            font-size: 0.81rem;
+            font-weight: 500;
+            color: #d0d4de;
+        }
+        .checkpoint-options label:hover {
+            border-color: #5a5d6a;
+            background: #1c1f2e;
+            color: #fff;
+        }
+        .checkpoint-options input[type="radio"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .checkpoint-input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #151822;
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            margin-bottom: 10px;
+            transition: all var(--transition);
+        }
+        .checkpoint-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+            background: #1a1d2a;
+        }
+        .btn {
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all var(--transition);
+            background: var(--surface2);
+            color: var(--text);
+            margin-right: 7px;
+            margin-bottom: 5px;
+            font-family: var(--font-sans);
+            letter-spacing: 0.2px;
+        }
+        .btn:hover {
+            background: #2a2e3d;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+        }
+        .btn:active {
+            transform: scale(0.95);
+            transition: transform 0.06s ease;
+        }
+        .btn-submit {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 2px 10px var(--accent-glow);
+        }
+        .btn-submit:hover {
+            background: #4a8de0;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .btn-submit:disabled {
+            background: #3a3d4a;
+            color: #7a8094;
+            border-color: #3a3d4a;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-hint {
+            background: #2e2418;
+            color: var(--yellow);
+            border-color: #5a4a20;
+        }
+        .btn-hint:hover {
+            background: #3a2e1e;
+            box-shadow: 0 3px 14px rgba(232, 212, 77, 0.2);
+        }
+        .btn-show-answer {
+            background: #182820;
+            color: var(--green);
+            border-color: #2a4a38;
+        }
+        .btn-show-answer:hover {
+            background: #1e3228;
+            box-shadow: 0 3px 14px var(--green-glow);
+        }
+        .feedback-area {
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin-top: 10px;
+            font-size: 0.8rem;
+            min-height: 22px;
+            line-height: 1.6;
+            transition: all var(--transition);
+        }
+        .feedback-correct {
+            background: #14261a;
+            color: #7ee8b0;
+            border: 1px solid #2a5a38;
+            box-shadow: 0 0 12px rgba(78, 201, 176, 0.15);
+            animation: feedbackPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .feedback-incorrect {
+            background: #261414;
+            color: #f08090;
+            border: 1px solid #5a2a2a;
+            box-shadow: 0 0 12px rgba(240, 96, 112, 0.15);
+            animation: feedbackShake 0.5s ease;
+        }
+        @keyframes feedbackPop {
+            0% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes feedbackShake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-6px);
+            }
+            40% {
+                transform: translateX(6px);
+            }
+            60% {
+                transform: translateX(-4px);
+            }
+            80% {
+                transform: translateX(4px);
+            }
+        }
+        .learning-log {
+            background: #0c0f17;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            font-size: 0.73rem;
+            color: var(--text2);
+            max-height: 190px;
+            overflow-y: auto;
+            margin-top: 6px;
+            font-family: var(--font-mono);
+            box-shadow: var(--shadow-sm);
+        }
+        .learning-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #1a1d28;
+            transition: all var(--transition-fast);
+        }
+        .learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        /* Completion overlay */
+        #completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(4px);
+        }
+        #completion-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #completion-card {
+            background: var(--surface);
+            border: 2px solid var(--green);
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px var(--green-glow);
+            max-width: 500px;
+            width: 90%;
+            animation: completionBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes completionBounce {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        #completion-card h2 {
+            font-size: 1.8rem;
+            color: var(--green);
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+        #completion-card p {
+            color: var(--text2);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        #completion-close {
+            padding: 10px 28px;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            background: var(--green);
+            color: #000;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        #completion-close:hover {
+            background: #5ed8c0;
+            box-shadow: 0 4px 20px var(--green-glow);
+            transform: translateY(-2px);
+        }
+        /* Responsive */
+        @media (max-width: 500px) {
+            body {
+                padding: 8px;
+            }
+            .header {
+                padding: 12px 14px;
+            }
+            #title {
+                font-size: 1.2rem;
+            }
+            .num-card {
+                width: 38px;
+                height: 38px;
+                font-size: 0.85rem;
+            }
+            .path-slot {
+                min-width: 32px;
+                height: 32px;
+                font-size: 0.78rem;
+            }
+            .tick {
+                min-width: 56px;
+                padding: 5px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Completion overlay -->
+    <div id="completion-overlay">
+        <div id="completion-card">
+            <h2>🎉 搜索完成！</h2>
+            <p>回溯算法已成功找到全部 <strong>6</strong> 个排列。<br>所有 3! = 6 个叶子节点已遍历完毕。<br>时间复杂度 O(n!)，空间复杂度 O(n)。</p>
+            <p style="font-family:var(--font-mono);color:var(--green);font-size:0.78rem;">[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]</p>
+            <button id="completion-close">👍 我知道了</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1 id="title"><span class="icon">🌐</span>全排列（Permutations）</h1>
+            <p id="subtitle">LeetCode 46 · 回溯算法 · 递归搜索所有排列 · nums = [1, 2, 3]</p>
+        </div>
+
+        <!-- Top info -->
+        <div class="top-info">
+            <div id="top-result"><strong>📋 当前结果集</strong><br><span id="top-result-content">[]</span></div>
+            <div id="top-solution"><strong>🎯 期望输出</strong><br>[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]</div>
+        </div>
+
+        <!-- Code -->
+        <div id="code">
+            <span class="cline" data-ln="1">function permute(nums) {</span>
+            <span class="cline" data-ln="2">  const result = [];</span>
+            <span class="cline" data-ln="3">  const used = new Array(nums.length).fill(false);</span>
+            <span class="cline" data-ln="4">  function backtrack(path) {</span>
+            <span class="cline" data-ln="5">    if (path.length === nums.length) {</span>
+            <span class="cline" data-ln="6">      result.push([...path]);  // 记录完整排列</span>
+            <span class="cline" data-ln="7">      return;</span>
+            <span class="cline" data-ln="8">    }</span>
+            <span class="cline" data-ln="9">    for (let i = 0; i &lt; nums.length; i++) {</span>
+            <span class="cline" data-ln="10">      if (used[i]) continue;   // 跳过已使用</span>
+            <span class="cline" data-ln="11">      path.push(nums[i]);       // 选择</span>
+            <span class="cline" data-ln="12">      used[i] = true;           // 标记</span>
+            <span class="cline" data-ln="13">      backtrack(path);          // 递归搜索</span>
+            <span class="cline" data-ln="14">      path.pop();               // 撤销选择</span>
+            <span class="cline" data-ln="15">      used[i] = false;          // 恢复标记</span>
+            <span class="cline" data-ln="16">    }</span>
+            <span class="cline" data-ln="17">  }</span>
+            <span class="cline" data-ln="18">  backtrack([]);</span>
+            <span class="cline" data-ln="19">  return result;</span>
+            <span class="cline" data-ln="20">}</span>
+        </div>
+
+        <!-- Step bar -->
+        <div class="step-bar">
+            <span id="op">⚙️ 初始化</span>
+            <span id="step-title">步骤 1：初始化</span>
+            <span id="step-desc">准备回溯搜索，path=[]，used=[F,F,F]</span>
+        </div>
+
+        <!-- Canvas Visualization -->
+        <div id="canvas">
+            <canvas id="particleCanvas"></canvas>
+            <div class="canvas-section">
+                <span class="canvas-label">📥 原始数组</span>
+                <span class="num-card normal" data-num="1">1</span>
+                <span class="num-card normal" data-num="2">2</span>
+                <span class="num-card normal" data-num="3">3</span>
+            </div>
+            <div class="canvas-section">
+                <span class="canvas-label">🔍 used状态</span>
+                <span class="num-card available" data-used="0">✗ 1</span>
+                <span class="num-card available" data-used="1">✗ 2</span>
+                <span class="num-card available" data-used="2">✗ 3</span>
+            </div>
+            <div class="canvas-section">
+                <span class="canvas-label">🛤️ 当前路径</span>
+                <span class="path-display" id="path-display">
+                    <span class="path-slot">_</span>
+                    <span class="path-arrow">→</span>
+                    <span class="path-slot">_</span>
+                    <span class="path-arrow">→</span>
+                    <span class="path-slot">_</span>
+                </span>
+                <span style="margin-left:12px;font-size:0.75rem;color:var(--text2);">深度: <strong id="depth-text">0</strong>/3</span>
+            </div>
+            <div class="canvas-section">
+                <span class="canvas-label">📦 结果集</span>
+                <span id="result-display" style="color:var(--text2);font-family:var(--font-mono);font-size:0.75rem;">[]</span>
+            </div>
+            <div class="depth-indicator" style="position:absolute;top:14px;right:20px;z-index:1;">
+                <span style="font-size:0.7rem;color:var(--text2);">递归深度</span>
+                <div class="depth-bar"><div class="depth-fill" id="depth-fill" style="width:0%;"></div></div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button id="prev" title="上一步">◀ 上一步</button>
+            <button id="play" title="自动播放">▶ 播放</button>
+            <button id="next" title="下一步">下一步 ▶</button>
+            <input type="range" id="range" min="1" max="20" value="1" step="1" title="拖动跳转步骤">
+            <span id="counter">1 / 20</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline"></div>
+
+        <!-- Info grid -->
+        <div class="info-grid">
+            <div id="teaching">
+                <strong>📖 讲解：</strong><span id="teaching-content">回溯算法开始。我们从空路径出发，used 数组标记哪些数字已被使用。递归地尝试每个未使用数字，到达叶子节点（path长度=3）时记录一个完整排列。</span>
+            </div>
+            <div id="state">
+                <strong>📊 状态 JSON：</strong>
+                <pre id="state-content" style="margin:0;font-family:var(--font-mono);">{"path":[],"used":[false,false,false],"result":[],"depth":0}</pre>
+            </div>
+        </div>
+        <div id="step-evidence">
+            <strong>🔬 步骤证据：</strong><span id="step-evidence-content">operation: "initialize" | targets: [] | before: null | after: {path:[], used:[F,F,F], result:[]}</span>
+        </div>
+
+        <!-- Answer -->
+        <div style="margin-top:2px;">
+            <strong style="font-size:0.8rem;color:var(--text2);">✅ 最终答案（页面加载即展示）：</strong>
+            <div id="answer">[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]</div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="checkpoint-container" id="checkpoint-area">
+            <h4>🧠 学习检测点（Learner Checkpoint）</h4>
+            <p id="checkpoint-question" style="font-size:0.82rem;margin-bottom:8px;">当前步骤没有检测题，请继续前进。</p>
+            <div class="checkpoint-options" id="checkpoint-options"></div>
+            <input type="text" class="checkpoint-input" id="checkpoint-input" placeholder="输入你的答案..." style="display:none;">
+            <button class="btn btn-submit" id="checkpoint-submit">📝 提交</button>
+            <button class="btn btn-hint" id="checkpoint-hint">💡 提示</button>
+            <button class="btn btn-show-answer" id="checkpoint-show">👁 显示答案</button>
+            <div class="feedback-area" id="checkpoint-feedback"></div>
+        </div>
+        <div class="learning-log" id="learning-log">
+            <strong>📝 学习日志</strong>
+            <div id="log-entries"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // Wait for DOM to be fully ready
+            function safeGet(id) {
+                const el = document.getElementById(id);
+                if (!el) {
+                    console.warn('Element not found: #' + id);
+                }
+                return el;
+            }
+
+            // ============ STEP DATA ============
+            const TOTAL_STEPS = 20;
+            const steps = [];
+
+            function defineStep(stepNum, title, desc, op, stateObj, teachingHTML, evidenceHTML, highlightLines, highlightClass,
+                tickLabel, tickOp) {
+                steps.push({
+                    num: stepNum,
+                    title,
+                    desc,
+                    op,
+                    stateObj,
+                    teachingHTML,
+                    evidenceHTML,
+                    highlightLines,
+                    highlightClass: highlightClass || 'highlight',
+                    tickLabel,
+                    tickOp
+                });
+            }
+
+            // Step 1: Init
+            defineStep(1, '初始化回溯', '准备搜索，path=[], used=[F,F,F], result=[]', '⚙️ 初始化', { path: [], used: [false, false,
+                    false
+                ], result: [], depth: 0 },
+                '回溯算法开始。我们从<strong>空路径</strong>出发，<strong>used</strong> 数组标记哪些数字已被使用（初始全为 false）。递归地尝试每个未使用数字，到达<strong>叶子节点</strong>（path 长度 = nums 长度 = 3）时记录一个完整排列。',
+                'operation: "initialize" | targets: [] | before: null | after: {path:[], used:[F,F,F], result:[], depth:0}',
+                [1, 2, 3], 'highlight', '初始化', '准备搜索');
+
+            // Step 2: Select 1
+            defineStep(2, '选择数字 1', 'path.push(1), used[0]=true → path=[1]', '✅ 选择', { path: [1], used: [true, false,
+                    false
+                ], result: [], depth: 1 },
+                '在<strong>深度0</strong>（根节点），遍历 nums。数字 <strong>1</strong> 未被使用，执行<strong>选择</strong>：path.push(1)，used[0] = true。path 变为 [1]，进入递归深度 1。',
+                'operation: "select" | targets: [1] | before: {path:[]} | after: {path:[1], used:[T,F,F]} | action: "push(1), used[0]=true"',
+                [11, 12], 'highlight-push', '选1', 'push(1)');
+
+            // Step 3: Select 2
+            defineStep(3, '选择数字 2', 'path.push(2), used[1]=true → path=[1,2]', '✅ 选择', { path: [1, 2], used: [true, true,
+                    false
+                ], result: [], depth: 2 },
+                '在<strong>深度1</strong>，path=[1]。遍历 nums，数字 <strong>2</strong> 未被使用，执行选择：path.push(2)，used[1]=true。path 变为 [1,2]，进入深度 2。',
+                'operation: "select" | targets: [2] | before: {path:[1]} | after: {path:[1,2], used:[T,T,F]} | action: "push(2), used[1]=true"',
+                [11, 12], 'highlight-push', '选2', 'push(2)');
+
+            // Step 4: Select 3 → record [1,2,3]
+            defineStep(4, '选择数字 3 并记录', 'path.push(3), used[2]=true → path=[1,2,3] → 记录！', '🎯 记录排列', { path: [1, 2, 3],
+                    used: [true, true, true], result: [
+                        [1, 2, 3]
+                    ], depth: 3 },
+                '在<strong>深度2</strong>，path=[1,2]。唯一未使用的数字是 <strong>3</strong>。选择它后 path=[1,2,3]，<strong>path.length === nums.length</strong>（=3），到达叶子节点！执行 <strong>result.push([...path])</strong>，记录第1个排列 <strong>[1,2,3]</strong>。',
+                'operation: "select+record" | targets: [3] | before: {path:[1,2]} | after: {path:[1,2,3], result:[[1,2,3]]} | trigger: "path.length===3"',
+                [5, 6, 11, 12], 'highlight-recording', '选3记录', '记录[1,2,3]');
+
+            // Step 5: Backtrack - pop 3
+            defineStep(5, '回溯：撤销选择 3', 'path.pop(), used[2]=false → path=[1,2]', '↩️ 回溯', { path: [1, 2], used: [true,
+                    true, false
+                ], result: [
+                    [1, 2, 3]
+                ], depth: 2 },
+                '记录完 [1,2,3] 后，<strong>return</strong> 回到深度2。执行<strong>撤销</strong>：path.pop() 移除 3，used[2]=false。path 恢复为 [1,2]。这是回溯的关键——<strong>恢复现场</strong>，以便尝试其他分支。',
+                'operation: "backtrack" | targets: [3] | before: {path:[1,2,3]} | after: {path:[1,2], used:[T,T,F]} | action: "pop(), used[2]=false"',
+                [14, 15], 'highlight-pop', '撤销3', 'pop()恢复');
+
+            // Step 6: Backtrack - pop 2, then select 3
+            defineStep(6, '回溯撤销2并选3', '撤销2→path=[1]；选3→path=[1,3]', '↩️→✅ 回溯+选择', { path: [1, 3], used: [true, false,
+                    true
+                ], result: [
+                    [1, 2, 3]
+                ], depth: 2 },
+                '深度2的 for 循环中，i=1（数字2）已无更多选择，继续<strong>撤销</strong>：pop()移除2，used[1]=false。回到深度1，path=[1]。for 循环继续 i=2：数字<strong>3</strong>未使用，选择它→path=[1,3]。',
+                'operation: "backtrack+select" | targets: [2,3] | before: {path:[1,2]} | after: {path:[1,3], used:[T,F,T]} | intermediate: "撤销2后path=[1]"',
+                [14, 15, 11, 12], 'highlight-pop', '撤销2选3', '换分支');
+
+            // Step 7: Select 2 → record [1,3,2]
+            defineStep(7, '选择数字 2 并记录', 'path.push(2)→[1,3,2]→记录！', '🎯 记录排列', { path: [1, 3, 2], used: [true, true,
+                    true
+                ], result: [
+                    [1, 2, 3], [1, 3, 2]
+                ], depth: 3 },
+                '在深度2，path=[1,3]，唯一未使用的是<strong>2</strong>。选择后 path=[1,3,2]，到达叶子节点，记录第2个排列 <strong>[1,3,2]</strong>。result 现在有2个排列。',
+                'operation: "select+record" | targets: [2] | before: {path:[1,3]} | after: {path:[1,3,2], result:[[1,2,3],[1,3,2]]}',
+                [5, 6, 11, 12], 'highlight-recording', '选2记录', '记录[1,3,2]');
+
+            // Step 8: Backtrack all from 1-branch
+            defineStep(8, '回溯：撤销2、撤销3、撤销1', '连续撤销→path=[]', '↩️ 多层回溯', { path: [], used: [false, false, false],
+                result: [
+                    [1, 2, 3], [1, 3, 2]
+                ], depth: 0 },
+                '[1,3,2]记录后回溯：撤销2→path=[1,3]；深度1的for循环结束（i=2已处理），撤销3→path=[1]；深度0的for循环中i=0结束，撤销1→<strong>path=[]</strong>。回到根节点，准备探索以<strong>2</strong>开头的分支。这是回溯算法<strong>遍历整个搜索树</strong>的体现。',
+                'operation: "multi-backtrack" | targets: [2,3,1] | before: {path:[1,3,2]} | after: {path:[], used:[F,F,F]} | note: "1开头的分支全部探索完毕"',
+                [14, 15], 'highlight-pop', '全部撤销', '回到根');
+
+            // Step 9: Select 2
+            defineStep(9, '选择数字 2', 'path.push(2)→path=[2]', '✅ 选择', { path: [2], used: [false, true, false], result: [
+                    [1, 2, 3], [1, 3, 2]
+                ], depth: 1 },
+                '回到根节点，for循环继续 i=1：数字<strong>2</strong>未被使用，选择它→path=[2]，used[1]=true，进入深度1。开始探索<strong>以2开头</strong>的所有排列。',
+                'operation: "select" | targets: [2] | before: {path:[]} | after: {path:[2], used:[F,T,F]}', [11, 12],
+                'highlight-push', '选2', 'push(2)');
+
+            // Step 10: Select 1
+            defineStep(10, '选择数字 1', 'path.push(1)→path=[2,1]', '✅ 选择', { path: [2, 1], used: [true, true, false],
+                result: [
+                    [1, 2, 3], [1, 3, 2]
+                ], depth: 2 },
+                '在深度1，path=[2]。遍历 nums，数字<strong>1</strong>未被使用，选择它→path=[2,1]，used[0]=true，进入深度2。',
+                'operation: "select" | targets: [1] | before: {path:[2]} | after: {path:[2,1], used:[T,T,F]}', [11, 12],
+                'highlight-push', '选1', 'push(1)');
+
+            // Step 11: Select 3 → record [2,1,3]
+            defineStep(11, '选择数字 3 并记录', 'path.push(3)→[2,1,3]→记录！', '🎯 记录排列', { path: [2, 1, 3], used: [true, true,
+                    true
+                ], result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3]
+                ], depth: 3 },
+                '在深度2，path=[2,1]，唯一未使用的是<strong>3</strong>。选择后 path=[2,1,3]，到达叶子节点，记录第3个排列 <strong>[2,1,3]</strong>。',
+                'operation: "select+record" | targets: [3] | before: {path:[2,1]} | after: {path:[2,1,3], result新增[2,1,3]}',
+                [5, 6, 11, 12], 'highlight-recording', '选3记录', '记录[2,1,3]');
+
+            // Step 12: Backtrack 3, backtrack 1, select 3
+            defineStep(12, '回溯撤销3和1，选3', '撤销→path=[2]；选3→path=[2,3]', '↩️→✅ 回溯+选择', { path: [2, 3], used: [false, true,
+                    true
+                ], result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3]
+                ], depth: 2 },
+                '记录[2,1,3]后回溯：撤销3→path=[2,1]；深度1的for循环中i=0结束，撤销1→path=[2]。for循环继续i=2：数字<strong>3</strong>未使用，选择→path=[2,3]。',
+                'operation: "backtrack+select" | targets: [3,1,3] | before: {path:[2,1,3]} | after: {path:[2,3], used:[F,T,T]}',
+                [14, 15, 11, 12], 'highlight-pop', '换分支', '撤销再选');
+
+            // Step 13: Select 1 → record [2,3,1]
+            defineStep(13, '选择数字 1 并记录', 'path.push(1)→[2,3,1]→记录！', '🎯 记录排列', { path: [2, 3, 1], used: [true, true,
+                    true
+                ], result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1]
+                ], depth: 3 },
+                '在深度2，path=[2,3]，唯一未使用的是<strong>1</strong>。选择后记录第4个排列 <strong>[2,3,1]</strong>。2开头的排列全部找到。',
+                'operation: "select+record" | targets: [1] | before: {path:[2,3]} | after: {path:[2,3,1], result新增[2,3,1]}',
+                [5, 6, 11, 12], 'highlight-recording', '选1记录', '记录[2,3,1]');
+
+            // Step 14: Backtrack all from 2-branch
+            defineStep(14, '回溯：撤销1、撤销3、撤销2', '连续撤销→path=[]', '↩️ 多层回溯', { path: [], used: [false, false, false],
+                result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1]
+                ], depth: 0 },
+                '2开头的分支探索完毕。多层回溯：撤销1→path=[2,3]；撤销3→path=[2]；撤销2→<strong>path=[]</strong>。回到根节点，准备探索以<strong>3</strong>开头的分支。',
+                'operation: "multi-backtrack" | targets: [1,3,2] | before: {path:[2,3,1]} | after: {path:[], used:[F,F,F]} | note: "2开头的分支全部探索完毕"',
+                [14, 15], 'highlight-pop', '全部撤销', '回到根');
+
+            // Step 15: Select 3
+            defineStep(15, '选择数字 3', 'path.push(3)→path=[3]', '✅ 选择', { path: [3], used: [false, false, true], result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1]
+                ], depth: 1 },
+                '根节点 for 循环继续 i=2：数字<strong>3</strong>未被使用，选择→path=[3]，used[2]=true。开始探索<strong>以3开头</strong>的所有排列。',
+                'operation: "select" | targets: [3] | before: {path:[]} | after: {path:[3], used:[F,F,T]}', [11, 12],
+                'highlight-push', '选3', 'push(3)');
+
+            // Step 16: Select 1
+            defineStep(16, '选择数字 1', 'path.push(1)→path=[3,1]', '✅ 选择', { path: [3, 1], used: [true, false, true],
+                result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1]
+                ], depth: 2 },
+                '在深度1，path=[3]。遍历 nums，数字<strong>1</strong>未被使用，选择→path=[3,1]，进入深度2。',
+                'operation: "select" | targets: [1] | before: {path:[3]} | after: {path:[3,1], used:[T,F,T]}', [11, 12],
+                'highlight-push', '选1', 'push(1)');
+
+            // Step 17: Select 2 → record [3,1,2]
+            defineStep(17, '选择数字 2 并记录', 'path.push(2)→[3,1,2]→记录！', '🎯 记录排列', { path: [3, 1, 2], used: [true, true,
+                    true
+                ], result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2]
+                ], depth: 3 },
+                '在深度2，path=[3,1]，唯一未使用的是<strong>2</strong>。选择后记录第5个排列 <strong>[3,1,2]</strong>。',
+                'operation: "select+record" | targets: [2] | before: {path:[3,1]} | after: {path:[3,1,2], result新增[3,1,2]}',
+                [5, 6, 11, 12], 'highlight-recording', '选2记录', '记录[3,1,2]');
+
+            // Step 18: Backtrack 2, backtrack 1, select 2
+            defineStep(18, '回溯撤销2和1，选2', '撤销→path=[3]；选2→path=[3,2]', '↩️→✅ 回溯+选择', { path: [3, 2], used: [false, true,
+                    true
+                ], result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2]
+                ], depth: 2 },
+                '记录后回溯：撤销2→path=[3,1]；撤销1→path=[3]。for循环继续i=1：数字<strong>2</strong>未使用，选择→path=[3,2]。',
+                'operation: "backtrack+select" | targets: [2,1,2] | before: {path:[3,1,2]} | after: {path:[3,2], used:[F,T,T]}',
+                [14, 15, 11, 12], 'highlight-pop', '换分支', '撤销再选');
+
+            // Step 19: Select 1 → record [3,2,1]
+            defineStep(19, '选择数字 1 并记录', 'path.push(1)→[3,2,1]→记录！', '🎯 记录排列', { path: [3, 2, 1], used: [true, true,
+                    true
+                ], result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]
+                ], depth: 3 },
+                '在深度2，path=[3,2]，唯一未使用的是<strong>1</strong>。选择后记录第6个（最后一个）排列 <strong>[3,2,1]</strong>。所有<strong>3! = 6</strong>个排列全部找到！',
+                'operation: "select+record" | targets: [1] | before: {path:[3,2]} | after: {path:[3,2,1], result完整6个排列}',
+                [5, 6, 11, 12], 'highlight-recording', '选1记录', '记录[3,2,1]');
+
+            // Step 20: Complete
+            defineStep(20, '搜索完成！', '所有排列已找到，result包含全部6个排列', '🏁 完成', { path: [], used: [false, false, false],
+                result: [
+                    [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]
+                ], depth: 0 },
+                '<strong>🎉 回溯完成！</strong>所有6个排列全部记录在result中。算法遍历了整棵搜索树（3层，共3!=6个叶子节点）。回溯法通过<strong>选择→递归→撤销</strong>的循环，系统地枚举了所有可能排列，时间复杂度 O(n!)，空间复杂度 O(n)（递归栈深度）。',
+                'operation: "complete" | final_result: [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]] | total_permutations: 6 | search_tree_leaves: 6',
+                [19], 'highlight', '🏁完成', '返回result');
+
+            // ============ DOM REFS (lazy init) ============
+            let codeEl, allClines, timelineEl, rangeEl, counterEl, stepTitleEl, stepDescEl, opEl;
+            let teachingContent, stateContent, stepEvidenceContent, pathDisplay, resultDisplay;
+            let depthFill, depthText, topResultContent, playBtn, prevBtn, nextBtn, answerEl;
+            let cpQuestion, cpOptions, cpInput, cpSubmit, cpHint, cpShow, cpFeedback, logEntries;
+            let completionOverlay, completionClose;
+            let particleCanvas, particleCtx;
+            let domReady = false;
+
+            function initDomRefs() {
+                codeEl = safeGet('code');
+                allClines = codeEl ? codeEl.querySelectorAll('.cline') : [];
+                timelineEl = safeGet('timeline');
+                rangeEl = safeGet('range');
+                counterEl = safeGet('counter');
+                stepTitleEl = safeGet('step-title');
+                stepDescEl = safeGet('step-desc');
+                opEl = safeGet('op');
+                teachingContent = safeGet('teaching-content');
+                stateContent = safeGet('state-content');
+                stepEvidenceContent = safeGet('step-evidence-content');
+                pathDisplay = safeGet('path-display');
+                resultDisplay = safeGet('result-display');
+                depthFill = safeGet('depth-fill');
+                depthText = safeGet('depth-text');
+                topResultContent = safeGet('top-result-content');
+                playBtn = safeGet('play');
+                prevBtn = safeGet('prev');
+                nextBtn = safeGet('next');
+                answerEl = safeGet('answer');
+                cpQuestion = safeGet('checkpoint-question');
+                cpOptions = safeGet('checkpoint-options');
+                cpInput = safeGet('checkpoint-input');
+                cpSubmit = safeGet('checkpoint-submit');
+                cpHint = safeGet('checkpoint-hint');
+                cpShow = safeGet('checkpoint-show');
+                cpFeedback = safeGet('checkpoint-feedback');
+                logEntries = safeGet('log-entries');
+                completionOverlay = safeGet('completion-overlay');
+                completionClose = safeGet('completion-close');
+                particleCanvas = safeGet('particleCanvas');
+                if (particleCanvas) {
+                    particleCtx = particleCanvas.getContext('2d');
+                }
+                domReady = true;
+            }
+
+            // ============ PARTICLE SYSTEM (requestAnimationFrame) ============
+            let particles = [];
+            const PARTICLE_COUNT = 40;
+
+            function initParticles() {
+                if (!particleCanvas) return;
+                particles = [];
+                const w = particleCanvas.parentElement.clientWidth;
+                const h = particleCanvas.parentElement.clientHeight;
+                particleCanvas.width = w;
+                particleCanvas.height = h;
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push({
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        vx: (Math.random() - 0.5) * 0.4,
+                        vy: (Math.random() - 0.5) * 0.4,
+                        radius: Math.random() * 2 + 1,
+                        alpha: Math.random() * 0.4 + 0.1,
+                        hue: Math.random() < 0.5 ? 210 : 260,
+                        pulseSpeed: Math.random() * 0.02 + 0.005,
+                        pulseOffset: Math.random() * Math.PI * 2,
+                    });
+                }
+            }
+
+            let particleHueShift = 0;
+
+            function animateParticles(timestamp) {
+                if (!particleCanvas || !particleCtx || particles.length === 0) {
+                    requestAnimationFrame(animateParticles);
+                    return;
+                }
+                const w = particleCanvas.width;
+                const h = particleCanvas.height;
+                const parentW = particleCanvas.parentElement.clientWidth;
+                const parentH = particleCanvas.parentElement.clientHeight;
+                if (Math.abs(w - parentW) > 5 || Math.abs(h - parentH) > 5) {
+                    particleCanvas.width = parentW;
+                    particleCanvas.height = parentH;
+                    particles.forEach(p => {
+                        p.x = Math.min(p.x, parentW);
+                        p.y = Math.min(p.y, parentH);
+                    });
+                }
+                const ctx = particleCtx;
+                const cw = particleCanvas.width;
+                const ch = particleCanvas.height;
+                ctx.clearRect(0, 0, cw, ch);
+
+                // Update target hue shift based on current step
+                const targetHue = (currentStep / TOTAL_STEPS) * 60;
+                particleHueShift += (targetHue - particleHueShift) * 0.03;
+
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < -10) p.x = cw + 10;
+                    if (p.x > cw + 10) p.x = -10;
+                    if (p.y < -10) p.y = ch + 10;
+                    if (p.y > ch + 10) p.y = -10;
+                    p.alpha += Math.sin(timestamp * p.pulseSpeed + p.pulseOffset) * 0.005;
+                    p.alpha = Math.max(0.08, Math.min(0.55, p.alpha));
+                    const hue = (p.hue + particleHueShift) % 360;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${hue}, 60%, 60%, ${p.alpha})`;
+                    ctx.fill();
+                    // Subtle glow
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius * 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${hue}, 60%, 60%, ${p.alpha * 0.25})`;
+                    ctx.fill();
+                });
+
+                // Draw subtle connections between nearby particles
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 70) {
+                            const alpha = (1 - dist / 70) * 0.15;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(150,170,220,${alpha})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(animateParticles);
+            }
+
+            // ============ STATE ============
+            let currentStep = 0;
+            let playInterval = null;
+            let isPlaying = false;
+            let completionShown = false;
+
+            // ============ BUILD TIMELINE ============
+            function buildTimeline() {
+                if (!timelineEl) return;
+                timelineEl.innerHTML = '';
+                steps.forEach((s, i) => {
+                    const tick = document.createElement('button');
+                    tick.type = 'button';
+                    tick.className = 'tick';
+                    tick.setAttribute('data-index', i);
+                    tick.innerHTML = '<span class="tick-label">' + s.tickLabel +
+                        '</span><span class="tick-op">' + s.tickOp + '</span>';
+                    tick.addEventListener('click', function() {
+                        stopPlay();
+                        goToStep(i);
+                    });
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            // ============ RENDER STEP ============
+            function renderStep(stepIndex) {
+                if (!domReady) return;
+                if (stepIndex < 0) stepIndex = 0;
+                if (stepIndex >= TOTAL_STEPS) stepIndex = TOTAL_STEPS - 1;
+                const s = steps[stepIndex];
+                currentStep = stepIndex;
+                // Update counter
+                if (counterEl) counterEl.textContent = (stepIndex + 1) + ' / ' + TOTAL_STEPS;
+                // Update range
+                if (rangeEl) rangeEl.value = stepIndex + 1;
+                // Update step info
+                if (stepTitleEl) stepTitleEl.textContent = '步骤 ' + s.num + '：' + s.title;
+                if (stepDescEl) stepDescEl.textContent = s.desc;
+                if (opEl) {
+                    opEl.textContent = s.op;
+                    // Pulse the op badge on change
+                    opEl.style.transform = 'scale(1.08)';
+                    setTimeout(() => { if (opEl) opEl.style.transform = 'scale(1)'; }, 180);
+                }
+                // Update teaching
+                if (teachingContent) teachingContent.innerHTML = s.teachingHTML;
+                // Update state
+                if (stateContent) stateContent.textContent = JSON.stringify(s.stateObj, null, 2);
+                // Update step-evidence
+                if (stepEvidenceContent) stepEvidenceContent.textContent = s.evidenceHTML;
+                // Update top-result
+                if (topResultContent) topResultContent.textContent = JSON.stringify(s.stateObj.result);
+                // Update canvas
+                updateCanvas(s);
+                // Update code highlight
+                updateCodeHighlight(s);
+                // Update timeline ticks
+                updateTimelineActive(stepIndex);
+                // Update checkpoint
+                updateCheckpoint(stepIndex);
+                // Scroll timeline to active tick
+                if (timelineEl) {
+                    const ticks = timelineEl.querySelectorAll('.tick');
+                    if (ticks[stepIndex]) {
+                        ticks[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                }
+                // Show completion overlay at step 20
+                if (stepIndex === TOTAL_STEPS - 1 && !completionShown) {
+                    showCompletionOverlay();
+                }
+                // Update play button state
+                if (playBtn && stepIndex >= TOTAL_STEPS - 1 && isPlaying) {
+                    stopPlay();
+                }
+                if (playBtn) {
+                    if (stepIndex >= TOTAL_STEPS - 1) {
+                        playBtn.classList.add('completed-state');
+                        playBtn.textContent = '🏁 已完成';
+                    } else {
+                        playBtn.classList.remove('completed-state');
+                        if (!isPlaying) playBtn.textContent = '▶ 播放';
+                    }
+                }
+            }
+
+            function updateCanvas(s) {
+                if (!pathDisplay) return;
+                const so = s.stateObj;
+                // Update path display
+                const slots = pathDisplay.querySelectorAll('.path-slot');
+                for (let i = 0; i < 3; i++) {
+                    if (slots[i]) {
+                        const prevFilled = slots[i].classList.contains('filled');
+                        if (i < so.path.length) {
+                            slots[i].textContent = so.path[i];
+                            if (!prevFilled) {
+                                slots[i].classList.add('filled');
+                                // Trigger pop-in animation
+                                slots[i].style.animation = 'none';
+                                slots[i].offsetHeight;
+                                slots[i].style.animation = '';
+                            }
+                        } else {
+                            slots[i].textContent = '_';
+                            slots[i].classList.remove('filled');
+                            slots[i].style.animation = '';
+                        }
+                    }
+                }
+                // Update depth
+                if (depthText) depthText.textContent = so.depth;
+                if (depthFill) depthFill.style.width = (so.depth / 3 * 100) + '%';
+                // Update result display
+                if (resultDisplay) {
+                    if (so.result.length === 0) {
+                        resultDisplay.innerHTML = '<span style="color:#a8adb8;">[]</span>';
+                    } else {
+                        resultDisplay.innerHTML = so.result.map(r => '<span class="result-badge">[' + r.join(',') +
+                            ']</span>').join(' ');
+                    }
+                }
+                // Update num cards in canvas
+                const canvasEl = safeGet('canvas');
+                if (canvasEl) {
+                    const numCards = canvasEl.querySelectorAll('.num-card[data-num]');
+                    numCards.forEach(card => {
+                        const num = parseInt(card.getAttribute('data-num'));
+                        const idx = num - 1;
+                        card.classList.remove('normal', 'used', 'in-path', 'available', 'picking');
+                        if (so.used[idx] && so.path.includes(num)) {
+                            card.classList.add('in-path');
+                        } else if (so.used[idx]) {
+                            card.classList.add('used');
+                        } else {
+                            card.classList.add('available');
+                        }
+                    });
+                    // Update used status cards
+                    const usedCards = canvasEl.querySelectorAll('.num-card[data-used]');
+                    usedCards.forEach(card => {
+                        const idx = parseInt(card.getAttribute('data-used'));
+                        card.classList.remove('available', 'used', 'in-path', 'picking', 'normal');
+                        if (so.used[idx]) {
+                            card.classList.add('used');
+                            card.textContent = '✓ ' + (idx + 1);
+                        } else {
+                            card.classList.add('available');
+                            card.textContent = '✗ ' + (idx + 1);
+                        }
+                    });
+                    // Highlight picking card
+                    if (so.path.length > 0 && (s.op.includes('选择') || s.op.includes('记录'))) {
+                        const lastNum = so.path[so.path.length - 1];
+                        numCards.forEach(card => {
+                            const num = parseInt(card.getAttribute('data-num'));
+                            if (num === lastNum && so.used[num - 1] && so.path.includes(num)) {
+                                card.classList.add('picking');
+                                card.classList.remove('in-path');
+                            }
+                        });
+                    }
+                }
+            }
+
+            function updateCodeHighlight(s) {
+                if (!codeEl) return;
+                const clines = codeEl.querySelectorAll('.cline');
+                clines.forEach(cl => cl.classList.remove('highlight', 'highlight-recording', 'highlight-push',
+                    'highlight-pop'));
+                s.highlightLines.forEach(ln => {
+                    const target = codeEl.querySelector('.cline[data-ln="' + ln + '"]');
+                    if (target) {
+                        target.classList.add(s.highlightClass);
+                    }
+                });
+            }
+
+            function updateTimelineActive(stepIndex) {
+                if (!timelineEl) return;
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.remove('active', 'recording', 'backtracking');
+                    if (i === stepIndex) {
+                        t.classList.add('active');
+                        const s = steps[i];
+                        if (s.op.includes('记录')) t.classList.add('recording');
+                        if (s.op.includes('回溯')) t.classList.add('backtracking');
+                    }
+                });
+            }
+
+            // ============ COMPLETION OVERLAY ============
+            function showCompletionOverlay() {
+                if (completionShown) return;
+                completionShown = true;
+                if (completionOverlay) {
+                    completionOverlay.classList.add('visible');
+                }
+                if (playBtn) {
+                    playBtn.classList.add('completed-state');
+                    playBtn.textContent = '🏁 已完成';
+                }
+            }
+
+            function hideCompletionOverlay() {
+                if (completionOverlay) {
+                    completionOverlay.classList.remove('visible');
+                }
+                completionShown = false;
+                if (playBtn && currentStep >= TOTAL_STEPS - 1) {
+                    playBtn.classList.remove('completed-state');
+                    playBtn.textContent = '▶ 播放';
+                }
+            }
+
+            if (completionClose) {
+                completionClose.addEventListener('click', hideCompletionOverlay);
+            }
+            if (completionOverlay) {
+                completionOverlay.addEventListener('click', function(e) {
+                    if (e.target === completionOverlay) {
+                        hideCompletionOverlay();
+                    }
+                });
+            }
+
+            // ============ CHECKPOINT LOGIC ============
+            const checkpointData = {
+                4: {
+                    type: 'choice',
+                    question: '记录完 [1,2,3] 后，算法接下来会做什么？',
+                    options: [
+                        'A. 直接结束，因为已经找到一个排列',
+                        'B. 撤销选择3（pop），回溯到深度2，检查是否有其他分支',
+                        'C. 重新从头开始搜索',
+                        'D. 把result清空重新来'
+                    ],
+                    correct: 1,
+                    hint: '回溯算法的核心是"撤销选择，恢复现场"。记录完一个排列后，需要退回去尝试其他数字。',
+                    answerExplanation: '正确答案是B。回溯算法在叶子节点记录结果后执行return，回到上一层，然后执行path.pop()和used[i]=false来撤销选择，再检查for循环中是否有其他未使用的数字可以尝试。'
+                },
+                7: {
+                    type: 'choice',
+                    question: '此时result中有2个排列：[1,2,3]和[1,3,2]。算法接下来会怎样？',
+                    options: [
+                        'A. 继续在深度2尝试其他数字',
+                        'B. 多层回溯到根节点，然后尝试以2开头的新分支',
+                        'C. 直接跳到以3开头的分支',
+                        'D. 停止搜索'
+                    ],
+                    correct: 1,
+                    hint: '1开头的排列只有2个（1,2,3和1,3,2），因为1固定在首位后，剩余2个数字的排列是2! = 2种。探索完1开头的所有分支后，需要回到根节点换新的首数字。',
+                    answerExplanation: '正确答案是B。以1开头的所有排列已经找完（[1,2,3]和[1,3,2]），算法会多层回溯到根节点（path=[]），然后for循环继续，选择2作为新的首数字。'
+                },
+                13: {
+                    type: 'prediction',
+                    question: '目前result有4个排列。请预测：下一个会被记录的排列是什么？（格式：[x,y,z]）',
+                    correctAnswer: '[3,1,2]',
+                    hint: '回溯顺序：2开头的完成后→回到根→选3→选1→选2→记录。所以下一个是[3,1,2]。',
+                    answerExplanation: '正确答案是[3,1,2]。2开头的排列（[2,1,3]和[2,3,1]）已全部找到，回溯到根节点后选择3，然后选1，再选2，到达叶子节点记录[3,1,2]。'
+                },
+                18: {
+                    type: 'choice',
+                    question: '全部6个排列已找到。回溯算法的时间复杂度是？',
+                    options: [
+                        'A. O(n)',
+                        'B. O(n log n)',
+                        'C. O(n!)',
+                        'D. O(2^n)'
+                    ],
+                    correct: 2,
+                    hint: 'n个元素的全排列共有n!种。回溯算法需要遍历整棵搜索树，每个叶子节点对应一个排列。',
+                    answerExplanation: '正确答案是C，O(n!)。n个不同元素的全排列有n!种，回溯算法需要生成所有排列，每个排列需要O(n)时间复制，总复杂度O(n·n!)，通常简化为O(n!)。'
+                }
+            };
+
+            let currentCheckpointData = null;
+            let checkpointSubmitted = false;
+
+            function updateCheckpoint(stepIndex) {
+                if (!cpQuestion || !cpOptions || !cpInput || !cpSubmit || !cpHint || !cpShow || !cpFeedback) return;
+                checkpointSubmitted = false;
+                cpFeedback.textContent = '';
+                cpFeedback.className = 'feedback-area';
+                cpInput.style.display = 'none';
+                cpOptions.innerHTML = '';
+                cpOptions.style.display = 'none';
+                cpInput.value = '';
+
+                if (checkpointData[stepIndex]) {
+                    currentCheckpointData = checkpointData[stepIndex];
+                    cpQuestion.textContent = '📌 ' + currentCheckpointData.question;
+                    if (currentCheckpointData.type === 'choice') {
+                        cpOptions.style.display = 'flex';
+                        cpInput.style.display = 'none';
+                        cpOptions.innerHTML = currentCheckpointData.options.map((opt, i) =>
+                            '<label><input type="radio" name="cp-opt" value="' + i + '"> ' + opt + '</label>'
+                        ).join('');
+                    } else if (currentCheckpointData.type === 'prediction') {
+                        cpOptions.style.display = 'none';
+                        cpInput.style.display = 'block';
+                        cpInput.placeholder = '输入你的预测，如 [x,y,z]';
+                    }
+                    cpSubmit.disabled = false;
+                    cpHint.disabled = false;
+                    cpShow.disabled = false;
+                } else {
+                    currentCheckpointData = null;
+                    cpQuestion.textContent = '当前步骤没有检测题，请继续前进。';
+                    cpOptions.style.display = 'none';
+                    cpInput.style.display = 'none';
+                    cpSubmit.disabled = true;
+                    cpHint.disabled = true;
+                    cpShow.disabled = true;
+                    cpFeedback.textContent = '';
+                    cpFeedback.className = 'feedback-area';
+                }
+            }
+
+            function submitCheckpoint() {
+                if (!currentCheckpointData || checkpointSubmitted) return;
+                if (!cpOptions || !cpInput || !cpFeedback || !logEntries) return;
+                let userAnswer;
+                let isCorrect = false;
+                if (currentCheckpointData.type === 'choice') {
+                    const selected = cpOptions.querySelector('input[type="radio"]:checked');
+                    if (!selected) {
+                        cpFeedback.textContent = '⚠️ 请先选择一个选项。';
+                        cpFeedback.className = 'feedback-area feedback-incorrect';
+                        return;
+                    }
+                    userAnswer = parseInt(selected.value);
+                    isCorrect = (userAnswer === currentCheckpointData.correct);
+                } else if (currentCheckpointData.type === 'prediction') {
+                    userAnswer = cpInput.value.trim();
+                    if (!userAnswer) {
+                        cpFeedback.textContent = '⚠️ 请输入你的预测。';
+                        cpFeedback.className = 'feedback-area feedback-incorrect';
+                        return;
+                    }
+                    isCorrect = (userAnswer === currentCheckpointData.correctAnswer);
+                }
+                checkpointSubmitted = true;
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                const ts = new Date().toLocaleTimeString();
+                if (isCorrect) {
+                    cpFeedback.innerHTML = '✅ <strong>正确！</strong> ' + (currentCheckpointData.answerExplanation || '');
+                    cpFeedback.className = 'feedback-area feedback-correct';
+                    logEntry.innerHTML = '✅ [' + ts + '] 步骤' + (currentStep + 1) + ' 回答正确：' + (typeof userAnswer ===
+                        'string' ? userAnswer : currentCheckpointData.options[userAnswer]);
+                } else {
+                    cpFeedback.innerHTML = '❌ <strong>不正确。</strong> ' + (currentCheckpointData.answerExplanation ||
+                        '请再想想。');
+                    cpFeedback.className = 'feedback-area feedback-incorrect';
+                    logEntry.innerHTML = '❌ [' + ts + '] 步骤' + (currentStep + 1) + ' 回答错误：' + (typeof userAnswer ===
+                        'string' ? userAnswer : (currentCheckpointData.options ? currentCheckpointData.options[
+                            userAnswer] : userAnswer)) + ' | 正确答案：' + (currentCheckpointData.type === 'choice' ?
+                        currentCheckpointData.options[currentCheckpointData.correct] : currentCheckpointData
+                        .correctAnswer);
+                }
+                logEntries.appendChild(logEntry);
+                logEntries.scrollTop = logEntries.scrollHeight;
+                if (cpSubmit) cpSubmit.disabled = true;
+            }
+
+            function showHint() {
+                if (!currentCheckpointData || !cpFeedback || !logEntries) return;
+                cpFeedback.textContent = '💡 提示：' + currentCheckpointData.hint;
+                cpFeedback.className = 'feedback-area';
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = '💡 [' + new Date().toLocaleTimeString() + '] 步骤' + (currentStep + 1) + ' 查看了提示';
+                logEntries.appendChild(logEntry);
+                logEntries.scrollTop = logEntries.scrollHeight;
+            }
+
+            function showCheckpointAnswer() {
+                if (!currentCheckpointData || !cpFeedback || !logEntries) return;
+                let ans;
+                if (currentCheckpointData.type === 'choice') {
+                    ans = currentCheckpointData.options[currentCheckpointData.correct];
+                } else {
+                    ans = currentCheckpointData.correctAnswer;
+                }
+                cpFeedback.textContent = '👁 答案：' + ans + '。' + (currentCheckpointData.answerExplanation || '');
+                cpFeedback.className = 'feedback-area feedback-correct';
+                checkpointSubmitted = true;
+                if (cpSubmit) cpSubmit.disabled = true;
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = '👁 [' + new Date().toLocaleTimeString() + '] 步骤' + (currentStep + 1) + ' 查看了答案：' +
+                    ans;
+                logEntries.appendChild(logEntry);
+                logEntries.scrollTop = logEntries.scrollHeight;
+            }
+
+            // ============ NAVIGATION ============
+            function goToStep(index) {
+                if (!domReady) return;
+                if (index < 0) index = 0;
+                if (index >= TOTAL_STEPS) index = TOTAL_STEPS - 1;
+                if (index >= TOTAL_STEPS - 1 && !completionShown) {
+                    // Will trigger completion
+                }
+                renderStep(index);
+                if (rangeEl) rangeEl.value = index + 1;
+                if (index < TOTAL_STEPS - 1 && completionShown) {
+                    hideCompletionOverlay();
+                }
+            }
+
+            function nextStep() {
+                if (currentStep < TOTAL_STEPS - 1) {
+                    goToStep(currentStep + 1);
+                } else {
+                    stopPlay();
+                    if (!completionShown) showCompletionOverlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStep > 0) {
+                    goToStep(currentStep - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying || !domReady) return;
+                isPlaying = true;
+                if (playBtn) {
+                    playBtn.textContent = '⏸ 暂停';
+                    playBtn.classList.add('playing');
+                    playBtn.classList.remove('completed-state');
+                }
+                if (currentStep >= TOTAL_STEPS - 1) {
+                    goToStep(0);
+                    if (completionShown) hideCompletionOverlay();
+                }
+                playInterval = setInterval(() => {
+                    if (currentStep >= TOTAL_STEPS - 1) {
+                        stopPlay();
+                        if (!completionShown) showCompletionOverlay();
+                        return;
+                    }
+                    nextStep();
+                }, 1200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playBtn) {
+                    playBtn.textContent = '▶ 播放';
+                    playBtn.classList.remove('playing');
+                    if (currentStep >= TOTAL_STEPS - 1) {
+                        playBtn.classList.add('completed-state');
+                        playBtn.textContent = '🏁 已完成';
+                    }
+                }
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT LISTENERS ============
+            function bindEvents() {
+                if (prevBtn) prevBtn.addEventListener('click', function() { stopPlay();
+                    prevStep(); });
+                if (nextBtn) nextBtn.addEventListener('click', function() { stopPlay();
+                    nextStep(); });
+                if (playBtn) playBtn.addEventListener('click', togglePlay);
+                if (rangeEl) {
+                    rangeEl.addEventListener('input', function() {
+                        stopPlay();
+                        const val = parseInt(rangeEl.value) - 1;
+                        if (!isNaN(val) && val >= 0 && val < TOTAL_STEPS) {
+                            goToStep(val);
+                        }
+                    });
+                    rangeEl.addEventListener('change', function() {
+                        const val = parseInt(rangeEl.value) - 1;
+                        if (!isNaN(val) && val >= 0 && val < TOTAL_STEPS) {
+                            goToStep(val);
+                        }
+                    });
+                }
+                if (cpSubmit) cpSubmit.addEventListener('click', submitCheckpoint);
+                if (cpHint) cpHint.addEventListener('click', showHint);
+                if (cpShow) cpShow.addEventListener('click', showCheckpointAnswer);
+
+                // Keyboard navigation
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        stopPlay();
+                        nextStep();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        stopPlay();
+                        prevStep();
+                    } else if (e.key === ' ') {
+                        e.preventDefault();
+                        togglePlay();
+                    }
+                });
+
+                // Handle window resize for particles
+                window.addEventListener('resize', function() {
+                    if (particleCanvas && particleCanvas.parentElement) {
+                        const pw = particleCanvas.parentElement.clientWidth;
+                        const ph = particleCanvas.parentElement.clientHeight;
+                        particleCanvas.width = pw;
+                        particleCanvas.height = ph;
+                    }
+                });
+            }
+
+            // ============ INIT ============
+            function init() {
+                initDomRefs();
+                if (!domReady) {
+                    console.error('Failed to initialize DOM references');
+                    return;
+                }
+                buildTimeline();
+                if (rangeEl) {
+                    rangeEl.max = TOTAL_STEPS;
+                    rangeEl.min = 1;
+                    rangeEl.step = 1;
+                }
+                bindEvents();
+                initParticles();
+                requestAnimationFrame(animateParticles);
+                goToStep(0);
+                // Ensure answer is correct from load
+                if (answerEl) answerEl.textContent =
+                    '[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]';
+                updateCheckpoint(0);
+                console.log('✅ AlgoLab - 全排列教学页已就绪。共' + TOTAL_STEPS + '个步骤。粒子动画已启动。');
+            }
+
+            // Start when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+</body>
+</html>

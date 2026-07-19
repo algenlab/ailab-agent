@@ -1,0 +1,98 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "two_pointer_pair_sum",
+  "algorithm_id": "two_pointer_pair_sum",
+  "title": "有序数组两数之和",
+  "family": "数组指针 / 窗口 / 前缀",
+  "difficulty": "medium",
+  "problem": "在电商促销活动中，你作为选品助手，要从按价格升序排列的商品清单 nums 中，找出两件商品，让它们的总价恰好等于用户持有的 target 元优惠券面额。你需要返回这两个商品在列表中的下标（从0开始），用列表表示；如果没有这种组合，就返回一个空列表。",
+  "strategy": "根据当前两数之和与 target 的关系移动左指针或右指针。",
+  "input_contract": "输入升序 nums 数组和 target。",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "理解双指针在升序价格列表中通过比较当前和与 target 决定移动方向的状态转移。",
+    "识别左指针递增、右指针递减的不变式，以及搜索区间的收缩性质。",
+    "能够根据任意一步的 nums[left]、nums[right] 和 sum 预测下一步指针移动。"
+  ],
+  "required_views": [
+    "array",
+    "sum_compare"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！总和与靶标的关系决定了指针移动方向。",
+      "feedback_wrong": "观察当前和与 target 的大小，思考移动哪个指针能使总和更接近 target。",
+      "id": "task_1",
+      "oracle": "根据 sum 与 target 的大小判断：sum < target 则左移左指针，否则右移右指针；检查 trace 中下一步 left 或 right 的变化。",
+      "prompt": "当前左指针下标 {state.left}，价格 {nums[state.left]}，右指针下标 {state.right}，价格 {nums[state.right]}，总和 {state.sum}，target={target}。下一步应移动哪个指针？",
+      "stage2_affordance": "提供左右移动按钮，点击后可视化更新指针位置和高亮商品，实时显示新 sum。",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.sum",
+        "target"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "正确！指针始终维持左不大于右的约束。",
+      "feedback_wrong": "回顾循环条件 while left < right，并考虑退出时的情况。",
+      "id": "task_2",
+      "oracle": "正确答案为 A；循环条件保证 left < right，但当 left == right 时循环结束，该时刻 left == right，因此 left <= right 始终成立。",
+      "prompt": "在双指针算法运行过程中，以下哪个条件始终成立？A. left <= right  B. nums[left]+nums[right]==target  C. left+right==len(nums)-1  D. 数组中至少存在一对解",
+      "stage2_affordance": "显示四个选项的单选按钮，学生选择后立即显示对错，并高亮正确选项。",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.nums"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "成功构造无解场景！",
+      "feedback_wrong": "注意修改后最小与最大价格的和不能恰好等于 target，同时保持升序。",
+      "id": "task_3",
+      "oracle": "用 verifier 检查新输入：若返回空列表则成功；否则需再调整，直到所有组合和不等于 target。",
+      "prompt": "修改 nums 中的某个价格（保持升序），使 target={target} 时算法返回空列表，即无解。你可以在末尾添加大于 target 的数或调整现有值。",
+      "stage2_affordance": "提供可编辑的数字输入框列表，实时调用 verifier 显示是否存在解。",
+      "trace_anchor": [
+        "target",
+        "nums"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释合理，突出了有序性和可达性。",
+      "feedback_wrong": "考虑升序排列下，右指针指向当前区间最大值，移动它总和如何变化？",
+      "id": "task_4",
+      "oracle": "参考答案：要增大总和只能换更大的左元素，而右指针已指向最大元素，右移只会使总和更小。关键词可包含“升序”、“右指针最大”、“总和变小”。",
+      "prompt": "第 {t} 步时 sum={state.sum} 小于 target，算法选择左移左指针。请用一句简短的话解释为什么右移右指针是错误的。",
+      "stage2_affordance": "提供一个文本输入框和预计算滑块：拖动滑块模拟移动指针，显示新 sum 值的变化趋势。",
+      "trace_anchor": [
+        "state.sum",
+        "state.target",
+        "state.left",
+        "state.right"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      1,
+      3
+    ],
+    "index": 0,
+    "input_data": {
+      "nums": [
+        1,
+        2,
+        4,
+        6,
+        10
+      ],
+      "target": 8
+    }
+  }
+}

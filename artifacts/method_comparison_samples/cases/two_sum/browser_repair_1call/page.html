@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>两数之和 - 哈希表解法 | AlgoLab 教学页</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface2: #273449;
+            --border: #334155;
+            --text: #e2e8f0;
+            --text2: #b0bec5;
+            --text3: #78909c;
+            --accent: #38bdf8;
+            --accent2: #818cf8;
+            --gold: #fbbf24;
+            --green: #4ade80;
+            --red: #f87171;
+            --orange: #fb923c;
+            --pink: #f472b6;
+            --purple: #a78bfa;
+            --teal: #2dd4bf;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            box-shadow: var(--shadow);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .algo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent2);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+        .algo-badge::before {
+            content: '◆';
+            font-size: 0.6rem;
+            color: #c7d2fe;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.01em;
+            margin: 0;
+            line-height: 1.3;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text2);
+            font-weight: 400;
+        }
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #top-result {
+            background: #1a3a2a;
+            border: 1px solid #2d5a3f;
+            color: var(--green);
+            font-weight: 700;
+            font-family: var(--font-mono);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        #top-solution {
+            background: #1a2740;
+            border: 1px solid #2d4160;
+            color: var(--accent);
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 960px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text3);
+            margin-bottom: 2px;
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            line-height: 1.75;
+            background: #0b1120;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            color: #c9d1d9;
+            overflow-x: auto;
+            white-space: pre;
+            counter-reset: line;
+            position: relative;
+            min-height: 200px;
+            user-select: text;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: all var(--transition);
+            position: relative;
+        }
+        #code .code-line.highlight {
+            background: #1e3a5f;
+            color: #fff;
+            box-shadow: inset 3px 0 0 var(--accent);
+            font-weight: 600;
+        }
+        #code .code-line.highlight-strong {
+            background: #2d3a1f;
+            color: #fff;
+            box-shadow: inset 3px 0 0 var(--green);
+            font-weight: 700;
+            animation: pulseHighlight 0.8s ease-out;
+        }
+        @keyframes pulseHighlight {
+            0%,
+            100% {
+                box-shadow: inset 3px 0 0 var(--green);
+            }
+            50% {
+                box-shadow: inset 3px 0 0 var(--gold), 0 0 12px rgba(251, 191, 36, 0.5);
+            }
+        }
+        .code-comment {
+            color: #6e7681;
+            font-style: italic;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 260px;
+            background: #0b1120;
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+            border: 1px dashed transparent;
+            transition: border-color var(--transition);
+        }
+        #canvas.active-step {
+            border-color: var(--accent);
+        }
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .canvas-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text3);
+            font-weight: 600;
+        }
+        .array-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .array-cell {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            transition: all var(--transition);
+            position: relative;
+            border: 2px solid transparent;
+            background: var(--surface2);
+            color: var(--text2);
+        }
+        .array-cell.visited {
+            background: #1e3050;
+            border-color: #3b82f6;
+            color: #93c5fd;
+        }
+        .array-cell.current {
+            background: #3d2e0a;
+            border-color: var(--gold);
+            color: #fde68a;
+            box-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
+            transform: translateY(-4px);
+            z-index: 2;
+            animation: bounceCell 0.5s ease-out;
+        }
+        @keyframes bounceCell {
+            0% {
+                transform: translateY(-12px);
+            }
+            60% {
+                transform: translateY(2px);
+            }
+            100% {
+                transform: translateY(-4px);
+            }
+        }
+        .array-cell.found {
+            background: #1a3a1f;
+            border-color: var(--green);
+            color: #86efac;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+            animation: glowFound 0.7s ease-out;
+        }
+        @keyframes glowFound {
+            0% {
+                box-shadow: 0 0 32px rgba(74, 222, 128, 0.9);
+            }
+            100% {
+                box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+            }
+        }
+        .array-cell .cell-index {
+            font-size: 0.6rem;
+            color: inherit;
+            opacity: 0.7;
+            position: absolute;
+            bottom: 4px;
+            font-weight: 500;
+        }
+        .array-cell .cell-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .hashmap-display {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .hashmap-entry {
+            background: #1e3050;
+            border: 2px solid #3b82f6;
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #93c5fd;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all var(--transition);
+            animation: fadeInEntry 0.4s ease-out;
+        }
+        @keyframes fadeInEntry {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .hashmap-entry.new-entry {
+            border-color: var(--gold);
+            background: #3d2e0a;
+            color: #fde68a;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+        }
+        .hashmap-entry .entry-key {
+            font-weight: 700;
+            color: #fde68a;
+        }
+        .hashmap-empty {
+            color: var(--text3);
+            font-style: italic;
+            font-size: 0.85rem;
+            padding: 8px;
+        }
+        .pointer-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--gold);
+            font-weight: 600;
+            animation: fadeInEntry 0.3s ease-out;
+        }
+        .pointer-indicator::before {
+            content: '▼';
+            font-size: 1rem;
+            animation: bobArrow 0.6s infinite alternate;
+        }
+        @keyframes bobArrow {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(5px);
+            }
+        }
+        .canvas-info-tag {
+            display: inline-block;
+            background: var(--surface2);
+            border-radius: 14px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text2);
+            font-family: var(--font-mono);
+            margin: 2px;
+        }
+        .canvas-info-tag.highlight-tag {
+            background: #3d2e0a;
+            color: #fde68a;
+            border: 1px solid var(--gold);
+        }
+        .canvas-info-tag.success-tag {
+            background: #1a3a1f;
+            color: #86efac;
+            border: 1px solid var(--green);
+        }
+
+        /* Teaching panel */
+        .teaching-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
+        @media (max-width: 1100px) {
+            .teaching-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-size: 0.85rem;
+        }
+        .info-card h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--accent);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        #teaching {
+            color: var(--text);
+            line-height: 1.5;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #0b1120;
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: #c9d1d9;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        #step-evidence {
+            color: var(--text2);
+            line-height: 1.5;
+            font-size: 0.82rem;
+        }
+        #step-evidence .ev-label {
+            font-weight: 700;
+            color: var(--teal);
+            display: inline-block;
+            min-width: 70px;
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow);
+            justify-content: center;
+        }
+        .ctrl-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            white-space: nowrap;
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+        }
+        .ctrl-btn:hover {
+            background: #334155;
+            border-color: #64748b;
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        .ctrl-btn:active {
+            transform: scale(0.96);
+            transition: 0.08s;
+        }
+        .ctrl-btn.active-btn {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+            font-weight: 700;
+        }
+        #play {
+            background: #1a3a2a;
+            border-color: #2d5a3f;
+            color: var(--green);
+        }
+        #play:hover {
+            background: #224a32;
+            border-color: #3d7a52;
+        }
+        #play.playing {
+            background: #5a1a1a;
+            border-color: #7a2d2d;
+            color: var(--red);
+            animation: pulsePlay 1s infinite;
+        }
+        @keyframes pulsePlay {
+            0%,
+            100% {
+                box-shadow: 0 0 0px rgba(248, 113, 113, 0);
+            }
+            50% {
+                box-shadow: 0 0 18px rgba(248, 113, 113, 0.5);
+            }
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 250px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 6px;
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1rem;
+            color: #fff;
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--teal);
+            background: #0d1f1f;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            border: 1px solid #1a3d3d;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: stretch;
+        }
+        #timeline .tick {
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            color: var(--text2);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            min-width: 70px;
+            text-align: center;
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+        }
+        #timeline .tick:hover {
+            border-color: #64748b;
+            background: #334155;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        #timeline .tick.active-tick {
+            border-color: var(--accent);
+            background: #1e3050;
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+            transform: translateY(-3px);
+        }
+        #timeline .tick.completed-tick {
+            border-color: var(--green);
+            background: #1a2e1f;
+            color: #a0d8a0;
+        }
+        #timeline .tick .tick-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        #timeline .tick .tick-op {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            font-family: var(--font-mono);
+            color: inherit;
+        }
+        #timeline .tick.active-tick .tick-op {
+            color: var(--accent);
+            opacity: 1;
+        }
+        #timeline .tick.completed-tick .tick-op {
+            color: var(--green);
+            opacity: 1;
+        }
+
+        /* Step title & desc */
+        #step-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #fff;
+            letter-spacing: 0.01em;
+        }
+        #step-desc {
+            color: var(--text2);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #1a1d2e;
+            border: 2px solid #4a3f6e;
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 8px;
+            animation: fadeInEntry 0.5s ease-out;
+        }
+        .checkpoint-card h4 {
+            color: var(--purple);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            letter-spacing: 0.03em;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .checkpoint-option {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 7px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .checkpoint-option:hover {
+            border-color: #8b8bcf;
+            background: #2e2d4a;
+        }
+        .checkpoint-option.selected {
+            border-color: var(--purple);
+            background: #3d2e5a;
+            color: #fff;
+            font-weight: 600;
+        }
+        .checkpoint-input {
+            background: #0b1120;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            width: 100%;
+            max-width: 300px;
+        }
+        .checkpoint-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .cp-btn {
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+        }
+        .cp-btn-submit {
+            background: var(--purple);
+            color: #fff;
+            border-color: #6d5fa0;
+        }
+        .cp-btn-submit:hover {
+            background: #7b6db8;
+            box-shadow: 0 2px 10px rgba(167, 139, 250, 0.4);
+        }
+        .cp-btn-hint {
+            background: transparent;
+            border-color: #5a5a6e;
+            color: #b0b0c0;
+        }
+        .cp-btn-hint:hover {
+            border-color: #8b8b9f;
+            color: #fff;
+        }
+        .cp-btn-reveal {
+            background: transparent;
+            border-color: #5a4a3a;
+            color: #d4a860;
+        }
+        .cp-btn-reveal:hover {
+            border-color: #8b6d40;
+            color: #fbbf24;
+        }
+        .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            font-weight: 500;
+            line-height: 1.5;
+            animation: fadeInEntry 0.3s ease-out;
+        }
+        .cp-feedback.correct {
+            background: #1a3a1f;
+            border: 1px solid #2d5a3f;
+            color: #86efac;
+        }
+        .cp-feedback.incorrect {
+            background: #3a1a1a;
+            border: 1px solid #5a2d2d;
+            color: #fca5a5;
+        }
+        .cp-feedback.neutral {
+            background: #1a2735;
+            border: 1px solid #2d4160;
+            color: #93c5fd;
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            box-shadow: var(--shadow);
+        }
+        .learning-log h4 {
+            color: var(--text3);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #1e2d3d;
+            color: var(--text2);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+        .log-entry.correct-log {
+            color: #86efac;
+        }
+        .log-entry.wrong-log {
+            color: #fca5a5;
+        }
+        .log-entry.info-log {
+            color: #93c5fd;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--green);
+            font-size: 1.1rem;
+            letter-spacing: 0.03em;
+        }
+        .answer-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #0b1a0f;
+            border: 1px solid #1a3d1f;
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            margin-top: 4px;
+        }
+        .answer-label {
+            font-size: 0.7rem;
+            color: #5a8a5a;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+        }
+
+        /* Misc */
+        .hidden {
+            display: none !important;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+        @media (max-width: 640px) {
+            #code {
+                font-size: 0.72rem;
+            }
+            .array-cell {
+                width: 38px;
+                height: 38px;
+                font-size: 0.85rem;
+            }
+            .array-cell .cell-value {
+                font-size: 0.9rem;
+            }
+            #timeline .tick {
+                padding: 6px 8px;
+                font-size: 0.68rem;
+                min-width: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <span class="algo-badge">哈希表 / Map</span>
+                <div>
+                    <h1 id="title">两数之和</h1>
+                    <p id="subtitle">订单配货系统 — 哈希表互补查找 · O(n) 时间</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div id="top-result">[0, 1]</div>
+                <div id="top-solution">哈希表一次遍历解法</div>
+            </div>
+        </div>
+
+        <!-- Main grid: code + canvas -->
+        <div class="main-grid">
+            <!-- Code panel -->
+            <div class="panel">
+                <div class="panel-title">📜 算法代码</div>
+                <pre id="code"><span class="code-line" data-line="1">def solve(nums, target):</span><span class="code-line" data-line="2">    map = {}          <span class="code-comment"># 哈希表：值→下标</span></span><span class="code-line" data-line="3">    for i in range(len(nums)):</span><span class="code-line" data-line="4">        complement = target - nums[i]</span><span class="code-line" data-line="5">        if complement in map:</span><span class="code-line" data-line="6">            return [map[complement], i]</span><span class="code-line" data-line="7">        map[nums[i]] = i</span><span class="code-line" data-line="8">    return []           <span class="code-comment"># 无答案</span></span></pre>
+            </div>
+
+            <!-- Canvas panel -->
+            <div class="panel">
+                <div class="panel-title">🎯 算法视图
+                </div>
+                <div id="canvas">
+                    <div class="canvas-section">
+                        <span class="canvas-label">📊 货位数组 nums</span>
+                        <div class="array-row" id="array-display"></div>
+                        <div id="pointer-area"></div>
+                    </div>
+                    <div class="canvas-section">
+                        <span class="canvas-label">🗂️ 哈希表 map (值→下标)</span>
+                        <div class="hashmap-display" id="hashmap-display"></div>
+                    </div>
+                    <div id="canvas-info-tags" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+                </div>
+                <div id="step-title" style="margin-top:4px;"></div>
+                <div id="step-desc"></div>
+                <div id="op" style="display:inline-block;margin-top:2px;"></div>
+            </div>
+        </div>
+
+        <!-- Teaching row -->
+        <div class="teaching-row">
+            <div class="info-card">
+                <h4>📖 讲解</h4>
+                <div id="teaching"></div>
+            </div>
+            <div class="info-card">
+                <h4>📋 状态摘要 (JSON)</h4>
+                <div id="state"></div>
+            </div>
+            <div class="info-card">
+                <h4>🔍 步骤证据</h4>
+                <div id="step-evidence"></div>
+                <!-- Checkpoint will be inserted here dynamically -->
+                <div id="checkpoint-container"></div>
+            </div>
+        </div>
+
+        <!-- Answer display -->
+        <div class="answer-wrapper">
+            <span class="answer-label">✅ 最终答案</span>
+            <span id="answer">[0, 1]</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button class="ctrl-btn" id="prev" title="上一步">◀ 上一步</button>
+            <button class="ctrl-btn" id="play" title="自动播放">▶ 播放</button>
+            <button class="ctrl-btn" id="next" title="下一步">下一步 ▶</button>
+            <input type="range" id="range" min="1" max="5" value="1" step="1" title="步骤滑块">
+            <span id="counter">1 / 5</span>
+            <span id="op-display"></span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline"></div>
+
+        <!-- Learning log -->
+        <div class="learning-log" id="learning-log-container">
+            <h4>📝 学习日志</h4>
+            <div id="learning-log-entries">
+                <div class="log-entry info-log">🟢 页面加载完毕，准备开始学习。</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ── Step definitions ──
+            const steps = [{
+                id: 1,
+                title: '步骤 1：初始化',
+                desc: '创建空哈希表 map，设置遍历指针 i=0，准备扫描货位数组。',
+                op: 'init_map',
+                codeLines: [1, 2],
+                highlightStrong: null,
+                teaching: '初始化阶段：我们创建一个空的哈希表（字典/Map），它将存储 <b>数值 → 下标</b> 的映射。这是哈希表解法的核心数据结构——它允许我们在 O(1) 时间内查询某个值是否已经出现过。',
+                stateJSON: '{"map": {}, "i": 0, "phase": "init", "target": 9}',
+                evidence: '<span class="ev-label">operation:</span> init<br><span class="ev-label">target:</span> 创建空哈希表<br><span class="ev-label">before:</span> 无<br><span class="ev-label">after:</span> map = {}（空表），准备遍历',
+                arrayHighlight: { current: null, visited: [], found: [] },
+                mapEntries: [],
+                mapNewKey: null,
+                infoTags: [{ text: 'map = {}', cls: '' }, { text: 'target=9', cls: '' }],
+                checkpoint: null,
+                tickLabel: '初始化',
+                tickOp: '创建空map'
+            }, {
+                id: 2,
+                title: '步骤 2：检查货位 i=0（值=2）',
+                desc: 'nums[0]=2，计算互补值 complement = 9-2 = 7。在 map 中查找 7 → 未找到。将 {2: 0} 存入 map，移动指针到 i=1。',
+                op: 'check_insert_i0',
+                codeLines: [3, 4, 5, 7],
+                highlightStrong: null,
+                teaching: '遍历到 i=0，货位上有 <b>2件</b> 商品。我们还缺 <b>7件</b>（因为 9-2=7）。检查哈希表：7 不在表中，说明之前没有货位能提供7件。于是我们把 <b>{2: 0}</b> 记录到哈希表，表示"值为2的货位在索引0"。<br><br>⚠️ <b>常见误区：</b>初学者可能忘记把当前值存入map就直接进入下一步，这会导致后续查找失败。',
+                stateJSON: '{"map": {"2": 0}, "i": 0, "current_num": 2, "complement": 7, "found": false, "action": "insert"}',
+                evidence: '<span class="ev-label">operation:</span> check_and_insert<br><span class="ev-label">targets:</span> nums[0]=2, complement=7<br><span class="ev-label">before:</span> map={}<br><span class="ev-label">after:</span> map={2:0}，7不在map中→存入',
+                arrayHighlight: { current: 0, visited: [], found: [] },
+                mapEntries: [{ key: 2, value: 0, isNew: true }],
+                mapNewKey: 2,
+                infoTags: [{ text: 'complement=7', cls: 'highlight-tag' }, { text: '7∉map', cls: '' },
+                { text: '存入{2:0}', cls: '' }],
+                checkpoint: {
+                    type: 'choice',
+                    question: '🧠 此时哈希表 map 中存储了什么？',
+                    options: ['{7: 0}', '{2: 0}', '{2: 1}', '{0: 2}'],
+                    correctIndex: 1,
+                    hint: '我们把当前货位的值(2)作为键，它的下标(0)作为值存入。',
+                    explanationCorrect: '正确！map 中存储了 {2: 0}，表示值为2的货位在索引0。之后如果遇到互补值7，就能快速查到这个位置。',
+                    explanationWrong: '不对。我们存入的是当前值2作为键、下标0作为值，所以是 {2: 0}。注意键是数组元素值，值是下标。'
+                },
+                tickLabel: '检查 i=0',
+                tickOp: '查找7→未找到'
+            }, {
+                id: 3,
+                title: '步骤 3：检查货位 i=1（值=7）',
+                desc: 'nums[1]=7，计算互补值 complement = 9-7 = 2。在 map 中查找 2 → 找到了！下标为 0。返回 [0, 1]。',
+                op: 'check_found_i1',
+                codeLines: [3, 4, 5, 6],
+                highlightStrong: 6,
+                teaching: '遍历到 i=1，货位上有 <b>7件</b> 商品。互补值 = 9-7 = <b>2</b>。在哈希表中查找2：<b>找到了！</b>map[2]=0，说明索引0的货位有2件。于是我们找到了答案：<b>[0, 1]</b>（即货位0和货位1）。<br><br>🎯 <b>关键洞察：</b>哈希表让我们在常数时间内完成查找，避免了暴力双重循环的 O(n²) 复杂度。',
+                stateJSON: '{"map": {"2": 0}, "i": 1, "current_num": 7, "complement": 2, "found": true, "found_at": 0, "answer": [0, 1]}',
+                evidence: '<span class="ev-label">operation:</span> check_and_found<br><span class="ev-label">targets:</span> nums[1]=7, complement=2<br><span class="ev-label">before:</span> map={2:0}<br><span class="ev-label">after:</span> 2在map中→下标0，返回[0,1]',
+                arrayHighlight: { current: 1, visited: [0], found: [0, 1] },
+                mapEntries: [{ key: 2, value: 0, isNew: false }],
+                mapNewKey: null,
+                infoTags: [{ text: 'complement=2', cls: 'highlight-tag' }, { text: '2∈map→下标0',
+                    cls: 'success-tag' }, { text: '答案[0,1]', cls: 'success-tag' }],
+                checkpoint: {
+                    type: 'choice',
+                    question: '🧠 如果 nums=[3,3], target=6，哈希表法会返回什么？',
+                    options: ['[0, 0]（重复使用同一元素）', '[0, 1]', '[]（空数组）', '[1, 0]'],
+                    correctIndex: 1,
+                    hint: '两个3虽然值相同，但下标不同（0和1）。在检查i=1时，map中已有{3:0}，complement=3在map中，返回[0,1]。',
+                    explanationCorrect: '正确！返回[0,1]。虽然值相同，但下标不同，哈希表记录了第一个3的下标0，第二个3的下标1能找到它。',
+                    explanationWrong: '注意：i=0时map为空，存入{3:0}；i=1时complement=3，在map中找到下标0，返回[0,1]。元素值可以相同，但下标必须不同。'
+                },
+                tickLabel: '检查 i=1',
+                tickOp: '查找2→找到！'
+            }, {
+                id: 4,
+                title: '步骤 4：返回答案',
+                desc: '算法返回 [0, 1]，即货位0（2件）和货位1（7件），2+7=9，满足订单需求。',
+                op: 'return_answer',
+                codeLines: [6],
+                highlightStrong: 6,
+                teaching: '算法成功找到答案并返回 <b>[0, 1]</b>。验证：nums[0]+nums[1] = 2+7 = 9 = target ✅。<br><br>如果遍历完整个数组都没有找到互补对，算法会返回空数组 []（第8行），表示该样例不存在答案。',
+                stateJSON: '{"answer": [0, 1], "verified": true, "sum": 9, "target": 9}',
+                evidence: '<span class="ev-label">operation:</span> return<br><span class="ev-label">targets:</span> [0,1]<br><span class="ev-label">before:</span> 找到互补对<br><span class="ev-label">after:</span> 返回[0,1]，验证2+7=9✓',
+                arrayHighlight: { current: null, visited: [0, 1], found: [0, 1] },
+                mapEntries: [{ key: 2, value: 0, isNew: false }],
+                mapNewKey: null,
+                infoTags: [{ text: '返回[0,1]', cls: 'success-tag' }, { text: '2+7=9✓', cls: 'success-tag' }],
+                checkpoint: null,
+                tickLabel: '返回结果',
+                tickOp: '输出[0,1]'
+            }, {
+                id: 5,
+                title: '步骤 5：确认与总结',
+                desc: '最终确认答案正确，回顾算法流程：一次遍历 + 哈希表查找 = O(n) 时间、O(n) 空间。',
+                op: 'verify_summary',
+                codeLines: [8],
+                highlightStrong: null,
+                teaching: '<b>📚 总结：</b>哈希表解法利用 <b>空间换时间</b> 的思想，将查找互补值的时间从 O(n) 降到 O(1)。整体只需一次遍历（O(n)），空间复杂度 O(n)（哈希表存储）。<br><br>🔑 <b>不变量：</b>在遍历到索引i时，哈希表始终包含 nums[0..i-1] 的所有值→下标映射。这保证了我们在检查nums[i]时，互补值若存在则必在表中。',
+                stateJSON: '{"final_answer": [0, 1], "time_complexity": "O(n)", "space_complexity": "O(n)"}',
+                evidence: '<span class="ev-label">operation:</span> verify<br><span class="ev-label">targets:</span> 答案[0,1]<br><span class="ev-label">before:</span> 返回答案<br><span class="ev-label">after:</span> 确认正确，算法完成',
+                arrayHighlight: { current: null, visited: [0, 1], found: [0, 1] },
+                mapEntries: [{ key: 2, value: 0, isNew: false }],
+                mapNewKey: null,
+                infoTags: [{ text: 'O(n)时间', cls: '' }, { text: 'O(n)空间', cls: '' }, { text: '✓完成',
+                    cls: 'success-tag' }],
+                checkpoint: null,
+                tickLabel: '确认总结',
+                tickOp: '验证回顾'
+            }];
+
+            const totalSteps = steps.length;
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            const learningLogEntries = [];
+
+            // ── DOM refs ──
+            const $ = (id) => document.getElementById(id);
+            const codeEl = $('#code');
+            const canvasEl = $('#canvas');
+            const arrayDisplayEl = $('#array-display');
+            const pointerAreaEl = $('#pointer-area');
+            const hashmapDisplayEl = $('#hashmap-display');
+            const canvasInfoTagsEl = $('#canvas-info-tags');
+            const stepTitleEl = $('#step-title');
+            const stepDescEl = $('#step-desc');
+            const opEl = $('#op');
+            const teachingEl = $('#teaching');
+            const stateEl = $('#state');
+            const stepEvidenceEl = $('#step-evidence');
+            const counterEl = $('#counter');
+            const rangeEl = $('#range');
+            const timelineEl = $('#timeline');
+            const prevBtn = $('#prev');
+            const playBtn = $('#play');
+            const nextBtn = $('#next');
+            const checkpointContainer = $('#checkpoint-container');
+            const learningLogEntriesEl = $('#learning-log-entries');
+            const answerEl = $('#answer');
+            const opDisplayEl = $('#op-display');
+
+            const numsArray = [2, 7, 11, 15];
+            const targetValue = 9;
+
+            // ── Initialize answer ──
+            answerEl.textContent = '[0, 1]';
+
+            // ── Build timeline ──
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('type', 'button');
+                    tick.innerHTML =
+                        '<span class="tick-label">' + step.tickLabel + '</span><span class="tick-op">' + step
+                        .tickOp + '</span>';
+                    tick.addEventListener('click', () => {
+                        goToStep(idx);
+                        stopPlay();
+                    });
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            // ── Update timeline active state ──
+            function updateTimelineActive() {
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach((tick, idx) => {
+                    tick.classList.remove('active-tick', 'completed-tick');
+                    if (idx === currentStepIndex) {
+                        tick.classList.add('active-tick');
+                    } else if (idx < currentStepIndex) {
+                        tick.classList.add('completed-tick');
+                    }
+                });
+            }
+
+            // ── Render array ──
+            function renderArray(highlight) {
+                arrayDisplayEl.innerHTML = '';
+                numsArray.forEach((val, idx) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell';
+                    if (highlight.found.includes(idx)) {
+                        cell.classList.add('found');
+                    } else if (highlight.current === idx) {
+                        cell.classList.add('current');
+                    } else if (highlight.visited.includes(idx)) {
+                        cell.classList.add('visited');
+                    }
+                    cell.innerHTML = '<span class="cell-value">' + val + '</span><span class="cell-index">[' +
+                        idx + ']</span>';
+                    arrayDisplayEl.appendChild(cell);
+                });
+
+                // Pointer indicator
+                pointerAreaEl.innerHTML = '';
+                if (highlight.current !== null && highlight.current < numsArray.length) {
+                    const ptr = document.createElement('span');
+                    ptr.className = 'pointer-indicator';
+                    ptr.textContent = 'i=' + highlight.current + ' (当前检查)';
+                    pointerAreaEl.appendChild(ptr);
+                }
+            }
+
+            // ── Render hashmap ──
+            function renderHashMap(entries) {
+                hashmapDisplayEl.innerHTML = '';
+                if (!entries || entries.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.className = 'hashmap-empty';
+                    empty.textContent = '(空表)';
+                    hashmapDisplayEl.appendChild(empty);
+                    return;
+                }
+                entries.forEach(entry => {
+                    const ent = document.createElement('span');
+                    ent.className = 'hashmap-entry';
+                    if (entry.isNew) ent.classList.add('new-entry');
+                    ent.innerHTML = '<span class="entry-key">' + entry.key + '</span> → ' + entry.value;
+                    hashmapDisplayEl.appendChild(ent);
+                });
+            }
+
+            // ── Render info tags ──
+            function renderInfoTags(tags) {
+                canvasInfoTagsEl.innerHTML = '';
+                tags.forEach(t => {
+                    const tag = document.createElement('span');
+                    tag.className = 'canvas-info-tag';
+                    if (t.cls) tag.classList.add(t.cls);
+                    tag.textContent = t.text;
+                    canvasInfoTagsEl.appendChild(tag);
+                });
+            }
+
+            // ── Highlight code lines ──
+            function highlightCode(lines, strongLine) {
+                const allLines = codeEl.querySelectorAll('.code-line');
+                allLines.forEach(el => {
+                    el.classList.remove('highlight', 'highlight-strong');
+                });
+                lines.forEach(ln => {
+                    const target = codeEl.querySelector('.code-line[data-line="' + ln + '"]');
+                    if (target) {
+                        if (strongLine === ln) {
+                            target.classList.add('highlight-strong');
+                        } else {
+                            target.classList.add('highlight');
+                        }
+                    }
+                });
+            }
+
+            // ── Render checkpoint ──
+            function renderCheckpoint(checkpoint) {
+                checkpointContainer.innerHTML = '';
+                if (!checkpoint) return;
+
+                const card = document.createElement('div');
+                card.className = 'checkpoint-card';
+                card.innerHTML = '<h4>📝 学习检测点</h4>';
+
+                const questionEl = document.createElement('p');
+                questionEl.style.cssText = 'color:#e2e8f0;font-weight:600;margin-bottom:8px;';
+                questionEl.textContent = checkpoint.question;
+                card.appendChild(questionEl);
+
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'checkpoint-options';
+                let selectedIndex = null;
+
+                if (checkpoint.type === 'choice') {
+                    checkpoint.options.forEach((opt, oi) => {
+                        const optBtn = document.createElement('button');
+                        optBtn.className = 'checkpoint-option';
+                        optBtn.setAttribute('type', 'button');
+                        optBtn.textContent = opt;
+                        optBtn.addEventListener('click', () => {
+                            optionsContainer.querySelectorAll('.checkpoint-option').forEach(b => b
+                                .classList.remove('selected'));
+                            optBtn.classList.add('selected');
+                            selectedIndex = oi;
+                            // Clear previous feedback
+                            const oldFb = card.querySelector('.cp-feedback');
+                            if (oldFb) oldFb.remove();
+                        });
+                        optionsContainer.appendChild(optBtn);
+                    });
+                }
+                card.appendChild(optionsContainer);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'checkpoint-actions';
+
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'cp-btn cp-btn-submit';
+                submitBtn.textContent = '提交';
+                submitBtn.addEventListener('click', () => {
+                    const oldFb = card.querySelector('.cp-feedback');
+                    if (oldFb) oldFb.remove();
+                    const fb = document.createElement('div');
+                    fb.className = 'cp-feedback';
+                    if (selectedIndex === null) {
+                        fb.classList.add('neutral');
+                        fb.textContent = '请先选择一个选项再提交。';
+                    } else if (selectedIndex === checkpoint.correctIndex) {
+                        fb.classList.add('correct');
+                        fb.textContent = '✅ ' + checkpoint.explanationCorrect;
+                        addLogEntry('correct-log',
+                            '✅ 步骤' + (currentStepIndex + 1) + '检测点：回答正确 — ' + checkpoint.options[
+                                selectedIndex]);
+                    } else {
+                        fb.classList.add('incorrect');
+                        fb.textContent = '❌ ' + checkpoint.explanationWrong;
+                        addLogEntry('wrong-log',
+                            '❌ 步骤' + (currentStepIndex + 1) + '检测点：回答错误（选了"' + checkpoint.options[
+                                selectedIndex] + '"）— ' + checkpoint.explanationWrong);
+                    }
+                    card.appendChild(fb);
+                });
+                actionsDiv.appendChild(submitBtn);
+
+                const hintBtn = document.createElement('button');
+                hintBtn.className = 'cp-btn cp-btn-hint';
+                hintBtn.textContent = '💡 提示';
+                hintBtn.addEventListener('click', () => {
+                    const oldFb = card.querySelector('.cp-feedback');
+                    if (oldFb) oldFb.remove();
+                    const fb = document.createElement('div');
+                    fb.className = 'cp-feedback neutral';
+                    fb.textContent = '💡 ' + checkpoint.hint;
+                    card.appendChild(fb);
+                    addLogEntry('info-log', '💡 步骤' + (currentStepIndex + 1) + '检测点：请求提示');
+                });
+                actionsDiv.appendChild(hintBtn);
+
+                const revealBtn = document.createElement('button');
+                revealBtn.className = 'cp-btn cp-btn-reveal';
+                revealBtn.textContent = '👁 显示答案';
+                revealBtn.addEventListener('click', () => {
+                    const oldFb = card.querySelector('.cp-feedback');
+                    if (oldFb) oldFb.remove();
+                    const fb = document.createElement('div');
+                    fb.className = 'cp-feedback correct';
+                    fb.textContent = '✅ 正确答案：' + checkpoint.options[checkpoint.correctIndex] + ' — ' +
+                        checkpoint.explanationCorrect;
+                    card.appendChild(fb);
+                    addLogEntry('info-log', '👁 步骤' + (currentStepIndex + 1) + '检测点：查看答案');
+                });
+                actionsDiv.appendChild(revealBtn);
+
+                card.appendChild(actionsDiv);
+                checkpointContainer.appendChild(card);
+            }
+
+            // ── Add log entry ──
+            function addLogEntry(className, text) {
+                learningLogEntries.push({ cls: className, text: text, time: new Date() });
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + className;
+                const timeStr = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit',
+                    second: '2-digit' });
+                entry.textContent = '[' + timeStr + '] ' + text;
+                learningLogEntriesEl.appendChild(entry);
+                // Auto-scroll
+                learningLogEntriesEl.parentElement.scrollTop = learningLogEntriesEl.parentElement.scrollHeight;
+            }
+
+            // ── Render step ──
+            function renderStep(index) {
+                const step = steps[index];
+                currentStepIndex = index;
+
+                // Update step info
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                opEl.textContent = step.op;
+                opDisplayEl.textContent = step.op;
+
+                // Update teaching
+                teachingEl.innerHTML = step.teaching;
+
+                // Update state
+                stateEl.textContent = step.stateJSON;
+
+                // Update evidence
+                stepEvidenceEl.innerHTML = step.evidence;
+
+                // Update code highlight
+                highlightCode(step.codeLines, step.highlightStrong);
+
+                // Update canvas
+                canvasEl.classList.add('active-step');
+                setTimeout(() => canvasEl.classList.remove('active-step'), 600);
+                renderArray(step.arrayHighlight);
+                renderHashMap(step.mapEntries);
+                renderInfoTags(step.infoTags);
+
+                // Update counter
+                counterEl.textContent = (index + 1) + ' / ' + totalSteps;
+
+                // Update range
+                rangeEl.value = index + 1;
+
+                // Update timeline
+                updateTimelineActive();
+
+                // Update checkpoint
+                renderCheckpoint(step.checkpoint);
+
+                // Update button states
+                prevBtn.disabled = (index === 0);
+                nextBtn.disabled = (index === totalSteps - 1);
+                if (index === 0) prevBtn.style.opacity = '0.4';
+                else prevBtn.style.opacity = '1';
+                if (index === totalSteps - 1) nextBtn.style.opacity = '0.4';
+                else nextBtn.style.opacity = '1';
+            }
+
+            // ── Navigation ──
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                renderStep(index);
+                addLogEntry('info-log', '➡ 导航到步骤' + (index + 1) + '：' + steps[index].title);
+            }
+
+            function nextStep() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸ 暂停';
+                playBtn.classList.add('playing');
+                if (currentStepIndex >= totalSteps - 1) {
+                    goToStep(0);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        nextStep();
+                    } else {
+                        stopPlay();
+                    }
+                }, 2000);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ 播放';
+                playBtn.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ── Event listeners ──
+            prevBtn.addEventListener('click', () => { stopPlay();
+                prevStep(); });
+            nextBtn.addEventListener('click', () => { stopPlay();
+                nextStep(); });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                goToStep(val - 1);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') { e.preventDefault();
+                    stopPlay();
+                    nextStep(); }
+                if (e.key === 'ArrowLeft') { e.preventDefault();
+                    stopPlay();
+                    prevStep(); }
+                if (e.key === ' ') { e.preventDefault();
+                    togglePlay(); }
+                if (e.key === 'Home') { e.preventDefault();
+                    stopPlay();
+                    goToStep(0); }
+                if (e.key === 'End') { e.preventDefault();
+                    stopPlay();
+                    goToStep(totalSteps - 1); }
+            });
+
+            // ── Initialize ──
+            function init() {
+                rangeEl.max = totalSteps;
+                rangeEl.min = 1;
+                rangeEl.value = 1;
+                buildTimeline();
+                goToStep(0);
+                counterEl.textContent = '1 / ' + totalSteps;
+                answerEl.textContent = '[0, 1]';
+                addLogEntry('info-log', '🟢 页面初始化完成，共' + totalSteps + '个教学步骤。输入：nums=' + JSON.stringify(
+                    numsArray) + ', target=' + targetValue);
+            }
+
+            init();
+
+            console.log('AlgoLab 教学页已就绪 — 两数之和（哈希表解法）');
+            console.log('使用 ← → 键导航，空格键播放/暂停，Home/End 跳转首尾步骤。');
+        })();
+    </script>
+</body>
+</html>

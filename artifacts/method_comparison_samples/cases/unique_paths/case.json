@@ -1,0 +1,88 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "unique_paths",
+  "algorithm_id": "unique_paths",
+  "title": "不同路径",
+  "family": "二维 DP",
+  "difficulty": "medium",
+  "problem": "在一个 m 行 n 列的智能仓库中，巡检机器人从左上角 (0,0) 充电点出发，每次只能向右或向下移动一格。给定网格行数 m 和列数 n，请计算机器人到达右下角 (m-1, n-1) 打包站的不同路径总数。输入变量 m 和 n 分别表示网格的行数和列数，输出一个整数表示路径总数。",
+  "strategy": "每个格子的路径数来自上方和左侧。",
+  "input_contract": "输入 m 和 n。",
+  "time_complexity": "O(mn)",
+  "space_complexity": "O(mn)",
+  "learning_objectives": [
+    "认识二维 DP 表中 dp[i][j] 表示从起点到 (i,j) 的路径数这一状态定义。",
+    "能够根据 trace 中当前格子的 i 和 j，预测 dp[i][j] 依赖的 dp[i-1][j] 与 dp[i][j-1] 如何叠加。",
+    "掌握如何利用组合数公式验证 DP 结果，并理解状态转移与移动规则的对应关系。"
+  ],
+  "required_views": [
+    "matrix",
+    "code"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！你理解了转移方程：当前位置路径数等于上方与左侧之和。",
+      "feedback_wrong": "请再检查上方和左侧格子的路径数，将它们相加。",
+      "id": "task_1",
+      "oracle": "比较学生输入与 trace 中该步骤 set 的 value 是否相等。",
+      "prompt": "当前正在计算 dp[2][3]，它的上方 dp[1][3]=3，左侧 dp[2][2]=2。请预测 dp[2][3] 的值应为多少？",
+      "stage2_affordance": "在 matrix 视图上点击单元格 (2,3)，会高亮显示其依赖的 (1,3) 和 (2,2)。",
+      "trace_anchor": [
+        "state.dp[1][3]",
+        "state.dp[2][2]",
+        "state.i=2",
+        "state.j=3"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错，因为机器人只能单向移动，所以边缘格子只有一条路径。",
+      "feedback_wrong": "回顾机器人移动规则：只能向右或向下。那么到达第一行任意格子的最后一步只能来自左侧，以此类推。",
+      "id": "task_2",
+      "oracle": "检查学生回答是否包含“只能向右或向下移动，处于边缘时唯一来源是起点方向”。",
+      "prompt": "观察 DP 表格，第一行 dp[0][j] 和第一列 dp[i][0] 的值始终为 1，请解释为什么它们不会改变。",
+      "stage2_affordance": "高亮第一行和第一列，并显示从起点出发的箭头，强调唯一性。",
+      "trace_anchor": [
+        "state.dp[0][j]",
+        "state.dp[i][0]"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "很好，你掌握了参数变化对结果的影响。",
+      "feedback_wrong": "尝试用公式 C(m+n-2, m-1) 重新计算，其中 m=4, n=7。",
+      "id": "task_3",
+      "oracle": "用组合数公式 C(新 m+新 n-2, 新 m-1) 计算预期值，并与学生输入比对。",
+      "prompt": "如果将网格从当前 m=3, n=7 改为 m=4, n=7（行数加一），新的路径总数会是多少？请基于组合数或 DP 表推理。",
+      "stage2_affordance": "拖动滑块修改 m 或 n，DP 表格会实时重新计算并展示新结果。",
+      "trace_anchor": [
+        "input.m",
+        "input.n",
+        "state.dp[m-1][n-1]"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "是的，因为到达 (2,3) 的最后一步只有这两种可能，所以路径数相加。",
+      "feedback_wrong": "想一想：要想走到 (2,3)，上一步可能在哪个格子？能来自斜对角吗？",
+      "id": "task_4",
+      "oracle": "检测回答中是否同时提及“从上方的格子 (1,3) 向下”和“从左边的格子 (2,2) 向右”两种到达方式。",
+      "prompt": "解释为什么 dp[2][3] 等于 dp[1][3] 和 dp[2][2] 的和。请用机器人的移动规则说明。",
+      "stage2_affordance": "点击 dp[2][3] 单元格，同时用箭头显示来自上方和左侧的路径示意。",
+      "trace_anchor": [
+        "state.dp[2][3]",
+        "state.dp[1][3]",
+        "state.dp[2][2]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 28,
+    "index": 0,
+    "input_data": {
+      "m": 3,
+      "n": 7
+    }
+  }
+}

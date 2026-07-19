@@ -1,0 +1,91 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "kth_largest",
+  "algorithm_id": "kth_largest",
+  "title": "数组中的第 K 个最大元素",
+  "family": "堆 / TopK / Huffman",
+  "difficulty": "medium",
+  "problem": "某个推荐系统需要从用户评分流中找出前 K 个高评分商品。评分数据存储在一个数组 nums 中，整数 k 表示需要的第 K 个最高评分。请实现一个流式算法，当逐个处理 nums 中的评分时，随时能查询当前第 K 高的评分，并在所有数据处理完毕后返回最终的第 K 高评分。",
+  "strategy": "维护容量为 k 的小顶堆，堆顶就是当前第 k 大。",
+  "input_contract": "输入 nums 数组和 k。",
+  "time_complexity": "O(n log k)",
+  "space_complexity": "O(k)",
+  "learning_objectives": [
+    "理解小顶堆在 TopK 问题中如何维护状态，解释为什么堆顶是第 K 大元素",
+    "能够根据当前堆状态预测下一个元素加入后的堆变化",
+    "掌握堆的 push 和 pop 操作对候选集大小和堆顶的影响"
+  ],
+  "required_views": [
+    "array",
+    "heap"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！堆经过 push 和 pop 后保持容量为 k，堆顶变为第 k 大。",
+      "feedback_wrong": "注意当堆满时，push 新元素可能会触发 pop，观察 push 后的堆大小。",
+      "id": "task_1",
+      "oracle": "根据 trace 中下一步的状态，检查堆是否为 [5, 6] 且堆顶为 5。",
+      "prompt": "当前堆内容为 [4, 5]，k=2，下一个元素为 6。push 6 后堆会变成什么？堆顶是多少？",
+      "stage2_affordance": "拖拽数字到堆中，观察自动维护过程",
+      "trace_anchor": [
+        "state.heap",
+        "state.i"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "正确！这是小顶堆算法的关键不变式。",
+      "feedback_wrong": "查看每一步状态中的 heap 列表长度，对比 k。",
+      "id": "task_2",
+      "oracle": "期望回答：堆大小始终不超过 k，且等于 min(k, 已处理元素数)。",
+      "prompt": "在所有步骤中，堆大小有什么不变的性质？",
+      "stage2_affordance": "可以调节 k 值，观察堆大小的变化",
+      "trace_anchor": [
+        "state.heap",
+        "state.k"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确，你理解了元素值变化如何影响 TopK 选择。",
+      "feedback_wrong": "重新审视算法逻辑：只有较大的 k 个元素会被保留。",
+      "id": "task_3",
+      "oracle": "可检查是否基于输入修改给出正确的最终答案（用 verifier 校验）。",
+      "prompt": "如果我们将 nums 中的某个元素值改为负数，对最终答案有何影响？请举例并预测结果。",
+      "stage2_affordance": "直接编辑数组元素，观察堆的变化",
+      "trace_anchor": [
+        "nums",
+        "state.expected"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "正确！这保证了堆中始终是最大的 k 个。",
+      "feedback_wrong": "思考 heap push 和 pop 的条件：if len(heap) > k: heappop，并且新元素与堆顶的比较。",
+      "id": "task_4",
+      "oracle": "期望回答：因为堆满且新元素不比堆顶大，所以 push 后立即 pop，新元素被丢弃，堆不变。",
+      "prompt": "当堆大小等于 k，并且新元素比堆顶小时，会发生什么？为什么？",
+      "stage2_affordance": "手动执行 push 和 pop，观察堆的变化步骤",
+      "trace_anchor": [
+        "state.heap",
+        "state.top"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 5,
+    "index": 0,
+    "input_data": {
+      "k": 2,
+      "nums": [
+        3,
+        2,
+        1,
+        5,
+        6,
+        4
+      ]
+    }
+  }
+}

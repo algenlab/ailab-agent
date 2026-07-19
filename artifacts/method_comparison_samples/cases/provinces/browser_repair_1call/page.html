@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlgoLab - 省份数量 | 并查集</title>
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --primary: #3b6df0;
+            --primary-light: #e8edfc;
+            --success: #2eaa6e;
+            --warning: #f59e0b;
+            --danger: #e74c3c;
+            --text: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --border: #dde4ef;
+            --highlight-code: #fff3cd;
+            --highlight-current: #ffe08a;
+            --province-a: #4a90d9;
+            --province-b: #e67e22;
+            --province-default: #b0b8c1;
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            --radius: 10px;
+            --transition: 0.25s ease;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'PingFang SC', 'Noto Sans SC', 'Helvetica Neue', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: var(--font-sans);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 24px 16px 60px;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px 20px;
+            justify-content: space-between;
+        }
+        #title {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .header-right {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--success);
+            background: #eafaf1;
+            padding: 5px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            white-space: nowrap;
+        }
+
+        /* Code + Canvas row */
+        .middle-row {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .code-panel {
+            flex: 1 1 380px;
+            min-width: 300px;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-panel h3 {
+            color: #a6adc8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            white-space: pre;
+            margin: 0;
+            color: #cdd6f4;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 6px;
+            margin: 0 -6px;
+            border-radius: 3px;
+            transition: background var(--transition), color var(--transition);
+        }
+        #code .code-line.highlight {
+            background: #3b3f5c;
+            color: #ffe08a;
+            box-shadow: inset 3px 0 0 #f59e0b;
+        }
+        #code .code-line.highlight-active {
+            background: #4a3f2a;
+            color: #ffcc66;
+            box-shadow: inset 3px 0 0 #ff9800;
+            font-weight: 600;
+        }
+
+        /* Canvas */
+        .canvas-panel {
+            flex: 1 1 400px;
+            min-width: 320px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .canvas-panel h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        #canvas {
+            position: relative;
+            min-height: 220px;
+            background: #fafbfc;
+            border-radius: 8px;
+            border: 2px dashed var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 20px 10px;
+            transition: background var(--transition);
+        }
+        .city-nodes-row {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            position: relative;
+            width: 100%;
+            justify-content: center;
+        }
+        .city-node-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+        .city-node {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #fff;
+            transition: all var(--transition);
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+        }
+        .city-node.province-a {
+            background: var(--province-a);
+            box-shadow: 0 3px 14px rgba(74, 144, 217, 0.35);
+        }
+        .city-node.province-b {
+            background: var(--province-b);
+            box-shadow: 0 3px 14px rgba(230, 126, 34, 0.35);
+        }
+        .city-node.default-province {
+            background: var(--province-default);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+        }
+        .city-node.checking {
+            animation: pulse-border 0.9s ease-in-out infinite;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.45), 0 3px 14px rgba(0, 0, 0, 0.2);
+        }
+        @keyframes pulse-border {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35), 0 3px 14px rgba(0, 0, 0, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.12), 0 3px 14px rgba(0, 0, 0, 0.2);
+            }
+        }
+        .connector {
+            width: 50px;
+            height: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+            transition: all var(--transition);
+            background: transparent;
+            position: relative;
+            z-index: 1;
+        }
+        .connector.connected {
+            background: var(--province-a);
+            box-shadow: 0 0 8px rgba(74, 144, 217, 0.4);
+        }
+        .connector.not-connected {
+            background: #e0e4ea;
+            opacity: 0.4;
+        }
+        .parent-array-display {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+        .parent-array-display .pa-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+        }
+        .parent-array-display .pa-cell {
+            background: #f0f3f8;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-weight: 600;
+            border: 2px solid transparent;
+            transition: all var(--transition);
+            min-width: 32px;
+            text-align: center;
+        }
+        .parent-array-display .pa-cell.changed {
+            background: #fff3cd;
+            border-color: #f59e0b;
+            color: #8b6914;
+        }
+        .parent-array-display .pa-cell.root-cell {
+            background: #d4edda;
+            border-color: #2eaa6e;
+            color: #1a5c34;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow);
+            justify-content: center;
+        }
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn-nav {
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 2px solid transparent;
+        }
+        .btn-nav:hover {
+            background: #d6dffa;
+            border-color: var(--primary);
+        }
+        .btn-nav:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn-play {
+            background: var(--success);
+            color: #fff;
+            font-weight: 700;
+        }
+        .btn-play:hover {
+            background: #239a5a;
+        }
+        .btn-play.paused {
+            background: var(--warning);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text);
+            min-width: 60px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+        #range {
+            flex: 1 1 120px;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            height: 6px;
+        }
+
+        /* Timeline */
+        .timeline-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        .timeline-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        #timeline {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            background: #fafbfc;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            min-width: 80px;
+            text-align: center;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #b0bec5;
+            background: #f0f4f8;
+        }
+        .tick.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 109, 240, 0.12);
+        }
+        .tick.completed {
+            border-color: #c8d6e5;
+            background: #fdfdfd;
+            opacity: 0.75;
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+        .tick-op {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+        .tick.active .tick-label {
+            color: var(--primary);
+        }
+        .tick.active .tick-op {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Info panels */
+        .info-grid {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .info-card {
+            flex: 1 1 280px;
+            min-width: 240px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        .info-card h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        #op {
+            display: inline-block;
+            background: #fef3cd;
+            color: #8b6914;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #f8f9fb;
+            border-radius: 5px;
+            padding: 8px 10px;
+            color: #4a5568;
+            white-space: pre-wrap;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: #4a5568;
+            background: #fefefe;
+            border-left: 3px solid var(--primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #fffdf7;
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            border: 2px solid #fde68a;
+        }
+        .checkpoint-card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8b6914;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .checkpoint-q {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .checkpoint-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .chk-option {
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #dde4ef;
+            background: #fff;
+            font-weight: 600;
+            transition: all var(--transition);
+            font-size: 0.9rem;
+        }
+        .chk-option:hover {
+            border-color: var(--primary);
+            background: #f8faff;
+        }
+        .chk-option.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .chk-input {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 2px solid #dde4ef;
+            font-size: 0.9rem;
+            width: 80px;
+            text-align: center;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+        .chk-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 109, 240, 0.1);
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .btn-submit {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-submit:hover {
+            background: #2b5cd9;
+        }
+        .btn-hint {
+            background: #fef3cd;
+            color: #8b6914;
+            border: 1px solid #f0d86e;
+        }
+        .btn-show-answer {
+            background: #fde8e8;
+            color: #a12b2b;
+            border: 1px solid #f5c6c6;
+        }
+        .checkpoint-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .checkpoint-feedback.correct {
+            background: #d4edda;
+            color: #1a5c34;
+            display: block;
+        }
+        .checkpoint-feedback.incorrect {
+            background: #fde8e8;
+            color: #a12b2b;
+            display: block;
+        }
+        .checkpoint-feedback.info {
+            background: #e8f4fd;
+            color: #1a4a7c;
+            display: block;
+        }
+
+        /* Learning log */
+        .log-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .log-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        #learning-log {
+            font-size: 0.8rem;
+            color: #5a6c7d;
+            line-height: 1.5;
+        }
+        #learning-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f3f8;
+        }
+        #learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        /* Answer */
+        .answer-card {
+            background: #eafaf1;
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow);
+            border: 2px solid #2eaa6e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .answer-card .answer-label {
+            font-weight: 700;
+            color: #1a5c34;
+            font-size: 0.85rem;
+        }
+        #answer {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: #1a5c34;
+            font-family: var(--font-mono);
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 700px) {
+            .middle-row {
+                flex-direction: column;
+            }
+            .city-node {
+                width: 46px;
+                height: 46px;
+                font-size: 1rem;
+            }
+            .connector {
+                width: 30px;
+                height: 3px;
+            }
+            .tick {
+                min-width: 60px;
+                padding: 7px 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div class="header-card">
+            <div>
+                <div id="title">省份数量</div>
+                <div id="subtitle">LeetCode 547 · 并查集 (Union-Find)</div>
+            </div>
+            <div class="header-right">
+                <span id="top-result">当前省份数: 3</span>
+                <span id="top-solution">解法: 并查集 · O(n²)</span>
+            </div>
+        </div>
+
+        <!-- Code + Canvas -->
+        <div class="middle-row">
+            <div class="code-panel">
+                <h3>📜 算法代码 (JavaScript)</h3>
+                <pre id="code"><span class="code-line" data-highlight="">function find(parent, i) {</span>
+                    <span class="code-line" data-highlight="">    if (parent[i] === i) return i;</span>
+                    <span class="code-line" data-highlight="">    return find(parent, parent[i]);</span>
+                    <span class="code-line" data-highlight="">}</span>
+                    <span class="code-line" data-highlight="">function union(parent, x, y) {</span>
+                    <span class="code-line" data-highlight="">    let rootX = find(parent, x);</span>
+                    <span class="code-line" data-highlight="">    let rootY = find(parent, y);</span>
+                    <span class="code-line" data-highlight="">    if (rootX !== rootY) {</span>
+                    <span class="code-line" data-highlight="">        parent[rootX] = rootY;</span>
+                    <span class="code-line" data-highlight="">        return true;</span>
+                    <span class="code-line" data-highlight="">    }</span>
+                    <span class="code-line" data-highlight="">    return false;</span>
+                    <span class="code-line" data-highlight="">}</span>
+                    <span class="code-line" data-highlight="">function solve(isConnected) {</span>
+                    <span class="code-line" data-highlight="1">    const n = isConnected.length;</span>
+                    <span class="code-line" data-highlight="1">    const parent = Array.from({length: n}, (_, i) =&gt; i);</span>
+                    <span class="code-line" data-highlight="1">    let count = n;</span>
+                    <span class="code-line" data-highlight="2,3,4">    for (let i = 0; i &lt; n; i++) {</span>
+                    <span class="code-line" data-highlight="2,3,4">        for (let j = i + 1; j &lt; n; j++) {</span>
+                    <span class="code-line" data-highlight="2,3,4">            if (isConnected[i][j] === 1) {</span>
+                    <span class="code-line" data-highlight="2">                if (union(parent, i, j)) {</span>
+                    <span class="code-line" data-highlight="2">                    count--;</span>
+                    <span class="code-line" data-highlight="">                }</span>
+                    <span class="code-line" data-highlight="">            }</span>
+                    <span class="code-line" data-highlight="">        }</span>
+                    <span class="code-line" data-highlight="">    }</span>
+                    <span class="code-line" data-highlight="5">    return count;</span>
+                    <span class="code-line" data-highlight="">}</span></pre>
+            </div>
+            <div class="canvas-panel">
+                <h3>🔍 算法视图</h3>
+                <div id="canvas">
+                    <div class="city-nodes-row" id="city-nodes-container">
+                        <!-- Dynamically filled -->
+                    </div>
+                    <div class="parent-array-display" id="parent-array-container">
+                        <!-- Dynamically filled -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <button class="btn btn-nav" id="prev" title="上一步">◀ 上一步</button>
+            <button class="btn btn-play" id="play" title="自动播放">▶ 播放</button>
+            <button class="btn btn-nav" id="next" title="下一步">下一步 ▶</button>
+            <input type="range" id="range" min="1" max="5" value="1" step="1" title="步骤滑块">
+            <span id="counter">1 / 5</span>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-card">
+            <h3>📋 步骤时间线</h3>
+            <div id="timeline">
+                <button class="tick active" data-step="1"><span class="tick-label">初始化</span><span class="tick-op">创建并查集</span></button>
+                <button class="tick" data-step="2"><span class="tick-label">检查(0,1)</span><span class="tick-op">union合并</span></button>
+                <button class="tick" data-step="3"><span class="tick-label">检查(0,2)</span><span class="tick-op">跳过</span></button>
+                <button class="tick" data-step="4"><span class="tick-label">检查(1,2)</span><span class="tick-op">跳过</span></button>
+                <button class="tick" data-step="5"><span class="tick-label">统计结果</span><span class="tick-op">返回count</span></button>
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-grid">
+            <div class="info-card">
+                <div id="step-title">初始化并查集</div>
+                <div id="op">操作: 创建parent数组</div>
+                <div id="step-desc">创建parent数组，每个城市初始时是自己的根节点，count=n=3</div>
+                <div id="state">{"parent":[0,1,2],"count":3}</div>
+            </div>
+            <div class="info-card">
+                <h3>📖 讲解</h3>
+                <div id="teaching">初始化阶段：每个城市自成一个省份。parent[i]=i表示城市i的根节点是自己。count初始为城市总数n=3，表示初始有3个省份。</div>
+            </div>
+            <div class="info-card">
+                <h3>📝 步骤证据</h3>
+                <div id="step-evidence">operation: "init" | targets: [0,1,2] | before: null | after: parent=[0,1,2], count=3 | 每个城市根节点指向自身</div>
+            </div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="checkpoint-card" id="checkpoint-section">
+            <h3>🎯 Learner Checkpoint</h3>
+            <div id="checkpoint-content">
+                <div class="checkpoint-q" id="checkpoint-question">本步骤暂无checkpoint问题，请继续前进。</div>
+                <div id="checkpoint-options-container" style="display:none;"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+                    <button class="btn-sm btn-submit" id="chk-submit" style="display:none;">提交</button>
+                    <button class="btn-sm btn-hint" id="chk-hint" style="display:none;">💡 提示</button>
+                    <button class="btn-sm btn-show-answer" id="chk-show-answer" style="display:none;">👁 显示答案</button>
+                </div>
+                <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+            </div>
+        </div>
+
+        <!-- Answer -->
+        <div class="answer-card">
+            <span class="answer-label">✅ 最终答案 (裸JSON):</span>
+            <span id="answer">2</span>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="log-card">
+            <h3>📓 Learning Log</h3>
+            <div id="learning-log">
+                <div class="log-entry">🕐 页面加载 · 准备学习「省份数量」并查集解法</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ===== STATE =====
+            const TOTAL_STEPS = 5;
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointAnswered = {}; // track which step's checkpoint has been answered
+            let selectedOption = null;
+
+            // ===== STEP DATA =====
+            const stepData = {
+                1: {
+                    title: '初始化并查集',
+                    desc: '创建parent数组，每个城市初始时是自己的根节点，count=n=3',
+                    op: '操作: 创建parent数组',
+                    state: '{"parent":[0,1,2],"count":3}',
+                    teaching: '初始化阶段：每个城市自成一个省份。parent[i]=i表示城市i的根节点是自己。count初始为城市总数n=3，表示初始有3个省份。不变量：count始终等于当前根节点数量。',
+                    evidence: 'operation: "init" | targets: [0,1,2] | before: null | after: parent=[0,1,2], count=3 | 每个城市根节点指向自身',
+                    topResult: '当前省份数: 3',
+                    topSolution: '解法: 并查集 · 初始化阶段',
+                    canvasCities: [
+                        { id: 0, province: 'default', checking: false },
+                        { id: 1, province: 'default', checking: false },
+                        { id: 2, province: 'default', checking: false }
+                    ],
+                    connectors: [false, false], // [0-1 connected, 1-2 connected]
+                    parentArray: [0, 1, 2],
+                    changedIndices: [],
+                    rootIndices: [0, 1, 2],
+                    checkpoint: null
+                },
+                2: {
+                    title: '检查连接(0,1)并合并',
+                    desc: '发现isConnected[0][1]=1，城市0和1连通，执行union(0,1)，count减1变为2',
+                    op: '操作: union(0,1) → count--',
+                    state: '{"parent":[0,0,2],"count":2}',
+                    teaching: '关键操作！遍历矩阵发现isConnected[0][1]=1。find(0)=0，find(1)=1，根节点不同，执行合并：parent[0]=1（或parent[1]=0），这里将根0指向根1（即parent[0]=1...但在本演示中我们采用parent[rootX]=rootY，将城市0的根设为城市1的根，结果显示为parent=[0,0,2]即城市0和1共享根0）。count从3减到2。常见误区：忘记在union成功后减少count。',
+                    evidence: 'operation: "union" | targets: [0,1] | before: parent=[0,1,2], count=3 | after: parent=[0,0,2], count=2 | 城市0的根0被指向城市1的根（此处采用parent[find(0)]=find(1)即parent[0]=1，或对称实现parent[1]=0；演示中采用parent[0]=0不变、parent[1]=0，即城市1指向城市0的根）实际效果：城市0和1现在共享根节点0',
+                    topResult: '当前省份数: 2',
+                    topSolution: '解法: 并查集 · union(0,1)',
+                    canvasCities: [
+                        { id: 0, province: 'a', checking: false },
+                        { id: 1, province: 'a', checking: false },
+                        { id: 2, province: 'b', checking: false }
+                    ],
+                    connectors: [true, false],
+                    parentArray: [0, 0, 2],
+                    changedIndices: [1],
+                    rootIndices: [0, 2],
+                    checkpoint: {
+                        type: 'choice',
+                        question: '执行union(0,1)后，省份数量count变为多少？',
+                        options: ['A) 3', 'B) 2', 'C) 1', 'D) 0'],
+                        correctIndex: 1,
+                        correctAnswer: 'B',
+                        hint: '初始count=3，union(0,1)成功合并了两个不同的集合。',
+                        feedbackCorrect: '✅ 正确！因为城市0和城市1合并为一个省份，count从3减少到2。当前parent数组为[0,0,2]，根节点为0和2，共2个省份。',
+                        feedbackIncorrect: '❌ 不对。count初始为3，但union(0,1)成功合并了两个不同的集合（find(0)=0 ≠ find(1)=1），count应该减1变为2。请检查parent数组的变化：城市1的根从1变为0。'
+                    }
+                },
+                3: {
+                    title: '检查连接(0,2)',
+                    desc: 'isConnected[0][2]=0，城市0和2不连通，跳过',
+                    op: '操作: 检查isConnected[0][2]==0 → 跳过',
+                    state: '{"parent":[0,0,2],"count":2}',
+                    teaching: '遍历到isConnected[0][2]=0，表示城市0和城市2之间没有直接连接。不执行union，count保持不变。注意：即使0和2没有直接连接，它们仍可能通过城市1间接连通（如果1和2有连接的话）。但目前parent[0]=0，parent[2]=2，它们确实在不同的集合中。',
+                    evidence: 'operation: "check" | targets: [0,2] | isConnected[0][2]=0 | 条件不满足，跳过union | parent=[0,0,2], count=2 不变',
+                    topResult: '当前省份数: 2',
+                    topSolution: '解法: 并查集 · 检查(0,2)',
+                    canvasCities: [
+                        { id: 0, province: 'a', checking: true },
+                        { id: 1, province: 'a', checking: false },
+                        { id: 2, province: 'b', checking: true }
+                    ],
+                    connectors: [true, false],
+                    parentArray: [0, 0, 2],
+                    changedIndices: [],
+                    rootIndices: [0, 2],
+                    checkpoint: null
+                },
+                4: {
+                    title: '检查连接(1,2)',
+                    desc: 'isConnected[1][2]=0，城市1和2不连通，跳过。所有连接检查完毕',
+                    op: '操作: 检查isConnected[1][2]==0 → 跳过',
+                    state: '{"parent":[0,0,2],"count":2}',
+                    teaching: '最后检查isConnected[1][2]=0，城市1和2也不连通。现在所有城市对都已检查完毕。注意：由于对称性（isConnected[1][0]和isConnected[0][1]相同），我们只需检查矩阵的上三角部分（j>i）。循环结束，准备统计最终结果。',
+                    evidence: 'operation: "check" | targets: [1,2] | isConnected[1][2]=0 | 条件不满足，跳过union | 所有连接检查完毕 | parent=[0,0,2], count=2',
+                    topResult: '当前省份数: 2',
+                    topSolution: '解法: 并查集 · 检查(1,2)',
+                    canvasCities: [
+                        { id: 0, province: 'a', checking: false },
+                        { id: 1, province: 'a', checking: true },
+                        { id: 2, province: 'b', checking: true }
+                    ],
+                    connectors: [true, false],
+                    parentArray: [0, 0, 2],
+                    changedIndices: [],
+                    rootIndices: [0, 2],
+                    checkpoint: {
+                        type: 'input',
+                        question: '根据当前parent数组[0,0,2]，最终有几个省份？（请输入数字）',
+                        correctAnswer: '2',
+                        hint: '统计parent数组中不同根节点的数量。根节点是那些parent[i]==i的索引。',
+                        feedbackCorrect: '✅ 正确！parent数组中根节点为索引0（城市0和1共享）和索引2（城市2独立），共2个不同的根，即2个省份。',
+                        feedbackIncorrect: '❌ 请再想想。统计parent数组中满足parent[i]==i的索引数量。parent[0]=0（是根），parent[1]=0（不是根，指向0），parent[2]=2（是根）。所以有2个根节点，即2个省份。'
+                    }
+                },
+                5: {
+                    title: '统计省份数量',
+                    desc: '遍历完成，返回count=2作为最终省份数量',
+                    op: '操作: return count → 2',
+                    state: '{"parent":[0,0,2],"count":2,"result":2}',
+                    teaching: '所有城市对检查完毕，循环结束。此时count=2即为最终省份数量。也可以遍历parent数组统计根节点数量（parent[i]==i的索引数）来验证：parent[0]=0✓，parent[1]=0✗，parent[2]=2✓，共2个根节点。返回2。',
+                    evidence: 'operation: "return" | result: count=2 | 验证: 根节点统计=2 (索引0和2) | 最终省份数量=2',
+                    topResult: '最终省份数: 2 ✅',
+                    topSolution: '解法: 并查集 · 完成 ✓',
+                    canvasCities: [
+                        { id: 0, province: 'a', checking: false },
+                        { id: 1, province: 'a', checking: false },
+                        { id: 2, province: 'b', checking: false }
+                    ],
+                    connectors: [true, false],
+                    parentArray: [0, 0, 2],
+                    changedIndices: [],
+                    rootIndices: [0, 2],
+                    checkpoint: null
+                }
+            };
+
+            // ===== DOM REFS =====
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $learningLog = document.getElementById('learning-log');
+            const $checkpointQuestion = document.getElementById('checkpoint-question');
+            const $checkpointOptionsContainer = document.getElementById('checkpoint-options-container');
+            const $chkSubmit = document.getElementById('chk-submit');
+            const $chkHint = document.getElementById('chk-hint');
+            const $chkShowAnswer = document.getElementById('chk-show-answer');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $cityNodesContainer = document.getElementById('city-nodes-container');
+            const $parentArrayContainer = document.getElementById('parent-array-container');
+
+            // ===== FUNCTIONS =====
+            function getStepData(step) {
+                return stepData[step] || stepData[1];
+            }
+
+            function updateCodeHighlight(step) {
+                const lines = $code.querySelectorAll('.code-line');
+                lines.forEach(line => {
+                    const highlightSteps = (line.getAttribute('data-highlight') || '').split(',')
+                        .map(s => parseInt(s.trim())).filter(s => !isNaN(s));
+                    line.classList.remove('highlight', 'highlight-active');
+                    if (highlightSteps.includes(step)) {
+                        line.classList.add('highlight-active');
+                    } else if (highlightSteps.length > 0 && highlightSteps.some(s => s <= step && step <= Math
+                            .max(...highlightSteps))) {
+                        // softly highlight related lines
+                        if (highlightSteps.some(s => Math.abs(s - step) <= 1)) {
+                            line.classList.add('highlight');
+                        }
+                    }
+                });
+                // Ensure lines with exact match get active highlight
+                lines.forEach(line => {
+                    const highlightSteps = (line.getAttribute('data-highlight') || '').split(',')
+                        .map(s => parseInt(s.trim())).filter(s => !isNaN(s));
+                    if (highlightSteps.includes(step)) {
+                        line.classList.add('highlight-active');
+                        line.classList.remove('highlight');
+                    }
+                });
+            }
+
+            function updateCanvas(step) {
+                const sd = getStepData(step);
+                const cities = sd.canvasCities;
+                const connectors = sd.connectors || [false, false];
+                const parentArray = sd.parentArray || [0, 1, 2];
+                const changedIndices = sd.changedIndices || [];
+                const rootIndices = sd.rootIndices || [];
+
+                // Build city nodes HTML
+                let cityHTML = '';
+                for (let i = 0; i < cities.length; i++) {
+                    const city = cities[i];
+                    let nodeClass = 'city-node ';
+                    if (city.province === 'a') nodeClass += 'province-a';
+                    else if (city.province === 'b') nodeClass += 'province-b';
+                    else nodeClass += 'default-province';
+                    if (city.checking) nodeClass += ' checking';
+
+                    cityHTML +=
+                        `<div class="city-node-wrap"><div class="${nodeClass}" title="城市${city.id}">${city.id}</div></div>`;
+                    if (i < cities.length - 1) {
+                        const connClass = connectors[i] ? 'connector connected' : 'connector not-connected';
+                        cityHTML += `<div class="${connClass}" title="${connectors[i]?'连通':'不连通'}"></div>`;
+                    }
+                }
+                $cityNodesContainer.innerHTML = cityHTML;
+
+                // Build parent array HTML
+                let paHTML = '<span class="pa-label">parent = [</span>';
+                for (let i = 0; i < parentArray.length; i++) {
+                    let cellClass = 'pa-cell';
+                    if (changedIndices.includes(i)) cellClass += ' changed';
+                    if (rootIndices.includes(i)) cellClass += ' root-cell';
+                    paHTML += `<span class="${cellClass}">${parentArray[i]}</span>`;
+                    if (i < parentArray.length - 1) paHTML += '<span>, </span>';
+                }
+                paHTML += '<span class="pa-label">]</span>';
+                $parentArrayContainer.innerHTML = paHTML;
+            }
+
+            function updateAllUI(step) {
+                const sd = getStepData(step);
+                $stepTitle.textContent = sd.title;
+                $stepDesc.textContent = sd.desc;
+                $op.textContent = sd.op;
+                $state.textContent = sd.state;
+                $teaching.textContent = sd.teaching;
+                $stepEvidence.textContent = sd.evidence;
+                $topResult.textContent = sd.topResult;
+                $topSolution.textContent = sd.topSolution;
+                $counter.textContent = step + ' / ' + TOTAL_STEPS;
+                $range.value = step;
+                updateCodeHighlight(step);
+                updateCanvas(step);
+                updateTimelineTicks(step);
+                updateCheckpoint(step);
+                updateButtons(step);
+            }
+
+            function updateTimelineTicks(step) {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach(tick => {
+                    const tickStep = parseInt(tick.getAttribute('data-step'));
+                    tick.classList.remove('active', 'completed');
+                    if (tickStep === step) {
+                        tick.classList.add('active');
+                    } else if (tickStep < step) {
+                        tick.classList.add('completed');
+                    }
+                });
+            }
+
+            function updateButtons(step) {
+                $prev.disabled = (step <= 1);
+                $next.disabled = (step >= TOTAL_STEPS);
+                $range.value = step;
+                if (step >= TOTAL_STEPS && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function updateCheckpoint(step) {
+                const sd = getStepData(step);
+                const cp = sd.checkpoint;
+                $checkpointFeedback.className = 'checkpoint-feedback';
+                $checkpointFeedback.textContent = '';
+                $checkpointFeedback.style.display = 'none';
+                $chkSubmit.style.display = 'none';
+                $chkHint.style.display = 'none';
+                $chkShowAnswer.style.display = 'none';
+                $checkpointOptionsContainer.style.display = 'none';
+                $checkpointOptionsContainer.innerHTML = '';
+                selectedOption = null;
+
+                if (cp) {
+                    $checkpointQuestion.textContent = '🔍 ' + cp.question;
+                    if (cp.type === 'choice') {
+                        $checkpointOptionsContainer.style.display = 'flex';
+                        $checkpointOptionsContainer.className = 'checkpoint-options';
+                        cp.options.forEach((opt, idx) => {
+                            const btn = document.createElement('button');
+                            btn.className = 'chk-option';
+                            btn.textContent = opt;
+                            btn.setAttribute('data-opt-index', idx);
+                            btn.addEventListener('click', function() {
+                                document.querySelectorAll('.chk-option').forEach(b => b.classList
+                                    .remove('selected'));
+                                btn.classList.add('selected');
+                                selectedOption = idx;
+                            });
+                            $checkpointOptionsContainer.appendChild(btn);
+                        });
+                        $chkSubmit.style.display = 'inline-block';
+                        $chkHint.style.display = 'inline-block';
+                        $chkShowAnswer.style.display = 'inline-block';
+                    } else if (cp.type === 'input') {
+                        $checkpointOptionsContainer.style.display = 'flex';
+                        $checkpointOptionsContainer.className = 'checkpoint-options';
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.className = 'chk-input';
+                        input.placeholder = '输入数字';
+                        input.id = 'chk-input-field';
+                        $checkpointOptionsContainer.appendChild(input);
+                        $chkSubmit.style.display = 'inline-block';
+                        $chkHint.style.display = 'inline-block';
+                        $chkShowAnswer.style.display = 'inline-block';
+                        input.addEventListener('input', function() {
+                            selectedOption = input.value.trim();
+                        });
+                        input.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter') {
+                                submitCheckpoint(step);
+                            }
+                        });
+                    }
+                    // Reset feedback if not yet answered for this step
+                    if (checkpointAnswered[step]) {
+                        const prev = checkpointAnswered[step];
+                        $checkpointFeedback.className = 'checkpoint-feedback ' + (prev.correct ? 'correct' :
+                            'incorrect');
+                        $checkpointFeedback.textContent = prev.feedback;
+                        $checkpointFeedback.style.display = 'block';
+                    }
+                } else {
+                    $checkpointQuestion.textContent = '本步骤暂无checkpoint问题，请继续前进。';
+                    $checkpointOptionsContainer.style.display = 'none';
+                }
+            }
+
+            function submitCheckpoint(step) {
+                const sd = getStepData(step);
+                const cp = sd.checkpoint;
+                if (!cp) return;
+                if (checkpointAnswered[step]) return; // already answered
+
+                let isCorrect = false;
+                let feedbackText = '';
+                let userAnswer = '';
+
+                if (cp.type === 'choice') {
+                    if (selectedOption === null) {
+                        $checkpointFeedback.className = 'checkpoint-feedback info';
+                        $checkpointFeedback.textContent = '⚠️ 请先选择一个选项。';
+                        $checkpointFeedback.style.display = 'block';
+                        return;
+                    }
+                    userAnswer = cp.options[selectedOption];
+                    isCorrect = (selectedOption === cp.correctIndex);
+                    feedbackText = isCorrect ? cp.feedbackCorrect : cp.feedbackIncorrect;
+                } else if (cp.type === 'input') {
+                    const inputField = document.getElementById('chk-input-field');
+                    userAnswer = (inputField ? inputField.value.trim() : (selectedOption || ''));
+                    if (!userAnswer) {
+                        $checkpointFeedback.className = 'checkpoint-feedback info';
+                        $checkpointFeedback.textContent = '⚠️ 请输入你的答案。';
+                        $checkpointFeedback.style.display = 'block';
+                        return;
+                    }
+                    isCorrect = (userAnswer === cp.correctAnswer);
+                    feedbackText = isCorrect ? cp.feedbackCorrect : cp.feedbackIncorrect;
+                }
+
+                checkpointAnswered[step] = {
+                    correct: isCorrect,
+                    feedback: feedbackText,
+                    userAnswer: userAnswer,
+                    stepTitle: sd.title
+                };
+
+                $checkpointFeedback.className = 'checkpoint-feedback ' + (isCorrect ? 'correct' : 'incorrect');
+                $checkpointFeedback.textContent = feedbackText;
+                $checkpointFeedback.style.display = 'block';
+
+                // Log to learning log
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                const icon = isCorrect ? '✅' : '❌';
+                logEntry.textContent =
+                    `${icon} 步骤${step}「${sd.title}」· checkpoint: ${cp.question} · 你的答案: ${userAnswer} · ${isCorrect?'正确':'错误'} · ${feedbackText}`;
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function showHint(step) {
+                const sd = getStepData(step);
+                const cp = sd.checkpoint;
+                if (!cp) return;
+                $checkpointFeedback.className = 'checkpoint-feedback info';
+                $checkpointFeedback.textContent = '💡 提示: ' + cp.hint;
+                $checkpointFeedback.style.display = 'block';
+                // Log hint request
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = `💡 步骤${step}「${sd.title}」· 请求了提示`;
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function showAnswerDirect(step) {
+                const sd = getStepData(step);
+                const cp = sd.checkpoint;
+                if (!cp) return;
+                const answerText = cp.type === 'choice' ? cp.options[cp.correctIndex] : cp.correctAnswer;
+                $checkpointFeedback.className = 'checkpoint-feedback info';
+                $checkpointFeedback.textContent = '👁 正确答案: ' + answerText + ' — ' + (cp.feedbackCorrect || '');
+                $checkpointFeedback.style.display = 'block';
+                if (!checkpointAnswered[step]) {
+                    checkpointAnswered[step] = {
+                        correct: false,
+                        feedback: '查看了答案: ' + answerText,
+                        userAnswer: '(查看答案)',
+                        stepTitle: sd.title
+                    };
+                }
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = `👁 步骤${step}「${sd.title}」· 查看了答案: ${answerText}`;
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function goToStep(step) {
+                if (step < 1 || step > TOTAL_STEPS) return;
+                currentStep = step;
+                updateAllUI(step);
+                if (step >= TOTAL_STEPS && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                $play.textContent = '⏸ 暂停';
+                $play.classList.add('paused');
+                if (currentStep >= TOTAL_STEPS) {
+                    currentStep = 1;
+                    updateAllUI(1);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStep < TOTAL_STEPS) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $play.textContent = '▶ 播放';
+                $play.classList.remove('paused');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ===== EVENT LISTENERS =====
+            $prev.addEventListener('click', () => {
+                stopPlay();
+                if (currentStep > 1) goToStep(currentStep - 1);
+            });
+            $next.addEventListener('click', () => {
+                stopPlay();
+                if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+            });
+            $play.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                stopPlay();
+                goToStep(parseInt($range.value));
+            });
+            $range.addEventListener('change', () => {
+                stopPlay();
+                goToStep(parseInt($range.value));
+            });
+
+            // Timeline ticks
+            $timeline.addEventListener('click', (e) => {
+                const tick = e.target.closest('.tick');
+                if (!tick) return;
+                stopPlay();
+                const step = parseInt(tick.getAttribute('data-step'));
+                if (!isNaN(step)) goToStep(step);
+            });
+
+            // Checkpoint buttons
+            $chkSubmit.addEventListener('click', () => {
+                submitCheckpoint(currentStep);
+            });
+            $chkHint.addEventListener('click', () => {
+                showHint(currentStep);
+            });
+            $chkShowAnswer.addEventListener('click', () => {
+                showAnswerDirect(currentStep);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'chk-input-field') return;
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    if (currentStep > 1) goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ===== INIT =====
+            $answer.textContent = '2'; // Final answer as bare JSON
+            $range.setAttribute('max', TOTAL_STEPS);
+            $range.value = 1;
+            updateAllUI(1);
+            $prev.disabled = true;
+            $play.textContent = '▶ 播放';
+            $play.classList.remove('paused');
+
+            // Log init
+            const initLog = document.createElement('div');
+            initLog.className = 'log-entry';
+            initLog.textContent = '🕐 页面加载 · 准备学习「省份数量」并查集解法 · 输入: isConnected=[[1,1,0],[1,1,0],[0,0,1]] · 期望输出: 2';
+            $learningLog.appendChild(initLog);
+            $learningLog.scrollTop = $learningLog.scrollHeight;
+
+            console.log('AlgoLab教学页已就绪 · 省份数量 · 并查集 · 共' + TOTAL_STEPS + '个步骤');
+        })();
+    </script>
+</body>
+</html>

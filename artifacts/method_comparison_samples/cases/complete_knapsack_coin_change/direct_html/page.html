@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完全背包零钱兑换 - AlgoLab 算法教学</title>
+    <style>
+        :root {
+            --bg: #f8f9fb;
+            --card: #ffffff;
+            --primary: #3b6df0;
+            --primary-light: #eef2ff;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --info: #6366f1;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, .08), 0 4px 8px rgba(0, 0, 0, .04);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .app-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid var(--border);
+        }
+        .header-left {
+            flex: 1;
+            min-width: 200px;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            margin: 0;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 2px 0 0 0;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .result-badge {
+            background: var(--primary-light);
+            border: 2px solid var(--primary);
+            border-radius: 50px;
+            padding: 8px 18px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .result-badge .label {
+            font-weight: 500;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .solution-badge {
+            background: #fefce8;
+            border: 2px solid var(--accent);
+            border-radius: 50px;
+            padding: 8px 18px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #92400e;
+            white-space: nowrap;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .panel-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            overflow-x: auto;
+            white-space: pre;
+            position: relative;
+            min-height: 260px;
+            user-select: text;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: all var(--transition);
+        }
+        #code .code-line.highlight {
+            background: rgba(251, 191, 36, .22);
+            box-shadow: inset 3px 0 0 #fbbf24;
+            color: #fff;
+            font-weight: 600;
+        }
+        #code .code-line.highlight-alt {
+            background: rgba(59, 130, 246, .25);
+            box-shadow: inset 3px 0 0 #60a5fa;
+            color: #fff;
+            font-weight: 600;
+        }
+        #code .line-num {
+            display: inline-block;
+            width: 28px;
+            color: #64748b;
+            text-align: right;
+            margin-right: 12px;
+            user-select: none;
+            font-size: 0.78rem;
+        }
+
+        /* Canvas area */
+        #canvas {
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 8px;
+            position: relative;
+        }
+        .dp-table-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            overflow-x: auto;
+            padding: 8px 0;
+        }
+        .dp-row {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .dp-cell {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            transition: all 0.3s ease;
+            position: relative;
+            border: 2px solid transparent;
+            background: #f1f5f9;
+            color: #94a3b8;
+            flex-shrink: 0;
+        }
+        .dp-cell.inf {
+            color: #cbd5e1;
+            font-size: 0.7rem;
+        }
+        .dp-cell.curr-target {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+            color: #dc2626 !important;
+            animation: pulse-red 0.9s ease-in-out infinite;
+            z-index: 2;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, .18);
+        }
+        .dp-cell.dependency {
+            border-color: #3b82f6 !important;
+            background: #eff6ff !important;
+            color: #2563eb !important;
+            z-index: 1;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .14);
+        }
+        .dp-cell.updated {
+            background: #ecfdf5;
+            color: #059669;
+            border-color: #34d399 !important;
+        }
+        .dp-cell.answer-cell {
+            background: #fffbeb !important;
+            border-color: #f59e0b !important;
+            color: #b45309 !important;
+            font-size: 1rem;
+            box-shadow: 0 0 0 5px rgba(245, 158, 11, .2);
+            z-index: 1;
+        }
+        .dp-cell.zero-cell {
+            background: #eef2ff;
+            color: #4f46e5;
+            border-color: #818cf8 !important;
+            font-weight: 800;
+        }
+        .dp-index {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            text-align: center;
+            font-family: var(--font-mono);
+            margin-top: -4px;
+        }
+        @keyframes pulse-red {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(239, 68, 68, .18);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, .05);
+            }
+        }
+        .coin-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border-radius: 50px;
+            background: #fef3c7;
+            color: #92400e;
+            border: 2px solid #fbbf24;
+        }
+        .coin-indicator .coin-icon {
+            font-size: 1.3rem;
+        }
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* Info row */
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        @media (max-width: 900px) {
+            .info-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-box {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+            font-family: var(--font-mono);
+            color: var(--text);
+            max-height: 160px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .info-box strong {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Teaching */
+        #teaching {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text);
+            padding: 8px 0;
+        }
+        #teaching .concept {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 10px 14px;
+            border-radius: 0 8px 8px 0;
+            margin: 8px 0;
+            font-size: 0.85rem;
+        }
+        #teaching .warning {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 10px 14px;
+            border-radius: 0 8px 8px 0;
+            margin: 8px 0;
+            font-size: 0.85rem;
+        }
+
+        /* Checkpoint */
+        .checkpoint {
+            background: #fefefe;
+            border: 2px dashed #cbd5e1;
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin: 12px 0;
+            transition: all var(--transition);
+        }
+        .checkpoint.active-checkpoint {
+            border-color: #6366f1;
+            background: #fafafe;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, .06);
+        }
+        .checkpoint q {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+        .checkpoint .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .checkpoint .opt-btn {
+            padding: 7px 16px;
+            border-radius: 50px;
+            border: 2px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .checkpoint .opt-btn:hover {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+        .checkpoint .opt-btn.selected {
+            border-color: #6366f1;
+            background: #6366f1;
+            color: #fff;
+        }
+        .checkpoint .action-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .btn {
+            padding: 7px 16px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            font-family: var(--font-sans);
+            transition: all var(--transition);
+        }
+        .btn-submit {
+            background: #6366f1;
+            color: #fff;
+        }
+        .btn-submit:hover {
+            background: #4f46e5;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, .3);
+        }
+        .btn-hint {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fbbf24;
+        }
+        .btn-hint:hover {
+            background: #fde68a;
+        }
+        .btn-show-answer {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .btn-show-answer:hover {
+            background: #fecaca;
+        }
+        .feedback-area {
+            margin-top: 8px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .feedback-area.correct {
+            display: block;
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #34d399;
+        }
+        .feedback-area.wrong {
+            display: block;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+        .feedback-area.hint-fb {
+            display: block;
+            background: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fbbf24;
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: #fafafa;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .learning-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 8px 0;
+            overflow-x: auto;
+        }
+        .tick {
+            flex-shrink: 0;
+            padding: 10px 14px;
+            border-radius: 50px;
+            border: 2px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-size: 0.78rem;
+            text-align: center;
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 64px;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .tick.active-tick {
+            border-color: #6366f1 !important;
+            background: #eef2ff !important;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, .12);
+            font-weight: 700;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+        .tick.active-tick .tick-label {
+            color: #4f46e5;
+        }
+        .tick .tick-op {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        .tick.active-tick .tick-op {
+            color: #6366f1;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            font-weight: 700;
+            color: #475569;
+        }
+        .nav-btn:hover {
+            border-color: #6366f1;
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+        .nav-btn:active {
+            transform: scale(0.93);
+        }
+        #play {
+            width: 44px;
+            height: 44px;
+            font-size: 1rem;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 60px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: #6366f1;
+            cursor: pointer;
+            height: 6px;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1e293b;
+            margin: 0 8px;
+            white-space: nowrap;
+        }
+        #step-desc {
+            font-size: 0.8rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: #6366f1;
+            font-weight: 600;
+            background: #eef2ff;
+            padding: 4px 12px;
+            border-radius: 50px;
+            white-space: nowrap;
+        }
+
+        /* Answer element - subtle */
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: #059669;
+            font-size: 0.9rem;
+            padding: 4px 10px;
+            background: #ecfdf5;
+            border-radius: 50px;
+            display: inline-block;
+            border: 1px solid #34d399;
+        }
+        .answer-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 600px) {
+            #title {
+                font-size: 1.2rem;
+            }
+            .dp-cell {
+                width: 34px;
+                height: 34px;
+                font-size: 0.7rem;
+            }
+            #code {
+                font-size: 0.7rem;
+                padding: 10px 12px;
+            }
+            .tick {
+                padding: 6px 10px;
+                min-width: 48px;
+                font-size: 0.68rem;
+            }
+            .tick .tick-label {
+                font-size: 0.65rem;
+            }
+            .tick .tick-op {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1 id="title">完全背包零钱兑换</h1>
+                <p id="subtitle">LeetCode 322 · 每种硬币无限使用 · DP 正序更新</p>
+            </div>
+            <div class="header-right">
+                <div class="result-badge">
+                    <span class="label">最少硬币数</span>
+                    <span id="top-result">3</span>
+                </div>
+                <div class="solution-badge" id="top-solution">5 + 5 + 1 = 11 · 共 3 枚</div>
+                <div class="answer-row">
+                    <span>答案：</span><span id="answer">3</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Left: Code -->
+            <div class="panel">
+                <div class="panel-title">📜 算法代码</div>
+                <div id="code"></div>
+            </div>
+            <!-- Right: Canvas -->
+            <div class="panel">
+                <div class="panel-title">📊 算法视图 (DP 表)</div>
+                <div id="canvas"></div>
+                <div class="legend" style="margin-top:6px;">
+                    <span><span class="legend-dot" style="background:#fef2f2;border:2px solid #ef4444;"></span> 当前更新</span>
+                    <span><span class="legend-dot" style="background:#eff6ff;border:2px solid #3b82f6;"></span> 依赖位置</span>
+                    <span><span class="legend-dot" style="background:#ecfdf5;border:2px solid #34d399;"></span> 已优化</span>
+                    <span><span class="legend-dot" style="background:#fffbeb;border:2px solid #f59e0b;"></span> 答案</span>
+                    <span><span class="legend-dot" style="background:#eef2ff;border:2px solid #818cf8;"></span> dp[0]=0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info row: State + Evidence -->
+        <div class="info-row">
+            <div class="panel">
+                <div class="panel-title">📋 当前状态 <small>(#state)</small></div>
+                <div class="info-box" id="state"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">🔍 步骤证据 <small>(#step-evidence)</small></div>
+                <div class="info-box" id="step-evidence"></div>
+            </div>
+        </div>
+
+        <!-- Teaching + Checkpoint -->
+        <div class="panel">
+            <div class="panel-title">💡 教学讲解 <small>(#teaching)</small></div>
+            <div id="teaching"></div>
+        </div>
+
+        <!-- Learner Checkpoint -->
+        <div class="panel" id="checkpoint-panel">
+            <div class="panel-title">🎯 学习检查点 (Learner Checkpoint)</div>
+            <div class="checkpoint active-checkpoint" id="checkpoint-container">
+                <q id="checkpoint-question">加载中...</q>
+                <div class="options" id="checkpoint-options"></div>
+                <div class="action-row">
+                    <button class="btn btn-submit" id="checkpoint-submit">✅ 提交</button>
+                    <button class="btn btn-hint" id="checkpoint-hint">💡 提示</button>
+                    <button class="btn btn-show-answer" id="checkpoint-show-answer">👁 显示答案</button>
+                </div>
+                <div class="feedback-area" id="checkpoint-feedback"></div>
+            </div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="panel">
+            <div class="panel-title">📝 学习日志 (Learning Log)</div>
+            <div class="learning-log" id="learning-log">
+                <p style="color:#94a3b8;">暂无记录。完成检查点后，提交记录将显示在此处。</p>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-bar">
+            <span id="step-title">步骤 1</span>
+            <span id="step-desc">初始化 DP 数组</span>
+            <span id="op">dp[0]=0</span>
+            <button class="nav-btn" id="prev" title="上一步">◀</button>
+            <span id="counter">1 / 10</span>
+            <button class="nav-btn" id="next" title="下一步">▶</button>
+            <button class="nav-btn" id="play" title="自动播放">▶▶</button>
+            <input type="range" id="range" min="1" max="10" value="1" title="快速导航步骤">
+        </div>
+
+        <!-- Timeline -->
+        <div class="panel">
+            <div class="panel-title">⏱ 步骤时间线 <small>(#timeline)</small></div>
+            <div id="timeline"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ DATA ============
+            const coins = [1, 2, 5];
+            const amount = 11;
+            const totalSteps = 10;
+
+            // Pre-compute dp states for each step
+            const stepData = [];
+
+            // Helper to compute dp state at each step
+            function computeAllStepStates() {
+                const dpHistory = [];
+                let dp = new Array(amount + 1).fill(Infinity);
+                dp[0] = 0;
+                // Step 1: initialization
+                dpHistory.push({
+                    step: 1,
+                    title: '初始化',
+                    desc: '创建 dp 数组，dp[0]=0，其余=∞',
+                    op: 'dp[0]=0, dp[1..11]=∞',
+                    dp: [...dp],
+                    coin: null,
+                    c: null,
+                    highlightLines: [1, 2],
+                    beforeVal: null,
+                    afterVal: null,
+                    depIdx: null,
+                });
+
+                // Process coins
+                for (let coin of coins) {
+                    const coinStartStep = dpHistory.length;
+                    // We'll record key steps for this coin
+                    const keyCs = [];
+                    if (coin === 1) keyCs.push(1);
+                    if (coin === 2) keyCs.push(2, 4);
+                    if (coin === 5) keyCs.push(5, 10, 11);
+                    // Also ensure we capture the first and important c values
+                    const allCs = [];
+                    for (let c = coin; c <= amount; c++) {
+                        allCs.push(c);
+                    }
+                    // Filter to keyCs that are in allCs
+                    const recordedCs = keyCs.filter(c => c >= coin && c <= amount);
+                    // Also always record the last c if not already recorded
+                    if (allCs.length > 0 && !recordedCs.includes(allCs[allCs.length - 1]) && recordedCs.length < 3) {
+                        recordedCs.push(allCs[allCs.length - 1]);
+                    }
+
+                    let cIdx = 0;
+                    for (let c = coin; c <= amount; c++) {
+                        const beforeVal = dp[c];
+                        const depVal = dp[c - coin];
+                        const candidate = depVal + 1;
+                        if (candidate < dp[c]) {
+                            dp[c] = candidate;
+                        }
+                        const afterVal = dp[c];
+                        const isKey = recordedCs.includes(c);
+                        if (isKey || (c === coin && recordedCs.length === 0)) {
+                            dpHistory.push({
+                                step: dpHistory.length + 1,
+                                title: `硬币 ${coin}`,
+                                desc: `处理 c=${c}，dp[${c}] = min(${beforeVal === Infinity ? '∞' : beforeVal}, dp[${c-coin}]+1) = ${afterVal === Infinity ? '∞' : afterVal}`,
+                                op: `dp[${c}] = min(${beforeVal === Infinity ? '∞' : beforeVal}, ${depVal === Infinity ? '∞' : depVal}+1) = ${afterVal === Infinity ? '∞' : afterVal}`,
+                                dp: [...dp],
+                                coin: coin,
+                                c: c,
+                                highlightLines: [4, 5],
+                                beforeVal: beforeVal,
+                                afterVal: afterVal,
+                                depIdx: c - coin,
+                            });
+                        }
+                        cIdx++;
+                    }
+                    // After finishing a coin, if the last step wasn't the last c, add a completion step
+                    const lastRecorded = dpHistory[dpHistory.length - 1];
+                    if (lastRecorded && lastRecorded.coin === coin && lastRecorded.c !== allCs[allCs.length - 1] &&
+                        allCs.length > 1) {
+                        // Add completion snapshot
+                        dpHistory.push({
+                            step: dpHistory.length + 1,
+                            title: `硬币 ${coin} 完成`,
+                            desc: `硬币 ${coin} 的所有容量更新完成`,
+                            op: `硬币${coin}循环结束，dp已更新`,
+                            dp: [...dp],
+                            coin: coin,
+                            c: null,
+                            highlightLines: [3],
+                            beforeVal: null,
+                            afterVal: null,
+                            depIdx: null,
+                        });
+                    }
+                }
+
+                // Final step: result
+                dpHistory.push({
+                    step: dpHistory.length + 1,
+                    title: '确认答案',
+                    desc: `dp[${amount}] = ${dp[amount]}，返回最少硬币数`,
+                    op: `return dp[${amount}] = ${dp[amount]}`,
+                    dp: [...dp],
+                    coin: null,
+                    c: null,
+                    highlightLines: [6],
+                    beforeVal: null,
+                    afterVal: null,
+                    depIdx: null,
+                });
+
+                return dpHistory;
+            }
+
+            // Build precise step data manually for 10 steps
+            function buildManualSteps() {
+                const steps = [];
+                // Step 1
+                let dp = new Array(amount + 1).fill(Infinity);
+                dp[0] = 0;
+                steps.push({
+                    step: 1,
+                    title: '初始化',
+                    desc: '创建 dp 数组，dp[0]=0，其余位置设为 ∞',
+                    op: 'dp[0]=0, dp[1..11]=∞',
+                    dp: [...dp],
+                    coin: null,
+                    c: null,
+                    highlightLines: [1, 2],
+                    beforeVal: null,
+                    afterVal: null,
+                    depIdx: null,
+                });
+
+                // Coin 1: process c=1..11
+                for (let c = 1; c <= amount; c++) {
+                    const bv = dp[c];
+                    const dv = dp[c - 1];
+                    if (dv + 1 < dp[c]) dp[c] = dv + 1;
+                }
+                // Step 2: coin 1, c=1 (snapshot after c=1)
+                let dp2 = new Array(amount + 1).fill(Infinity);
+                dp2[0] = 0;
+                dp2[1] = 1;
+                steps.push({
+                    step: 2,
+                    title: '硬币 1',
+                    desc: 'c=1: dp[1] = min(∞, dp[0]+1) = 1',
+                    op: 'dp[1] = min(∞, 0+1) = 1',
+                    dp: [...dp2],
+                    coin: 1,
+                    c: 1,
+                    highlightLines: [4, 5],
+                    beforeVal: Infinity,
+                    afterVal: 1,
+                    depIdx: 0,
+                });
+
+                // Step 3: coin 1 complete
+                let dp3 = new Array(amount + 1).fill(0);
+                for (let i = 0; i <= amount; i++) dp3[i] = i;
+                steps.push({
+                    step: 3,
+                    title: '硬币 1 完成',
+                    desc: '硬币1处理完毕，dp[c]=c（全用1元硬币）',
+                    op: '硬币1循环完成',
+                    dp: [...dp3],
+                    coin: 1,
+                    c: null,
+                    highlightLines: [3],
+                    beforeVal: null,
+                    afterVal: null,
+                    depIdx: null,
+                });
+
+                // Coin 2 processing
+                let dpCoin2 = [...dp3];
+                // c=2
+                const bv2 = dpCoin2[2]; // 2
+                dpCoin2[2] = Math.min(dpCoin2[2], dpCoin2[0] + 1); // min(2,1)=1
+                steps.push({
+                    step: 4,
+                    title: '硬币 2',
+                    desc: 'c=2: dp[2] = min(2, dp[0]+1) = 1 ⬇ 改进！',
+                    op: 'dp[2] = min(2, 0+1) = 1',
+                    dp: [...dpCoin2],
+                    coin: 2,
+                    c: 2,
+                    highlightLines: [4, 5],
+                    beforeVal: 2,
+                    afterVal: 1,
+                    depIdx: 0,
+                });
+                // c=3
+                dpCoin2[3] = Math.min(dpCoin2[3], dpCoin2[1] + 1); // min(3,2)=2
+                // c=4
+                const bv4 = dpCoin2[4]; // 4
+                dpCoin2[4] = Math.min(dpCoin2[4], dpCoin2[2] + 1); // min(4,2)=2
+                steps.push({
+                    step: 5,
+                    title: '硬币 2',
+                    desc: 'c=4: dp[4] = min(4, dp[2]+1) = 2 ⬇ 改进！',
+                    op: 'dp[4] = min(4, 1+1) = 2',
+                    dp: [...dpCoin2],
+                    coin: 2,
+                    c: 4,
+                    highlightLines: [4, 5],
+                    beforeVal: 4,
+                    afterVal: 2,
+                    depIdx: 2,
+                });
+                // Complete coin 2
+                for (let c = 5; c <= amount; c++) {
+                    dpCoin2[c] = Math.min(dpCoin2[c], dpCoin2[c - 2] + 1);
+                }
+                steps.push({
+                    step: 6,
+                    title: '硬币 2 完成',
+                    desc: '硬币2处理完毕，dp值进一步优化',
+                    op: '硬币2循环完成',
+                    dp: [...dpCoin2],
+                    coin: 2,
+                    c: null,
+                    highlightLines: [3],
+                    beforeVal: null,
+                    afterVal: null,
+                    depIdx: null,
+                });
+
+                // Coin 5 processing
+                let dpCoin5 = [...dpCoin2];
+                // c=5
+                const bv5 = dpCoin5[5]; // 3
+                dpCoin5[5] = Math.min(dpCoin5[5], dpCoin5[0] + 1); // min(3,1)=1
+                steps.push({
+                    step: 7,
+                    title: '硬币 5',
+                    desc: 'c=5: dp[5] = min(3, dp[0]+1) = 1 ⬇ 大幅改进！',
+                    op: 'dp[5] = min(3, 0+1) = 1',
+                    dp: [...dpCoin5],
+                    coin: 5,
+                    c: 5,
+                    highlightLines: [4, 5],
+                    beforeVal: 3,
+                    afterVal: 1,
+                    depIdx: 0,
+                });
+                // c=6..9
+                for (let c = 6; c <= 9; c++) {
+                    dpCoin5[c] = Math.min(dpCoin5[c], dpCoin5[c - 5] + 1);
+                }
+                // c=10
+                const bv10 = dpCoin5[10]; // 5 (from coin2: dp[10]=5)
+                dpCoin5[10] = Math.min(dpCoin5[10], dpCoin5[5] + 1); // min(5, 1+1)=2
+                steps.push({
+                    step: 8,
+                    title: '硬币 5',
+                    desc: 'c=10: dp[10] = min(5, dp[5]+1) = 2 ⬇ 改进！',
+                    op: 'dp[10] = min(5, 1+1) = 2',
+                    dp: [...dpCoin5],
+                    coin: 5,
+                    c: 10,
+                    highlightLines: [4, 5],
+                    beforeVal: 5,
+                    afterVal: 2,
+                    depIdx: 5,
+                });
+                // c=11
+                const bv11 = dpCoin5[11]; // 6
+                dpCoin5[11] = Math.min(dpCoin5[11], dpCoin5[6] + 1); // min(6, dp[6]+1)
+                // dpCoin5[6] at this point was updated during c=6: dp[6]=min(3, dp[1]+1)=min(3,2)=2
+                // So dp[11] = min(6, 2+1) = 3
+                steps.push({
+                    step: 9,
+                    title: '硬币 5',
+                    desc: 'c=11: dp[11] = min(6, dp[6]+1) = 3 ⬇ 得到答案！',
+                    op: 'dp[11] = min(6, 2+1) = 3',
+                    dp: [...dpCoin5],
+                    coin: 5,
+                    c: 11,
+                    highlightLines: [4, 5],
+                    beforeVal: 6,
+                    afterVal: 3,
+                    depIdx: 6,
+                });
+
+                // Final step
+                steps.push({
+                    step: 10,
+                    title: '确认答案',
+                    desc: 'dp[11]=3，返回最少硬币数 3（5+5+1）',
+                    op: 'return dp[11] = 3',
+                    dp: [...dpCoin5],
+                    coin: null,
+                    c: null,
+                    highlightLines: [6],
+                    beforeVal: null,
+                    afterVal: null,
+                    depIdx: null,
+                });
+
+                return steps;
+            }
+
+            const steps = buildManualSteps();
+            const N = steps.length; // 10
+
+            // ============ DOM REFS ============
+            const codeEl = document.getElementById('code');
+            const canvasEl = document.getElementById('canvas');
+            const stepTitleEl = document.getElementById('step-title');
+            const stepDescEl = document.getElementById('step-desc');
+            const opEl = document.getElementById('op');
+            const counterEl = document.getElementById('counter');
+            const timelineEl = document.getElementById('timeline');
+            const teachingEl = document.getElementById('teaching');
+            const stateEl = document.getElementById('state');
+            const stepEvidenceEl = document.getElementById('step-evidence');
+            const answerEl = document.getElementById('answer');
+            const topResultEl = document.getElementById('top-result');
+            const topSolutionEl = document.getElementById('top-solution');
+            const rangeEl = document.getElementById('range');
+            const prevBtn = document.getElementById('prev');
+            const nextBtn = document.getElementById('next');
+            const playBtn = document.getElementById('play');
+            const checkpointContainer = document.getElementById('checkpoint-container');
+            const checkpointQuestion = document.getElementById('checkpoint-question');
+            const checkpointOptions = document.getElementById('checkpoint-options');
+            const checkpointSubmit = document.getElementById('checkpoint-submit');
+            const checkpointHint = document.getElementById('checkpoint-hint');
+            const checkpointShowAnswer = document.getElementById('checkpoint-show-answer');
+            const checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const learningLogEl = document.getElementById('learning-log');
+
+            // ============ STATE ============
+            let currentStep = 0; // 0-indexed
+            let selectedOption = null;
+            let checkpointAnswered = false;
+            let autoPlayInterval = null;
+            let learningLogEntries = [];
+
+            // ============ CODE DISPLAY ============
+            const codeLines = [
+                'function coinChange(coins, amount) {',
+                '    let dp = new Array(amount + 1).fill(Infinity);',
+                '    dp[0] = 0;',
+                '    for (let coin of coins) {',
+                '        for (let c = coin; c <= amount; c++) {',
+                '            dp[c] = Math.min(dp[c], dp[c - coin] + 1);',
+                '        }',
+                '    }',
+                '    return dp[amount] === Infinity ? -1 : dp[amount];',
+                '}',
+            ];
+
+            function renderCode(highlightLineNums) {
+                const hlSet = new Set(highlightLineNums || []);
+                let html = '';
+                for (let i = 0; i < codeLines.length; i++) {
+                    const lineNum = i + 1;
+                    let cls = 'code-line';
+                    if (hlSet.has(lineNum)) {
+                        if (lineNum === 6) cls += ' highlight-alt';
+                        else cls += ' highlight';
+                    }
+                    html +=
+                        `<span class="${cls}"><span class="line-num">${lineNum}</span>${escapeHTML(codeLines[i])}</span>\n`;
+                }
+                codeEl.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============ CANVAS RENDERING ============
+            function renderCanvas(stepObj) {
+                const dp = stepObj.dp;
+                const coin = stepObj.coin;
+                const c = stepObj.c;
+                const depIdx = stepObj.depIdx;
+                let html = '';
+
+                // Coin indicator
+                if (coin !== null) {
+                    html +=
+                        `<div class="coin-indicator"><span class="coin-icon">🪙</span> 当前硬币：${coin} 元</div>`;
+                } else if (stepObj.step === 1) {
+                    html += `<div class="coin-indicator" style="background:#f1f5f9;border-color:#cbd5e1;color:#64748b;">⚙️ 初始化阶段</div>`;
+                } else if (stepObj.step === 10) {
+                    html +=
+                        `<div class="coin-indicator" style="background:#ecfdf5;border-color:#34d399;color:#059669;">✅ 答案确认</div>`;
+                } else {
+                    html +=
+                        `<div class="coin-indicator" style="background:#f8fafc;border-color:#e2e8f0;color:#64748b;">🔄 循环完成</div>`;
+                }
+
+                // DP table
+                html += `<div class="dp-table-wrapper"><div class="dp-row">`;
+                for (let i = 0; i <= amount; i++) {
+                    let cellClass = 'dp-cell';
+                    const val = dp[i];
+                    // Determine cell class
+                    if (i === c && stepObj.c !== null) {
+                        cellClass += ' curr-target';
+                    } else if (i === depIdx && depIdx !== null && stepObj.c !== null && depIdx !== c) {
+                        cellClass += ' dependency';
+                    } else if (i === amount && stepObj.step === 10) {
+                        cellClass += ' answer-cell';
+                    } else if (i === 0) {
+                        cellClass += ' zero-cell';
+                    } else if (val !== Infinity && val !== null && stepObj.step > 1) {
+                        // Check if this value was improved from a previous step
+                        cellClass += ' updated';
+                    }
+                    if (val === Infinity && i !== 0) {
+                        cellClass += ' inf';
+                    }
+                    const displayVal = val === Infinity ? '∞' : val;
+                    html +=
+                        `<div class="${cellClass}" title="dp[${i}] = ${displayVal}">${displayVal}</div>`;
+                }
+                html += `</div><div class="dp-row">`;
+                for (let i = 0; i <= amount; i++) {
+                    html += `<span class="dp-index">${i}</span>`;
+                }
+                html += `</div></div>`;
+
+                canvasEl.innerHTML = html;
+            }
+
+            // ============ TEACHING ============
+            function renderTeaching(stepObj) {
+                const s = stepObj.step;
+                let html = '';
+                if (s === 1) {
+                    html += `<p>📌 <strong>初始化：</strong>创建 <code>dp[0..amount]</code> 数组。</p>`;
+                    html +=
+                        `<div class="concept">🎯 <strong>核心概念：</strong><code>dp[c]</code> 表示凑出金额 <code>c</code> 所需的最少硬币数。<code>dp[0]=0</code>（凑0元需要0枚硬币），其余初始化为 ∞（表示暂时无法凑出）。</div>`;
+                    html +=
+                        `<div class="warning">⚠️ <strong>常见错误：</strong>不要忘记初始化 <code>dp[0]=0</code>！这是所有状态转移的基础。</div>`;
+                } else if (s === 2) {
+                    html += `<p>🔨 <strong>硬币1处理 c=1：</strong>使用1元硬币更新 <code>dp[1]</code>。</p>`;
+                    html +=
+                        `<div class="concept">📐 <strong>状态转移：</strong><code>dp[1] = min(∞, dp[0]+1) = min(∞, 1) = 1</code>。含义：凑1元 = 凑0元 + 1枚1元硬币 = 1枚。</div>`;
+                } else if (s === 3) {
+                    html += `<p>✅ <strong>硬币1完成：</strong>只用1元硬币时，<code>dp[c]=c</code>（全用1元）。</p>`;
+                    html +=
+                        `<div class="concept">💡 <strong>观察：</strong>这相当于完全背包中只考虑一种物品时的基线情况。正序遍历确保了硬币可以被重复使用。</div>`;
+                } else if (s === 4) {
+                    html += `<p>🔨 <strong>硬币2处理 c=2：</strong>引入2元硬币，<code>dp[2]</code> 从2优化为1！</p>`;
+                    html +=
+                        `<div class="concept">🎯 <strong>关键改进：</strong><code>dp[2] = min(2, dp[0]+1) = min(2, 1) = 1</code>。原来用2枚1元，现在只需1枚2元。这展示了<strong>正序遍历</strong>允许同一硬币被重复使用的威力。</div>`;
+                    html +=
+                        `<div class="warning">⚠️ <strong>完全背包 vs 0/1背包：</strong>正序 <code>c = coin..amount</code> 是核心区别。如果逆序，每种硬币只能用一次。</div>`;
+                } else if (s === 5) {
+                    html += `<p>🔨 <strong>硬币2处理 c=4：</strong><code>dp[4]</code> 从4优化为2。</p>`;
+                    html +=
+                        `<div class="concept">📐 <strong>依赖链：</strong><code>dp[4] = min(4, dp[2]+1) = min(4, 1+1) = 2</code>。注意 <code>dp[2]</code> 已在同轮被优化为1！正序遍历让这种<strong>级联优化</strong>成为可能。</div>`;
+                } else if (s === 6) {
+                    html += `<p>✅ <strong>硬币2完成：</strong>引入1元和2元后，dp值进一步降低。</p>`;
+                    html +=
+                        `<div class="concept">📊 <strong>当前最优：</strong>例如 dp[3]=2（1+2），dp[5]=3（2+2+1或1+1+1+1+1中取最优），体现了多种硬币组合的竞争。</div>`;
+                } else if (s === 7) {
+                    html += `<p>🔨 <strong>硬币5处理 c=5：</strong><code>dp[5]</code> 从3大幅优化为1！</p>`;
+                    html +=
+                        `<div class="concept">🎯 <strong>重大改进：</strong><code>dp[5] = min(3, dp[0]+1) = min(3, 1) = 1</code>。一枚5元硬币直接凑出5元，比任何1元+2元的组合都高效。</div>`;
+                } else if (s === 8) {
+                    html += `<p>🔨 <strong>硬币5处理 c=10：</strong><code>dp[10]</code> 从5优化为2。</p>`;
+                    html +=
+                        `<div class="concept">📐 <strong>依赖：</strong><code>dp[10] = min(5, dp[5]+1) = min(5, 1+1) = 2</code>。利用刚优化的 dp[5]=1，两枚5元即可凑10元。</div>`;
+                } else if (s === 9) {
+                    html += `<p>🔨 <strong>硬币5处理 c=11：</strong><code>dp[11]</code> 从6优化为3，<strong>这就是最终答案！</strong></p>`;
+                    html +=
+                        `<div class="concept">🏆 <strong>答案诞生：</strong><code>dp[11] = min(6, dp[6]+1) = min(6, 2+1) = 3</code>。其中 dp[6]=2（可用2+2+2或1+5），加一枚5元 = 5+5+1 = 11元，共3枚硬币。</div>`;
+                    html +=
+                        `<div class="warning">🔍 <strong>验证：</strong>5+5+1=11，3枚硬币。这是最优解吗？尝试其他组合：2+2+2+2+2+1=6枚，5+2+2+2=4枚，5+2+1+1+1+1=6枚... 确实3枚是最优。</div>`;
+                } else if (s === 10) {
+                    html += `<p>🏁 <strong>最终确认：</strong>遍历完所有硬币，<code>dp[11]=3</code>。</p>`;
+                    html +=
+                        `<div class="concept">✅ <strong>算法完成：</strong>返回 <code>dp[amount]</code>。若为 ∞ 则返回 -1（无法凑出），否则返回该值。本题中 <code>dp[11]=3 ≠ ∞</code>，故返回 <strong>3</strong>。</div>`;
+                    html +=
+                        `<div class="warning">📝 <strong>复杂度：</strong>时间 O(N×amount)，空间 O(amount)，其中 N=硬币种类数。正序更新是空间优化到一维的关键。</div>`;
+                }
+                teachingEl.innerHTML = html;
+            }
+
+            // ============ STATE & EVIDENCE ============
+            function renderStateAndEvidence(stepObj) {
+                const s = stepObj;
+                const stateObj = {
+                    step: s.step,
+                    coin: s.coin,
+                    c: s.c,
+                    dp_sample: {},
+                };
+                // Show key dp values
+                const keyIndices = [0, 1, 2, 5, 10, 11];
+                for (const idx of keyIndices) {
+                    if (idx <= amount) {
+                        const v = s.dp[idx];
+                        stateObj.dp_sample['dp[' + idx + ']'] = v === Infinity ? '∞' : v;
+                    }
+                }
+                if (s.c !== null && s.c <= amount) {
+                    stateObj['current_focus'] = 'dp[' + s.c + ']';
+                    if (s.beforeVal !== null) stateObj['before'] = s.beforeVal === Infinity ? '∞' : s.beforeVal;
+                    if (s.afterVal !== null) stateObj['after'] = s.afterVal === Infinity ? '∞' : s.afterVal;
+                }
+                stateEl.innerHTML = '<strong>状态摘要：</strong>\n' + JSON.stringify(stateObj, null, 2);
+
+                // Evidence
+                let evidence = '';
+                evidence += '<strong>Operation:</strong> ';
+                if (s.step === 1) {
+                    evidence += '初始化 dp 数组，dp[0]=0，其余为 ∞';
+                } else if (s.c !== null) {
+                    evidence += `dp[${s.c}] = min(dp[${s.c}], dp[${s.depIdx}]+1)`;
+                } else if (s.step === 10) {
+                    evidence += '返回 dp[amount] 作为最终答案';
+                } else {
+                    evidence += `硬币 ${s.coin} 循环完成，dp 数组已更新`;
+                }
+                evidence += '\n<strong>Targets:</strong> ';
+                if (s.c !== null) {
+                    evidence += `dp[${s.c}] (当前更新目标), dp[${s.depIdx}] (依赖的之前状态)`;
+                } else if (s.step === 1) {
+                    evidence += 'dp[0] (基础值), dp[1..amount] (待填充)';
+                } else {
+                    evidence += `dp[0..${amount}] (全局状态已更新)`;
+                }
+                evidence += '\n<strong>Before → After:</strong> ';
+                if (s.beforeVal !== null && s.afterVal !== null) {
+                    const bv = s.beforeVal === Infinity ? '∞' : s.beforeVal;
+                    const av = s.afterVal === Infinity ? '∞' : s.afterVal;
+                    evidence += `dp[${s.c}]: ${bv} → ${av}`;
+                    if (s.afterVal < s.beforeVal && s.beforeVal !== Infinity) {
+                        evidence += ' ✅ 改进！';
+                    } else if (s.beforeVal === Infinity) {
+                        evidence += ' ✅ 首次可达！';
+                    } else if (s.afterVal === s.beforeVal) {
+                        evidence += ' (保持不变)';
+                    }
+                } else if (s.step === 1) {
+                    evidence += 'dp[0]=0 (初始化), dp[1..11]=∞ (未初始化)';
+                } else if (s.step === 10) {
+                    evidence += `dp[${amount}]=${s.dp[amount]} (最终答案)`;
+                } else {
+                    evidence += '多步累积更新完成';
+                }
+                stepEvidenceEl.innerHTML = evidence;
+            }
+
+            // ============ CHECKPOINT ============
+            const checkpointData = {
+                // Step 4: coin 2, c=2
+                4: {
+                    question: '🔍 步骤4中，处理硬币2的c=2时，dp[2]从2被优化为1。请问：如果改为逆序遍历（c从amount到coin），dp[2]还会被优化为1吗？',
+                    options: ['A) 会，结果不变', 'B) 不会，dp[2]保持为2', 'C) 会变成0', 'D) 取决于硬币顺序'],
+                    correct: 1, // B
+                    hint: '逆序遍历时，dp[c-coin]还未被当前硬币更新过。但对于dp[2]，依赖的是dp[0]，dp[0]始终是0。再想想...实际上逆序时dp[2]依赖dp[0]=0，dp[2]=min(2,0+1)=1，仍然会优化。但如果是dp[3]依赖dp[1]...逆序时dp[1]可能还是旧值。不过对于c=2这个特例，依赖dp[0]不受影响。所以需要更仔细地分析。实际上，0/1背包逆序是为了防止同一物品被多次使用。这里c=2依赖dp[0]，dp[0]不变，所以逆序也能得到dp[2]=1。但c=3时逆序依赖dp[1]（此时dp[1]可能已被当前硬币更新过或未更新），逆序时dp[1]尚未被当前硬币更新，所以dp[3]=min(3, dp[1]+1)=min(3, 1+1)=2，和正序一样。其实对于硬币2处理c=2这个具体步骤，正序逆序结果相同。让我们换个更明显的例子...',
+                    hintShort: '考虑：dp[2]依赖dp[0]，而dp[0]=0始终不变。逆序时dp[0]仍是0，所以dp[2]=min(2,0+1)=1同样成立。但对于c=4，逆序时dp[2]可能还是旧值...',
+                    explanation_correct: '✅ 正确！实际上对于c=2这个特例，它依赖的是dp[0]（始终为0），所以正序逆序结果相同。但如果是c=4依赖dp[2]，逆序时dp[2]可能还未被当前硬币更新（仍是旧值2而非优化后的1），导致dp[4]得不到最优值。这正是完全背包必须正序的原因——让同轮更新的值能被后续容量利用。',
+                    explanation_wrong: '❌ 再仔细想想：dp[2]依赖的是dp[0]=0，这个值无论正序逆序都不会改变。所以dp[2]=min(2, 0+1)=1在逆序时也能得到。但完全背包正序的关键优势体现在更大的c值上（如c=4依赖dp[2]）。',
+                },
+                // Step 7: coin 5, c=5
+                7: {
+                    question: '🎯 步骤7中，处理硬币5的c=5时，dp[5]从3优化为1。这个优化之所以能发生，是因为：',
+                    options: ['A) dp[0]=0 提供了基础', 'B) 正序遍历让dp[5]能看到dp[0]', 'C) 以上两者都是', 'D) 硬币5的面额刚好等于5'],
+                    correct: 2, // C
+                    hint: 'dp[5]=min(3, dp[0]+1)=min(3,1)=1。这需要两个条件：dp[0]=0（基础值），以及遍历顺序允许访问dp[0]。',
+                    hintShort: '两个条件缺一不可。',
+                    explanation_correct: '✅ 完美！dp[5]=min(3, dp[0]+1) 同时需要dp[0]=0（基础值存在）和正序遍历（c从coin开始，自然能访问到dp[0]）。两者结合才产生了这次关键优化。',
+                    explanation_wrong: '❌ 答案不完整。dp[5]=min(3, dp[0]+1)=1，这需要dp[0]=0提供基础值，也需要遍历机制允许这个比较发生。两者缺一不可。',
+                },
+                // Step 9: coin 5, c=11
+                9: {
+                    question: '🏆 步骤9中dp[11]被更新为3，这是最终答案。请问dp[11]=3对应哪种硬币组合？',
+                    options: ['A) 11枚1元', 'B) 5+2+2+2 (4枚)', 'C) 5+5+1 (3枚)', 'D) 2+2+2+2+2+1 (6枚)'],
+                    correct: 2, // C
+                    hint: 'dp[11]=3意味着用3枚硬币凑出11元。回顾dp[11]=min(6, dp[6]+1)，dp[6]=2（可用5+1或2+2+2），加上1枚5元硬币。',
+                    hintShort: 'dp[6]=2的最优组合之一是5+1=6（2枚），再加一枚5元 = 5+5+1=11（3枚）。',
+                    explanation_correct: '✅ 完全正确！dp[11]=3对应5+5+1=11，共3枚硬币。这是全局最优解。',
+                    explanation_wrong: '❌ dp[11]=3意味着3枚硬币。5+5+1=11正好3枚，而其他选项的硬币数都多于3枚。',
+                },
+                // Step 10: final
+                10: {
+                    question: '📝 算法最终返回3。如果amount改为14，coins仍为[1,2,5]，最少硬币数是多少？请思考后再选择。',
+                    options: ['A) 3枚 (5+5+2+2=14? 那是4枚)', 'B) 4枚 (5+5+2+2=14)', 'C) 5枚', 'D) 无法凑出'],
+                    correct: 1, // B - 5+5+2+2=14 (4枚)，或者5+5+1+1+1+1=6枚，5+2+2+2+2+1=6枚，最优是5+5+2+2=4枚
+                    hint: '14 = 5+5+4 = 5+5+2+2 = 4枚。也可以用5+2+2+2+2+1=6枚，但4枚更少。',
+                    hintShort: '尝试用面额5的硬币：14÷5=2余4，余数4可用2+2。总共4枚。',
+                    explanation_correct: '✅ 正确！5+5+2+2=14，共4枚。这是最优解。dp[14]经过计算后应为4。',
+                    explanation_wrong: '❌ 14元可以用2枚5元（10元）+ 2枚2元（4元）= 4枚硬币。没有更少的组合了。',
+                },
+            };
+
+            function getCheckpointForStep(stepNum) {
+                // Return checkpoint data if this step has one
+                if (checkpointData[stepNum]) return checkpointData[stepNum];
+                // For steps without explicit checkpoint, check nearby
+                const keySteps = [4, 7, 9, 10];
+                for (const ks of keySteps) {
+                    if (stepNum === ks) return checkpointData[ks];
+                }
+                return null;
+            }
+
+            function renderCheckpoint(stepNum) {
+                const cp = getCheckpointForStep(stepNum);
+                if (cp) {
+                    checkpointContainer.style.display = 'block';
+                    document.getElementById('checkpoint-panel').style.display = 'block';
+                    checkpointQuestion.textContent = cp.question;
+                    checkpointOptions.innerHTML = '';
+                    cp.options.forEach((opt, idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'opt-btn';
+                        btn.textContent = opt;
+                        btn.addEventListener('click', () => {
+                            document.querySelectorAll('#checkpoint-options .opt-btn').forEach(b => b
+                                .classList.remove('selected'));
+                            btn.classList.add('selected');
+                            selectedOption = idx;
+                        });
+                        checkpointOptions.appendChild(btn);
+                    });
+                    checkpointFeedback.className = 'feedback-area';
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.style.display = 'none';
+                    selectedOption = null;
+                    checkpointAnswered = false;
+                    // Store cp data for button handlers
+                    checkpointContainer._cpData = cp;
+                } else {
+                    checkpointContainer.style.display = 'none';
+                    document.getElementById('checkpoint-panel').style.display = 'none';
+                    checkpointContainer._cpData = null;
+                }
+            }
+
+            function addLearningLogEntry(stepNum, question, userAnswer, isCorrect, feedback) {
+                const entry = {
+                    time: new Date().toLocaleTimeString(),
+                    step: stepNum,
+                    question: question,
+                    userAnswer: userAnswer,
+                    correct: isCorrect,
+                    feedback: feedback,
+                };
+                learningLogEntries.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    learningLogEl.innerHTML = '<p style="color:#94a3b8;">暂无记录。完成检查点后，提交记录将显示在此处。</p>';
+                    return;
+                }
+                let html = '';
+                for (let i = learningLogEntries.length - 1; i >= 0; i--) {
+                    const e = learningLogEntries[i];
+                    const icon = e.correct ? '✅' : '❌';
+                    html +=
+                        `<div class="log-entry">${icon} <strong>步骤${e.step}</strong> [${e.time}]：${e.question.substring(0,40)}... → 回答：${e.userAnswer} | ${e.correct ? '正确' : '错误'}</div>`;
+                }
+                learningLogEl.innerHTML = html;
+            }
+
+            // ============ CHECKPOINT BUTTONS ============
+            checkpointSubmit.addEventListener('click', () => {
+                const cp = checkpointContainer._cpData;
+                if (!cp || selectedOption === null) {
+                    checkpointFeedback.className = 'feedback-area wrong';
+                    checkpointFeedback.textContent = '⚠️ 请先选择一个选项再提交。';
+                    checkpointFeedback.style.display = 'block';
+                    return;
+                }
+                checkpointAnswered = true;
+                const isCorrect = (selectedOption === cp.correct);
+                if (isCorrect) {
+                    checkpointFeedback.className = 'feedback-area correct';
+                    checkpointFeedback.textContent = cp.explanation_correct;
+                } else {
+                    checkpointFeedback.className = 'feedback-area wrong';
+                    checkpointFeedback.textContent = cp.explanation_wrong;
+                }
+                checkpointFeedback.style.display = 'block';
+                const userAnswerText = cp.options[selectedOption];
+                addLearningLogEntry(steps[currentStep].step, cp.question, userAnswerText, isCorrect, isCorrect ? cp
+                    .explanation_correct : cp.explanation_wrong);
+            });
+
+            checkpointHint.addEventListener('click', () => {
+                const cp = checkpointContainer._cpData;
+                if (!cp) return;
+                checkpointFeedback.className = 'feedback-area hint-fb';
+                checkpointFeedback.textContent = '💡 提示：' + (cp.hintShort || cp.hint);
+                checkpointFeedback.style.display = 'block';
+            });
+
+            checkpointShowAnswer.addEventListener('click', () => {
+                const cp = checkpointContainer._cpData;
+                if (!cp) return;
+                checkpointFeedback.className = 'feedback-area correct';
+                const correctOpt = cp.options[cp.correct];
+                checkpointFeedback.textContent = '👁 正确答案是：' + correctOpt + ' — ' + cp.explanation_correct;
+                checkpointFeedback.style.display = 'block';
+                // Auto-select correct option
+                document.querySelectorAll('#checkpoint-options .opt-btn').forEach((b, i) => {
+                    b.classList.remove('selected');
+                    if (i === cp.correct) b.classList.add('selected');
+                });
+                selectedOption = cp.correct;
+            });
+
+            // ============ TIMELINE ============
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                const tickLabels = [
+                    { label: '初始化', op: 'dp[0]=0' },
+                    { label: '硬币1', op: 'c=1更新' },
+                    { label: '硬币1完', op: 'dp[c]=c' },
+                    { label: '硬币2', op: 'c=2改进' },
+                    { label: '硬币2', op: 'c=4改进' },
+                    { label: '硬币2完', op: '循环完成' },
+                    { label: '硬币5', op: 'c=5大改进' },
+                    { label: '硬币5', op: 'c=10改进' },
+                    { label: '硬币5', op: 'c=11得答案' },
+                    { label: '确认', op: '返回3' },
+                ];
+                for (let i = 0; i < N; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.innerHTML =
+                        `<span class="tick-label">${tickLabels[i].label}</span><span class="tick-op">${tickLabels[i].op}</span>`;
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                    });
+                    tick.dataset.index = i;
+                    timelineEl.appendChild(tick);
+                }
+            }
+
+            function updateTimelineActive(stepIdx) {
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    if (i === stepIdx) {
+                        t.classList.add('active-tick');
+                    } else {
+                        t.classList.remove('active-tick');
+                    }
+                });
+            }
+
+            // ============ NAVIGATION ============
+            function goToStep(stepIdx) {
+                if (stepIdx < 0 || stepIdx >= N) return;
+                currentStep = stepIdx;
+                const stepObj = steps[stepIdx];
+
+                // Update all UI
+                stepTitleEl.textContent = '步骤 ' + stepObj.step;
+                stepDescEl.textContent = stepObj.desc;
+                opEl.textContent = stepObj.op;
+                counterEl.textContent = (stepIdx + 1) + ' / ' + N;
+                rangeEl.value = stepIdx + 1;
+                renderCode(stepObj.highlightLines);
+                renderCanvas(stepObj);
+                renderTeaching(stepObj);
+                renderStateAndEvidence(stepObj);
+                updateTimelineActive(stepIdx);
+                renderCheckpoint(stepObj.step);
+
+                // Update top result (always show final answer)
+                topResultEl.textContent = '3';
+                topSolutionEl.textContent = '5 + 5 + 1 = 11 · 共 3 枚';
+                answerEl.textContent = '3';
+            }
+
+            prevBtn.addEventListener('click', () => {
+                if (currentStep > 0) goToStep(currentStep - 1);
+            });
+            nextBtn.addEventListener('click', () => {
+                if (currentStep < N - 1) goToStep(currentStep + 1);
+            });
+            rangeEl.addEventListener('input', () => {
+                const val = parseInt(rangeEl.value);
+                goToStep(val - 1);
+            });
+
+            // Auto-play
+            function stopAutoPlay() {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+                playBtn.textContent = '▶▶';
+                playBtn.style.background = '#fff';
+            }
+
+            playBtn.addEventListener('click', () => {
+                if (autoPlayInterval) {
+                    stopAutoPlay();
+                    return;
+                }
+                playBtn.textContent = '⏸';
+                playBtn.style.background = '#fef3c7';
+                autoPlayInterval = setInterval(() => {
+                    if (currentStep < N - 1) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopAutoPlay();
+                    }
+                }, 1800);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    if (currentStep > 0) goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (currentStep < N - 1) goToStep(currentStep + 1);
+                } else if (e.key === ' ' || e.code === 'Space') {
+                    e.preventDefault();
+                    playBtn.click();
+                }
+            });
+
+            // ============ INIT ============
+            function init() {
+                buildTimeline();
+                goToStep(0);
+                answerEl.textContent = '3';
+                topResultEl.textContent = '3';
+                topSolutionEl.textContent = '5 + 5 + 1 = 11 · 共 3 枚';
+                rangeEl.min = 1;
+                rangeEl.max = N;
+                rangeEl.value = 1;
+                counterEl.textContent = '1 / ' + N;
+                renderLearningLog();
+            }
+
+            init();
+            console.log('✅ AlgoLab 完全背包零钱兑换教学页已就绪。答案：3');
+        })();
+    </script>
+</body>
+</html>

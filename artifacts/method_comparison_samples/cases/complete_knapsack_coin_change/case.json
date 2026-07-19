@@ -1,0 +1,88 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "complete_knapsack_coin_change",
+  "algorithm_id": "complete_knapsack_coin_change",
+  "title": "完全背包零钱兑换",
+  "family": "DP 核心扩展",
+  "difficulty": "medium",
+  "problem": "某商店收银员需要给顾客找零 amount 元。收银台中有无限数量的硬币，面额分别为数组 coins。请编写程序，计算收银员最少需要多少枚硬币才能凑出 amount 元。如果无论如何都无法凑出 amount 元，则返回 -1。",
+  "strategy": "正序容量更新 dp[c]，允许同一种硬币被重复使用。",
+  "input_contract": "输入 coins 数组和 amount。",
+  "time_complexity": "O(len(coins) * amount)",
+  "space_complexity": "O(amount)",
+  "learning_objectives": [
+    "理解 dp[capacity] 表示凑出容量 capacity 的最少硬币数",
+    "分析 coin 循环和 capacity 正序递增如何允许硬币重复使用",
+    "能够根据当前 dp 状态和硬币面额预测下一步 dp 更新"
+  ],
+  "required_views": [
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！你成功应用了状态转移方程。",
+      "feedback_wrong": "不对哦，请观察 dp[capacity-coin]+1 并与当前值比较，取较小者。",
+      "id": "task_1",
+      "oracle": "检查预测值是否等于 min(3, dp[3]+1)=3，正确即通过。",
+      "prompt": "当前硬币面额 coin=2，容量 capacity=5，更新前 dp[5]=3，dp[3]=2。请预测更新后 dp[5] 的值。",
+      "stage2_affordance": "点击 dp 单元格高亮显示计算过程。",
+      "trace_anchor": [
+        "state.dp",
+        "state.coin"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错！容量为 0 时不需要任何硬币。",
+      "feedback_wrong": "再想想：什么容量不需要任何硬币就能凑出？",
+      "id": "task_2",
+      "oracle": "回答必须指出 dp[0] 始终为 0，并解释原因。",
+      "prompt": "在完全背包零钱兑换中，无论 coins 和 amount 如何变化，哪个状态的数值始终保持不变？",
+      "stage2_affordance": "滑动容量轴观察 dp[0] 的恒定值。",
+      "trace_anchor": [
+        "state.dp",
+        "state.amount"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "很好！你发现了面额变化对最优解的影响。",
+      "feedback_wrong": "去掉大面额可能需要更多小硬币，你可以尝试计算新的 dp 数组。",
+      "id": "task_3",
+      "oracle": "预测答案应与 verifier 在 coins=[1,2], amount=11 时的输出一致（应为 6）。",
+      "prompt": "原 coins=[1,2,5], amount=11，最少硬币数为 3。如果去掉面额 5，只留下 [1,2]，最少硬币数会变成多少？",
+      "stage2_affordance": "点击硬币面额标签来添加或移除面额。",
+      "trace_anchor": [
+        "state.coins",
+        "state.amount"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释到位！dp[capacity-coin] 代表了使用当前硬币的前提最优状态。",
+      "feedback_wrong": "注意 dp[capacity-coin] 存放的是凑出 capacity-coin 的最少硬币，加上当前 coin 即得到一种新方案。",
+      "id": "task_4",
+      "oracle": "回答需说明 dp[5] 是凑出 5 的最少硬币，再加一枚 5 即可凑出 10，与当前最优比较。",
+      "prompt": "请解释当 coin=5, capacity=10 时，dp[10] 的更新为何要用 min(dp[10], dp[5]+1)。",
+      "stage2_affordance": "拖动硬币到对应容量槽查看组合过程。",
+      "trace_anchor": [
+        "state.dp",
+        "state.coin",
+        "state.capacity"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 3,
+    "index": 0,
+    "input_data": {
+      "amount": 11,
+      "coins": [
+        1,
+        2,
+        5
+      ]
+    }
+  }
+}

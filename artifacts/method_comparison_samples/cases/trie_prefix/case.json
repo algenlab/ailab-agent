@@ -1,0 +1,91 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "trie_prefix",
+  "algorithm_id": "trie_prefix",
+  "title": "Trie 前缀计数",
+  "family": "Trie",
+  "difficulty": "medium",
+  "problem": "在一个搜索引擎的候选词库里，给定历史搜索词数组 words 和用户当前输入的前缀字符串 prefix，请计算有多少个搜索词是以该前缀开头的，返回这个整数。",
+  "strategy": "把所有单词插入 Trie，再沿前缀路径统计匹配数量。",
+  "input_contract": "输入 words 和 prefix。",
+  "time_complexity": "O(总字符数)",
+  "space_complexity": "O(总字符数)",
+  "learning_objectives": [
+    "理解 Trie 插入过程中节点 count 更新的状态变化",
+    "掌握沿 prefix 遍历 Trie 时判断字符匹配的分支逻辑",
+    "根据 Trace 中节点计数与子节点关系推导 prefix 最终匹配数"
+  ],
+  "required_views": [
+    "trie",
+    "prefix_visual"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！系统会创建新节点 'p' 并链接到 'a'。",
+      "feedback_wrong": "观察当前节点的 children 字典，不存在即需创建。",
+      "id": "task_1",
+      "oracle": "检查是否预测创建新节点并链接，且新节点 count 初始为 0。",
+      "prompt": "当前节点 'a' 没有子节点 'p'，若下一个字符为 'p'，下一步状态树会如何变化？",
+      "stage2_affordance": "点击当前节点查看子节点变化，并手动输入字符触发创建动画。",
+      "trace_anchor": [
+        "state.trie.nodes",
+        "state.char"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "对，根节点 count 总是等于单词总数。",
+      "feedback_wrong": "回顾插入每个单词时根节点 count 的变化。",
+      "id": "task_2",
+      "oracle": "回答应指出根节点 count == words.length 或等价表述。",
+      "prompt": "插入所有 words 后，根节点的 count 与 words 有何不变关系？",
+      "stage2_affordance": "显示根节点计数与单词列表长度对比。",
+      "trace_anchor": [
+        "state.trie.nodes[0].meta.count",
+        "state.words"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确，匹配数从 3 变为 4。",
+      "feedback_wrong": "检查 'apx' 是否以 'ap' 开头。",
+      "id": "task_3",
+      "oracle": "answer 应增加 1；受影响的节点包括前缀 'ap' 路径上的节点及新节点 'apx'。",
+      "prompt": "如果在 words 中新增一个 'apx'，prefix 保持 'ap'，最终 answer 会怎样变化？哪些节点 count 会受影响？",
+      "stage2_affordance": "在界面上点击添加单词，观察 Trie 更新和 answer 变化。",
+      "trace_anchor": [
+        "state.words",
+        "state.prefix",
+        "state.answer"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释清晰，answer 来自前缀尾节点的 count 属性。",
+      "feedback_wrong": "留意 trace 中前缀匹配时访问的节点序列。",
+      "id": "task_4",
+      "oracle": "描述从根沿字符 'a','p' 到达某节点，其 count 即为 3。",
+      "prompt": "当前 prefix='ap'，最终 answer=3，请逐步解释 Trie 如何得出此计数。",
+      "stage2_affordance": "播放前缀匹配动画，逐步高亮节点并显示 count。",
+      "trace_anchor": [
+        "state.prefix",
+        "state.trie.nodes",
+        "state.answer"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": 3,
+    "index": 0,
+    "input_data": {
+      "prefix": "ap",
+      "words": [
+        "apple",
+        "app",
+        "ape",
+        "bat"
+      ]
+    }
+  }
+}

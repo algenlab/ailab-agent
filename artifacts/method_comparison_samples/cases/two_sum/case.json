@@ -1,0 +1,92 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "two_sum",
+  "algorithm_id": "two_sum",
+  "title": "两数之和",
+  "family": "哈希表 / map",
+  "difficulty": "medium",
+  "problem": "在订单配货系统中，nums[i] 表示第 i 个货位上可直接拣出的商品数量，订单还缺 target 件同类商品。找到两个不同货位，使它们的数量之和正好为 target，返回这两个货位的 0-based 下标；若不存在则返回空数组。",
+  "strategy": "遍历数组，用哈希表记录已出现数值的下标，检查互补值。",
+  "input_contract": "输入 nums 数组和 target。",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "掌握哈希表一次扫描中 seen 映射和 need 互补值的变化规律",
+    "能根据当前扫描位置 i 和已见哈希表预测算法下一步操作",
+    "能通过重复实验理解哈希表查找对效率的提升"
+  ],
+  "required_views": [
+    "array",
+    "map"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！继续看下一个货位。",
+      "feedback_wrong": "请观察当前 need 值，并注意 seen 中是否存在该值。",
+      "id": "task_1",
+      "oracle": "检查下一步 op 是否为 'compare'，且 need = -2，hit=false",
+      "prompt": "当前扫描到 nums[2]=11，seen 中已有 {2:0, 7:1}，target=9。下一步算法会执行什么操作？",
+      "stage2_affordance": "在 Stage2 中点击下一步按钮，观察 seen 变化",
+      "trace_anchor": [
+        "state.seen",
+        "state.i"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "完全正确，seen 只记录已访问元素的值。",
+      "feedback_wrong": "再想想，seen 的内容何时变化？i 和 seen 长度有何关系？",
+      "id": "task_2",
+      "oracle": "正确答案为 C，比较学生选择",
+      "prompt": "在算法执行过程中，下面哪一项始终成立？（A）seen 长度等于 i；（B）need 总是正数；（C）seen 中的键是已经访问过的元素值",
+      "stage2_affordance": "单步执行并观察 seen 和 i 的变化",
+      "trace_anchor": [
+        "state.seen",
+        "state.i"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "正确，改变后没有两个货位之和为 9。",
+      "feedback_wrong": "请重新计算每个组合的和，注意 target 为 9。",
+      "id": "task_3",
+      "oracle": "2+8=10≠9, 2+11=13, 2+15=17, 无解，预期返回 []",
+      "prompt": "将 nums[1] 从 7 改为 8，target 不变，算法是否还能找到解？输出新的下标或空。",
+      "stage2_affordance": "拖动滑块修改货位数量，观察结果变化",
+      "trace_anchor": [
+        "nums",
+        "target"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "解释到位，正是这样的累加过程。",
+      "feedback_wrong": "回顾第一步，当 need 不在 seen 中时，会执行什么操作？",
+      "id": "task_4",
+      "oracle": "seen 从 {} 变为 {2:0}，因为 need=7 不在 seen 中，故将 2 加入，然后 i 变为 1",
+      "prompt": "当算法从 i=0 到 i=1 时，seen 经历了什么变化？为什么？",
+      "stage2_affordance": "倒回第一步，重新观察 seen 的添加动作",
+      "trace_anchor": [
+        "state.seen",
+        "state.i"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": [
+      0,
+      1
+    ],
+    "index": 0,
+    "input_data": {
+      "nums": [
+        2,
+        7,
+        11,
+        15
+      ],
+      "target": 9
+    }
+  }
+}

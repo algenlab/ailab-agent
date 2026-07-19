@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>不同路径 - 二维DP教学</title>
+    <style>
+        :root {
+            --bg: #f5f1eb;
+            --surface: #ffffff;
+            --surface2: #faf8f5;
+            --text: #2c2416;
+            --text2: #5c4f3a;
+            --accent: #d4752b;
+            --accent2: #b8601f;
+            --blue: #3b6fb6;
+            --blue-light: #e8f1fb;
+            --green: #5a8a4a;
+            --green-light: #edf7e8;
+            --yellow: #e8c84a;
+            --yellow-light: #fef9e7;
+            --red: #c0392b;
+            --red-light: #fdedec;
+            --gray: #d9d4cc;
+            --gray-light: #f0ede7;
+            --border: #e0d9ce;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'DejaVu Sans Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .app-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header-left h1 {
+            font-size: 1.6em;
+            font-weight: 700;
+            color: #1a1008;
+            letter-spacing: -0.3px;
+            margin: 0;
+        }
+        .header-left .subtitle {
+            color: var(--text2);
+            font-size: 0.95em;
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .result-badge {
+            background: var(--green-light);
+            border: 2px solid var(--green);
+            border-radius: var(--radius-sm);
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #2d5a1e;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .result-badge .label {
+            font-weight: 500;
+            font-size: 0.85em;
+            color: #4a7a35;
+        }
+        .solution-badge {
+            background: var(--blue-light);
+            border: 1px solid #c5d9f0;
+            border-radius: var(--radius-sm);
+            padding: 8px 14px;
+            font-size: 0.9em;
+            color: #2a4f7a;
+            max-width: 320px;
+            text-align: right;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .panel h3 {
+            font-size: 1.05em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1a1008;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel h3 .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-blue {
+            background: var(--blue);
+        }
+        .dot-accent {
+            background: var(--accent);
+        }
+        .dot-green {
+            background: var(--green);
+        }
+
+        /* Canvas - DP table */
+        #canvas {
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        .dp-table {
+            border-collapse: collapse;
+            font-family: var(--mono);
+            font-size: 1em;
+            margin: 0 auto;
+        }
+        .dp-table td {
+            width: 52px;
+            height: 46px;
+            text-align: center;
+            vertical-align: middle;
+            border: 2px solid #d9d0c2;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.35s ease;
+            position: relative;
+            font-size: 1.05em;
+            cursor: default;
+            background: #fafaf7;
+            color: #999;
+        }
+        .dp-table td.cell-boundary {
+            background: #eaf6e3;
+            color: #3d6b2e;
+            border-color: #b8d4a8;
+            font-weight: 700;
+        }
+        .dp-table td.cell-computed {
+            background: #e3f0db;
+            color: #2d5a1e;
+            border-color: #a8cc96;
+            font-weight: 700;
+        }
+        .dp-table td.cell-current {
+            background: #d4e6ff;
+            color: #1a3d6e;
+            border-color: #5b9bd5;
+            font-weight: 700;
+            box-shadow: 0 0 0 4px rgba(59, 111, 182, 0.25);
+            z-index: 2;
+            transform: scale(1.06);
+            animation: pulse-cell 0.7s ease-in-out infinite alternate;
+        }
+        @keyframes pulse-cell {
+            from {
+                box-shadow: 0 0 0 3px rgba(59, 111, 182, 0.2);
+            }
+            to {
+                box-shadow: 0 0 0 8px rgba(59, 111, 182, 0.08);
+            }
+        }
+        .dp-table td.cell-dependency {
+            background: #fef8d8;
+            color: #7a5d10;
+            border-color: #e8c84a;
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(232, 200, 74, 0.3);
+        }
+        .dp-table td.cell-empty {
+            background: #f9f7f4;
+            color: #c5bfb4;
+            border-color: #e8e2d8;
+            font-style: italic;
+            font-size: 0.85em;
+        }
+        .dp-table td.cell-answer {
+            background: #ffe0b2;
+            color: #7a3d00;
+            border-color: #f0a040;
+            font-weight: 700;
+            box-shadow: 0 0 0 5px rgba(212, 117, 43, 0.3);
+            animation: glow-answer 1s ease-in-out infinite alternate;
+        }
+        @keyframes glow-answer {
+            from {
+                box-shadow: 0 0 0 4px rgba(212, 117, 43, 0.25);
+            }
+            to {
+                box-shadow: 0 0 0 10px rgba(212, 117, 43, 0.05);
+            }
+        }
+        .dp-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.8em;
+            color: var(--text2);
+            justify-content: center;
+            margin-top: 6px;
+        }
+        .dp-legend span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            display: inline-block;
+        }
+
+        /* Code */
+        #code {
+            background: #1e1b15;
+            color: #e8dfc8;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            font-family: var(--mono);
+            font-size: 0.88em;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid #3a352a;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background 0.3s;
+            cursor: default;
+        }
+        #code .code-line.highlight {
+            background: rgba(212, 117, 43, 0.35);
+            color: #ffd59e;
+            font-weight: 700;
+            border-left: 3px solid #d4752b;
+            padding-left: 12px;
+        }
+        #code .code-line.highlight-dim {
+            background: rgba(212, 117, 43, 0.12);
+            color: #c9b78e;
+            border-left: 2px solid rgba(212, 117, 43, 0.4);
+            padding-left: 10px;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 4px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            align-items: flex-start;
+        }
+        #timeline .tick {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 2px solid var(--border);
+            background: var(--surface2);
+            transition: all 0.2s;
+            min-width: 64px;
+            text-align: center;
+            font-size: 0.8em;
+            gap: 3px;
+            user-select: none;
+        }
+        #timeline .tick:hover {
+            border-color: var(--accent);
+            background: #fef5ec;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+        #timeline .tick.active {
+            border-color: var(--accent);
+            background: #fde8d0;
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(212, 117, 43, 0.2);
+            transform: translateY(-2px);
+        }
+        #timeline .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #3a2a10;
+        }
+        #timeline .tick .tick-op {
+            font-size: 0.72em;
+            color: #6b5a3e;
+            white-space: nowrap;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 6px 0;
+        }
+        .btn {
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-family: var(--font);
+            white-space: nowrap;
+            color: var(--text);
+            letter-spacing: -0.1px;
+        }
+        .btn:hover {
+            border-color: var(--accent);
+            background: #fef7f0;
+        }
+        .btn:active {
+            transform: scale(0.96);
+            background: #fde8d0;
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.accent:hover {
+            background: var(--accent2);
+            border-color: var(--accent2);
+        }
+        .btn.play-btn {
+            background: #3b6fb6;
+            color: #fff;
+            border-color: #3b6fb6;
+            min-width: 56px;
+            font-size: 1em;
+        }
+        .btn.play-btn:hover {
+            background: #2d5a94;
+        }
+        .btn.play-btn.playing {
+            background: #c0392b;
+            border-color: #c0392b;
+            animation: pulse-play 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes pulse-play {
+            from {
+                box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.4);
+            }
+            to {
+                box-shadow: 0 0 0 10px rgba(192, 57, 43, 0);
+            }
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1em;
+            color: var(--accent);
+            min-width: 60px;
+            text-align: center;
+            font-family: var(--mono);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 200px;
+            cursor: pointer;
+            accent-color: #d4752b;
+            height: 6px;
+        }
+
+        /* Info panels */
+        #state {
+            background: #fafaf6;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-family: var(--mono);
+            font-size: 0.8em;
+            color: #4a3d2a;
+            white-space: pre-wrap;
+            max-height: 160px;
+            overflow-y: auto;
+            border: 1px solid #e8e2d5;
+        }
+        #teaching {
+            font-size: 0.92em;
+            color: var(--text);
+            padding: 8px 0;
+            line-height: 1.65;
+        }
+        #step-evidence {
+            background: #fdfaf3;
+            border-left: 4px solid var(--accent);
+            padding: 10px 14px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 0.85em;
+            color: #5c3d1a;
+            margin: 6px 0;
+            font-family: var(--mono);
+            white-space: pre-wrap;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #1a1008;
+        }
+        #step-desc {
+            color: var(--text2);
+            font-size: 0.9em;
+            margin-bottom: 6px;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            background: #fefaf3;
+            border: 2px dashed #e8c84a;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+        .checkpoint-area .cp-question {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #5c3d10;
+        }
+        .checkpoint-area input[type="text"],
+        .checkpoint-area input[type="number"] {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            font-size: 1em;
+            width: 120px;
+            font-family: var(--mono);
+            text-align: center;
+        }
+        .checkpoint-area input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 117, 43, 0.1);
+        }
+        .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9em;
+            display: none;
+        }
+        .cp-feedback.correct {
+            background: #e8f5e0;
+            color: #2d6a1e;
+            border: 1px solid #a8cc96;
+            display: block;
+        }
+        .cp-feedback.incorrect {
+            background: #fde8e8;
+            color: #a02020;
+            border: 1px solid #e8a0a0;
+            display: block;
+        }
+        .cp-feedback.hint-show {
+            background: #fef8d8;
+            color: #6b4f10;
+            border: 1px solid #e8c84a;
+            display: block;
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            background: #fafafa;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-sm:hover {
+            background: #f0f0f0;
+            border-color: #999;
+        }
+        .btn-sm.hint-btn {
+            background: #fef8d8;
+            border-color: #e8c84a;
+            color: #6b4f10;
+        }
+        .btn-sm.show-answer-btn {
+            background: #fde8d0;
+            border-color: #d4752b;
+            color: #7a3d00;
+        }
+        .btn-sm.submit-btn {
+            background: #3b6fb6;
+            border-color: #3b6fb6;
+            color: #fff;
+            font-weight: 700;
+        }
+        .btn-sm.submit-btn:hover {
+            background: #2d5a94;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: #fafaf6;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.82em;
+            border: 1px solid #e8e2d5;
+            font-family: var(--mono);
+            color: #4a3d2a;
+            list-style: none;
+        }
+        #learning-log li {
+            padding: 4px 0;
+            border-bottom: 1px dotted #e0d9ce;
+            margin-bottom: 2px;
+        }
+        #learning-log li.correct-entry {
+            color: #2d6a1e;
+        }
+        #learning-log li.incorrect-entry {
+            color: #a02020;
+        }
+
+        /* Answer */
+        #answer {
+            font-family: var(--mono);
+            font-weight: 700;
+            color: #2d5a1e;
+            font-size: 1.2em;
+        }
+        #top-result {
+            font-weight: 700;
+            color: #2d5a1e;
+        }
+        #top-solution {
+            font-size: 0.85em;
+            color: #2a4f7a;
+            line-height: 1.4;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .dp-table td {
+                width: 36px;
+                height: 34px;
+                font-size: 0.8em;
+            }
+            #timeline .tick {
+                min-width: 48px;
+                padding: 5px 6px;
+                font-size: 0.7em;
+            }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1 id="title">不同路径</h1>
+                <p class="subtitle" id="subtitle">智能仓库巡检机器人 · m×n网格 · 二维动态规划</p>
+            </div>
+            <div class="header-right">
+                <div class="result-badge">
+                    <span class="label">🏁 期望输出</span>
+                    <span id="top-result">28</span>
+                </div>
+                <div class="solution-badge" id="top-solution">
+                    <strong>策略：</strong>dp[i][j] = dp[i-1][j] + dp[i][j-1]<br>每个格子的路径数 = 上方路径数 + 左侧路径数
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left Column -->
+            <div>
+                <!-- Code Panel -->
+                <div class="panel">
+                    <h3><span class="dot dot-blue"></span> 算法伪代码</h3>
+                    <div id="code">
+                        <span class="code-line" data-line="1">function uniquePaths(m, n):</span>
+                        <span class="code-line" data-line="2">    // 创建 m×n 的二维DP数组</span>
+                        <span class="code-line" data-line="3">    dp = 创建 m 行 n 列的二维数组</span>
+                        <span class="code-line" data-line="4">    // 初始化第一行和第一列为 1</span>
+                        <span class="code-line" data-line="5">    for i = 0 to m-1:  dp[i][0] = 1</span>
+                        <span class="code-line" data-line="6">    for j = 0 to n-1:  dp[0][j] = 1</span>
+                        <span class="code-line" data-line="7">    // 按行填充DP表</span>
+                        <span class="code-line" data-line="8">    for i = 1 to m-1:</span>
+                        <span class="code-line" data-line="9">        for j = 1 to n-1:</span>
+                        <span class="code-line" data-line="10">            dp[i][j] = dp[i-1][j] + dp[i][j-1]</span>
+                        <span class="code-line" data-line="11">    // 返回右下角结果</span>
+                        <span class="code-line" data-line="12">    return dp[m-1][n-1]</span>
+                    </div>
+                </div>
+
+                <!-- Canvas Panel -->
+                <div class="panel">
+                    <h3><span class="dot dot-accent"></span> DP表可视化 <span style="font-weight:400;font-size:0.8em;color:#888;">(m=3, n=7)</span></h3>
+                    <div id="canvas"></div>
+                    <div class="dp-legend">
+                        <span><span class="legend-swatch" style="background:#eaf6e3;border-color:#b8d4a8;"></span> 边界值(=1)</span>
+                        <span><span class="legend-swatch" style="background:#e3f0db;border-color:#a8cc96;"></span> 已计算</span>
+                        <span><span class="legend-swatch" style="background:#fef8d8;border-color:#e8c84a;"></span> 依赖格</span>
+                        <span><span class="legend-swatch" style="background:#d4e6ff;border-color:#5b9bd5;"></span> 当前格</span>
+                        <span><span class="legend-swatch" style="background:#ffe0b2;border-color:#f0a040;"></span> 答案格</span>
+                        <span><span class="legend-swatch" style="background:#f9f7f4;border-color:#e8e2d8;"></span> 待计算</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div>
+                <!-- Step Info Panel -->
+                <div class="panel">
+                    <h3><span class="dot dot-green"></span> 当前步骤</h3>
+                    <div id="step-title">初始化DP表</div>
+                    <div id="step-desc">设置边界条件：第一行和第一列均为1</div>
+                    <div id="teaching"><strong>讲解：</strong>机器人从(0,0)出发，到达第一行或第一列的任意位置都只有一条路径（一直向右或一直向下）。这是DP的边界条件。</div>
+                    <div id="step-evidence">operation: "initialize_boundaries"\ntargets: [第一行所有列, 第一列所有行]\nbefore: 全0\nafter: dp[0][*]=1, dp[*][0]=1</div>
+                </div>
+
+                <!-- State Panel -->
+                <div class="panel">
+                    <h3>📋 状态摘要</h3>
+                    <div id="state">{"step":1,"dp_table":{"row0":[1,1,1,1,1,1,1],"row1":[1,null,null,null,null,null,null],"row2":[1,null,null,null,null,null,null]},"current_cell":null,"progress":"初始化完成"}</div>
+                </div>
+
+                <!-- Checkpoint -->
+                <div class="panel checkpoint-area" id="checkpoint-panel">
+                    <div class="cp-question" id="cp-question">🧠 学习检测点</div>
+                    <div id="cp-input-area">
+                        <input type="number" id="cp-input" placeholder="输入你的答案" min="0" step="1">
+                        <button class="btn-sm submit-btn" id="cp-submit">提交</button>
+                        <button class="btn-sm hint-btn" id="cp-hint">💡 提示</button>
+                        <button class="btn-sm show-answer-btn" id="cp-show-answer">👁 显示答案</button>
+                    </div>
+                    <div class="cp-feedback" id="cp-feedback"></div>
+                </div>
+
+                <!-- Learning Log -->
+                <div class="panel">
+                    <h3>📝 学习日志</h3>
+                    <ul id="learning-log">
+                        <li>🟢 页面加载完毕，准备学习"不同路径"算法。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Controls & Timeline -->
+        <div class="panel" style="padding:14px 18px;">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="上一步">◀ 上一步</button>
+                <button class="btn play-btn" id="play" title="自动播放">▶ 播放</button>
+                <button class="btn" id="next" title="下一步">下一步 ▶</button>
+                <span id="counter">1 / 13</span>
+                <input type="range" id="range" min="1" max="13" value="1" step="1" title="快速跳转步骤">
+                <span style="font-size:0.8em;color:#888;">拖动跳转</span>
+            </div>
+            <div id="timeline" style="margin-top:8px;"></div>
+            <div style="text-align:center;margin-top:8px;font-size:0.85em;color:#6b5a3e;">
+                🏁 最终答案：<span id="answer">28</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ============ CONFIGURATION ============
+            const M = 3;
+            const N = 7;
+            const FINAL_ANSWER = 28; // C(8,2) = 28 for m=3,n=7 -> (m+n-2 choose m-1) = (8 choose 2)=28
+
+            // ============ STEP DEFINITIONS ============
+            // Each step: { id, label, op, desc, teaching, evidence, codeLines, dpState, currentCell, dependencyCells, answerCell }
+            // dpState: 2D array [M][N], null means unfilled
+            // currentCell: [r,c] or null
+            // dependencyCells: [[r,c], ...] for highlighting
+            // answerCell: boolean - is this the final answer cell?
+
+            function buildAllSteps() {
+                const steps = [];
+                // Step 1: Initialize boundaries
+                const dp1 = Array.from({ length: M }, () => Array(N).fill(null));
+                for (let j = 0; j < N; j++) dp1[0][j] = 1;
+                for (let i = 0; i < M; i++) dp1[i][0] = 1;
+                steps.push({
+                    id: 1,
+                    label: '初始化',
+                    op: '设置边界',
+                    desc: '将第一行和第一列全部设为1——这些位置只有一种到达方式。',
+                    teaching: '<strong>讲解：</strong>机器人只能向右或向下移动。到达第一行任意位置只能一直向右走；到达第一列任意位置只能一直向下走。因此这些格子的路径数都是<strong>1</strong>，这是DP的<strong>边界条件</strong>。<br><em>不变量：</em>边界格dp值恒为1。',
+                    evidence: 'operation: "initialize_boundaries"\ntargets: dp[0][0..6], dp[0..2][0]\nbefore: 全部为null(未初始化)\nafter: dp[0][*]=1, dp[*][0]=1\n状态变化: 12个边界格被赋值为1',
+                    codeLines: [5, 6],
+                    dpState: JSON.parse(JSON.stringify(dp1)),
+                    currentCell: null,
+                    dependencyCells: [],
+                    answerCell: false
+                });
+
+                // Steps 2-7: Fill row 1 (columns 1..6)
+                const row1FillOrder = [
+                    { j: 1, val: 2 },
+                    { j: 2, val: 3 },
+                    { j: 3, val: 4 },
+                    { j: 4, val: 5 },
+                    { j: 5, val: 6 },
+                    { j: 6, val: 7 },
+                ];
+                for (let idx = 0; idx < row1FillOrder.length; idx++) {
+                    const { j, val } = row1FillOrder[idx];
+                    const dpCopy = JSON.parse(JSON.stringify(steps[steps.length - 1].dpState));
+                    dpCopy[1][j] = val;
+                    const stepNum = 2 + idx;
+                    steps.push({
+                        id: stepNum,
+                        label: `填充[1,${j}]`,
+                        op: `dp[1][${j}]=${val}`,
+                        desc: `计算dp[1][${j}] = dp[0][${j}] + dp[1][${j - 1}] = 1 + ${val - 1} = ${val}`,
+                        teaching: `<strong>讲解：</strong>当前格dp[1][${j}]依赖<strong>上方</strong>dp[0][${j}]=1和<strong>左侧</strong>dp[1][${j - 1}]=${val - 1}。到达当前格的方式 = 到达上方格的方式 + 到达左侧格的方式。<br><em>常见误区：</em>不要忘记两个依赖格都必须已经计算完毕。`,
+                        evidence: `operation: "compute_cell"\ntargets: dp[1][${j}]\ndependencies: dp[0][${j}]=1 (上方), dp[1][${j - 1}]=${val - 1} (左侧)\nbefore: dp[1][${j}]=null\nafter: dp[1][${j}]=${val}\n计算: 1 + ${val - 1} = ${val}`,
+                        codeLines: [10],
+                        dpState: dpCopy,
+                        currentCell: [1, j],
+                        dependencyCells: [
+                            [0, j],
+                            [1, j - 1]
+                        ],
+                        answerCell: false
+                    });
+                }
+
+                // Steps 8-13: Fill row 2 (columns 1..6)
+                const row2FillOrder = [
+                    { j: 1, val: 3, above: 2, left: 1 },
+                    { j: 2, val: 6, above: 3, left: 3 },
+                    { j: 3, val: 10, above: 4, left: 6 },
+                    { j: 4, val: 15, above: 5, left: 10 },
+                    { j: 5, val: 21, above: 6, left: 15 },
+                    { j: 6, val: 28, above: 7, left: 21 },
+                ];
+                for (let idx = 0; idx < row2FillOrder.length; idx++) {
+                    const { j, val, above, left } = row2FillOrder[idx];
+                    const dpCopy = JSON.parse(JSON.stringify(steps[steps.length - 1].dpState));
+                    dpCopy[2][j] = val;
+                    const stepNum = 8 + idx;
+                    const isFinal = (j === 6);
+                    steps.push({
+                        id: stepNum,
+                        label: isFinal ? `🏁答案[2,${j}]` : `填充[2,${j}]`,
+                        op: `dp[2][${j}]=${val}`,
+                        desc: `计算dp[2][${j}] = dp[1][${j}] + dp[2][${j - 1}] = ${above} + ${left} = ${val}` + (
+                            isFinal ? ' ← 最终答案！' : ''),
+                        teaching: isFinal ?
+                            `<strong>讲解：</strong>这是<strong>最终答案格</strong>dp[2][6]！依赖上方dp[1][6]=${above}和左侧dp[2][5]=${left}。${above}+${left}=<strong>${val}</strong>。这就是从左上角到右下角的所有不同路径总数。<br><em>验证：</em>数学公式C(m+n-2, m-1)=C(8,2)=28，与DP结果一致。` :
+                            `<strong>讲解：</strong>当前格dp[2][${j}]依赖<strong>上方</strong>dp[1][${j}]=${above}和<strong>左侧</strong>dp[2][${j - 1}]=${left}。递推公式：dp[i][j]=dp[i-1][j]+dp[i][j-1]。`,
+                        evidence: `operation: "compute_cell"\ntargets: dp[2][${j}]\ndependencies: dp[1][${j}]=${above} (上方), dp[2][${j - 1}]=${left} (左侧)\nbefore: dp[2][${j}]=null\nafter: dp[2][${j}]=${val}\n计算: ${above} + ${left} = ${val}` + (
+                            isFinal ? '\n✅ 这是最终答案！dp[2][6]=28' : ''),
+                        codeLines: isFinal ? [10, 12] : [10],
+                        dpState: dpCopy,
+                        currentCell: [2, j],
+                        dependencyCells: [
+                            [1, j],
+                            [2, j - 1]
+                        ],
+                        answerCell: isFinal
+                    });
+                }
+
+                return steps;
+            }
+
+            const allSteps = buildAllSteps();
+            const totalSteps = allSteps.length; // 13
+
+            // ============ DOM REFS ============
+            const $canvas = document.getElementById('canvas');
+            const $code = document.getElementById('code');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $range = document.getElementById('range');
+            const $prev = document.getElementById('prev');
+            const $playBtn = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $cpQuestion = document.getElementById('cp-question');
+            const $cpInput = document.getElementById('cp-input');
+            const $cpSubmit = document.getElementById('cp-submit');
+            const $cpHint = document.getElementById('cp-hint');
+            const $cpShowAnswer = document.getElementById('cp-show-answer');
+            const $cpFeedback = document.getElementById('cp-feedback');
+            const $learningLog = document.getElementById('learning-log');
+            const $topResult = document.getElementById('top-result');
+
+            // ============ STATE ============
+            let currentStepIndex = 0; // 0-based
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointActive = false;
+            let checkpointAnswered = false;
+            let currentCheckpointData = null;
+
+            // ============ ANSWER ALWAYS 28 ============
+            $answer.textContent = '28';
+            $topResult.textContent = '28';
+
+            // ============ BUILD TIMELINE ============
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                allSteps.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('type', 'button');
+                    tick.innerHTML =
+                        `<span class="tick-label">${step.label}</span><span class="tick-op">${step.op}</span>`;
+                    tick.addEventListener('click', () => {
+                        goToStep(idx);
+                        stopPlay();
+                    });
+                    tick.dataset.index = idx;
+                    $timeline.appendChild(tick);
+                });
+            }
+            buildTimeline();
+
+            // ============ RENDER DP TABLE IN CANVAS ============
+            function renderCanvas(step) {
+                const dp = step.dpState;
+                const currentCell = step.currentCell;
+                const depCells = step.dependencyCells || [];
+                const isAnswer = step.answerCell;
+                const depSet = new Set(depCells.map(([r, c]) => `${r},${c}`));
+
+                let html = '<table class="dp-table"><tbody>';
+                // Column header
+                html += '<tr><td style="background:#f0ede7;font-weight:700;color:#5c4f3a;border:none;font-size:0.75em;">ij</td>';
+                for (let j = 0; j < N; j++) {
+                    html +=
+                        `<td style="background:#f0ede7;font-weight:700;color:#5c4f3a;border:none;font-size:0.75em;">j=${j}</td>`;
+                }
+                html += '</tr>';
+
+                for (let i = 0; i < M; i++) {
+                    html += '<tr>';
+                    html +=
+                        `<td style="background:#f0ede7;font-weight:700;color:#5c4f3a;border:none;font-size:0.75em;">i=${i}</td>`;
+                    for (let j = 0; j < N; j++) {
+                        const val = dp[i][j];
+                        let cellClass = 'cell-empty';
+                        let displayVal = '?';
+                        if (val !== null && val !== undefined) {
+                            displayVal = val;
+                            // Determine cell class
+                            const isCurr = currentCell && currentCell[0] === i && currentCell[1] === j;
+                            const isDep = depSet.has(`${i},${j}`);
+                            const isBoundary = (i === 0 || j === 0);
+                            const isAns = isAnswer && currentCell && currentCell[0] === i && currentCell[1] === j;
+
+                            if (isAns) {
+                                cellClass = 'cell-answer';
+                            } else if (isCurr) {
+                                cellClass = 'cell-current';
+                            } else if (isDep) {
+                                cellClass = 'cell-dependency';
+                            } else if (isBoundary) {
+                                cellClass = 'cell-boundary';
+                            } else if (val !== null) {
+                                cellClass = 'cell-computed';
+                            }
+                        }
+                        html += `<td class="${cellClass}">${displayVal}</td>`;
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                $canvas.innerHTML = html;
+            }
+
+            // ============ HIGHLIGHT CODE ============
+            function highlightCode(codeLineNumbers) {
+                const allLines = $code.querySelectorAll('.code-line');
+                allLines.forEach(line => line.classList.remove('highlight', 'highlight-dim'));
+                if (!codeLineNumbers || codeLineNumbers.length === 0) return;
+                const primaryLine = codeLineNumbers[0];
+                const secondaryLines = codeLineNumbers.slice(1);
+                allLines.forEach(line => {
+                    const ln = parseInt(line.getAttribute('data-line'));
+                    if (ln === primaryLine) {
+                        line.classList.add('highlight');
+                    } else if (secondaryLines.includes(ln)) {
+                        line.classList.add('highlight-dim');
+                    }
+                });
+            }
+
+            // ============ UPDATE ALL UI FOR STEP ============
+            function goToStep(index) {
+                if (index < 0) index = 0;
+                if (index >= totalSteps) index = totalSteps - 1;
+                currentStepIndex = index;
+                const step = allSteps[index];
+
+                // Update counter
+                $counter.textContent = `${index + 1} / ${totalSteps}`;
+
+                // Update range
+                $range.value = index + 1;
+                $range.max = totalSteps;
+
+                // Update step info
+                $stepTitle.textContent = `步骤 ${step.id}：${step.label}`;
+                $stepDesc.textContent = step.desc;
+                $teaching.innerHTML = step.teaching;
+                $stepEvidence.textContent = step.evidence;
+
+                // Update state JSON
+                const stateObj = {
+                    step: step.id,
+                    current_cell: step.currentCell,
+                    dp_table: {
+                        row0: step.dpState[0],
+                        row1: step.dpState[1],
+                        row2: step.dpState[2],
+                    },
+                    progress: step.answerCell ? '✅ 答案已确认' : '填充进行中',
+                    total_steps: totalSteps,
+                };
+                $state.textContent = JSON.stringify(stateObj, null, 2);
+
+                // Update canvas
+                renderCanvas(step);
+
+                // Update code highlight
+                highlightCode(step.codeLines);
+
+                // Update timeline active tick
+                const allTicks = $timeline.querySelectorAll('.tick');
+                allTicks.forEach((tick, i) => {
+                    tick.classList.toggle('active', i === index);
+                });
+
+                // Scroll active tick into view
+                if (allTicks[index]) {
+                    allTicks[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+
+                // Update checkpoint
+                updateCheckpointForStep(step);
+
+                // Update play button if we reached the end
+                if (index >= totalSteps - 1 && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            // ============ CHECKPOINT LOGIC ============
+            function updateCheckpointForStep(step) {
+                // Reset checkpoint state for new step
+                checkpointAnswered = false;
+                $cpFeedback.className = 'cp-feedback';
+                $cpFeedback.textContent = '';
+                $cpFeedback.style.display = 'none';
+                $cpInput.value = '';
+                $cpInput.disabled = false;
+                $cpSubmit.disabled = false;
+
+                // Define checkpoints at specific steps
+                // Step 7: after filling dp[1][6]=7 (row 1 complete)
+                // Step 12: after filling dp[2][5]=21 (about to fill final)
+                // Step 13: final answer confirmation
+                if (step.id === 7) {
+                    checkpointActive = true;
+                    currentCheckpointData = {
+                        stepId: 7,
+                        question: '第二行已全部填充完毕。请问dp[2][1]（第三行第二列，即i=2,j=1）的值是多少？提示：dp[2][1] = dp[1][1] + dp[2][0]',
+                        answer: 3,
+                        hint: 'dp[1][1]=2（上方），dp[2][0]=1（左侧），两者相加即可。',
+                        explanation_correct: '完全正确！dp[2][1] = dp[1][1] + dp[2][0] = 2 + 1 = 3。你已经掌握了递推公式的应用。',
+                        explanation_incorrect: '常见误区：可能是把依赖格搞错了。dp[2][1]依赖的是上方dp[1][1]=2和左侧dp[2][0]=1，两者之和为3。请检查DP表的对应位置。',
+                    };
+                    $cpQuestion.textContent = '🧠 ' + currentCheckpointData.question;
+                    $cpInput.placeholder = '输入数值';
+                    $cpInput.setAttribute('type', 'number');
+                    $cpInput.setAttribute('min', '0');
+                    $cpInput.setAttribute('step', '1');
+                    checkpointAnswered = false;
+                } else if (step.id === 12) {
+                    checkpointActive = true;
+                    currentCheckpointData = {
+                        stepId: 12,
+                        question: '只剩最后一个格子dp[2][6]了！根据当前DP表，请预测它的值（即最终答案）。提示：dp[2][6] = dp[1][6] + dp[2][5]',
+                        answer: 28,
+                        hint: 'dp[1][6]=7（上方），dp[2][5]=21（左侧），7+21=?',
+                        explanation_correct: '太棒了！dp[2][6] = 7 + 21 = 28，这就是最终答案。C(8,2)=28的数学结果也验证了这一点。',
+                        explanation_incorrect: '请再检查一下：dp[1][6]=7，dp[2][5]=21。7+21=28。这是组合数C(8,2)，也可以直接从数学公式得出。',
+                    };
+                    $cpQuestion.textContent = '🧠 ' + currentCheckpointData.question;
+                    $cpInput.placeholder = '输入预测值';
+                    $cpInput.setAttribute('type', 'number');
+                    $cpInput.setAttribute('min', '0');
+                    $cpInput.setAttribute('step', '1');
+                    checkpointAnswered = false;
+                } else if (step.id === 13) {
+                    checkpointActive = true;
+                    currentCheckpointData = {
+                        stepId: 13,
+                        question: '✅ 答案已确认为28。思考题：如果网格变为4×7（m=4,n=7），答案会是多少？提示：C(m+n-2, m-1) = C(9,3)',
+                        answer: 84,
+                        hint: 'C(9,3) = 9×8×7 / (3×2×1) = 504/6 = 84。或者用DP递推：在现有3×7表格基础上再加一行。',
+                        explanation_correct: '非常好！C(9,3)=84，你的组合数学功底不错。这也说明DP和组合数学是相通的。',
+                        explanation_incorrect: 'C(9,3) = 9×8×7/(3×2×1) = 504/6 = 84。试试用DP思路：在3×7基础上，第四行每个格子的值会继续累加。',
+                    };
+                    $cpQuestion.textContent = '🧠 ' + currentCheckpointData.question;
+                    $cpInput.placeholder = '输入答案';
+                    $cpInput.setAttribute('type', 'number');
+                    $cpInput.setAttribute('min', '0');
+                    $cpInput.setAttribute('step', '1');
+                    checkpointAnswered = false;
+                } else {
+                    checkpointActive = false;
+                    currentCheckpointData = null;
+                    $cpQuestion.textContent = '🧠 学习检测点（在关键步骤会出现题目）';
+                    $cpInput.placeholder = '暂无题目，继续浏览...';
+                    $cpInput.disabled = true;
+                    $cpSubmit.disabled = true;
+                    $cpFeedback.className = 'cp-feedback';
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.style.display = 'none';
+                }
+            }
+
+            function submitCheckpoint() {
+                if (!checkpointActive || !currentCheckpointData || checkpointAnswered) return;
+                const userAnswer = parseInt($cpInput.value.trim());
+                if (isNaN(userAnswer)) {
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                    $cpFeedback.textContent = '⚠️ 请输入有效的数字。';
+                    $cpFeedback.style.display = 'block';
+                    return;
+                }
+                checkpointAnswered = true;
+                const isCorrect = (userAnswer === currentCheckpointData.answer);
+                const logEntry = document.createElement('li');
+                if (isCorrect) {
+                    $cpFeedback.className = 'cp-feedback correct';
+                    $cpFeedback.textContent = '✅ ' + currentCheckpointData.explanation_correct;
+                    $cpFeedback.style.display = 'block';
+                    logEntry.className = 'correct-entry';
+                    logEntry.textContent =
+                        `✅ 步骤${currentCheckpointData.stepId}：回答正确！答案=${userAnswer}，${currentCheckpointData.explanation_correct}`;
+                } else {
+                    $cpFeedback.className = 'cp-feedback incorrect';
+                    $cpFeedback.textContent = '❌ ' + currentCheckpointData.explanation_incorrect;
+                    $cpFeedback.style.display = 'block';
+                    logEntry.className = 'incorrect-entry';
+                    logEntry.textContent =
+                        `❌ 步骤${currentCheckpointData.stepId}：回答错误。你的答案=${userAnswer}，正确答案=${currentCheckpointData.answer}。${currentCheckpointData.explanation_incorrect}`;
+                }
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+                $cpInput.disabled = true;
+                $cpSubmit.disabled = true;
+            }
+
+            function showHint() {
+                if (!checkpointActive || !currentCheckpointData) return;
+                $cpFeedback.className = 'cp-feedback hint-show';
+                $cpFeedback.textContent = '💡 提示：' + currentCheckpointData.hint;
+                $cpFeedback.style.display = 'block';
+                const logEntry = document.createElement('li');
+                logEntry.textContent = `💡 步骤${currentCheckpointData.stepId}：查看了提示——${currentCheckpointData.hint}`;
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function showAnswer() {
+                if (!checkpointActive || !currentCheckpointData) return;
+                checkpointAnswered = true;
+                $cpFeedback.className = 'cp-feedback correct';
+                $cpFeedback.textContent = '👁 正确答案是：' + currentCheckpointData.answer + '。' + currentCheckpointData
+                    .explanation_correct;
+                $cpFeedback.style.display = 'block';
+                $cpInput.value = currentCheckpointData.answer;
+                $cpInput.disabled = true;
+                $cpSubmit.disabled = true;
+                const logEntry = document.createElement('li');
+                logEntry.textContent =
+                    `👁 步骤${currentCheckpointData.stepId}：查看了答案——正确答案=${currentCheckpointData.answer}`;
+                $learningLog.appendChild(logEntry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            // ============ PLAY / STOP ============
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                $playBtn.textContent = '⏸ 暂停';
+                $playBtn.classList.add('playing');
+                if (currentStepIndex >= totalSteps - 1) {
+                    goToStep(0);
+                }
+                playInterval = setInterval(() => {
+                    if (currentStepIndex >= totalSteps - 1) {
+                        stopPlay();
+                        return;
+                    }
+                    goToStep(currentStepIndex + 1);
+                }, 1400);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $playBtn.textContent = '▶ 播放';
+                $playBtn.classList.remove('playing');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ============ EVENT LISTENERS ============
+            $prev.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex - 1);
+            });
+            $next.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex + 1);
+            });
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt($range.value);
+                goToStep(val - 1);
+            });
+            $cpSubmit.addEventListener('click', submitCheckpoint);
+            $cpHint.addEventListener('click', showHint);
+            $cpShowAnswer.addEventListener('click', showAnswer);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.key === 'Enter') {
+                    // Check if checkpoint input is focused
+                    if (document.activeElement === $cpInput && checkpointActive && !checkpointAnswered) {
+                        e.preventDefault();
+                        submitCheckpoint();
+                    }
+                }
+            });
+
+            // ============ INITIALIZE ============
+            goToStep(0);
+            $range.max = totalSteps;
+            $range.value = 1;
+
+            console.log('🚀 AlgoLab教学页面已就绪 | 不同路径 | m=3, n=7 | 总步骤数=' + totalSteps + ' | 答案=28');
+            console.log('💡 使用左右箭头键切换步骤，空格键播放/暂停，Enter提交检测题');
+        })();
+    </script>
+</body>
+</html>

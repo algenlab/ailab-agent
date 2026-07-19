@@ -1,0 +1,149 @@
+{
+  "schema_version": "method-artifact-gallery-v1",
+  "case_id": "lca",
+  "algorithm_id": "lca",
+  "title": "二叉树最近公共祖先",
+  "family": "树 / BST / LCA",
+  "difficulty": "medium",
+  "problem": "在家族谱系追踪系统中，用户经常需要了解两位成员的血缘关系。你的任务是：根据完整的家族树 tree（含节点 id 和亲子边），对于任意指定的成员 p 和 q，计算二者深度最大的共同祖先节点，并以字符串形式返回该节点的 id。",
+  "strategy": "DFS 返回当前子树是否命中 p 或 q；左右都命中时当前节点为 LCA。",
+  "input_contract": "输入 tree、p、q。",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(h)",
+  "learning_objectives": [
+    "理解 DFS 递归过程中当前子树是否包含 p 或 q 的状态变化",
+    "根据递归回溯顺序预测下一步将处理哪个节点",
+    "运用“左右子树均返回非空则当前节点为 LCA”的不变式验证算法正确性"
+  ],
+  "required_views": [
+    "tree",
+    "call_stack"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "正确！你准确跟踪了递归顺序。",
+      "feedback_wrong": "不妨查看 trace 中 call_stack 的变化，观察下一步进栈的节点。",
+      "id": "task_1",
+      "oracle": "根据 trace 中记录的下一步进入的节点 id 判断",
+      "prompt": "当前递归节点是 5，左子调用返回了 None，接下来会处理哪个节点？",
+      "stage2_affordance": "高亮下一步将处理的节点，并显示预期动作",
+      "trace_anchor": [
+        "state.current",
+        "state.call_stack"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "没错！左右都命中，当前节点就是 LCA。",
+      "feedback_wrong": "回顾一下：当左右子树都有目标时，当前节点扮演什么角色？",
+      "id": "task_2",
+      "oracle": "返回值应为节点 2，且它是 7 和 4 的 LCA",
+      "prompt": "当递归处理节点 2 时，左子返回了 7，右子返回了 4，此时节点 2 的返回值应满足什么不变式？",
+      "stage2_affordance": "在 tree 视图中高亮节点 2 及其左右子返回值",
+      "trace_anchor": [
+        "state.return_values",
+        "state.current"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "很好！你发现了当 p 是 q 的祖先时，LCA 就是 p。",
+      "feedback_wrong": "检查一下 p 和 q 的关系：6 是 5 的子节点吗？",
+      "id": "task_3",
+      "oracle": "预期 LCA 应为 5，因为 5 本身就是 6 的祖先",
+      "prompt": "如果保持树结构不变，将 q 改为 6，p 保持 5，那么 LCA 会变成哪个节点？",
+      "stage2_affordance": "允许学生拖拽修改 p 或 q 的值，并观察 LCA 变化",
+      "trace_anchor": [
+        "state.p",
+        "state.q"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "完美！这正是 LCA 的核心判断逻辑。",
+      "feedback_wrong": "想想：此时节点 3 的左右子树各包含一个目标，那么这两个目标的共同祖先是谁？",
+      "id": "task_4",
+      "oracle": "因为左右子树均包含一个目标，根据算法逻辑，当前节点就是最近共同祖先",
+      "prompt": "在节点 3 的递归中，左子（5）返回了 5，右子（1）返回了 1，为什么最后答案就会是 3？",
+      "stage2_affordance": "动画展示递归回溯，并在两侧子树变绿时在节点 3 上闪烁标记",
+      "trace_anchor": [
+        "state.current",
+        "state.return_values"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "sample": {
+    "expected": "3",
+    "index": 0,
+    "input_data": {
+      "p": "5",
+      "q": "1",
+      "tree": {
+        "edges": [
+          [
+            "3",
+            "5"
+          ],
+          [
+            "3",
+            "1"
+          ],
+          [
+            "5",
+            "6"
+          ],
+          [
+            "5",
+            "2"
+          ],
+          [
+            "1",
+            "0"
+          ],
+          [
+            "1",
+            "8"
+          ],
+          [
+            "2",
+            "7"
+          ],
+          [
+            "2",
+            "4"
+          ]
+        ],
+        "nodes": [
+          {
+            "id": "3"
+          },
+          {
+            "id": "5"
+          },
+          {
+            "id": "1"
+          },
+          {
+            "id": "6"
+          },
+          {
+            "id": "2"
+          },
+          {
+            "id": "0"
+          },
+          {
+            "id": "8"
+          },
+          {
+            "id": "7"
+          },
+          {
+            "id": "4"
+          }
+        ]
+      }
+    }
+  }
+}

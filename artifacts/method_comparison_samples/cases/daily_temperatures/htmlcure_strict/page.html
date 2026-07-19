@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日温度 - AlgoLab 算法教学</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text: #1a202c;
+            --text-secondary: #4a5568;
+            --accent: #4f6ef6;
+            --accent-light: #eef1ff;
+            --accent-glow: rgba(79, 110, 246, 0.25);
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --success-glow: rgba(16, 185, 129, 0.25);
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --warning-glow: rgba(245, 158, 11, 0.3);
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --danger-glow: rgba(239, 68, 68, 0.25);
+            --info: #8b5cf6;
+            --info-light: #f5f3ff;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10), 0 4px 10px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 12px 36px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --radius-sm: 7px;
+            --radius-xs: 4px;
+            --radius-xl: 18px;
+            --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 30%, #f5f3ff 60%, #f0f4f8 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: -20%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(ellipse at center, rgba(79, 110, 246, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -25%;
+            right: -15%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-container {
+            max-width: 1360px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            border-left: 5px solid var(--accent);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
+        }
+        .header-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 180px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(79, 110, 246, 0.03) 100%);
+            pointer-events: none;
+        }
+        .header-left h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1a1f2e;
+            letter-spacing: -0.02em;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+        #title {
+            display: inline;
+            background: linear-gradient(135deg, #1a1f2e 0%, #4f6ef6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        #subtitle {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-weight: 400;
+            position: relative;
+            z-index: 1;
+        }
+        .header-right {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        #top-result {
+            background: var(--success-light);
+            color: #065f46;
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 9px 20px;
+            border-radius: 22px;
+            letter-spacing: 0.02em;
+            font-family: var(--font-mono);
+            border: 2px solid #a7f3d0;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08);
+            transition: all var(--transition);
+        }
+        #top-solution {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            background: #f8fafc;
+            padding: 7px 16px;
+            border-radius: 18px;
+            font-family: var(--font-mono);
+            border: 1.5px solid var(--border);
+            font-weight: 500;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr 330px;
+            gap: 14px;
+            align-items: start;
+        }
+        @media (max-width: 1150px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 17px 19px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+            position: relative;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .card-title {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 11px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .card-title::before {
+            content: '';
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: inline-block;
+            box-shadow: 0 0 0 4px rgba(79, 110, 246, 0.18);
+        }
+
+        /* Code panel */
+        .code-panel {
+            position: sticky;
+            top: 16px;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            background: #1a1f2e;
+            color: #e2e8f0;
+            padding: 18px 15px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            counter-reset: codeline;
+            border: 1px solid #2d3548;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        #code .line {
+            display: block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            transition: all var(--transition);
+            position: relative;
+            border-left: 3px solid transparent;
+        }
+        #code .line.highlight {
+            background: #fef3c7;
+            color: #1a1f2e;
+            font-weight: 600;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3);
+            border-radius: 4px;
+            z-index: 1;
+            position: relative;
+            border-left: 3px solid #f59e0b;
+        }
+        #code .line.highlight-exec {
+            background: #fde68a;
+            color: #78350f;
+            font-weight: 700;
+            box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.4);
+            animation: pulseHighlight 0.8s ease-in-out;
+            border-left: 3px solid #f59e0b;
+        }
+        @keyframes pulseHighlight {
+            0%,
+            100% {
+                box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(245, 158, 11, 0.06);
+            }
+        }
+
+        /* Canvas area */
+        .canvas-card {
+            min-height: 390px;
+            position: relative;
+            background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
+        }
+        #canvas {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 10px 0;
+            min-height: 290px;
+        }
+        .canvas-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .canvas-label {
+            font-weight: 700;
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+            min-width: 72px;
+            text-align: right;
+            letter-spacing: 0.02em;
+        }
+        .array-cells {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: 2px solid var(--border);
+            background: #f8fafc;
+            transition: all var(--transition);
+            position: relative;
+            cursor: default;
+            user-select: none;
+        }
+        .cell .cell-val {
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .cell .cell-idx {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        .cell.current {
+            border-color: #f59e0b;
+            background: #fffbeb;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.2);
+            z-index: 2;
+            animation: glowCell 1.2s ease-in-out infinite;
+            transform: scale(1.06);
+        }
+        @keyframes glowCell {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(245, 158, 11, 0.04);
+            }
+        }
+        .cell.answered {
+            border-color: #10b981;
+            background: #f0fdf4;
+            color: #065f46;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+        }
+        .cell.answered .cell-val {
+            color: #065f46;
+        }
+        .cell.in-stack {
+            border-color: #4f6ef6;
+            background: #eef2ff;
+            box-shadow: inset 0 0 0 2px rgba(79, 110, 246, 0.2);
+        }
+        .cell.popping {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+            animation: shakePop 0.55s ease-in-out;
+        }
+        @keyframes shakePop {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-7px);
+            }
+            75% {
+                transform: translateX(7px);
+            }
+        }
+        .stack-visual {
+            display: flex;
+            flex-direction: row;
+            gap: 5px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 10px 14px;
+            background: #f1f5f9;
+            border-radius: var(--radius-sm);
+            min-height: 50px;
+            border: 2px dashed #cbd5e1;
+        }
+        .stack-visual .stack-item {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #e0e7ff;
+            border: 2.5px solid #4f6ef6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: #1e40af;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .stack-visual .stack-item.stack-top {
+            border-color: #f59e0b;
+            background: #fef3c7;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.22);
+            animation: glowCell 1.2s ease-in-out infinite;
+            transform: scale(1.08);
+        }
+        .stack-visual.empty-hint {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+        .pointer-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #f59e0b;
+            animation: bounce 0.7s ease-in-out infinite alternate;
+        }
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(-7px);
+            }
+        }
+
+        /* Info cards */
+        #step-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1a1f2e;
+            margin-bottom: 3px;
+        }
+        #step-desc {
+            font-size: 0.86rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+        #op {
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--accent);
+            background: var(--accent-light);
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 16px;
+            margin-top: 3px;
+            letter-spacing: 0.01em;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            background: #f8fafc;
+            padding: 11px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            max-height: 170px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            color: #334155;
+            line-height: 1.6;
+        }
+        #teaching {
+            font-size: 0.86rem;
+            color: #334155;
+            line-height: 1.6;
+            padding: 9px 0;
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            background: #fffbeb;
+            padding: 11px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1.5px solid #fde68a;
+            color: #78350f;
+            line-height: 1.55;
+        }
+
+        /* Controls */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 13px 17px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+        }
+        .btn {
+            padding: 9px 18px;
+            border-radius: 22px;
+            border: 1.5px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            letter-spacing: 0.01em;
+            font-family: var(--font-sans);
+        }
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: scale(0.95);
+            background: #f1f5f9;
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn.active-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 4px 14px rgba(79, 110, 246, 0.35);
+        }
+        .btn.active-btn:hover {
+            background: #3b5de7;
+            box-shadow: 0 6px 18px rgba(79, 110, 246, 0.4);
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1a1f2e;
+            min-width: 52px;
+            text-align: center;
+            letter-spacing: 0.03em;
+            background: #f1f5f9;
+            padding: 7px 15px;
+            border-radius: 18px;
+            font-family: var(--font-mono);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            height: 7px;
+            border-radius: 4px;
+        }
+
+        /* Timeline */
+        .timeline-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 15px 17px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow-x: auto;
+            scroll-behavior: smooth;
+        }
+        #timeline {
+            display: flex;
+            gap: 9px;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            min-width: fit-content;
+        }
+        .tick {
+            flex: 0 0 auto;
+            padding: 11px 14px;
+            border-radius: 22px;
+            border: 1.5px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: all var(--transition);
+            font-size: 0.77rem;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 82px;
+            user-select: none;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow);
+            transform: translateY(-2px);
+        }
+        .tick.active-tick {
+            background: #1a1f2e;
+            color: #fff;
+            border-color: #1a1f2e;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-3px);
+        }
+        .tick.active-tick .tick-label {
+            color: #fbbf24;
+        }
+        .tick.active-tick .tick-op {
+            color: #e2e8f0;
+        }
+        .tick-label {
+            font-weight: 700;
+            font-size: 0.82rem;
+            letter-spacing: 0.02em;
+            color: #334155;
+        }
+        .tick-op {
+            font-size: 0.7rem;
+            color: #64748b;
+            line-height: 1.3;
+        }
+        .tick.active-tick .tick-label,
+        .tick.active-tick .tick-op {
+            color: inherit;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #fffdf7;
+            border: 2px solid #fde68a;
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+        .checkpoint-card h3 {
+            font-size: 1rem;
+            margin-bottom: 11px;
+            color: #78350f;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-weight: 700;
+        }
+        .checkpoint-card h3::before {
+            content: '🧠';
+            font-size: 1.2rem;
+        }
+        .quiz-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin: 9px 0;
+        }
+        .quiz-option {
+            padding: 9px 18px;
+            border-radius: 22px;
+            border: 1.5px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.84rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .quiz-option:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            transform: translateY(-1px);
+        }
+        .quiz-option.selected {
+            background: #eef2ff;
+            border-color: #4f6ef6;
+            color: #1e40af;
+            font-weight: 700;
+            box-shadow: 0 0 0 4px rgba(79, 110, 246, 0.12);
+        }
+        .quiz-option.correct-flash {
+            background: #dcfce7 !important;
+            border-color: #10b981 !important;
+            color: #065f46 !important;
+            animation: flashGreen 0.7s;
+        }
+        .quiz-option.wrong-flash {
+            background: #fef2f2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+            animation: shakePop 0.55s;
+        }
+        @keyframes flashGreen {
+            0%,
+            100% {
+                background: #dcfce7;
+            }
+            50% {
+                background: #86efac;
+            }
+        }
+        .quiz-input {
+            padding: 10px 15px;
+            border-radius: 22px;
+            border: 1.5px solid #d1d5db;
+            font-size: 0.85rem;
+            width: 240px;
+            font-family: var(--font-mono);
+            transition: all var(--transition);
+        }
+        .quiz-input:focus {
+            outline: none;
+            border-color: #4f6ef6;
+            box-shadow: 0 0 0 5px rgba(79, 110, 246, 0.1);
+        }
+        .quiz-submit {
+            padding: 9px 20px;
+            border-radius: 22px;
+            background: #4f6ef6;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.84rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            box-shadow: 0 4px 14px rgba(79, 110, 246, 0.3);
+        }
+        .quiz-submit:hover {
+            background: #3b5de7;
+            box-shadow: 0 6px 20px rgba(79, 110, 246, 0.4);
+            transform: translateY(-1px);
+        }
+        .quiz-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .quiz-hint-btn {
+            padding: 9px 18px;
+            border-radius: 22px;
+            background: #fff;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.83rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .quiz-hint-btn:hover {
+            background: #fffbeb;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+            transform: translateY(-1px);
+        }
+        .quiz-reveal-btn {
+            padding: 9px 18px;
+            border-radius: 22px;
+            background: #fff;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.83rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .quiz-reveal-btn:hover {
+            background: #fef2f2;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+        .feedback-area {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.84rem;
+            font-weight: 500;
+            min-height: 30px;
+            transition: all var(--transition);
+            line-height: 1.5;
+        }
+        .feedback-area.correct {
+            background: #dcfce7;
+            color: #065f46;
+            border: 2px solid #86efac;
+            animation: feedbackPop 0.4s ease-out;
+        }
+        .feedback-area.wrong {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 2px solid #fecaca;
+            animation: shakePop 0.45s ease-in-out;
+        }
+        .feedback-area.info {
+            background: #eef2ff;
+            color: #1e40af;
+            border: 2px solid #c7d2fe;
+            animation: feedbackPop 0.35s ease-out;
+        }
+        @keyframes feedbackPop {
+            0% {
+                transform: scale(0.94);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Learning Log */
+        .learning-log {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 13px;
+            max-height: 190px;
+            overflow-y: auto;
+            border: 1.5px solid var(--border);
+            font-size: 0.78rem;
+            scroll-behavior: smooth;
+        }
+        .learning-log .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            transition: all var(--transition);
+        }
+        .log-entry .log-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .log-entry .log-text {
+            color: #475569;
+            line-height: 1.45;
+            flex: 1;
+        }
+        .log-time {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            margin-left: auto;
+            flex-shrink: 0;
+            font-family: var(--font-mono);
+        }
+        .learning-log .log-placeholder {
+            color: #94a3b8;
+            font-style: italic;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.82rem;
+        }
+
+        /* Completion overlay */
+        .completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .completion-dialog {
+            background: #fff;
+            border-radius: var(--radius-xl);
+            padding: 36px 40px;
+            text-align: center;
+            box-shadow: var(--shadow-xl);
+            animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 480px;
+            width: 90%;
+        }
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .completion-dialog h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: #1a1f2e;
+        }
+        .completion-dialog .big-emoji {
+            font-size: 4rem;
+            display: block;
+            animation: bounce 0.6s ease-in-out infinite alternate;
+        }
+        .completion-dialog .final-answer-display {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #065f46;
+            background: #ecfdf5;
+            padding: 10px 20px;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 14px 0;
+            border: 2px solid #a7f3d0;
+        }
+        .completion-dialog .btn-close-overlay {
+            margin-top: 16px;
+            padding: 12px 32px;
+            border-radius: 26px;
+            background: #4f6ef6;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.01em;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            box-shadow: 0 6px 20px rgba(79, 110, 246, 0.35);
+        }
+        .completion-dialog .btn-close-overlay:hover {
+            background: #3b5de7;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(79, 110, 246, 0.45);
+        }
+
+        /* Answer hidden element */
+        #answer {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .code-panel {
+                position: static;
+            }
+            .cell {
+                width: 46px;
+                height: 46px;
+                font-size: 0.7rem;
+            }
+            .cell .cell-val {
+                font-size: 0.8rem;
+            }
+            .cell .cell-idx {
+                font-size: 0.6rem;
+            }
+            #timeline {
+                gap: 4px;
+            }
+            .tick {
+                padding: 8px 10px;
+                min-width: 56px;
+                font-size: 0.66rem;
+            }
+            .tick-label {
+                font-size: 0.7rem;
+            }
+            .tick-op {
+                font-size: 0.6rem;
+            }
+            .header-card {
+                padding: 14px 16px;
+            }
+            .header-left h1 {
+                font-size: 1.3rem;
+            }
+            .completion-dialog {
+                padding: 24px 20px;
+            }
+            .completion-dialog h2 {
+                font-size: 1.4rem;
+            }
+            .completion-dialog .big-emoji {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Subtle particle canvas for continuous animation -->
+    <canvas id="particleCanvas" width="800" height="600" tabindex="0"></canvas>
+
+    <!-- Completion overlay (hidden by default) -->
+    <div class="completion-overlay" id="completionOverlay" style="display:none;">
+        <div class="completion-dialog">
+            <span class="big-emoji">🎉</span>
+            <h2>恭喜完成！</h2>
+            <p style="color:#4a5568;margin:8px 0;">你已经完整遍历了每日温度算法</p>
+            <div class="final-answer-display">[1, 1, 4, 2, 1, 1, 0, 0]</div>
+            <p style="color:#64748b;font-size:0.85rem;">时间复杂度 O(n) · 单调递减栈</p>
+            <button class="btn-close-overlay" id="btnCloseOverlay">🔄 重新学习</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="header-left">
+                <h1 id="title">每日温度</h1>
+                <div id="subtitle">🌱 单调递减栈 · 农业温室通风策略</div>
+            </div>
+            <div class="header-right">
+                <span id="top-result">[1, 1, 4, 2, 1, 1, 0, 0]</span>
+                <span id="top-solution">📌 期望输出: [1, 1, 4, 2, 1, 1, 0, 0]</span>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left: Code -->
+            <div class="card code-panel">
+                <div class="card-title">📜 算法代码</div>
+                <pre id="code"><span class="line" data-line="1">function dailyTemperatures(temperatures) {</span>
+<span class="line" data-line="2">    const n = temperatures.length;</span>
+<span class="line" data-line="3">    const answer = new Array(n).fill(0);</span>
+<span class="line" data-line="4">    const stack = [];</span>
+<span class="line" data-line="5"></span>
+<span class="line" data-line="6">    for (let i = 0; i &lt; n; i++) {</span>
+<span class="line" data-line="7">        while (stack.length &gt; 0 &amp;&amp;</span>
+<span class="line" data-line="8">               temperatures[i] &gt; temperatures[stack[stack.length-1]]) {</span>
+<span class="line" data-line="9">            const prev = stack.pop();</span>
+<span class="line" data-line="10">            answer[prev] = i - prev;</span>
+<span class="line" data-line="11">        }</span>
+<span class="line" data-line="12">        stack.push(i);</span>
+<span class="line" data-line="13">    }</span>
+<span class="line" data-line="14">    return answer;</span>
+<span class="line" data-line="15">}</span></pre>
+            </div>
+
+            <!-- Center: Canvas + Controls -->
+            <div>
+                <div class="card canvas-card">
+                    <div class="card-title">📊 算法视图</div>
+                    <div id="step-title">初始化</div>
+                    <div id="step-desc">创建数据结构，准备遍历温度数组</div>
+                    <span id="op">初始化</span>
+                    <div id="canvas"></div>
+                </div>
+                <!-- Controls -->
+                <div class="controls-bar" style="margin-top:10px;">
+                    <button class="btn" id="prev" title="上一步 (←)">◀ 上一步</button>
+                    <button class="btn" id="play" title="自动播放 (空格)">▶ 播放</button>
+                    <button class="btn" id="next" title="下一步 (→)">下一步 ▶</button>
+                    <input type="range" id="range" min="1" max="9" value="1" title="步骤滑块">
+                    <span id="counter">1 / 9</span>
+                </div>
+                <!-- Timeline -->
+                <div class="timeline-container" style="margin-top:10px;">
+                    <div id="timeline"></div>
+                </div>
+            </div>
+
+            <!-- Right: State + Teaching + Evidence -->
+            <div>
+                <div class="card">
+                    <div class="card-title">📋 状态摘要</div>
+                    <pre id="state"></pre>
+                </div>
+                <div class="card" style="margin-top:10px;">
+                    <div class="card-title">💡 教学讲解</div>
+                    <div id="teaching"></div>
+                </div>
+                <div class="card" style="margin-top:10px;">
+                    <div class="card-title">🔍 步骤证据</div>
+                    <pre id="step-evidence"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checkpoint Area -->
+        <div class="checkpoint-card" id="checkpoint-card">
+            <h3 id="checkpoint-title">🧠 学习检查点</h3>
+            <div id="checkpoint-body"></div>
+            <div class="feedback-area" id="checkpoint-feedback"></div>
+            <div style="margin-top:10px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;">
+                <button class="quiz-submit" id="checkpoint-submit" style="display:none;">✅ 提交</button>
+                <button class="quiz-hint-btn" id="checkpoint-hint" title="获取当前步骤的提示">💡 提示</button>
+                <button class="quiz-reveal-btn" id="checkpoint-reveal" title="显示当前步骤的答案">👁 显示答案</button>
+            </div>
+            <div class="learning-log" id="learning-log" style="margin-top:10px;">
+                <strong>📝 学习日志</strong>
+                <div id="log-entries">
+                    <div class="log-placeholder">📖 你的学习记录将显示在这里...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden answer element -->
+        <span id="answer">[1,1,4,2,1,1,0,0]</span>
+    </div>
+
+    <script>
+        (function() {
+            // ============ PARTICLE CANVAS (requestAnimationFrame loop) ============
+            const particleCanvas = document.getElementById('particleCanvas');
+            const pctx = particleCanvas.getContext('2d');
+            let particles = [];
+            const MAX_PARTICLES = 45;
+            let canvasW, canvasH;
+
+            function resizeParticleCanvas() {
+                canvasW = window.innerWidth;
+                canvasH = window.innerHeight;
+                particleCanvas.width = canvasW;
+                particleCanvas.height = canvasH;
+            }
+            resizeParticleCanvas();
+            window.addEventListener('resize', resizeParticleCanvas);
+
+            class Particle {
+                constructor() {
+                    this.reset();
+                }
+                reset() {
+                    this.x = Math.random() * canvasW;
+                    this.y = Math.random() * canvasH;
+                    this.size = Math.random() * 3.5 + 1.2;
+                    this.speedX = (Math.random() - 0.5) * 0.45;
+                    this.speedY = (Math.random() - 0.5) * 0.45 - 0.2;
+                    this.opacity = Math.random() * 0.45 + 0.12;
+                    this.life = 0;
+                    this.maxLife = 300 + Math.random() * 500;
+                    this.hue = Math.random() < 0.5 ? 220 + Math.random() * 30 : 140 + Math.random() * 20;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.life++;
+                    if (this.life > this.maxLife || this.x < -20 || this.x > canvasW + 20 || this.y < -20 || this.y >
+                        canvasH + 20) {
+                        this.reset();
+                        this.x = Math.random() * canvasW;
+                        this.y = canvasH + 20;
+                        this.life = 0;
+                    }
+                    const lifeRatio = this.life / this.maxLife;
+                    this.currentOpacity = this.opacity * (1 - lifeRatio) * Math.sin(lifeRatio * Math.PI);
+                }
+                draw(ctx) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 60%, 55%, ${Math.max(0.02, this.currentOpacity)})`;
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                const p = new Particle();
+                p.y = Math.random() * canvasH;
+                p.life = Math.random() * p.maxLife;
+                particles.push(p);
+            }
+
+            function particleLoop() {
+                pctx.clearRect(0, 0, canvasW, canvasH);
+                for (const p of particles) {
+                    p.update();
+                    p.draw(pctx);
+                }
+                requestAnimationFrame(particleLoop);
+            }
+            particleLoop();
+            particleCanvas.focus();
+
+            // ============ KEY STATE TRACKING ============
+            const keys = {};
+            document.addEventListener('keydown', function(e) {
+                keys[e.key] = true;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' ||
+                    e.key === ' ') {
+                    e.preventDefault();
+                }
+            });
+            document.addEventListener('keyup', function(e) {
+                keys[e.key] = false;
+            });
+
+            // ============ DATA ============
+            const temperatures = [73, 74, 75, 71, 69, 72, 76, 73];
+            const expectedAnswer = [1, 1, 4, 2, 1, 1, 0, 0];
+            const totalSteps = 9;
+
+            document.getElementById('answer').textContent = '[1,1,4,2,1,1,0,0]';
+
+            // Step definitions
+            const steps = [{
+                id: 1,
+                title: '🔰 初始化',
+                desc: '创建答案数组（全0）和空栈，准备遍历温度预报。',
+                op: '初始化数据结构',
+                highlightLines: [2, 3, 4],
+                execLine: null,
+                i: null,
+                stack: [],
+                answer: [0, 0, 0, 0, 0, 0, 0, 0],
+                actionDetail: '创建 answer = [0,0,0,0,0,0,0,0], stack = []',
+                teaching: '首先创建两个核心数据结构：<strong>answer数组</strong>（初始全0，表示默认"之后不会升温"）和<strong>空栈stack</strong>（用于存储尚未找到更高温度的下标）。栈将维护一个<em>单调递减</em>的温度序列。这是经典的单调栈模板。',
+                evidence: 'operation: "initialize"\ntargets: []\nbefore: null\nafter: answer=[0,0,0,0,0,0,0,0], stack=[]\ninvariant: stack保持单调递减温度',
+                checkpoint: null
+            }, {
+                id: 2,
+                title: '📍 处理索引 0（温度 73°C）',
+                desc: '栈为空，直接将索引0压入栈中。',
+                op: '压入索引0',
+                highlightLines: [6, 12],
+                execLine: 12,
+                i: 0,
+                stack: [0],
+                answer: [0, 0, 0, 0, 0, 0, 0, 0],
+                actionDetail: 'i=0, temp=73°C, 栈空 → push(0), stack=[0]',
+                teaching: '遍历到第0天（温度73°C）。栈为空，没有可比较的元素，所以直接将<strong>索引0压入栈</strong>。栈中存储的是下标，方便后续计算距离。这是单调栈的起始状态。',
+                evidence: 'operation: "push"\ntargets: [index 0, temp 73]\nbefore: stack=[]\nafter: stack=[0]\nreason: 栈空，无条件压入',
+                checkpoint: null
+            }, {
+                id: 3,
+                title: '🔥 处理索引 1（温度 74°C）— 首次弹栈',
+                desc: '74 > 73（栈顶温度），弹出索引0，答案[0]=1-0=1，然后压入索引1。',
+                op: '弹出0，ans[0]=1，压入1',
+                highlightLines: [6, 7, 8, 9, 10, 12],
+                execLine: 9,
+                i: 1,
+                stack: [1],
+                answer: [1, 0, 0, 0, 0, 0, 0, 0],
+                actionDetail: 'i=1, temp=74°C > 73°C(栈顶) → pop()得prev=0, answer[0]=1-0=1; push(1)',
+                teaching: '🎯 关键步骤！当前温度74°C <strong>大于</strong>栈顶索引0对应的温度73°C。这意味着<strong>第0天之后只需等1天就能遇到更高温度</strong>。弹出索引0，计算距离：1-0=1，写入answer[0]。然后将索引1压入栈。这就是单调栈的核心机制——<em>找下一个更大元素</em>。',
+                evidence: 'operation: "pop & calculate"\ntargets: [index 0, temp 73]\nbefore: stack=[0], answer[0]=0\nafter: stack=[1], answer[0]=1\ninvariant: 弹栈时保证找到了更高温度',
+                checkpoint: {
+                    type: 'choice',
+                    question: '当处理索引1（温度74°C）时，为什么弹出索引0？',
+                    options: [
+                        'A. 因为74 > 73，索引0找到了更高温度',
+                        'B. 因为栈满了需要腾出空间',
+                        'C. 因为索引0的温度是最低的'
+                    ],
+                    correctIndex: 0,
+                    hint: '思考单调栈的条件：while循环检查当前温度是否大于栈顶温度...',
+                    explanation_correct: '✅ 正确！74 > 73，说明第0天之后第1天就出现了更高温度，所以弹出索引0并计算距离。',
+                    explanation_wrong: '❌ 不对。弹出是因为当前温度(74)大于栈顶索引对应的温度(73)，这意味着栈顶索引已经找到了"下一个更高温度"，可以被处理了。'
+                }
+            }, {
+                id: 4,
+                title: '🔥 处理索引 2（温度 75°C）— 再次弹栈',
+                desc: '75 > 74（栈顶温度），弹出索引1，答案[1]=2-1=1，然后压入索引2。',
+                op: '弹出1，ans[1]=1，压入2',
+                highlightLines: [6, 7, 8, 9, 10, 12],
+                execLine: 9,
+                i: 2,
+                stack: [2],
+                answer: [1, 1, 0, 0, 0, 0, 0, 0],
+                actionDetail: 'i=2, temp=75°C > 74°C(栈顶) → pop()得prev=1, answer[1]=2-1=1; push(2)',
+                teaching: '同样的模式：75°C > 栈顶74°C，弹出索引1，answer[1]=1。注意栈中始终保持<strong>单调递减</strong>的温度序列（目前栈中只有索引2，温度75°C）。这保证了每个元素最多被压入和弹出一次，时间复杂度O(n)。',
+                evidence: 'operation: "pop & calculate"\ntargets: [index 1, temp 74]\nbefore: stack=[1], answer[1]=0\nafter: stack=[2], answer[1]=1\ninvariant: 每次弹栈都产生一个答案',
+                checkpoint: null
+            }, {
+                id: 5,
+                title: '📥 处理索引 3（温度 71°C）',
+                desc: '71 < 75（栈顶温度），不弹栈，直接压入索引3。',
+                op: '压入索引3',
+                highlightLines: [6, 12],
+                execLine: 12,
+                i: 3,
+                stack: [2, 3],
+                answer: [1, 1, 0, 0, 0, 0, 0, 0],
+                actionDetail: 'i=3, temp=71°C < 75°C(栈顶) → 不弹栈, push(3), stack=[2,3]',
+                teaching: '当前温度71°C <strong>小于</strong>栈顶温度75°C，不满足弹栈条件。直接压入索引3。栈现在包含[2, 3]（对应温度75°C和71°C），保持<strong>严格递减</strong>。这是"等待更高温度"的状态——索引3在等待它的"温暖未来"。',
+                evidence: 'operation: "push (no pop)"\ntargets: [index 3, temp 71]\nbefore: stack=[2]\nafter: stack=[2,3]\nreason: 71 < temperatures[stack.top]=75，保持单调递减',
+                checkpoint: null
+            }, {
+                id: 6,
+                title: '📥 处理索引 4（温度 69°C）',
+                desc: '69 < 71（栈顶温度），不弹栈，直接压入索引4。栈变为[2,3,4]。',
+                op: '压入索引4',
+                highlightLines: [6, 12],
+                execLine: 12,
+                i: 4,
+                stack: [2, 3, 4],
+                answer: [1, 1, 0, 0, 0, 0, 0, 0],
+                actionDetail: 'i=4, temp=69°C < 71°C(栈顶) → 不弹栈, push(4), stack=[2,3,4]',
+                teaching: '温度持续走低：69°C < 71°C。栈现在有3个元素[2,3,4]，对应温度75°C、71°C、69°C——完美递减序列。这些索引都还在等待它们"之后更高温度"的出现。栈的单调递减性质保证了算法的高效性。',
+                evidence: 'operation: "push (no pop)"\ntargets: [index 4, temp 69]\nbefore: stack=[2,3]\nafter: stack=[2,3,4]\ninvariant: stack中温度严格递减: 75>71>69',
+                checkpoint: null
+            }, {
+                id: 7,
+                title: '💥 处理索引 5（温度 72°C）— 复合弹栈',
+                desc: '72 > 69（弹出4，ans[4]=1），72 > 71（弹出3，ans[3]=2），72 < 75停止，压入5。',
+                op: '弹出4和3，ans[4]=1, ans[3]=2，压入5',
+                highlightLines: [6, 7, 8, 9, 10, 12],
+                execLine: 9,
+                i: 5,
+                stack: [2, 5],
+                answer: [1, 1, 0, 2, 1, 0, 0, 0],
+                actionDetail: 'i=5, temp=72°C: 72>69→pop(4),ans[4]=1; 72>71→pop(3),ans[3]=2; 72<75停止; push(5)',
+                teaching: '🌟 这是一个<strong>复合弹栈</strong>的关键步骤！72°C比栈顶69°C高，弹出索引4；继续比较，72°C还比新的栈顶71°C高，再弹出索引3。然后72°C < 75°C（索引2），停止弹栈。这展示了<strong>while循环</strong>的威力：一次处理多个等待的索引。注意answer[3]=5-3=<strong>2</strong>，意味着第3天需要等2天。',
+                evidence: 'operation: "multiple pops"\ntargets: [index 4 temp 69, index 3 temp 71]\nbefore: stack=[2,3,4], answer[3]=0, answer[4]=0\nafter: stack=[2,5], answer[3]=2, answer[4]=1\norder: 先弹4(栈顶), 再弹3(新栈顶), 72<75停止',
+                checkpoint: {
+                    type: 'choice',
+                    question: '处理索引5（温度72°C）时，栈中哪些元素被弹出？',
+                    options: [
+                        'A. 只有索引4（温度69°C）',
+                        'B. 索引4和索引3都被弹出',
+                        'C. 索引2、3、4全部被弹出'
+                    ],
+                    correctIndex: 1,
+                    hint: 'while循环会不断比较当前温度与栈顶温度，直到当前温度不再大于栈顶温度...',
+                    explanation_correct: '✅ 正确！72>69弹索引4，然后72>71弹索引3，接着72<75停止。所以索引4和3都被弹出。',
+                    explanation_wrong: '❌ 不对。72比69和71都大，但比75小。所以弹出索引4和索引3，索引2（75°C）保留在栈中。'
+                }
+            }, {
+                id: 8,
+                title: '💥 处理索引 6（温度 76°C）— 大规模弹栈',
+                desc: '76 > 72（弹出5，ans[5]=1），76 > 75（弹出2，ans[2]=4），栈空后压入6。',
+                op: '弹出5和2，ans[5]=1, ans[2]=4，压入6',
+                highlightLines: [6, 7, 8, 9, 10, 12],
+                execLine: 9,
+                i: 6,
+                stack: [6],
+                answer: [1, 1, 4, 2, 1, 1, 0, 0],
+                actionDetail: 'i=6, temp=76°C: 76>72→pop(5),ans[5]=1; 76>75→pop(2),ans[2]=4; 栈空; push(6)',
+                teaching: '🔥 76°C是目前最高温！它逐个击破栈中所有元素：先弹出索引5（72°C），再弹出索引2（75°C）。注意answer[2]=6-2=<strong>4</strong>，这意味着第2天（75°C）需要等待4天才能遇到76°C。栈最终只剩下索引6。这是算法中最具戏剧性的一步！',
+                evidence: 'operation: "multiple pops (clear stack)"\ntargets: [index 5 temp 72, index 2 temp 75]\nbefore: stack=[2,5], answer[2]=0, answer[5]=0\nafter: stack=[6], answer[2]=4, answer[5]=1\nnote: 76是当前最高温，清空了栈',
+                checkpoint: {
+                    type: 'input',
+                    question: '请输入answer[2]的值（索引2对应温度75°C，它需要等几天才能遇到76°C？）：',
+                    correctAnswer: '4',
+                    hint: '76°C出现在索引6，75°C在索引2，距离 = 6 - 2 = ?',
+                    explanation_correct: '✅ 完全正确！answer[2] = 6 - 2 = 4天。',
+                    explanation_wrong: '❌ 请再算一下：76°C在索引6，75°C在索引2，距离是6-2=4。'
+                }
+            }, {
+                id: 9,
+                title: '🏁 处理索引 7（温度 73°C）+ 完成',
+                desc: '73 < 76（栈顶），压入索引7。遍历结束，栈中剩余[6,7]对应答案保持0。',
+                op: '压入7，遍历完成，返回答案',
+                highlightLines: [6, 12, 14],
+                execLine: 14,
+                i: 7,
+                stack: [6, 7],
+                answer: [1, 1, 4, 2, 1, 1, 0, 0],
+                actionDetail: 'i=7, temp=73°C < 76°C(栈顶) → push(7); 循环结束; return [1,1,4,2,1,1,0,0]',
+                teaching: '🎉 最后一天温度73°C < 76°C，压入索引7后循环结束。栈中剩余的[6,7]对应的answer值保持为0，因为之后没有更高温度了。最终答案<strong>[1,1,4,2,1,1,0,0]</strong>完全正确！整体时间复杂度O(n)，每个元素最多入栈出栈各一次。你已掌握了单调栈的精髓！',
+                evidence: 'operation: "finalize & return"\ntargets: [index 7 temp 73]\nbefore: stack=[6], answer[7]=0\nafter: stack=[6,7], answer完整=[1,1,4,2,1,1,0,0]\nfinal: 栈中剩余索引6,7对应答案保持0',
+                checkpoint: {
+                    type: 'input',
+                    question: '请输入最终答案数组（格式如 [1,1,4,2,1,1,0,0]）：',
+                    correctAnswer: '[1,1,4,2,1,1,0,0]',
+                    hint: '回顾所有步骤：ans[0]=1, ans[1]=1, ans[2]=4, ans[3]=2, ans[4]=1, ans[5]=1, ans[6]=0, ans[7]=0',
+                    explanation_correct: '🎉 完全正确！你已经掌握了单调栈解决每日温度问题的完整逻辑。恭喜！',
+                    explanation_wrong: '❌ 请仔细检查。最终答案应该是[1,1,4,2,1,1,0,0]。索引6和7之后没有更高温度，所以为0。'
+                }
+            }];
+
+            // ============ DOM REFS ============
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $range = document.getElementById('range');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $answer = document.getElementById('answer');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $checkpointBody = document.getElementById('checkpoint-body');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHint = document.getElementById('checkpoint-hint');
+            const $checkpointReveal = document.getElementById('checkpoint-reveal');
+            const $checkpointTitle = document.getElementById('checkpoint-title');
+            const $logEntries = document.getElementById('log-entries');
+            const $checkpointCard = document.getElementById('checkpoint-card');
+            const $completionOverlay = document.getElementById('completionOverlay');
+            const $btnCloseOverlay = document.getElementById('btnCloseOverlay');
+
+            let currentStep = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointAnswered = {};
+            let selectedQuizOption = null;
+            let quizInputValue = '';
+            let completionShown = false;
+
+            // ============ BUILD TIMELINE ============
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                const tickLabels = ['初始化', '索引0', '索引1', '索引2', '索引3', '索引4', '索引5', '索引6', '索引7+完成'];
+                const tickOps = [
+                    '创建数组和栈',
+                    '压入栈',
+                    '弹出0,ans[0]=1',
+                    '弹出1,ans[1]=1',
+                    '压入栈',
+                    '压入栈',
+                    '弹出4和3',
+                    '弹出5和2',
+                    '压入,完成'
+                ];
+                for (let i = 0; i < totalSteps; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i);
+                    tick.setAttribute('onclick', 'void(0)');
+                    tick.innerHTML =
+                        '<span class="tick-label">' + tickLabels[i] + '</span><span class="tick-op">' + tickOps[i] +
+                        '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(i);
+                    });
+                    $timeline.appendChild(tick);
+                }
+            }
+
+            // ============ RENDER CODE HIGHLIGHT ============
+            function highlightCode(stepData) {
+                const lines = $code.querySelectorAll('.line');
+                lines.forEach(l => {
+                    l.classList.remove('highlight', 'highlight-exec');
+                });
+                if (stepData.highlightLines) {
+                    stepData.highlightLines.forEach(ln => {
+                        const lineEl = $code.querySelector('.line[data-line="' + ln + '"]');
+                        if (lineEl) {
+                            lineEl.classList.add('highlight');
+                        }
+                    });
+                }
+                if (stepData.execLine) {
+                    const execEl = $code.querySelector('.line[data-line="' + stepData.execLine + '"]');
+                    if (execEl) {
+                        execEl.classList.add('highlight-exec');
+                    }
+                }
+            }
+
+            // ============ RENDER CANVAS ============
+            function renderCanvas(stepData) {
+                $canvas.innerHTML = '';
+                const sd = stepData;
+                const prevStepData = currentStep > 0 ? steps[currentStep - 1] : null;
+
+                // Row 1: Temperatures array
+                const row1 = document.createElement('div');
+                row1.className = 'canvas-row';
+                const label1 = document.createElement('span');
+                label1.className = 'canvas-label';
+                label1.textContent = '🌡 温度';
+                row1.appendChild(label1);
+                const cells1 = document.createElement('div');
+                cells1.className = 'array-cells';
+                for (let j = 0; j < temperatures.length; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (sd.i === j) cell.classList.add('current');
+                    if (sd.stack.includes(j)) cell.classList.add('in-stack');
+                    if (prevStepData && prevStepData.stack.includes(j) && !sd.stack.includes(j) && sd.answer[j] > 0) {
+                        cell.classList.add('popping');
+                    }
+                    cell.innerHTML = '<span class="cell-val">' + temperatures[j] +
+                        '°</span><span class="cell-idx">[' + j + ']</span>';
+                    cells1.appendChild(cell);
+                }
+                row1.appendChild(cells1);
+                $canvas.appendChild(row1);
+
+                // Pointer indicator
+                if (sd.i !== null && sd.i !== undefined) {
+                    const pointerRow = document.createElement('div');
+                    pointerRow.className = 'canvas-row';
+                    pointerRow.style.paddingLeft = '82px';
+                    const ptr = document.createElement('span');
+                    ptr.className = 'pointer-indicator';
+                    ptr.textContent = '👆 当前 i=' + sd.i + ' (温度' + temperatures[sd.i] + '°C)';
+                    pointerRow.appendChild(ptr);
+                    $canvas.appendChild(pointerRow);
+                }
+
+                // Row 2: Answer array
+                const row2 = document.createElement('div');
+                row2.className = 'canvas-row';
+                const label2 = document.createElement('span');
+                label2.className = 'canvas-label';
+                label2.textContent = '✅ 答案';
+                row2.appendChild(label2);
+                const cells2 = document.createElement('div');
+                cells2.className = 'array-cells';
+                for (let j = 0; j < sd.answer.length; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (sd.answer[j] > 0) {
+                        cell.classList.add('answered');
+                    }
+                    if (sd.i !== null && j <= sd.i && !sd.stack.includes(j) && sd.answer[j] === 0 && j < sd.i && sd
+                        .answer[j] === 0) {
+                        // indices that have been processed and have answer 0
+                        const wasPopped = prevStepData && prevStepData.stack.includes(j) && !sd.stack.includes(j);
+                        if (wasPopped && sd.answer[j] === 0) {
+                            cell.classList.add('answered');
+                        }
+                    }
+                    cell.innerHTML = '<span class="cell-val">' + sd.answer[j] + '</span><span class="cell-idx">[' + j +
+                        ']</span>';
+                    cells2.appendChild(cell);
+                }
+                row2.appendChild(cells2);
+                $canvas.appendChild(row2);
+
+                // Row 3: Stack visualization
+                const row3 = document.createElement('div');
+                row3.className = 'canvas-row';
+                const label3 = document.createElement('span');
+                label3.className = 'canvas-label';
+                label3.textContent = '📚 栈';
+                row3.appendChild(label3);
+                const stackVis = document.createElement('div');
+                stackVis.className = 'stack-visual';
+                if (sd.stack.length === 0) {
+                    const emptyHint = document.createElement('span');
+                    emptyHint.className = 'empty-hint';
+                    emptyHint.textContent = '(空栈)';
+                    stackVis.appendChild(emptyHint);
+                } else {
+                    for (let k = 0; k < sd.stack.length; k++) {
+                        const stackItem = document.createElement('div');
+                        stackItem.className = 'stack-item';
+                        if (k === sd.stack.length - 1) stackItem.classList.add('stack-top');
+                        stackItem.textContent = sd.stack[k] + ' (' + temperatures[sd.stack[k]] + '°)';
+                        stackVis.appendChild(stackItem);
+                        if (k < sd.stack.length - 1) {
+                            const arrow = document.createElement('span');
+                            arrow.textContent = '→';
+                            arrow.style.color = '#94a3b8';
+                            arrow.style.fontWeight = '700';
+                            stackVis.appendChild(arrow);
+                        }
+                    }
+                    const topLabel = document.createElement('span');
+                    topLabel.textContent = ' 栈顶';
+                    topLabel.style.fontSize = '0.7rem';
+                    topLabel.style.color = '#f59e0b';
+                    topLabel.style.fontWeight = '700';
+                    stackVis.appendChild(topLabel);
+                }
+                row3.appendChild(stackVis);
+                $canvas.appendChild(row3);
+            }
+
+            // ============ RENDER STEP ============
+            function renderStep(stepIndex) {
+                const sd = steps[stepIndex];
+                currentStep = stepIndex;
+
+                $stepTitle.textContent = sd.title;
+                $stepDesc.textContent = sd.desc;
+                $op.textContent = sd.op;
+                $state.textContent = JSON.stringify({
+                    i: sd.i,
+                    currentTemp: sd.i !== null ? temperatures[sd.i] : null,
+                    stack: sd.stack,
+                    answer: sd.answer,
+                    action: sd.actionDetail
+                }, null, 2);
+                $teaching.innerHTML = sd.teaching;
+                $stepEvidence.textContent = sd.evidence;
+                $counter.textContent = (stepIndex + 1) + ' / ' + totalSteps;
+                $range.value = stepIndex + 1;
+                $topResult.textContent = '[' + sd.answer.join(', ') + ']';
+                if (stepIndex === totalSteps - 1) {
+                    $topResult.textContent = '[1, 1, 4, 2, 1, 1, 0, 0] ✓';
+                    $topResult.style.background = '#dcfce7';
+                    $topResult.style.borderColor = '#10b981';
+                    $topResult.style.color = '#065f46';
+                    $topResult.style.boxShadow = '0 0 0 6px rgba(16,185,129,0.12)';
+                } else {
+                    $topResult.style.background = 'var(--success-light)';
+                    $topResult.style.borderColor = '#a7f3d0';
+                    $topResult.style.color = '#065f46';
+                    $topResult.style.boxShadow = '0 0 0 4px rgba(16,185,129,0.08)';
+                }
+
+                highlightCode(sd);
+                renderCanvas(sd);
+
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.toggle('active-tick', i === stepIndex);
+                });
+
+                renderCheckpoint(sd, stepIndex);
+
+                $prev.disabled = (stepIndex === 0);
+                $next.disabled = (stepIndex === totalSteps - 1);
+                if (stepIndex === totalSteps - 1 && isPlaying) {
+                    stopPlay();
+                }
+
+                $answer.textContent = '[1,1,4,2,1,1,0,0]';
+
+                // Show completion overlay on final step
+                if (stepIndex === totalSteps - 1 && !completionShown) {
+                    completionShown = true;
+                    setTimeout(function() {
+                        $completionOverlay.style.display = 'flex';
+                    }, 600);
+                }
+                if (stepIndex < totalSteps - 1) {
+                    completionShown = false;
+                    $completionOverlay.style.display = 'none';
+                }
+            }
+
+            // ============ CHECKPOINT ============
+            function renderCheckpoint(sd, stepIndex) {
+                $checkpointFeedback.textContent = '';
+                $checkpointFeedback.className = 'feedback-area';
+                $checkpointSubmit.style.display = 'none';
+                selectedQuizOption = null;
+                quizInputValue = '';
+
+                if (sd.checkpoint) {
+                    $checkpointCard.style.display = 'block';
+                    $checkpointCard.style.borderColor = '#fde68a';
+                    $checkpointTitle.textContent = '🧠 学习检查点（步骤' + (stepIndex + 1) + '）';
+                    const cp = sd.checkpoint;
+                    let bodyHTML = '<p style="font-weight:600;margin-bottom:9px;color:#1a1f2e;">' + cp.question +
+                    '</p>';
+
+                    if (cp.type === 'choice') {
+                        bodyHTML += '<div class="quiz-options" id="quiz-options">';
+                        cp.options.forEach((opt, idx) => {
+                            bodyHTML += '<button class="quiz-option" data-opt-index="' + idx + '">' + opt +
+                                '</button>';
+                        });
+                        bodyHTML += '</div>';
+                        $checkpointSubmit.style.display = 'inline-block';
+                        $checkpointSubmit.textContent = '✅ 提交答案';
+                    } else if (cp.type === 'input') {
+                        bodyHTML +=
+                            '<input type="text" class="quiz-input" id="quiz-input" placeholder="输入你的答案..." value="">';
+                        $checkpointSubmit.style.display = 'inline-block';
+                        $checkpointSubmit.textContent = '✅ 提交';
+                    }
+
+                    $checkpointBody.innerHTML = bodyHTML;
+
+                    if (cp.type === 'choice') {
+                        const optBtns = $checkpointBody.querySelectorAll('.quiz-option');
+                        optBtns.forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                optBtns.forEach(b => b.classList.remove('selected'));
+                                this.classList.add('selected');
+                                selectedQuizOption = parseInt(this.getAttribute(
+                                    'data-opt-index'));
+                            });
+                        });
+                    }
+
+                    if (cp.type === 'input') {
+                        const inputEl = $checkpointBody.querySelector('#quiz-input');
+                        if (inputEl) {
+                            inputEl.addEventListener('input', function() {
+                                quizInputValue = this.value.trim();
+                            });
+                        }
+                    }
+
+                    if (checkpointAnswered[stepIndex]) {
+                        $checkpointSubmit.disabled = true;
+                        $checkpointSubmit.textContent = '✔ 已作答';
+                        $checkpointSubmit.style.opacity = '0.55';
+                        if (cp.type === 'choice') {
+                            const optBtns = $checkpointBody.querySelectorAll('.quiz-option');
+                            optBtns.forEach(b => { b.disabled = true;
+                                b.style.cursor = 'default'; });
+                        }
+                        if (cp.type === 'input') {
+                            const inputEl = $checkpointBody.querySelector('#quiz-input');
+                            if (inputEl) inputEl.disabled = true;
+                        }
+                    } else {
+                        $checkpointSubmit.disabled = false;
+                        $checkpointSubmit.style.opacity = '1';
+                    }
+                } else {
+                    $checkpointCard.style.display = 'block';
+                    $checkpointCard.style.borderColor = '#e2e8f0';
+                    $checkpointTitle.textContent = '🧠 学习检查点';
+                    $checkpointBody.innerHTML =
+                        '<p style="color:#94a3b8;font-style:italic;">📖 本步骤无检查点。请仔细阅读教学讲解，或前进到关键步骤（步骤3、7、8、9有检查点）。</p>';
+                    $checkpointSubmit.style.display = 'none';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = 'feedback-area';
+                }
+            }
+
+            function submitCheckpoint() {
+                const sd = steps[currentStep];
+                if (!sd.checkpoint || checkpointAnswered[currentStep]) return;
+
+                const cp = sd.checkpoint;
+                let isCorrect = false;
+                let userAnswerStr = '';
+
+                if (cp.type === 'choice') {
+                    if (selectedQuizOption === null) {
+                        $checkpointFeedback.textContent = '⚠️ 请先选择一个选项。';
+                        $checkpointFeedback.className = 'feedback-area info';
+                        return;
+                    }
+                    isCorrect = (selectedQuizOption === cp.correctIndex);
+                    userAnswerStr = cp.options[selectedQuizOption];
+                    const optBtns = $checkpointBody.querySelectorAll('.quiz-option');
+                    optBtns.forEach((b, i) => {
+                        if (i === cp.correctIndex) b.classList.add('correct-flash');
+                        if (i === selectedQuizOption && !isCorrect) b.classList.add('wrong-flash');
+                        b.disabled = true;
+                        b.style.cursor = 'default';
+                    });
+                } else if (cp.type === 'input') {
+                    const inputEl = $checkpointBody.querySelector('#quiz-input');
+                    if (!inputEl || !quizInputValue) {
+                        $checkpointFeedback.textContent = '⚠️ 请输入你的答案。';
+                        $checkpointFeedback.className = 'feedback-area info';
+                        return;
+                    }
+                    userAnswerStr = quizInputValue;
+                    const normalizedUser = userAnswerStr.replace(/\s+/g, '');
+                    const normalizedCorrect = cp.correctAnswer.replace(/\s+/g, '');
+                    isCorrect = (normalizedUser === normalizedCorrect);
+                    if (inputEl) inputEl.disabled = true;
+                }
+
+                checkpointAnswered[currentStep] = true;
+                $checkpointSubmit.disabled = true;
+                $checkpointSubmit.textContent = '✔ 已作答';
+                $checkpointSubmit.style.opacity = '0.55';
+
+                if (isCorrect) {
+                    $checkpointFeedback.textContent = '✅ 正确！' + cp.explanation_correct;
+                    $checkpointFeedback.className = 'feedback-area correct';
+                } else {
+                    $checkpointFeedback.textContent = '❌ 错误。' + cp.explanation_wrong;
+                    $checkpointFeedback.className = 'feedback-area wrong';
+                }
+
+                addLogEntry(currentStep, isCorrect, userAnswerStr, isCorrect ? cp.explanation_correct : cp
+                    .explanation_wrong);
+            }
+
+            function revealCheckpointAnswer() {
+                const sd = steps[currentStep];
+                if (!sd.checkpoint) {
+                    $checkpointFeedback.textContent = '👁 当前步骤没有检查点，请前进到有检查点的步骤（步骤3、7、8、9）。';
+                    $checkpointFeedback.className = 'feedback-area info';
+                    return;
+                }
+                const cp = sd.checkpoint;
+                if (cp.type === 'choice') {
+                    $checkpointFeedback.textContent = '👁 正确答案是：' + cp.options[cp.correctIndex] + ' — ' + cp
+                        .explanation_correct;
+                    $checkpointFeedback.className = 'feedback-area info';
+                    const optBtns = $checkpointBody.querySelectorAll('.quiz-option');
+                    optBtns.forEach((b, i) => {
+                        if (i === cp.correctIndex) b.classList.add('correct-flash');
+                        b.disabled = true;
+                        b.style.cursor = 'default';
+                    });
+                } else {
+                    $checkpointFeedback.textContent = '👁 正确答案是：' + cp.correctAnswer + ' — ' + cp.explanation_correct;
+                    $checkpointFeedback.className = 'feedback-area info';
+                    const inputEl = $checkpointBody.querySelector('#quiz-input');
+                    if (inputEl) {
+                        inputEl.value = cp.correctAnswer;
+                        inputEl.disabled = true;
+                    }
+                }
+                if (!checkpointAnswered[currentStep]) {
+                    checkpointAnswered[currentStep] = true;
+                    $checkpointSubmit.disabled = true;
+                    $checkpointSubmit.textContent = '✔ 已作答';
+                    $checkpointSubmit.style.opacity = '0.55';
+                    addLogEntry(currentStep, null, '(查看答案)', cp.explanation_correct);
+                }
+            }
+
+            function showCheckpointHint() {
+                const sd = steps[currentStep];
+                if (!sd.checkpoint) {
+                    $checkpointFeedback.textContent =
+                        '💡 通用提示：观察当前温度与栈顶温度的大小关系。如果当前温度更高，则弹栈计算距离；如果更低，则压栈等待。最终答案中，没有找到更高温度的索引保持为0。';
+                    $checkpointFeedback.className = 'feedback-area info';
+                    return;
+                }
+                $checkpointFeedback.textContent = '💡 提示：' + sd.checkpoint.hint;
+                $checkpointFeedback.className = 'feedback-area info';
+            }
+
+            function addLogEntry(stepIndex, isCorrect, userAnswer, explanation) {
+                // Remove placeholder if present
+                const placeholder = $logEntries.querySelector('.log-placeholder');
+                if (placeholder) placeholder.remove();
+
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(
+                    2,
+                    '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                let icon = '📝';
+                if (isCorrect === true) icon = '✅';
+                if (isCorrect === false) icon = '❌';
+                if (isCorrect === null) icon = '👁';
+                entry.innerHTML = '<span class="log-icon">' + icon + '</span><span class="log-text"><strong>步骤' + (
+                    stepIndex + 1) + ':</strong> ' + escapeHTML(userAnswer) + ' — ' + escapeHTML(
+                    explanation) + '</span><span class="log-time">' + timeStr + '</span>';
+                $logEntries.appendChild(entry);
+                const logContainer = $logEntries.parentElement;
+                if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============ NAVIGATION ============
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                if (isPlaying && index === totalSteps - 1) {
+                    stopPlay();
+                }
+                renderStep(index);
+            }
+
+            function nextStep() {
+                if (currentStep < totalSteps - 1) {
+                    goToStep(currentStep + 1);
+                } else if (isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStep > 0) {
+                    goToStep(currentStep - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                if (currentStep >= totalSteps - 1) {
+                    goToStep(0);
+                }
+                isPlaying = true;
+                $play.textContent = '⏸ 暂停';
+                $play.classList.add('active-btn');
+                playInterval = setInterval(function() {
+                    if (currentStep < totalSteps - 1) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1650);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $play.textContent = '▶ 播放';
+                $play.classList.remove('active-btn');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            function closeCompletionOverlay() {
+                $completionOverlay.style.display = 'none';
+                goToStep(0);
+                completionShown = false;
+            }
+
+            // ============ EVENT LISTENERS ============
+            $prev.addEventListener('click', prevStep);
+            $next.addEventListener('click', nextStep);
+            $play.addEventListener('click', togglePlay);
+            $range.addEventListener('input', function() {
+                const val = parseInt(this.value);
+                if (val >= 1 && val <= totalSteps) {
+                    if (isPlaying) stopPlay();
+                    goToStep(val - 1);
+                }
+            });
+            $checkpointSubmit.addEventListener('click', submitCheckpoint);
+            $checkpointHint.addEventListener('click', showCheckpointHint);
+            $checkpointReveal.addEventListener('click', revealCheckpointAnswer);
+            $btnCloseOverlay.addEventListener('click', closeCompletionOverlay);
+
+            // Keyboard navigation (uses keys object + document listener)
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    nextStep();
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    prevStep();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.key === 'Escape') {
+                    if ($completionOverlay.style.display === 'flex') {
+                        closeCompletionOverlay();
+                    }
+                }
+            });
+
+            // ============ INITIALIZATION ============
+            function init() {
+                buildTimeline();
+                goToStep(0);
+                $answer.textContent = '[1,1,4,2,1,1,0,0]';
+                $topSolution.textContent = '📌 期望输出: [1, 1, 4, 2, 1, 1, 0, 0]';
+                $range.max = totalSteps;
+                $range.min = 1;
+                $range.value = 1;
+                $range.step = 1;
+                for (let i = 0; i < totalSteps; i++) {
+                    checkpointAnswered[i] = false;
+                }
+                completionShown = false;
+                $completionOverlay.style.display = 'none';
+                // Ensure learning log has placeholder
+                if ($logEntries.children.length === 0) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'log-placeholder';
+                    placeholder.textContent = '📖 你的学习记录将显示在这里...';
+                    $logEntries.appendChild(placeholder);
+                }
+            }
+
+            init();
+            console.log(
+                '🌱 AlgoLab 每日温度教学页已就绪 | 步骤总数: ' + totalSteps +
+                ' | 最终答案: [1,1,4,2,1,1,0,0] | 粒子动画已启动 | 所有交互按钮已绑定'
+            );
+        })();
+    </script>
+</body>
+</html>
