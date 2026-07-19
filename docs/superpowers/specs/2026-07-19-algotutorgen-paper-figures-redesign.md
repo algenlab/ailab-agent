@@ -127,7 +127,7 @@ Also save final prompts and generation metadata under a dedicated project-local 
 
 ## Tool and API Workflow
 
-1. Clone `https://github.com/ResearAI/AutoFigure-Edit` into `/ssd1/liaokunpeng/paper/AutoFigure-Edit`.
+1. Clone `https://github.com/ResearAI/AutoFigure-Edit` into `$AUTOFIGURE_ROOT`.
 2. Inspect its README, examples, dependencies, supported providers/models, input/output conventions, and editing commands.
 3. Read the existing project's ignored API settings without printing the credential.
 4. Query the configured `/models` endpoint and select the highest-quality available GPTImage2 identifier.
