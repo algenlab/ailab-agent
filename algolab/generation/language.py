@@ -51,7 +51,13 @@ def scrub_cjk_strings(value: Any) -> Any:
     """
 
     if isinstance(value, dict):
-        return {str(key): scrub_cjk_strings(item) for key, item in value.items()}
+        cleaned: dict[str, Any] = {}
+        for index, (key, item) in enumerate(value.items()):
+            text_key = str(key)
+            if contains_cjk(text_key):
+                text_key = f"non_english_key_{index}"
+            cleaned[text_key] = scrub_cjk_strings(item)
+        return cleaned
     if isinstance(value, list):
         return [scrub_cjk_strings(item) for item in value]
     if isinstance(value, tuple):
