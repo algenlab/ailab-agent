@@ -91,7 +91,7 @@ This section defines the synthesized artifact and the obligations that distingui
 
 \subsection{Inputs, Artifacts, and Contracts}
 
-An input is $x=(q,i,e,c)$: algorithmic problem $q$, concrete instance $i$, optional oracle $e$, and optional reference code or strategy $c$. The internal synthesis bundle is $A=(S,T,G,P,R)$, comprising executable specification $S$, \traceir{} $T$, \scenegraph{} sequence $G$, pedagogical overlay $P$, and browser runtime $R$. Deterministic export turns $A$ into the released webpage $W$.
+An input is $x=(q,i,e,c)$: algorithmic problem $q$, concrete instance $i$, optional oracle $e$, and optional reference code or strategy $c$. The internal synthesis bundle is $A=(S,T,G,\bar P,R)$, comprising executable specification $S$, \traceir{} $T$, \scenegraph{} sequence $G$, contract-checked pedagogical overlay $\bar P$, and browser runtime $R$. Deterministic export turns $A$ into the released webpage $W$.
 
 We require the conjunction
 \begin{align}
@@ -113,9 +113,9 @@ Direct HTML asks a model to construct a point in an open space $\Omega_{\mathrm{
 S &\xRightarrow{C_S} T
 \xRightarrow{C_T} G
 \xRightarrow{C_G} R,\\
-G &\xrightarrow{\text{teaching}} P
+(T,G) &\xrightarrow{\text{teaching}} P
 \xRightarrow{C_P} \bar P,\\
-(R,\bar P)&\xRightarrow{C_B} W,
+(G,R,\bar P)&\xRightarrow{C_B} W,
 \end{aligned}
 \]
 where each $C$ is an executable contract at a representation boundary. This notation does not claim that writing the output space as a Cartesian product automatically reduces search complexity. The benefit comes from four operational choices: contracts reject invalid candidates before release; verified semantic data are reused rather than regenerated; deterministic stages remove open-ended choices from downstream code; and failures are attributed to a narrower boundary. Modularization without these properties would merely rearrange the same entanglement.
@@ -153,7 +153,7 @@ This section explains how \system{} assigns one semantic responsibility to each 
 \node[gate, right=6mm of scene] (gc) {$C_G$};
 \node[det, right=6mm of gc] (runtime) {Fixed\\\runtime{}};
 \node[gate, right=6mm of runtime] (bc) {$C_B$};
-\node[det, right=6mm of bc] (page) {Browser\\artifact};
+\node[det, right=13mm of bc] (page) {Browser\\artifact};
 
 \draw[flow] (input) -- (spec);
 \draw[flow] (spec) -- (sc);
@@ -167,16 +167,18 @@ This section explains how \system{} assigns one semantic responsibility to each 
 
 \node[ped, below=13mm of runtime] (teach) {LLM teaching enrichment\\mutable pedagogical state};
 \node[gate, right=5mm of teach] (pc) {$C_P$};
-\draw[pflow] (scene.south) |- node[note, near start, below left=-1mm] {sanitized read-only facts} (teach.west);
+\draw[pflow] (trace.south) |- (teach.north);
+\node[note, anchor=south east] at ($(trace.south |- teach.north)+(-2mm,1mm)$) {validated trace digest};
+\draw[pflow] (scene.south) |- node[note, near start, below left=-1mm] {compiled target scene} (teach.west);
 \draw[pflow] (teach) -- (pc);
 \draw[pflow] (pc.east) -| (bc.south);
 
-\node[note, below=29mm of scene, anchor=west] (legend) {Legend: rounded = generated;\quad rectangle = deterministic;\quad diamond = contract;\quad solid = algorithmic;\quad dashed = pedagogical.};
+\node[note, below=41mm of scene, anchor=west] (legend) {Legend: rounded = generated;\quad rectangle = deterministic;\quad diamond = contract;\quad solid = algorithmic;\quad dashed = pedagogical.};
 
 \draw[-{Latex[length=2mm]}, bend right=26, thick, directred]
   (bc.north) to node[note, above=1mm, text=directred] {repair signal} (spec.south);
 \end{tikzpicture}
-\caption{\system{} architecture. Rounded blue boxes are open-ended LLM stages; rectangular gray boxes are deterministic stages; diamonds are executable contracts. Solid flow carries canonical algorithmic state. Dashed flow carries mutable pedagogical state derived from a sanitized, read-only view. The repair loop shown is the implemented specification-level boundary, not a fully checkpointed retry at every stage.}
+\caption{\system{} architecture. Rounded blue boxes are open-ended LLM stages; rectangular gray boxes are deterministic stages; diamonds are executable contracts. Solid flow carries canonical algorithmic state. Dashed flow carries a mutable pedagogical overlay generated from a sanitized digest of the validated trace and applied to the compiled scene. The repair loop shown is the implemented specification-level boundary, not a fully checkpointed retry at every stage.}
 \label{fig:architecture}
 \end{figure*}
 
@@ -239,15 +241,20 @@ for some $p'$. Then, for every finite sequence of pure pedagogical actions $u_1,
 \[
 \pi_A\!\left(\delta_{u_m}\circ\cdots\circ\delta_{u_1}(a,p)\right)=a.
 \]
-Moreover, if each navigation action selects an algorithm state from the verified trajectory
+Let the artifact contain the validated trajectories
 \[
-\mathcal{V}(T)=\{\alpha_T(T_0),\ldots,\alpha_T(T_n)\},
+\begin{aligned}
+\mathcal{T}&=\{T^{(1)},\ldots,T^{(k)}\},\\
+\mathcal{V}(T^{(j)})&=
+  \{\alpha_T(T^{(j)}_0),\ldots,\alpha_T(T^{(j)}_{n_j})\},\\
+\mathcal{V}(\mathcal{T})&=\bigcup_{j=1}^{k}\mathcal{V}(T^{(j)}).
+\end{aligned}
 \]
-then after any finite mixed sequence of pure pedagogical and navigation actions, the algorithm state belongs to $\mathcal{V}(T)$.
+If each navigation action selects an algorithm state from $\mathcal{V}(\mathcal{T})$, then after any finite mixed sequence of pure pedagogical and navigation actions, the algorithm state belongs to $\mathcal{V}(\mathcal{T})$.
 \end{theorem}
 
 \begin{proof}
-Induct on sequence length. A pure action preserves $a$; a navigation action replaces the current member of $\mathcal{V}(T)$ with another member. Each induction step therefore preserves the corresponding invariant.
+Induct on sequence length. A pure action preserves $a$; a navigation action replaces the current member of $\mathcal{V}(\mathcal{T})$ with another member, including when \path{select_variant} changes the active trajectory. Each induction step therefore preserves the corresponding invariant.
 \end{proof}
 
 The theorem describes the intended abstract runtime. The concrete browser stress test checks for violations of its premises through state, step, and artifact hashes; passing finite tests is not a proof for all future code or action sequences.
