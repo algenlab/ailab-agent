@@ -3,7 +3,7 @@
 本目录记录可复现实验入口。运行命令时必须在项目根目录使用固定解释器：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3
+python3
 ```
 
 ## Deterministic Benchmark
@@ -18,7 +18,7 @@
 一条命令运行本地确定性质量检查：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_quality_checks.py
+python3 scripts/run_quality_checks.py
 ```
 
 浏览器截图或真实 DOM 验证需要 Playwright 兼容容器，并且现在只在需要浏览器证据时显式运行：
@@ -27,7 +27,7 @@
 bash scripts/run_browser_smoke_container.sh
 ```
 
-原因：当前宿主机 glibc 2.17 不能运行 Playwright 自带 node。执行 AI 不应把该宿主机环境失败当作代码失败。默认镜像为当前机器已缓存的 `iregistry.baidu-int.com/liyunhuan01/vibe-coding:latest`；外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖。
+原因：当前宿主机 glibc 2.17 不能运行 Playwright 自带 node。执行 AI 不应把该宿主机环境失败当作代码失败。默认镜像为当前机器已缓存的 `mcr.microsoft.com/playwright/python:v1.59.0-noble`；外部 CI 可通过 `ALGOLAB_PLAYWRIGHT_IMAGE` 覆盖。
 
 容器命令要求能访问 Docker daemon。脚本会优先使用普通 `docker`，失败后自动尝试 `sudo -n docker`；若两者都不可用，应切到有 Docker 权限的执行环境后再跑门禁。
 
@@ -53,13 +53,13 @@ LLM 路径单独运行，需要通过环境变量或本地 ignored settings 文�
 运行示例：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark --condition algolab_full
+python3 scripts/run_llm_benchmark.py --output-dir output/llm_benchmark --condition algolab_full
 ```
 
 按算法族分层抽样：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+python3 scripts/run_llm_benchmark.py \
   --output-dir output/llm_benchmark \
   --condition algolab_full \
   --family array_pointer \
@@ -72,7 +72,7 @@ LLM 路径单独运行，需要通过环境变量或本地 ignored settings 文�
 独立 unseen family evaluation：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/run_llm_benchmark.py \
+python3 scripts/run_llm_benchmark.py \
   --output-dir output/llm_benchmark_unseen \
   --condition algolab_full \
   --case-set unseen \
@@ -94,7 +94,7 @@ LLM 路径单独运行，需要通过环境变量或本地 ignored settings 文�
 生成结构化可复现包：
 
 ```bash
-/ssd1/liaokunpeng/agent-py310-cu/bin/python3 scripts/build_reproducibility_package.py --output-dir output/reproducibility
+python3 scripts/build_reproducibility_package.py --output-dir output/reproducibility
 ```
 
 该命令输出环境、模型配置入口、样例输入、运行命令和输出路径，并明确区分 deterministic benchmark 与 LLM benchmark。
