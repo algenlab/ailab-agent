@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 CJK_RE = re.compile(r"[\u3400-\u9fff]")
+LOCAL_PATH_RE = re.compile(r"(?:file://)?/(?:ssd1|home|tmp)/[^\s\"']+")
 TEXT_SUFFIXES = {".html", ".htm", ".js", ".jsx", ".ts", ".tsx", ".json", ".md", ".css", ".txt"}
 MACHINE_BOOL_KEYS = (
     "page_load_ok",
@@ -28,6 +29,7 @@ MACHINE_BOOL_KEYS = (
     "mutation_free_ok",
 )
 METHOD_ORDER = (
+    "algotutorgen_stage1",
     "algotutorgen_stage2",
     "direct_html",
     "webgen_agent",
@@ -35,6 +37,7 @@ METHOD_ORDER = (
     "browser_repair_1call",
 )
 METHOD_LABELS = {
+    "algotutorgen_stage1": "AlgoTutorGen / Stage1",
     "algotutorgen_stage2": "AlgoTutorGen / Stage2",
     "direct_html": "Direct HTML",
     "webgen_agent": "WebGen-Agent",
@@ -42,7 +45,8 @@ METHOD_LABELS = {
     "browser_repair_1call": "Direct-BrowserRepair (1 call)",
 }
 METHOD_DESCRIPTIONS = {
-    "algotutorgen_stage2": "Verified AlgoTutorGen trace and teaching content with a newly generated Stage2 visual page.",
+    "algotutorgen_stage1": "The existing verified Stage1 solution, trace, teaching interactions, and deterministic visualization localized into English without regenerating the solution.",
+    "algotutorgen_stage2": "A newly generated English Stage2 visual page built from the verified AlgoTutorGen result; its nine machine checks come from the paired Stage1 interaction page.",
     "direct_html": "A model directly generates the complete interactive HTML page.",
     "webgen_agent": "WebGen-Agent produces a complete frontend project through its iterative workflow.",
     "htmlcure_strict": "HTMLCure repairs the independently generated Direct HTML page under its strict setting.",
@@ -128,6 +132,30 @@ def _machine_payload(row: dict[str, Any]) -> dict[str, bool]:
     return {key: bool(row.get(key)) for key in MACHINE_BOOL_KEYS}
 
 
+def _sanitize_public_text(value: Any) -> str:
+    text = str(value or "")
+    return LOCAL_PATH_RE.sub(
+        lambda match: "file://<local-path>" if match.group(0).startswith("file://") else "<local-path>",
+        text,
+    )
+
+
+def _machine_diagnostics(row: dict[str, Any]) -> dict[str, Any]:
+    """Keep concise browser evidence needed to interpret failed machine checks."""
+
+    diagnostics: dict[str, Any] = {}
+    errors = row.get("console_page_errors")
+    if isinstance(errors, list):
+        diagnostics["console_page_errors"] = [_sanitize_public_text(error) for error in errors]
+    preview = row.get("feedback_preview")
+    if isinstance(preview, dict):
+        diagnostics["feedback_preview"] = {
+            str(key): _sanitize_public_text(value)
+            for key, value in preview.items()
+        }
+    return diagnostics
+
+
 def _case_readme(case: dict[str, Any], audits: dict[str, dict[str, Any]]) -> str:
     sample = (case.get("samples") or [{}])[0]
     lines = [
@@ -149,7 +177,8 @@ def _case_readme(case: dict[str, Any], audits: dict[str, dict[str, Any]]) -> str
         "",
         "## Nine machine checks",
         "",
-        "Machine OK means that all nine browser checks pass for the same page.",
+        "Machine OK means that all nine browser checks pass for the evaluated interaction page.",
+        "The AlgoTutorGen / Stage2 row reuses the checks from its paired Stage1 interaction page; it is not a separate audit of the saved Stage2 visualization page.",
         "",
         "| Method | Load | Answer | Interaction | Correct feedback | Wrong feedback | Hint | Show answer | Learning log | Mutation-free | Machine OK |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
@@ -164,6 +193,11 @@ def _case_readme(case: dict[str, Any], audits: dict[str, dict[str, Any]]) -> str
     for method in METHOD_ORDER:
         if method == "webgen_agent":
             link = f"[{METHOD_LABELS[method]} source entry]({method}/source/index.html)"
+        elif method == "algotutorgen_stage1":
+            link = (
+                f"[Open {METHOD_LABELS[method]} page]({method}/page.html)"
+                f" · [Structured Stage1 JSON]({method}/artifact.json)"
+            )
         else:
             link = f"[Open {METHOD_LABELS[method]} page]({method}/page.html)"
         lines.extend(
@@ -181,26 +215,32 @@ def _case_readme(case: dict[str, Any], audits: dict[str, dict[str, Any]]) -> str
 
 def _root_readme(manifest: dict[str, Any]) -> str:
     lines = [
-        "# English Five-Method Artifact Gallery",
+        "# English Method Artifact Gallery: Stage1 and Stage2",
         "",
-        "This directory contains a fresh English-only generation run for the same fixed 23 cases and five methods as the original comparison gallery.",
-        "It contains 115 method artifacts in total. Inputs and expected answers are unchanged; only the language requirement differs.",
+        "This directory contains English-only artifacts for the same fixed 23 cases and five comparison methods as the original gallery.",
+        "AlgoTutorGen contributes both its Stage1 and Stage2 views, so the collection contains 138 saved artifact views in total.",
+        "The Stage1 solution, trace, scenes, inputs, and expected answers are reused; only human-readable text is localized into English.",
         "",
-        "## Methods",
+        "## Methods and AlgoTutorGen stages",
         "",
         "| Method | Description | Saved artifact |",
         "| --- | --- | --- |",
     ]
     for method in METHOD_ORDER:
-        saved = "source project, screenshot, and audit" if method == "webgen_agent" else "HTML page, screenshot, and audit"
+        if method == "webgen_agent":
+            saved = "source project, screenshot, and audit"
+        elif method == "algotutorgen_stage1":
+            saved = "HTML page, structured build JSON, screenshot, and audit"
+        else:
+            saved = "HTML page, screenshot, and audit"
         lines.append(f"| {METHOD_LABELS[method]} | {METHOD_DESCRIPTIONS[method]} | {saved} |")
     lines.extend(
         [
             "",
             "## Case index",
             "",
-            "| Family | Case | AlgoTutorGen | Direct HTML | WebGen-Agent | HTMLCure | BrowserRepair |",
-            "| --- | --- | --- | --- | --- | --- | --- |",
+            "| Family | Case | Stage1 | Stage2 | Direct HTML | WebGen-Agent | HTMLCure | BrowserRepair |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for case in manifest["cases"]:
@@ -225,7 +265,7 @@ def build_gallery(args: argparse.Namespace) -> dict[str, int]:
     direct = _by_case(_rows(args.direct_report))
     htmlcure = _by_case(_rows(args.htmlcure_report))
     browser = _by_case(_rows(args.browser_report))
-    main_algo_audit = _audit_by_case(args.main_audit, condition=args.algolab_condition)
+    stage1_audit = _audit_by_case(args.stage1_audit, condition=args.algolab_condition)
     main_direct_audit = _audit_by_case(args.main_audit, condition=args.direct_condition)
     webgen_audit = _by_case(_rows(args.webgen_audit))
     htmlcure_audit = _audit_by_case(args.htmlcure_audit, condition=args.htmlcure_condition)
@@ -241,14 +281,23 @@ def build_gallery(args: argparse.Namespace) -> dict[str, int]:
         case_dir = args.target / "cases" / case_id
         _write_json(case_dir / "case.json", case)
         method_sources = {
-            "algotutorgen_stage2": (_root_path(stage2[case_id]["html"]), main_algo_audit[case_id]),
-            "direct_html": (_root_path(direct[case_id]["html"]), main_direct_audit[case_id]),
-            "htmlcure_strict": (_root_path(htmlcure[case_id]["html"]), htmlcure_audit[case_id]),
-            "browser_repair_1call": (_root_path(browser[case_id]["html"]), browser_audit[case_id]),
+            "algotutorgen_stage1": (
+                _root_path(stage1[case_id]["html"]),
+                stage1_audit[case_id],
+                _root_path(stage1[case_id]["json"]),
+            ),
+            "algotutorgen_stage2": (
+                _root_path(stage2[case_id]["html"]),
+                stage1_audit[case_id],
+                None,
+            ),
+            "direct_html": (_root_path(direct[case_id]["html"]), main_direct_audit[case_id], None),
+            "htmlcure_strict": (_root_path(htmlcure[case_id]["html"]), htmlcure_audit[case_id], None),
+            "browser_repair_1call": (_root_path(browser[case_id]["html"]), browser_audit[case_id], None),
         }
         audits: dict[str, dict[str, Any]] = {}
         method_manifest: dict[str, dict[str, Any]] = {}
-        for method, (page_source, audit_row) in method_sources.items():
+        for method, (page_source, audit_row, artifact_source) in method_sources.items():
             method_dir = case_dir / method
             method_dir.mkdir(parents=True)
             page_source = _require_file(page_source, f"{method} page for {case_id}")
@@ -258,7 +307,19 @@ def build_gallery(args: argparse.Namespace) -> dict[str, int]:
             )
             shutil.copy2(page_source, method_dir / "page.html")
             shutil.copy2(screenshot_source, method_dir / "screenshot.png")
+            if artifact_source is not None:
+                artifact_source = _require_file(artifact_source, f"{method} structured artifact for {case_id}")
+                shutil.copy2(artifact_source, method_dir / "artifact.json")
             metrics = _machine_payload(audit_row)
+            checks_apply_to_saved_page = method != "algotutorgen_stage2"
+            files = {"page": "page.html", "screenshot": "screenshot.png"}
+            checksums = {
+                "page_sha256": _sha256(method_dir / "page.html"),
+                "screenshot_sha256": _sha256(method_dir / "screenshot.png"),
+            }
+            if artifact_source is not None:
+                files["artifact"] = "artifact.json"
+                checksums["artifact_sha256"] = _sha256(method_dir / "artifact.json")
             audit = {
                 "schema_version": "english-method-artifact-v1",
                 "condition": method,
@@ -269,11 +330,13 @@ def build_gallery(args: argparse.Namespace) -> dict[str, int]:
                 "language": "en",
                 "machine_metrics": metrics,
                 "machine_ok": all(metrics.values()),
-                "files": {"page": "page.html", "screenshot": "screenshot.png"},
-                "checksums": {
-                    "page_sha256": _sha256(method_dir / "page.html"),
-                    "screenshot_sha256": _sha256(method_dir / "screenshot.png"),
-                },
+                "machine_diagnostics": _machine_diagnostics(audit_row),
+                "machine_checks_apply_to_saved_page": checks_apply_to_saved_page,
+                "machine_evidence_source": (
+                    "saved_page" if checks_apply_to_saved_page else "paired_algotutorgen_stage1"
+                ),
+                "files": files,
+                "checksums": checksums,
             }
             _write_json(method_dir / "audit.json", audit)
             audits[method] = audit
@@ -283,6 +346,8 @@ def build_gallery(args: argparse.Namespace) -> dict[str, int]:
                 "screenshot": f"cases/{case_id}/{method}/screenshot.png",
                 "audit": f"cases/{case_id}/{method}/audit.json",
             }
+            if artifact_source is not None:
+                method_manifest[method]["artifact"] = f"cases/{case_id}/{method}/artifact.json"
 
         web_method = "webgen_agent"
         web_dir = case_dir / web_method
@@ -304,6 +369,7 @@ def build_gallery(args: argparse.Namespace) -> dict[str, int]:
             "language": "en",
             "machine_metrics": metrics,
             "machine_ok": all(metrics.values()),
+            "machine_diagnostics": _machine_diagnostics(webgen_audit[case_id]),
             "files": {"source_entry": "source/index.html", "screenshot": "screenshot.png"},
             "checksums": {
                 "source_entry_sha256": _sha256(web_dir / "source/index.html"),
@@ -331,10 +397,12 @@ def build_gallery(args: argparse.Namespace) -> dict[str, int]:
         )
 
     manifest = {
-        "schema_version": "english-method-artifact-gallery-v1",
+        "schema_version": "english-method-artifact-gallery-v2",
         "language": "en",
-        "selection_rule": "The same fixed 23 family-representative cases as the original five-method gallery.",
+        "selection_rule": "The same fixed 23 family-representative cases as the original five-method gallery, with both AlgoTutorGen Stage1 and Stage2 views retained.",
         "case_count": len(manifest_cases),
+        "comparison_method_count": 5,
+        "artifact_view_count": len(METHOD_ORDER),
         "method_order": list(METHOD_ORDER),
         "method_artifact_count": len(manifest_cases) * len(METHOD_ORDER),
         "cases": manifest_cases,
@@ -360,6 +428,8 @@ def validate_gallery(target: Path) -> dict[str, int]:
                 _require_file(method_dir / "source/index.html", f"WebGen source for {case_id}")
             else:
                 _require_file(method_dir / "page.html", f"{method} page for {case_id}")
+            if method == "algotutorgen_stage1":
+                _require_file(method_dir / "artifact.json", f"Stage1 structured artifact for {case_id}")
             count += 1
     assert_english_only_tree(target)
     return {"case_count": len(cases), "method_artifact_count": count}
@@ -371,6 +441,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stage1-report", type=Path, required=True)
     parser.add_argument("--stage2-report", type=Path, required=True)
     parser.add_argument("--direct-report", type=Path, required=True)
+    parser.add_argument("--stage1-audit", type=Path, required=True)
     parser.add_argument("--main-audit", type=Path, required=True)
     parser.add_argument("--webgen-workspace", type=Path, required=True)
     parser.add_argument("--webgen-audit", type=Path, required=True)
@@ -391,6 +462,7 @@ def parse_args() -> argparse.Namespace:
         "stage1_report",
         "stage2_report",
         "direct_report",
+        "stage1_audit",
         "main_audit",
         "webgen_workspace",
         "webgen_audit",
