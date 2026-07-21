@@ -1,0 +1,5549 @@
+{
+  "schema_version": "algolab-build-v1",
+  "problem_title": "Two Sum",
+  "input_contract": "Given an array nums of integers and an integer target, return indices of the two different elements whose sum equals target. If no such pair exists return an empty list.",
+  "input_data": {
+    "nums": [
+      2,
+      7,
+      11,
+      15
+    ],
+    "target": 9
+  },
+  "expected_result": [
+    0,
+    1
+  ],
+  "verifier_result": [
+    0,
+    1
+  ],
+  "variants": [
+    {
+      "id": "v1",
+      "name": "Brute Force",
+      "strategy": "Examine every unordered pair of indices and return the first matching sum.",
+      "time_complexity": "O(n^2)",
+      "space_complexity": "O(1)",
+      "code": "def solve(input_data):\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []",
+      "tracker_code": "def trace(input_data):\n    sess = TraceSession(\"Two Sum\", input_data, pseudocode=[\"Pick first slot i\", \"Pick second slot j > i\", \"Check if sum equals target\"])\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    arr = sess.array(\"nums\", nums)\n    tgt = sess.scalar(\"target\", target)\n    n = len(nums)\n    answer = []\n    found = False\n    for i in range(n):\n        arr.highlight(i, role=\"current\")\n        for j in range(i + 1, n):\n            arr.highlight(j, role=\"candidate\")\n            sess.note(f\"Check {nums[i]} + {nums[j]} == {target} ?\")\n            if nums[i] + nums[j] == target:\n                answer = [i, j]\n                arr.highlight(i, role=\"matched\")\n                arr.highlight(j, role=\"matched\")\n                found = True\n                break\n            else:\n                arr.unhighlight(j)\n        if found:\n            break\n        arr.unhighlight(i)\n    sess.result(answer)\n    trace = sess.to_trace()\n    for ev in trace[\"events\"]:\n        op = ev.get(\"op\",\"\")\n        reason = ev.get(\"reason\",\"\")\n        tids = [t.get(\"id\",\"\") for t in ev.get(\"targets\",[])]\n        if op == \"create\" and \"nums\" in tids:\n            ev[\"code_line\"] = 2\n        elif op == \"create\" and \"target\" in tids:\n            ev[\"code_line\"] = 3\n        elif op == \"highlight\" and \"current\" in reason:\n            ev[\"code_line\"] = 4\n        elif op == \"highlight\" and \"candidate\" in reason:\n            ev[\"code_line\"] = 5\n        elif op == \"note\" and \"Check\" in reason:\n            ev[\"code_line\"] = 6\n        elif op == \"highlight\" and \"matched\" in reason:\n            ev[\"code_line\"] = 7\n        elif op == \"result\" or op == \"answer\":\n            ev[\"code_line\"] = 7\n        else:\n            ev[\"code_line\"] = 8\n    return trace",
+      "result": [
+        0,
+        1
+      ],
+      "trace": {
+        "schema_version": "semantic-trace-v1",
+        "algorithm": "Two Sum",
+        "input_data": {
+          "nums": [
+            2,
+            7,
+            11,
+            15
+          ],
+          "target": 9
+        },
+        "result": [
+          0,
+          1
+        ],
+        "pseudocode": [
+          "Pick first slot i",
+          "Pick second slot j > i",
+          "Check if sum equals target"
+        ],
+        "events": [
+          {
+            "step": 0,
+            "op": "create",
+            "targets": [
+              {
+                "id": "nums"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Create array nums",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ]
+            },
+            "code_line": 2,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 1,
+            "op": "create",
+            "targets": [
+              {
+                "id": "target"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Create variable target",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9
+            },
+            "code_line": 3,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 2,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[0]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "current",
+            "reason": "Highlight nums[0]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9
+            },
+            "code_line": 8,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 3,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[1]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "candidate",
+            "reason": "Highlight nums[1]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9
+            },
+            "code_line": 8,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 4,
+            "op": "explain",
+            "targets": [],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Check 2 + 7 == 9 ?",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9
+            },
+            "code_line": 8,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 5,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[0]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "matched",
+            "reason": "Highlight nums[0]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9
+            },
+            "code_line": 8,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 6,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[1]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "matched",
+            "reason": "Highlight nums[1]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9
+            },
+            "code_line": 8,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 7,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "answer"
+              }
+            ],
+            "value": [
+              0,
+              1
+            ],
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "answer",
+            "reason": "Returns the final answer.",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "answer": [
+                0,
+                1
+              ]
+            },
+            "code_line": 8,
+            "interaction": null,
+            "teaching": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2",
+      "name": "Hash Map",
+      "strategy": "Use a hash map to store seen numbers and their indices, and look up the complement in O(1) per element.",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "code": "def solve(input_data):\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    return []",
+      "tracker_code": "def trace(input_data):\n    sess = TraceSession(\"Two Sum\", input_data, pseudocode=[\"Iterate array\", \"Compute complement\", \"Look up complement in map\", \"If found return indices\", \"Else store num->index\"])\n    nums = input_data[\"nums\"]\n    target = input_data[\"target\"]\n    arr = sess.array(\"nums\", nums)\n    tgt = sess.scalar(\"target\", target)\n    seen = sess.map(\"seen\", {})\n    answer = []\n    for i, num in enumerate(nums):\n        arr.highlight(i, role=\"current\")\n        complement = target - num\n        sess.note(f\"Check num={num} -> complement={complement}\")\n        prev = seen.get(complement, None)\n        if prev is not None:\n            answer = [prev, i]\n            arr.highlight(i, role=\"matched\")\n            arr.highlight(prev, role=\"matched\")\n            sess.note(f\"Found pair, complement {complement} previously seen at index {prev}\")\n            break\n        else:\n            seen[num] = i\n            sess.note(f\"Store {num} at index {i}\")\n    sess.result(answer)\n    trace = sess.to_trace()\n    for ev in trace[\"events\"]:\n        op = ev.get(\"op\",\"\")\n        reason = ev.get(\"reason\",\"\")\n        tids = [t.get(\"id\",\"\") for t in ev.get(\"targets\",[])]\n        if op == \"create\" and \"nums\" in tids:\n            ev[\"code_line\"] = 2\n        elif op == \"create\" and \"target\" in tids:\n            ev[\"code_line\"] = 3\n        elif op == \"create\" and \"seen\" in tids:\n            ev[\"code_line\"] = 4\n        elif op == \"highlight\" and \"current\" in reason:\n            ev[\"code_line\"] = 5\n        elif op == \"note\" and \"Check num\" in reason:\n            ev[\"code_line\"] = 6\n        elif op == \"set\" and \"seen\" in tids:\n            ev[\"code_line\"] = 9\n        elif op == \"highlight\" and \"matched\" in reason:\n            ev[\"code_line\"] = 8\n        elif op == \"result\" or op == \"answer\":\n            ev[\"code_line\"] = 8 if answer else 10\n        elif op == \"note\" and \"Found pair\" in reason:\n            ev[\"code_line\"] = 7\n        elif op == \"note\" and \"Store\" in reason:\n            ev[\"code_line\"] = 9\n        else:\n            ev[\"code_line\"] = 5\n    return trace",
+      "result": [
+        0,
+        1
+      ],
+      "trace": {
+        "schema_version": "semantic-trace-v1",
+        "algorithm": "Two Sum",
+        "input_data": {
+          "nums": [
+            2,
+            7,
+            11,
+            15
+          ],
+          "target": 9
+        },
+        "result": [
+          0,
+          1
+        ],
+        "pseudocode": [
+          "Iterate array",
+          "Compute complement",
+          "Look up complement in map",
+          "If found return indices",
+          "Else store num->index"
+        ],
+        "events": [
+          {
+            "step": 0,
+            "op": "create",
+            "targets": [
+              {
+                "id": "nums"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Create array nums",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ]
+            },
+            "code_line": 2,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 1,
+            "op": "create",
+            "targets": [
+              {
+                "id": "target"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Create variable target",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9
+            },
+            "code_line": 3,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 2,
+            "op": "create",
+            "targets": [
+              {
+                "id": "seen"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Create map seen",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {}
+            },
+            "code_line": 4,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 3,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[0]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "current",
+            "reason": "Highlight nums[0]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {}
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 4,
+            "op": "explain",
+            "targets": [],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Check num=2 -> complement=7",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {}
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 5,
+            "op": "compare",
+            "targets": [
+              {
+                "id": "seen"
+              }
+            ],
+            "value": {
+              "key": 7,
+              "exists": false,
+              "value": null
+            },
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Query seen[7].",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {}
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 6,
+            "op": "set",
+            "targets": [
+              {
+                "id": "seen[2]"
+              }
+            ],
+            "value": 0,
+            "before": null,
+            "after": 0,
+            "deps": [],
+            "role": "",
+            "reason": "seen[2] = 0",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 7,
+            "op": "explain",
+            "targets": [],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Store 2 at index 0",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 8,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[1]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "current",
+            "reason": "Highlight nums[1]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 9,
+            "op": "explain",
+            "targets": [],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Check num=7 -> complement=2",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 10,
+            "op": "compare",
+            "targets": [
+              {
+                "id": "seen[2]"
+              }
+            ],
+            "value": {
+              "key": 2,
+              "exists": true,
+              "value": 0
+            },
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Query seen[2].",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 11,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[1]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "matched",
+            "reason": "Highlight nums[1]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 12,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "nums[0]"
+              }
+            ],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "matched",
+            "reason": "Highlight nums[0]",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 13,
+            "op": "explain",
+            "targets": [],
+            "value": null,
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "",
+            "reason": "Found pair, complement 2 previously seen at index 0",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              }
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          },
+          {
+            "step": 14,
+            "op": "mark",
+            "targets": [
+              {
+                "id": "answer"
+              }
+            ],
+            "value": [
+              0,
+              1
+            ],
+            "before": null,
+            "after": null,
+            "deps": [],
+            "role": "answer",
+            "reason": "Returns the final answer.",
+            "state": {
+              "nums": [
+                2,
+                7,
+                11,
+                15
+              ],
+              "target": 9,
+              "seen": {
+                "2": 0
+              },
+              "answer": [
+                0,
+                1
+              ]
+            },
+            "code_line": 5,
+            "interaction": null,
+            "teaching": null
+          }
+        ]
+      }
+    }
+  ],
+  "scenes": {
+    "v1": {
+      "schema_version": "scene-graph-v1",
+      "algorithm": "Two Sum",
+      "input_data": {
+        "nums": [
+          2,
+          7,
+          11,
+          15
+        ],
+        "target": 9
+      },
+      "result": [
+        0,
+        1
+      ],
+      "pseudocode": [
+        "Pick first slot i",
+        "Pick second slot j > i",
+        "Check if sum equals target"
+      ],
+      "frames": [
+        {
+          "step": 0,
+          "title": "Initialize structure: nums",
+          "description": "Create array nums",
+          "operation": "create",
+          "code_line": 2,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:0",
+              "type": "callout",
+              "value": "Create array nums",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ]
+          },
+          "interaction": {
+            "type": "choice",
+            "prompt": "What is the content of the nums array at this point?",
+            "options": [
+              "[2,7,11,15]",
+              "[2,7,11,15,9]"
+            ],
+            "answer": "[2,7,11,15]",
+            "explanation": "nums directly initialized from the nums field of input data, containing only the quantities of four slots.",
+            "wrong_explanation": "The wrong option includes target in nums, but target is an independent variable and should not be mixed into the array.",
+            "option_explanations": {
+              "[2,7,11,15]": "Correct, nums are exactly the four input counts.",
+              "[2,7,11,15,9]": "Error, 9 is the target sum, not an element of nums."
+            }
+          },
+          "teaching": {
+            "what": "Create array nums to store the quantity of goods in each slot.",
+            "why": "Need the sum of quantities from two different slots to equal the target value, so first obtain all quantities.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "Beginners might mistakenly think the length of nums is variable, but in fact it remains unchanged throughout the algorithm.",
+            "hint": "Observe the four values in nums array; they are candidate addends."
+          },
+          "evidence": {
+            "operation": "create",
+            "targets": [
+              "nums"
+            ],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums",
+                "operation": "create",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Create array nums",
+            "code_line": 2,
+            "timeline": {
+              "phase": "Initialize",
+              "operation": "create",
+              "keyframe": true,
+              "keyframe_label": "Create array nums",
+              "targets": [
+                "nums"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 1,
+          "title": "Initialize structure: target",
+          "description": "Create variable target",
+          "operation": "create",
+          "code_line": 3,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:1",
+              "type": "callout",
+              "value": "Create variable target",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          },
+          "interaction": {
+            "type": "input",
+            "prompt": "What is the value of target?",
+            "options": [],
+            "answer": "9",
+            "explanation": "target is initialized to the target field from input data, i.e., 9.",
+            "wrong_explanation": "If you answer another number, please recheck the problem's input data.",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Create variable target, assigned value 9.",
+            "why": "The algorithm needs to use target as the criterion to check whether the sum of two numbers equals it.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "target is a constant, this value will be used in all subsequent comparisons."
+          },
+          "evidence": {
+            "operation": "create",
+            "targets": [
+              "target"
+            ],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "target",
+                "operation": "create",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Create variable target",
+            "code_line": 3,
+            "timeline": {
+              "phase": "Initialize",
+              "operation": "create",
+              "keyframe": true,
+              "keyframe_label": "Create variable target",
+              "targets": [
+                "target"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: target: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "target"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "target: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 2,
+          "title": "Mark object: nums[0].",
+          "description": "Highlight nums[0]",
+          "operation": "mark",
+          "code_line": 8,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:2",
+              "type": "callout",
+              "value": "Highlight nums[0]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[0]",
+              "role": "current",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "The outer loop selects the first slot nums[0] = 2 as the first addend.",
+            "why": "After fixing one addend, the inner loop tries subsequent slots in order, thus checking all possible pairs.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "Beginners might think it can start from any position, but the problem requires two distinct slots, so j must start from i+1.",
+            "hint": "Currently i = 0, the first addend is fixed at 2."
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[0]"
+            ],
+            "deps": [],
+            "role": "current",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[0]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[0]",
+            "code_line": 8,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[0]",
+              "targets": [
+                "nums[0]"
+              ],
+              "role": "current"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[0]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[0]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[0]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 3,
+          "title": "Mark object: nums[1].",
+          "description": "Highlight nums[1]",
+          "operation": "mark",
+          "code_line": 8,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:3",
+              "type": "callout",
+              "value": "Highlight nums[1]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[1]",
+              "role": "candidate",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "The inner loop selects the second slot nums[1] = 7 as the second addend.",
+            "why": "Combine with fixed first addend 2, compute 2+7, check if equals target.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "The pair currently being checked is (nums[0], nums[1]), i.e., (2,7)."
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[1]"
+            ],
+            "deps": [],
+            "role": "candidate",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[1]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[1]",
+            "code_line": 8,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[1]",
+              "targets": [
+                "nums[1]"
+              ],
+              "role": "candidate"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[1]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[1]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[1]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 4,
+          "title": "Explanation.",
+          "description": "Check 2 + 7 == 9 ?",
+          "operation": "explain",
+          "code_line": 8,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:4",
+              "type": "callout",
+              "value": "Check 2 + 7 == 9 ?",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          },
+          "interaction": {
+            "type": "judge",
+            "prompt": "Is nums[0]+nums[1] equal to target?",
+            "options": [],
+            "answer": true,
+            "explanation": "2+7=9, exactly equals target, condition holds.",
+            "wrong_explanation": "If you answer false, you may have miscalculated the sum or misremembered the target value.",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Compute sum of two numbers: 2 + 7 = 9, and check if equal to target = 9.",
+            "why": "Only when the sum equals target does it indicate that the current pair of slots meets the order requirement, and the indices can be returned.",
+            "formula": "sum = nums[i] + nums[j]",
+            "invariant": "",
+            "common_mistake": "Beginners might only compare the elements themselves and forget to sum, or mistakenly add the indices and then compare.",
+            "hint": ""
+          },
+          "evidence": {
+            "operation": "explain",
+            "targets": [],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "state",
+                "operation": "explain",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Check 2 + 7 == 9 ?",
+            "code_line": 8,
+            "timeline": {
+              "phase": "Explanation",
+              "operation": "explain",
+              "keyframe": false,
+              "keyframe_label": "Check 2 + 7 == 9 ?",
+              "targets": [],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: state: None -> None.",
+              "checks": [
+                {
+                  "label": "State evidence",
+                  "text": "state: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 5,
+          "title": "Mark object: nums[0].",
+          "description": "Highlight nums[0]",
+          "operation": "mark",
+          "code_line": 8,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:5",
+              "type": "callout",
+              "value": "Highlight nums[0]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[0]",
+              "role": "matched",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Highlight nums[0] again, marking it as a successfully matched element.",
+            "why": "Emphasize the position of the first addend in the found pair to help students understand the meaning of the returned index.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "The first matching element is at index 0."
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[0]"
+            ],
+            "deps": [],
+            "role": "matched",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[0]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[0]",
+            "code_line": 8,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[0]",
+              "targets": [
+                "nums[0]"
+              ],
+              "role": "matched"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[0]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[0]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[0]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 6,
+          "title": "Mark object: nums[1].",
+          "description": "Highlight nums[1]",
+          "operation": "mark",
+          "code_line": 8,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:6",
+              "type": "callout",
+              "value": "Highlight nums[1]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[1]",
+              "role": "matched",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Highlight nums[1] again, marking it as a successfully matched element.",
+            "why": "Emphasize the position of the second addend to intuitively see the pairing result.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "The second matching element is at index 1."
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[1]"
+            ],
+            "deps": [],
+            "role": "matched",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[1]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[1]",
+            "code_line": 8,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[1]",
+              "targets": [
+                "nums[1]"
+              ],
+              "role": "matched"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[1]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[1]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[1]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 7,
+          "title": "Mark object: answer.",
+          "description": "Returns the final answer.",
+          "operation": "mark",
+          "code_line": 8,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "answer",
+              "type": "container",
+              "value": null,
+              "label": "answer",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "answer[0]",
+              "type": "cell",
+              "value": 0,
+              "label": "",
+              "parent": "answer",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "answer[1]",
+              "type": "cell",
+              "value": 1,
+              "label": "",
+              "parent": "answer",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:7",
+              "type": "callout",
+              "value": "Returns the final answer.",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "answer",
+              "role": "answer",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "answer": [
+              0,
+              1
+            ]
+          },
+          "interaction": {
+            "type": "choice",
+            "prompt": "What is the final result returned by this code?",
+            "options": [
+              "[0,1]",
+              "[]",
+              "[2,7]"
+            ],
+            "answer": "[0,1]",
+            "explanation": "The sum of 2 and 7 equals 9, and their indices are 0 and 1, so return [0,1].",
+            "wrong_explanation": "The wrong option [] indicates not found, while [2,7] returns element values instead of indices, not matching the problem requirements.",
+            "option_explanations": {
+              "[0,1]": "Correct, these are the indices of the two slots that meet the condition.",
+              "[]": "Error, there indeed exists a pair satisfying the condition.",
+              "[2,7]": "Error, the problem requires returning indices, not element values."
+            }
+          },
+          "teaching": {
+            "what": "Returns the final answer [0,1].",
+            "why": "Because nums[0]+nums[1]==target, and the two slots are different, meets requirement.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "A common mistake for beginners is to return element values [2,7] instead of indices [0,1]; be sure to read the problem requirements carefully.",
+            "hint": "Watch answer"
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "answer"
+            ],
+            "deps": [],
+            "role": "answer",
+            "value": [
+              0,
+              1
+            ],
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "answer",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "reason": "Returns the final answer.",
+            "code_line": 8,
+            "timeline": {
+              "phase": "Returns the result.",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Returns the final answer.",
+              "targets": [
+                "answer"
+              ],
+              "role": "answer"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: answer: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "answer"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "answer: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        }
+      ]
+    },
+    "v2": {
+      "schema_version": "scene-graph-v1",
+      "algorithm": "Two Sum",
+      "input_data": {
+        "nums": [
+          2,
+          7,
+          11,
+          15
+        ],
+        "target": 9
+      },
+      "result": [
+        0,
+        1
+      ],
+      "pseudocode": [
+        "Iterate array",
+        "Compute complement",
+        "Look up complement in map",
+        "If found return indices",
+        "Else store num->index"
+      ],
+      "frames": [
+        {
+          "step": 0,
+          "title": "Initialize structure: nums",
+          "description": "Create array nums",
+          "operation": "create",
+          "code_line": 2,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:0",
+              "type": "callout",
+              "value": "Create array nums",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ]
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Create array nums with input data.",
+            "why": "Initialize the list to be processed.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on nums"
+          },
+          "evidence": {
+            "operation": "create",
+            "targets": [
+              "nums"
+            ],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums",
+                "operation": "create",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Create array nums",
+            "code_line": 2,
+            "timeline": {
+              "phase": "Initialize",
+              "operation": "create",
+              "keyframe": true,
+              "keyframe_label": "Create array nums",
+              "targets": [
+                "nums"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 1,
+          "title": "Initialize structure: target",
+          "description": "Create variable target",
+          "operation": "create",
+          "code_line": 3,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:1",
+              "type": "callout",
+              "value": "Create variable target",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Create variable target with value 9.",
+            "why": "Set the desired sum for the two numbers.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on target"
+          },
+          "evidence": {
+            "operation": "create",
+            "targets": [
+              "target"
+            ],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "target",
+                "operation": "create",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Create variable target",
+            "code_line": 3,
+            "timeline": {
+              "phase": "Initialize",
+              "operation": "create",
+              "keyframe": true,
+              "keyframe_label": "Create variable target",
+              "targets": [
+                "target"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: target: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "target"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "target: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 2,
+          "title": "Initialize structure: seen",
+          "description": "Create map seen",
+          "operation": "create",
+          "code_line": 4,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "callout:2",
+              "type": "callout",
+              "value": "Create map seen",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {}
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Create an empty dictionary seen.",
+            "why": "Will store number->index mappings for O(1) lookups.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on seen"
+          },
+          "evidence": {
+            "operation": "create",
+            "targets": [
+              "seen"
+            ],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "seen",
+                "operation": "create",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Create map seen",
+            "code_line": 4,
+            "timeline": {
+              "phase": "Initialize",
+              "operation": "create",
+              "keyframe": true,
+              "keyframe_label": "Create map seen",
+              "targets": [
+                "seen"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: seen: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "seen"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "seen: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 3,
+          "title": "Mark object: nums[0].",
+          "description": "Highlight nums[0]",
+          "operation": "mark",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "callout:3",
+              "type": "callout",
+              "value": "Highlight nums[0]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[0]",
+              "role": "current",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {}
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Begin loop iteration: current number nums[0] = 2.",
+            "why": "Visit each element to find a pair.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on nums[0]"
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[0]"
+            ],
+            "deps": [],
+            "role": "current",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[0]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[0]",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[0]",
+              "targets": [
+                "nums[0]"
+              ],
+              "role": "current"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[0]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[0]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[0]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 4,
+          "title": "Explanation.",
+          "description": "Check num=2 -> complement=7",
+          "operation": "explain",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "callout:4",
+              "type": "callout",
+              "value": "Check num=2 -> complement=7",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {}
+          },
+          "interaction": {
+            "type": "input",
+            "prompt": "What is the complement computed for num=2 and target=9?",
+            "options": [],
+            "answer": "7",
+            "explanation": "complement = target - num = 9 - 2 = 7.",
+            "wrong_explanation": "You may have mistakenly used target + num or simply reused num.",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Compute complement = target - num = 9 - 2 = 7.",
+            "why": "Identify the number needed to complete the pair.",
+            "formula": "complement = target - num",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": ""
+          },
+          "evidence": {
+            "operation": "explain",
+            "targets": [],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "state",
+                "operation": "explain",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Check num=2 -> complement=7",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Explanation",
+              "operation": "explain",
+              "keyframe": false,
+              "keyframe_label": "Check num=2 -> complement=7",
+              "targets": [],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: state: None -> None.",
+              "checks": [
+                {
+                  "label": "State evidence",
+                  "text": "state: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 5,
+          "title": "Compare candidate: seen",
+          "description": "Query seen[7].",
+          "operation": "compare",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "callout:5",
+              "type": "callout",
+              "value": "Query seen[7].",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {}
+          },
+          "interaction": {
+            "type": "choice",
+            "prompt": "Does the seen map currently contain the key 7?",
+            "options": [
+              "Yes",
+              "No"
+            ],
+            "answer": "No",
+            "explanation": "At this point seen is empty, so 7 is not present.",
+            "wrong_explanation": "You might think the map stores all numbers from nums, but it only stores previously visited numbers (here none have been stored yet).",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Query the seen map for key 7.",
+            "why": "Check if the complement has been visited before.",
+            "formula": "",
+            "invariant": "seen holds indices of previously visited numbers.",
+            "common_mistake": "Many beginners think 7 should already be in seen because it appears in nums, but we haven't stored it yet—only numbers encountered so far in the loop are added.",
+            "hint": "Focus on seen"
+          },
+          "evidence": {
+            "operation": "compare",
+            "targets": [
+              "seen"
+            ],
+            "deps": [],
+            "role": "",
+            "value": {
+              "key": 7,
+              "exists": false,
+              "value": null
+            },
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "seen",
+                "operation": "compare",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": {
+                  "key": 7,
+                  "exists": false,
+                  "value": null
+                }
+              }
+            ],
+            "reason": "Query seen[7].",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "compare",
+              "keyframe": false,
+              "keyframe_label": "Query seen[7].",
+              "targets": [
+                "seen"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: seen: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "seen"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "seen: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 6,
+          "title": "Update status: seen[2]",
+          "description": "seen[2] = 0",
+          "operation": "set",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "cell",
+              "value": null,
+              "label": "",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:6",
+              "type": "callout",
+              "value": "seen[2] = 0",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": {
+            "type": "input",
+            "prompt": "What value will be assigned to seen[2]?",
+            "options": [],
+            "answer": "0",
+            "explanation": "We store the current index i=0.",
+            "wrong_explanation": "A common mistake is to store the number 2 itself, or the complement 7, instead of the index.",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Store seen[2] = 0.",
+            "why": "Record that 2 appeared at index 0 for future complement matches.",
+            "formula": "seen[num] = i",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on seen[2]"
+          },
+          "evidence": {
+            "operation": "set",
+            "targets": [
+              "seen[2]"
+            ],
+            "deps": [],
+            "role": "",
+            "value": 0,
+            "before": null,
+            "after": 0,
+            "changes": [
+              {
+                "target": "seen[2]",
+                "operation": "set",
+                "source": "event",
+                "before": null,
+                "after": 0,
+                "value": 0
+              }
+            ],
+            "reason": "seen[2] = 0",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "set",
+              "keyframe": true,
+              "keyframe_label": "seen[2] = 0",
+              "targets": [
+                "seen[2]"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: seen[2]: None -> 0.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "seen[2]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "seen[2]: None -> 0"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 7,
+          "title": "Explanation.",
+          "description": "Store 2 at index 0",
+          "operation": "explain",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "label",
+              "value": 0,
+              "label": "2",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:7",
+              "type": "callout",
+              "value": "Store 2 at index 0",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Confirm: 2 is now mapped to index 0 in seen.",
+            "why": "The map is updated for the next iterations.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": ""
+          },
+          "evidence": {
+            "operation": "explain",
+            "targets": [],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "state",
+                "operation": "explain",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Store 2 at index 0",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Explanation",
+              "operation": "explain",
+              "keyframe": false,
+              "keyframe_label": "Store 2 at index 0",
+              "targets": [],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: state: None -> None.",
+              "checks": [
+                {
+                  "label": "State evidence",
+                  "text": "state: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 8,
+          "title": "Mark object: nums[1].",
+          "description": "Highlight nums[1]",
+          "operation": "mark",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "label",
+              "value": 0,
+              "label": "2",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:8",
+              "type": "callout",
+              "value": "Highlight nums[1]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[1]",
+              "role": "current",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Move to next element: nums[1] = 7.",
+            "why": "Continue scanning the array.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on nums[1]"
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[1]"
+            ],
+            "deps": [],
+            "role": "current",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[1]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[1]",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[1]",
+              "targets": [
+                "nums[1]"
+              ],
+              "role": "current"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[1]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[1]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[1]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 9,
+          "title": "Explanation.",
+          "description": "Check num=7 -> complement=2",
+          "operation": "explain",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "label",
+              "value": 0,
+              "label": "2",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:9",
+              "type": "callout",
+              "value": "Check num=7 -> complement=2",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": {
+            "type": "input",
+            "prompt": "What is the complement for num=7?",
+            "options": [],
+            "answer": "2",
+            "explanation": "9 - 7 = 2.",
+            "wrong_explanation": "You might have mistakenly used target + num or num itself.",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Compute complement = target - 7 = 2.",
+            "why": "Find the value that would complete the sum.",
+            "formula": "complement = target - num",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": ""
+          },
+          "evidence": {
+            "operation": "explain",
+            "targets": [],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "state",
+                "operation": "explain",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Check num=7 -> complement=2",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Explanation",
+              "operation": "explain",
+              "keyframe": false,
+              "keyframe_label": "Check num=7 -> complement=2",
+              "targets": [],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: state: None -> None.",
+              "checks": [
+                {
+                  "label": "State evidence",
+                  "text": "state: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 10,
+          "title": "Compare candidate: seen[2]",
+          "description": "Query seen[2].",
+          "operation": "compare",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "cell",
+              "value": null,
+              "label": "",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:10",
+              "type": "callout",
+              "value": "Query seen[2].",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": {
+            "type": "choice",
+            "prompt": "Does the seen map now contain the key 2?",
+            "options": [
+              "Yes",
+              "No"
+            ],
+            "answer": "Yes",
+            "explanation": "After step 6, seen is {2:0}, so 2 exists.",
+            "wrong_explanation": "You may have forgotten that 2 was stored when we visited index 0.",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Query the seen map for key 2.",
+            "why": "Check if the complement has been seen earlier.",
+            "formula": "",
+            "invariant": "seen stores all previously visited numbers and their indices.",
+            "common_mistake": "",
+            "hint": "Focus on seen[2]"
+          },
+          "evidence": {
+            "operation": "compare",
+            "targets": [
+              "seen[2]"
+            ],
+            "deps": [],
+            "role": "",
+            "value": {
+              "key": 2,
+              "exists": true,
+              "value": 0
+            },
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "seen[2]",
+                "operation": "compare",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": {
+                  "key": 2,
+                  "exists": true,
+                  "value": 0
+                }
+              }
+            ],
+            "reason": "Query seen[2].",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "compare",
+              "keyframe": false,
+              "keyframe_label": "Query seen[2].",
+              "targets": [
+                "seen[2]"
+              ],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: seen[2]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "seen[2]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "seen[2]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 11,
+          "title": "Mark object: nums[1].",
+          "description": "Highlight nums[1]",
+          "operation": "mark",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "label",
+              "value": 0,
+              "label": "2",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:11",
+              "type": "callout",
+              "value": "Highlight nums[1]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[1]",
+              "role": "matched",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Highlight nums[1] as matched.",
+            "why": "Indicate that the current number is part of the solution.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on nums[1]"
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[1]"
+            ],
+            "deps": [],
+            "role": "matched",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[1]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[1]",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[1]",
+              "targets": [
+                "nums[1]"
+              ],
+              "role": "matched"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[1]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[1]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[1]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 12,
+          "title": "Mark object: nums[0].",
+          "description": "Highlight nums[0]",
+          "operation": "mark",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "label",
+              "value": 0,
+              "label": "2",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:12",
+              "type": "callout",
+              "value": "Highlight nums[0]",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "nums[0]",
+              "role": "matched",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Highlight nums[0] as matched.",
+            "why": "Show the partner element that was stored earlier.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": "Focus on nums[0]"
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "nums[0]"
+            ],
+            "deps": [],
+            "role": "matched",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "nums[0]",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Highlight nums[0]",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Main loop",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Highlight nums[0]",
+              "targets": [
+                "nums[0]"
+              ],
+              "role": "matched"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "Step check passed: nums[0]: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "nums[0]"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "nums[0]: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 13,
+          "title": "Explanation.",
+          "description": "Found pair, complement 2 previously seen at index 0",
+          "operation": "explain",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "label",
+              "value": 0,
+              "label": "2",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:13",
+              "type": "callout",
+              "value": "Found pair, complement 2 previously seen at index 0",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            }
+          },
+          "interaction": null,
+          "teaching": {
+            "what": "Conclude: complement 2 found at index 0, so pair (0,1) satisfies target.",
+            "why": "The pair has been found; algorithm will return.",
+            "formula": "",
+            "invariant": "",
+            "common_mistake": "",
+            "hint": ""
+          },
+          "evidence": {
+            "operation": "explain",
+            "targets": [],
+            "deps": [],
+            "role": "",
+            "value": null,
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "state",
+                "operation": "explain",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": null
+              }
+            ],
+            "reason": "Found pair, complement 2 previously seen at index 0",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Explanation",
+              "operation": "explain",
+              "keyframe": false,
+              "keyframe_label": "Found pair, complement 2 previously seen at index 0",
+              "targets": [],
+              "role": ""
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: state: None -> None.",
+              "checks": [
+                {
+                  "label": "State evidence",
+                  "text": "state: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        },
+        {
+          "step": 14,
+          "title": "Mark object: answer.",
+          "description": "Returns the final answer.",
+          "operation": "mark",
+          "code_line": 5,
+          "objects": [
+            {
+              "id": "nums",
+              "type": "container",
+              "value": null,
+              "label": "nums",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "nums[0]",
+              "type": "cell",
+              "value": 2,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[1]",
+              "type": "cell",
+              "value": 7,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[2]",
+              "type": "cell",
+              "value": 11,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 2,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "nums[3]",
+              "type": "cell",
+              "value": 15,
+              "label": "",
+              "parent": "nums",
+              "row": null,
+              "col": null,
+              "index": 3,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "target",
+              "type": "label",
+              "value": 9,
+              "label": "target",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "seen",
+              "type": "container",
+              "value": null,
+              "label": "seen",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "map"
+              }
+            },
+            {
+              "id": "seen[2]",
+              "type": "label",
+              "value": 0,
+              "label": "2",
+              "parent": "seen",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "answer",
+              "type": "container",
+              "value": null,
+              "label": "answer",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {
+                "layout": "array"
+              }
+            },
+            {
+              "id": "answer[0]",
+              "type": "cell",
+              "value": 0,
+              "label": "",
+              "parent": "answer",
+              "row": null,
+              "col": null,
+              "index": 0,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "answer[1]",
+              "type": "cell",
+              "value": 1,
+              "label": "",
+              "parent": "answer",
+              "row": null,
+              "col": null,
+              "index": 1,
+              "source": "",
+              "target": "",
+              "role": "",
+              "meta": {}
+            },
+            {
+              "id": "callout:14",
+              "type": "callout",
+              "value": "Returns the final answer.",
+              "label": "Explanation",
+              "parent": "",
+              "row": null,
+              "col": null,
+              "index": null,
+              "source": "",
+              "target": "",
+              "role": "reason",
+              "meta": {}
+            }
+          ],
+          "marks": [
+            {
+              "target": "answer",
+              "role": "answer",
+              "label": ""
+            }
+          ],
+          "state": {
+            "nums": [
+              2,
+              7,
+              11,
+              15
+            ],
+            "target": 9,
+            "seen": {
+              "2": 0
+            },
+            "answer": [
+              0,
+              1
+            ]
+          },
+          "interaction": {
+            "type": "input",
+            "prompt": "What is the final answer returned by the algorithm?",
+            "options": [],
+            "answer": "[0,1]",
+            "explanation": "Indices of numbers 2 and 7 are 0 and 1.",
+            "wrong_explanation": "You might incorrectly think the answer is [2,7] (the values) or [1,0] (reversed order).",
+            "option_explanations": {}
+          },
+          "teaching": {
+            "what": "Return answer [0,1].",
+            "why": "The two indices whose values sum to 9.",
+            "formula": "",
+            "invariant": "Algorithm terminates with result when pair found.",
+            "common_mistake": "",
+            "hint": "Watch answer"
+          },
+          "evidence": {
+            "operation": "mark",
+            "targets": [
+              "answer"
+            ],
+            "deps": [],
+            "role": "answer",
+            "value": [
+              0,
+              1
+            ],
+            "before": null,
+            "after": null,
+            "changes": [
+              {
+                "target": "answer",
+                "operation": "mark",
+                "source": "event",
+                "before": null,
+                "after": null,
+                "value": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "reason": "Returns the final answer.",
+            "code_line": 5,
+            "timeline": {
+              "phase": "Returns the result.",
+              "operation": "mark",
+              "keyframe": true,
+              "keyframe_label": "Returns the final answer.",
+              "targets": [
+                "answer"
+              ],
+              "role": "answer"
+            },
+            "process": {
+              "status": "Verified",
+              "kind": "General procedure evidence",
+              "summary": "This step passes verification: answer: None -> None.",
+              "checks": [
+                {
+                  "label": "Target object",
+                  "text": "answer"
+                },
+                {
+                  "label": "State evidence",
+                  "text": "answer: None -> None"
+                }
+              ]
+            },
+            "visual_patterns": []
+          }
+        }
+      ]
+    }
+  },
+  "validation": {
+    "errors": [],
+    "warnings": [],
+    "checks": [
+      "Independent verifier execution passed.",
+      "Brute Force: teaching explanation/interactive enhancements applied",
+      "Brute Force：teaching_interaction_coverage {\"answer_frame_interaction_present\": true, \"answer_frames\": 1, \"deps_frame_interaction_rate\": 0.0, \"deps_frames\": 0, \"deps_interaction_frames\": 0, \"interaction_frames\": 4, \"interaction_rate\": 0.5, \"interaction_steps\": [0, 1, 4, 7], \"key_learning_frames\": 1, \"key_learning_interaction_frames\": 1, \"key_learning_interaction_rate\": 1.0, \"key_learning_steps\": [7], \"missing_key_learning_steps\": [], \"total_frames\": 8}",
+      "Brute Force：teaching_contract: key_learning_interaction_rate=1.000 (1/1)",
+      "Brute Force：teaching_contract: interaction_frames=4/8",
+      "Brute Force：teaching_contract: required_key_learning_interactions=1",
+      "Brute Force: solve/trace/process/scene all passed",
+      "Hash Map: teaching explanation/interactive enhancements applied",
+      "Hash Map：teaching_interaction_coverage {\"answer_frame_interaction_present\": true, \"answer_frames\": 1, \"deps_frame_interaction_rate\": 0.0, \"deps_frames\": 0, \"deps_interaction_frames\": 0, \"interaction_frames\": 6, \"interaction_rate\": 0.4, \"interaction_steps\": [4, 5, 6, 9, 10, 14], \"key_learning_frames\": 4, \"key_learning_interaction_frames\": 4, \"key_learning_interaction_rate\": 1.0, \"key_learning_steps\": [5, 6, 10, 14], \"missing_key_learning_steps\": [], \"total_frames\": 15}",
+      "Hash Map：teaching_contract: key_learning_interaction_rate=1.000 (4/4)",
+      "Hash Map：teaching_contract: interaction_frames=6/15",
+      "Hash Map：teaching_contract: required_key_learning_interactions=4",
+      "Hash Map: solve/trace/process/scene all passed",
+      "Cross-results from multiple solutions are consistent",
+      "demo readiness: Brute Force: demo readiness schema passed",
+      "demo readiness: Hash Map: demo readiness schema passed"
+    ],
+    "degradations": [
+      {
+        "type": "process_uncovered",
+        "reason": "Uncovered algorithm family: DSL-era: trace is generated by executing DSL-instrumented code in a sandbox; schema correctness is enforced by construction",
+        "source": "process_validation_registry",
+        "affected_variant": "v1",
+        "blocking": false
+      },
+      {
+        "type": "process_uncovered",
+        "reason": "Uncovered algorithm family: DSL-era: trace is generated by executing DSL-instrumented code in a sandbox; schema correctness is enforced by construction",
+        "source": "process_validation_registry",
+        "affected_variant": "v2",
+        "blocking": false
+      }
+    ],
+    "contract_validation": null,
+    "contract_test_results": [],
+    "demo_readiness": {
+      "status": "pass",
+      "errors": [],
+      "warnings": [],
+      "checks": [
+        "Brute Force: demo readiness schema passed",
+        "Hash Map: demo readiness schema passed"
+      ],
+      "variants": [
+        {
+          "variant_id": "v1",
+          "variant_name": "Brute Force",
+          "status": "pass",
+          "errors": [],
+          "warnings": [],
+          "checks": [
+            "demo readiness schema passed"
+          ],
+          "phase_coverage": {
+            "initialization": true,
+            "main_loop": true,
+            "transition": true,
+            "answer": true
+          }
+        },
+        {
+          "variant_id": "v2",
+          "variant_name": "Hash Map",
+          "status": "pass",
+          "errors": [],
+          "warnings": [],
+          "checks": [
+            "demo readiness schema passed"
+          ],
+          "phase_coverage": {
+            "initialization": true,
+            "main_loop": true,
+            "transition": true,
+            "answer": true
+          }
+        }
+      ]
+    },
+    "release_gate": {
+      "artifact_ready": true,
+      "process_ready": true,
+      "trace_ready": true,
+      "visual_ready": true,
+      "multi_solution_ready": true,
+      "release_ready": true,
+      "blocking_reasons": []
+    }
+  },
+  "correctness_contract": null,
+  "visual_plan": null,
+  "render_report": null
+}

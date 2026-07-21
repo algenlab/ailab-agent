@@ -425,6 +425,16 @@ def _click_text(page: Any, text: str) -> bool:
         return False
 
 
+def _click_text_any(page: Any, labels: tuple[str, ...]) -> bool:
+    return any(_click_text(page, label) for label in labels)
+
+
+ALGOLAB_HINT_LABELS = ("提示", "Hint")
+ALGOLAB_SHOW_ANSWER_LABELS = ("查看答案", "Show answer", "View answer")
+ALGOLAB_CORRECT_LABELS = ("正确", "Correct", "True")
+ALGOLAB_INCORRECT_LABELS = ("错误", "Incorrect", "False")
+
+
 CHECKPOINT_SELECTORS = [
     ".interaction[data-learning-checkpoint='prediction']",
     ".checkpoint",
@@ -673,20 +683,21 @@ def _exercise_algolab(page: Any) -> dict[str, Any]:
             correct_ok = bool(correct_feedback)
     elif _visible(page, "#interaction .checkpoint-actions button"):
         answer_bool = answer.lower() in {"true", "正确", "yes", "1"}
-        wrong_label = "错误" if answer_bool else "正确"
-        correct_label = "正确" if answer_bool else "错误"
-        wrong_ok = _click_text(page, wrong_label)
+        wrong_labels = ALGOLAB_INCORRECT_LABELS if answer_bool else ALGOLAB_CORRECT_LABELS
+        correct_labels = ALGOLAB_CORRECT_LABELS if answer_bool else ALGOLAB_INCORRECT_LABELS
+        wrong_ok = _click_text_any(page, wrong_labels)
         wrong_feedback = _feedback_text(page)
-        correct_ok = _click_text(page, correct_label)
+        correct_ok = _click_text_any(page, correct_labels)
         correct_feedback = _feedback_text(page)
 
-    hint_ok = _click_text(page, "提示") and bool(_feedback_text(page))
-    show_answer_ok = _click_text(page, "查看答案") and bool(_feedback_text(page))
+    hint_ok = _click_text_any(page, ALGOLAB_HINT_LABELS) and bool(_feedback_text(page))
+    show_answer_ok = _click_text_any(page, ALGOLAB_SHOW_ANSWER_LABELS) and bool(_feedback_text(page))
     log_after = _learning_log_text(page)
     answer_after = _snapshot_answer(page)
+    correct_semantic_ok, wrong_semantic_ok = _feedback_semantics(correct_feedback, wrong_feedback)
     return {
-        "correct_feedback_ok": correct_ok and bool(correct_feedback),
-        "wrong_feedback_ok": wrong_ok and bool(wrong_feedback),
+        "correct_feedback_ok": correct_ok and correct_semantic_ok,
+        "wrong_feedback_ok": wrong_ok and wrong_semantic_ok,
         "hint_ok": hint_ok,
         "show_answer_ok": show_answer_ok,
         "learning_log_ok": bool(log_after) and log_after != log_before,
@@ -701,20 +712,34 @@ def _exercise_algolab(page: Any) -> dict[str, Any]:
 
 def _feedback_is_correct(text: str) -> bool:
     compact = str(text or "")
+    lower = compact.lower()
     if "✅" in compact:
         return True
-    if any(marker in compact for marker in ["不正确", "错了", "❌"]):
+    if any(marker in compact for marker in ["不正确", "错了", "❌"]) or any(
+        marker in lower for marker in ["incorrect", "wrong answer", "try again"]
+    ):
         return False
     if re.search(r"(^|[\s。；;！!])错误[：:。；;！!]", compact):
         return False
-    return any(marker in compact for marker in ["正确", "答对", "很好"])
+    return any(marker in compact for marker in ["正确", "答对", "很好"]) or any(
+        marker in lower for marker in ["correct", "well done"]
+    )
 
 
 def _feedback_is_wrong(text: str) -> bool:
     compact = str(text or "")
-    return any(marker in compact for marker in ["不正确", "错了", "❌", "✗", "×"]) or bool(
-        re.search(r"(^|[\s。；;！!])错误[：:。；;！!]", compact)
+    lower = compact.lower()
+    return (
+        any(marker in compact for marker in ["不正确", "错了", "❌", "✗", "×"])
+        or any(marker in lower for marker in ["incorrect", "wrong answer", "try again"])
+        or bool(re.search(r"(^|[\s。；;！!])错误[：:。；;！!]", compact))
     )
+
+
+def _feedback_semantics(correct_feedback: str, wrong_feedback: str) -> tuple[bool, bool]:
+    """Validate that feedback text agrees with the answer direction that triggered it."""
+
+    return _feedback_is_correct(correct_feedback), _feedback_is_wrong(wrong_feedback)
 
 
 def _direct_checkpoint_data(page: Any) -> dict[str, Any]:

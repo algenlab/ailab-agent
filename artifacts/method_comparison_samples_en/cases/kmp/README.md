@@ -23,10 +23,12 @@ A genetic researcher is aligning a long DNA strand text and needs to quickly fin
 
 ## Nine machine checks
 
-Machine OK means that all nine browser checks pass for the same page.
+Machine OK means that all nine browser checks pass for the evaluated interaction page.
+The AlgoTutorGen / Stage2 row reuses the checks from its paired Stage1 interaction page; it is not a separate audit of the saved Stage2 visualization page.
 
 | Method | Load | Answer | Interaction | Correct feedback | Wrong feedback | Hint | Show answer | Learning log | Mutation-free | Machine OK |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| AlgoTutorGen / Stage1 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
 | AlgoTutorGen / Stage2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
 | Direct HTML | PASS | PASS | PASS | PASS | FAIL | PASS | PASS | PASS | PASS | FAIL |
 | WebGen-Agent | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
@@ -34,6 +36,12 @@ Machine OK means that all nine browser checks pass for the same page.
 | Direct-BrowserRepair (1 call) | PASS | PASS | PASS | FAIL | FAIL | FAIL | FAIL | FAIL | PASS | FAIL |
 
 ## Generated artifacts
+
+### AlgoTutorGen / Stage1
+
+[Open AlgoTutorGen / Stage1 page](algotutorgen_stage1/page.html) · [Structured Stage1 JSON](algotutorgen_stage1/artifact.json) · [Machine audit](algotutorgen_stage1/audit.json)
+
+![kmp - AlgoTutorGen / Stage1](algotutorgen_stage1/screenshot.png)
 
 ### AlgoTutorGen / Stage2
 
