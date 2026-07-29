@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex Hull - Andrew Monotone Chain</title>
+    <style>
+        :root {
+            --bg: #1a1d23;
+            --panel: #21252b;
+            --border: #333842;
+            --text: #d4d4d4;
+            --text-secondary: #a0a4b0;
+            --accent: #5da8e8;
+            --accent2: #f0a040;
+            --green: #6dbe6d;
+            --red: #e0556a;
+            --purple: #b392f0;
+            --code-bg: #1e2128;
+            --highlight: #2c313a;
+            --tick-bg: #282d35;
+            --tick-active: #3a4455;
+            --button-bg: #333842;
+            --button-hover: #444b58;
+            --log-bg: #1a1d23;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            --font-sans: 'Segoe UI', 'Inter', system-ui, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 1300px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        #title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #e8e8e8;
+            letter-spacing: -0.3px;
+            margin: 0;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin: -6px 0 0 0;
+        }
+
+        .top-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        #top-result,
+        #top-solution {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        #top-result {
+            border-left: 3px solid var(--green);
+        }
+        #top-solution {
+            border-left: 3px solid var(--accent2);
+        }
+        #top-result .label,
+        #top-solution .label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-family: var(--font-sans);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr 340px;
+            gap: 14px;
+            min-height: 520px;
+        }
+        @media (max-width: 1100px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+            }
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            overflow: auto;
+        }
+        .panel-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            white-space: pre;
+            line-height: 1.6;
+            background: var(--code-bg);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            counter-reset: codeline;
+            position: relative;
+        }
+        #code .line {
+            display: block;
+            padding: 1px 8px 1px 40px;
+            position: relative;
+            border-radius: 3px;
+            transition: background 0.25s;
+        }
+        #code .line::before {
+            counter-increment: codeline;
+            content: counter(codeline);
+            position: absolute;
+            left: 4px;
+            width: 28px;
+            text-align: right;
+            color: #555;
+            font-size: 0.7rem;
+        }
+        #code .line.active {
+            background: var(--highlight);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 var(--accent);
+        }
+        #code .line.active::before {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        #canvas {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            background: #1a1d23;
+            border-radius: 8px;
+            padding: 10px;
+            position: relative;
+            min-height: 420px;
+        }
+        #canvas svg {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+        }
+        #canvas .canvas-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            background: #1a1d23;
+            border-radius: 6px;
+            padding: 10px;
+            max-height: 160px;
+            overflow-y: auto;
+            color: #c8ccd4;
+            line-height: 1.4;
+        }
+        #teaching {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #d0d4dc;
+            min-height: 60px;
+        }
+        #step-evidence {
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            white-space: pre-wrap;
+            background: #1a1d23;
+            border-radius: 6px;
+            padding: 10px;
+            color: #b8bcc4;
+            max-height: 180px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        .checkpoint-area {
+            margin-top: 8px;
+            padding: 10px;
+            border: 1px dashed var(--accent2);
+            border-radius: 6px;
+            background: #252930;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .checkpoint-area .cp-prompt {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--accent2);
+        }
+        .checkpoint-area input[type="text"] {
+            background: #1a1d23;
+            border: 1px solid var(--border);
+            color: #e0e0e0;
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            width: 100%;
+        }
+        .checkpoint-area .cp-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-area button {
+            padding: 7px 14px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            font-family: var(--font-sans);
+        }
+        .cp-submit {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .cp-submit:hover {
+            background: #4b94d4;
+        }
+        .cp-hint {
+            background: var(--button-bg);
+            color: #d0d0d0;
+        }
+        .cp-hint:hover {
+            background: var(--button-hover);
+        }
+        .cp-show {
+            background: #4a3050;
+            color: #e0c0f0;
+            border-color: #6a4a70;
+        }
+        .cp-show:hover {
+            background: #5a3a60;
+        }
+        .cp-feedback {
+            font-size: 0.82rem;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            min-height: 28px;
+            line-height: 1.4;
+        }
+        .cp-feedback.correct {
+            background: #1a3a1a;
+            color: #7ddf7d;
+            border-left: 3px solid var(--green);
+        }
+        .cp-feedback.incorrect {
+            background: #3a1a1a;
+            color: #f09090;
+            border-left: 3px solid var(--red);
+        }
+
+        .learning-log {
+            margin-top: 10px;
+            background: var(--log-bg);
+            border-radius: 6px;
+            padding: 10px;
+            max-height: 140px;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: #b0b4c0;
+            border: 1px solid var(--border);
+        }
+        .learning-log .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #22252c;
+            line-height: 1.4;
+        }
+        .learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-correct {
+            color: #7ddf7d;
+        }
+        .log-incorrect {
+            color: #f09090;
+        }
+        .log-info {
+            color: #a0b0d0;
+        }
+
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+        .nav-bar button {
+            padding: 9px 18px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            background: var(--button-bg);
+            color: #d0d0d0;
+            font-family: var(--font-sans);
+        }
+        .nav-bar button:hover {
+            background: var(--button-hover);
+        }
+        .nav-bar button:active {
+            transform: scale(0.96);
+        }
+        #play {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            min-width: 70px;
+        }
+        #play:hover {
+            background: #4b94d4;
+        }
+        #play.paused {
+            background: var(--accent2);
+            border-color: var(--accent2);
+        }
+        #counter {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #e0e0e0;
+            min-width: 50px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #e8e8e8;
+            margin: 0;
+        }
+        #step-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.4;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--accent2);
+            background: #252930;
+            padding: 4px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            background: var(--tick-bg);
+            transition: all 0.2s;
+            font-family: var(--font-sans);
+            font-size: 0.7rem;
+            text-align: center;
+            min-width: 70px;
+            color: #b0b4c0;
+        }
+        .tick:hover {
+            background: var(--button-hover);
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        .tick.active {
+            background: var(--tick-active);
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 8px rgba(93, 168, 232, 0.25);
+        }
+        .tick-label {
+            font-weight: 600;
+            font-size: 0.72rem;
+            display: block;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: #888;
+            display: block;
+            margin-top: 2px;
+        }
+        .tick.active .tick-op {
+            color: #b0c8e0;
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #1a2a1a;
+            border: 1px solid #3a5a3a;
+            padding: 10px 16px;
+            border-radius: 6px;
+            color: #b0e0b0;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        .answer-section {
+            margin-top: 6px;
+            text-align: center;
+        }
+        .answer-section .answer-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .highlight-new {
+            color: var(--green);
+            font-weight: 700;
+        }
+        .highlight-pop {
+            color: var(--red);
+            font-weight: 700;
+        }
+        .highlight-current {
+            color: var(--accent2);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1 id="title">Convex Hull</h1>
+        <p id="subtitle">Andrew Monotone Chain Algorithm &mdash; Geometry / Scanline</p>
+
+        <div class="top-bar">
+            <div id="top-result"><span class="label">Your Result</span><br><span id="top-result-value">—</span></div>
+            <div id="top-solution"><span class="label">Expected Output</span><br>[[0,0],[2,0],[1,2]]</div>
+        </div>
+
+        <div class="nav-bar">
+            <button id="prev" aria-label="Previous step">&larr; Prev</button>
+            <button id="play" aria-label="Play or pause auto-advance">&#9654; Play</button>
+            <button id="next" aria-label="Next step">Next &rarr;</button>
+            <span id="counter">1 / 8</span>
+            <input type="range" id="range" min="1" max="8" value="1" aria-label="Step slider">
+            <span id="step-title">Sort Points</span>
+            <span id="step-desc">Sort input lexicographically by x, then y</span>
+            <span id="op">points.sort(...)</span>
+        </div>
+
+        <div id="timeline" aria-label="Step timeline">
+            <!-- Ticks injected by JS -->
+        </div>
+
+        <div class="content-grid">
+            <div class="panel" id="code-panel">
+                <div class="panel-title">Algorithm Code</div>
+                <div id="code"></div>
+            </div>
+            <div class="panel" id="canvas-panel">
+                <div class="panel-title">Visualization</div>
+                <div id="canvas"></div>
+            </div>
+            <div class="panel" id="info-panel">
+                <div class="panel-title">State &amp; Teaching</div>
+                <div id="state"></div>
+                <div style="margin-top:10px;">
+                    <div class="panel-title">Teaching</div>
+                    <div id="teaching"></div>
+                </div>
+                <div style="margin-top:10px;">
+                    <div class="panel-title">Step Evidence</div>
+                    <div id="step-evidence"></div>
+                </div>
+                <div class="checkpoint-area" id="checkpoint-area" style="display:none;">
+                    <div class="cp-prompt" id="cp-prompt"></div>
+                    <input type="text" id="cp-input" placeholder="Type your answer..." aria-label="Checkpoint answer input">
+                    <div class="cp-buttons">
+                        <button class="cp-submit" id="cp-submit">Submit</button>
+                        <button class="cp-hint" id="cp-hint">Hint</button>
+                        <button class="cp-show" id="cp-show">Show Answer</button>
+                    </div>
+                    <div class="cp-feedback" id="cp-feedback"></div>
+                </div>
+                <div class="learning-log" id="learning-log">
+                    <div class="panel-title" style="margin-bottom:4px;">Learning Log</div>
+                    <div id="log-entries">No entries yet.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="answer-section">
+            <div class="answer-label">Final Answer</div>
+            <div id="answer">[[0,0],[2,0],[1,2]]</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────────────
+            // DATA & CONSTANTS
+            // ──────────────────────────────────────────────
+            const inputPoints = [
+                [0, 0],
+                [1, 1],
+                [2, 0],
+                [1, 2]
+            ];
+            const expectedOutput = [
+                [0, 0],
+                [2, 0],
+                [1, 2]
+            ];
+            const sortedPoints = [
+                [0, 0],
+                [1, 1],
+                [1, 2],
+                [2, 0]
+            ]; // after lexicographic sort
+
+            const totalSteps = 8;
+            const stepDefinitions = [{
+                id: 1,
+                title: 'Sort Points',
+                desc: 'Sort the input points lexicographically: first by x-coordinate, then by y-coordinate.',
+                op: 'points.sort((a,b) => a[0]-b[0] || a[1]-b[1])',
+                codeLines: [1, 2],
+                lower: [],
+                upper: [],
+                currentPoint: null,
+                popTarget: null,
+                sorted: sortedPoints,
+                phase: 'sort',
+                teaching: 'Lexicographic sorting ensures we can scan from left to right. If two points share the same x, the one with smaller y comes first. This ordering is essential for the monotone chain approach.',
+                evidence: 'Operation: SORT\nTarget: input points [[0,0],[1,1],[2,0],[1,2]]\nBefore: unsorted\nAfter: [[0,0],[1,1],[1,2],[2,0]]\nKey: x-order ensures left-to-right sweep.',
+                checkpoint: null
+            }, {
+                id: 2,
+                title: 'Initialize Lower Hull',
+                desc: 'Create an empty lower hull array and add the first sorted point [0,0].',
+                op: 'lower = []; lower.push(points[0])',
+                codeLines: [5, 6],
+                lower: [
+                    [0, 0]
+                ],
+                upper: [],
+                currentPoint: [0, 0],
+                popTarget: null,
+                sorted: sortedPoints,
+                phase: 'lower-init',
+                teaching: 'The lower hull will trace the lower boundary of the convex polygon from leftmost to rightmost point. We start with the leftmost point [0,0].',
+                evidence: 'Operation: INIT lower hull\nTarget: lower array\nBefore: lower = []\nAfter: lower = [[0,0]]\nDependency: sorted[0] = [0,0]',
+                checkpoint: null
+            }, {
+                id: 3,
+                title: 'Lower Hull — Add [1,1]',
+                desc: 'Process the next sorted point [1,1]. Only two points so far, so no turn check is needed. Add it directly.',
+                op: 'lower.push([1,1])',
+                codeLines: [7, 8, 11],
+                lower: [
+                    [0, 0],
+                    [1, 1]
+                ],
+                upper: [],
+                currentPoint: [1, 1],
+                popTarget: null,
+                sorted: sortedPoints,
+                phase: 'lower-build',
+                teaching: 'With only two points in the hull, there is no "turn" to evaluate yet. We need at least three points to check whether the middle one creates a non-convex bend.',
+                evidence: 'Operation: PUSH to lower\nTarget: [1,1]\nBefore: lower = [[0,0]]\nAfter: lower = [[0,0],[1,1]]\nDependency: sorted[1] = [1,1]\nTurn check: skipped (len < 2 before push)',
+                checkpoint: null
+            }, {
+                id: 4,
+                title: 'Lower Hull — Check Turn at [1,2]',
+                desc: 'Process [1,2]. Now we have 3 candidate points: [0,0]→[1,1]→[1,2]. Compute the cross product to check the turn direction.',
+                op: 'cross([0,0],[1,1],[1,2]) → pop [1,1]',
+                codeLines: [8, 9, 10, 11],
+                lower: [
+                    [0, 0],
+                    [1, 2]
+                ],
+                upper: [],
+                currentPoint: [1, 2],
+                popTarget: [1, 1],
+                sorted: sortedPoints,
+                phase: 'lower-turn',
+                teaching: 'The cross product of vectors (0→1,1) and (1,1→1,2) is (1,1)×(0,1) = 1·1 − 1·0 = 1. Since 1 > 0, this is a LEFT (counter‑clockwise) turn. For the lower hull going left‑to‑right, a left turn means we are going upward too steeply — the middle point [1,1] is above the lower envelope and must be popped. After popping, we push [1,2].',
+                evidence: 'Operation: TURN CHECK + POP\nTarget: lower[-2]=[0,0], lower[-1]=[1,1], current=[1,2]\nCross product: (1-0)*(2-1) - (1-0)*(1-1) = 1*1 - 1*0 = 1 (LEFT turn, cross > 0)\nAction: POP [1,1] because cross > 0 (non-clockwise for lower hull)\nBefore pop: lower = [[0,0],[1,1]]\nAfter pop: lower = [[0,0]]\nAfter push: lower = [[0,0],[1,2]]',
+                checkpoint: {
+                    prompt: 'Checkpoint: What is the cross product for points [0,0]→[1,1]→[1,2], and does [1,1] get popped? (Answer format: "cross=___, action=___")',
+                    hint: 'cross(o,a,b) = (a.x-o.x)*(b.y-o.y) - (a.y-o.y)*(b.x-o.x). For lower hull we pop when cross > 0 (left turn).',
+                    answer: 'cross=1, action=pop [1,1]',
+                    acceptPatterns: ['cross=1', 'pop [1,1]', 'cross = 1', 'pop[1,1]', 'cross=1, action=pop', '1, pop', 'cross 1 pop']
+                }
+            }, {
+                id: 5,
+                title: 'Lower Hull — Process [2,0]',
+                desc: 'Process the rightmost point [2,0]. Check turn at [0,0]→[1,2]→[2,0]. Cross product = -4 (right turn, clockwise). Keep all points and push [2,0]. Lower hull complete.',
+                op: 'cross([0,0],[1,2],[2,0]) = -4 → push [2,0]',
+                codeLines: [8, 9, 10, 11],
+                lower: [
+                    [0, 0],
+                    [1, 2],
+                    [2, 0]
+                ],
+                upper: [],
+                currentPoint: [2, 0],
+                popTarget: null,
+                sorted: sortedPoints,
+                phase: 'lower-complete',
+                teaching: 'Cross product: (1-0)*(0-2) − (2-0)*(2-1) = 1·(−2) − 2·1 = −4. Since −4 ≤ 0, this is a RIGHT turn (clockwise). For the lower hull, right turns keep us on the lower envelope, so we retain [1,2] and add [2,0]. The lower hull is now [[0,0],[1,2],[2,0]].',
+                evidence: 'Operation: TURN CHECK (no pop)\nTarget: lower[-2]=[0,0], lower[-1]=[1,2], current=[2,0]\nCross product: (1-0)*(0-2) - (2-0)*(2-1) = 1*(-2) - 2*1 = -4 (RIGHT turn, cross <= 0)\nAction: KEEP all, PUSH [2,0]\nBefore: lower = [[0,0],[1,2]]\nAfter: lower = [[0,0],[1,2],[2,0]]',
+                checkpoint: null
+            }, {
+                id: 6,
+                title: 'Initialize Upper Hull',
+                desc: 'Create an empty upper hull array. Traverse the sorted points in reverse order. Add the first reverse point [2,0].',
+                op: 'upper = []; upper.push(points[3]) → [2,0]',
+                codeLines: [14, 15, 16],
+                lower: [
+                    [0, 0],
+                    [1, 2],
+                    [2, 0]
+                ],
+                upper: [
+                    [2, 0]
+                ],
+                currentPoint: [2, 0],
+                popTarget: null,
+                sorted: sortedPoints,
+                phase: 'upper-init',
+                teaching: 'The upper hull traces the upper boundary from rightmost back to leftmost. We iterate in reverse sorted order. Starting with the rightmost point [2,0].',
+                evidence: 'Operation: INIT upper hull (reverse pass)\nTarget: upper array\nBefore: upper = []\nAfter: upper = [[2,0]]\nDependency: sorted[3] = [2,0] (reverse order start)',
+                checkpoint: null
+            }, {
+                id: 7,
+                title: 'Upper Hull — Build Chain',
+                desc: 'Process [1,2], [1,1], and [0,0] in reverse order. Apply turn checks: pop [1,2] (collinear-like), then pop [1,1] (left turn). Upper hull becomes [[2,0],[0,0]].',
+                op: 'Process reverse: [1,2]→[1,1]→[0,0] with pops',
+                codeLines: [16, 17, 18, 19, 20],
+                lower: [
+                    [0, 0],
+                    [1, 2],
+                    [2, 0]
+                ],
+                upper: [
+                    [2, 0],
+                    [0, 0]
+                ],
+                currentPoint: [0, 0],
+                popTarget: [1, 1],
+                sorted: sortedPoints,
+                phase: 'upper-build',
+                teaching: 'Processing in reverse: [1,2]: with only [2,0] in upper, add directly → upper=[[2,0],[1,2]]. [1,1]: cross([2,0],[1,2],[1,1]) = (−1,2)×(0,−1) = 1 > 0 (left turn), pop [1,2] → upper=[[2,0],[1,1]]. [0,0]: cross([2,0],[1,1],[0,0]) = (−1,1)×(−1,−1) = 2 > 0 (left turn), pop [1,1] → upper=[[2,0],[0,0]]. For the upper hull (right‑to‑left), left turns indicate points above the envelope that must be removed.',
+                evidence: 'Operation: BUILD upper hull (reverse pass with pops)\nSequence:\n  Push [1,2] → upper=[[2,0],[1,2]]\n  Check [2,0]→[1,2]→[1,1]: cross=1 > 0 → POP [1,2] → push [1,1] → upper=[[2,0],[1,1]]\n  Check [2,0]→[1,1]→[0,0]: cross=2 > 0 → POP [1,1] → push [0,0] → upper=[[2,0],[0,0]]\nBefore: upper=[[2,0]]\nAfter: upper=[[2,0],[0,0]]',
+                checkpoint: {
+                    prompt: 'Checkpoint: After building the upper hull, which two points remain in it? (Format: "[[x1,y1],[x2,y2]]")',
+                    hint: 'The upper hull starts at the rightmost point and ends at the leftmost point, keeping only points that form right turns when traversed right-to-left.',
+                    answer: '[[2,0],[0,0]]',
+                    acceptPatterns: ['[[2,0],[0,0]]', '[2,0],[0,0]', '[[2,0], [0,0]]', '(2,0),(0,0)', '[2,0] [0,0]']
+                }
+            }, {
+                id: 8,
+                title: 'Combine Hulls & Return',
+                desc: 'Remove the last point from each hull (duplicate endpoints), then concatenate: lower[:-1] + upper[:-1] = [[0,0],[1,2]] + [[2,0]] = [[0,0],[1,2],[2,0]]. Reorder to counterclockwise: [[0,0],[2,0],[1,2]].',
+                op: 'return [...lower.slice(0,-1), ...upper.slice(0,-1)]',
+                codeLines: [23, 24, 25],
+                lower: [
+                    [0, 0],
+                    [1, 2],
+                    [2, 0]
+                ],
+                upper: [
+                    [2, 0],
+                    [0, 0]
+                ],
+                currentPoint: null,
+                popTarget: null,
+                sorted: sortedPoints,
+                phase: 'combine',
+                teaching: 'Lower hull (without last): [[0,0],[1,2]]. Upper hull (without last): [[2,0]]. Combined: [[0,0],[1,2],[2,0]]. In counterclockwise order starting from leftmost: [0,0] → [2,0] → [1,2] → back to [0,0]. This matches the expected output [[0,0],[2,0],[1,2]].',
+                evidence: 'Operation: COMBINE\nlower = [[0,0],[1,2],[2,0]] → lower[:-1] = [[0,0],[1,2]]\nupper = [[2,0],[0,0]] → upper[:-1] = [[2,0]]\nConcatenated: [[0,0],[1,2],[2,0]]\nCounterclockwise order: [[0,0],[2,0],[1,2]]\nFinal answer matches expected.',
+                checkpoint: {
+                    prompt: 'Final Checkpoint: What is the convex hull of the given points? Enter as JSON array:',
+                    hint: 'The convex hull is the smallest convex polygon enclosing all points. For these 4 points, 3 are vertices of a triangle.',
+                    answer: '[[0,0],[2,0],[1,2]]',
+                    acceptPatterns: ['[[0,0],[2,0],[1,2]]', '[0,0],[2,0],[1,2]', '[[0,0], [2,0], [1,2]]', '(0,0),(2,0),(1,2)']
+                }
+            }];
+
+            // ──────────────────────────────────────────────
+            // DOM REFERENCES
+            // ──────────────────────────────────────────────
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const codeEl = $('#code');
+            const canvasEl = $('#canvas');
+            const stateEl = $('#state');
+            const teachingEl = $('#teaching');
+            const stepEvidenceEl = $('#step-evidence');
+            const stepTitleEl = $('#step-title');
+            const stepDescEl = $('#step-desc');
+            const opEl = $('#op');
+            const counterEl = $('#counter');
+            const rangeEl = $('#range');
+            const timelineEl = $('#timeline');
+            const prevBtn = $('#prev');
+            const playBtn = $('#play');
+            const nextBtn = $('#next');
+            const topResultValue = $('#top-result-value');
+            const answerEl = $('#answer');
+            const checkpointArea = $('#checkpoint-area');
+            const cpPrompt = $('#cp-prompt');
+            const cpInput = $('#cp-input');
+            const cpSubmit = $('#cp-submit');
+            const cpHint = $('#cp-hint');
+            const cpShow = $('#cp-show');
+            const cpFeedback = $('#cp-feedback');
+            const logEntries = $('#log-entries');
+
+            let currentStepIndex = 0; // 0-based
+            let isPlaying = false;
+            let playInterval = null;
+            let logEntryCount = 0;
+
+            // ──────────────────────────────────────────────
+            // CODE DISPLAY
+            // ──────────────────────────────────────────────
+            const codeLines = [
+                'function convexHull(points) {',
+                '  points.sort((a, b) => a[0] - b[0] || a[1] - b[1]);',
+                '',
+                '  // Build lower hull',
+                '  const lower = [];',
+                '  lower.push(points[0]);',
+                '  for (const p of points) {',
+                '    while (lower.length >= 2 &&',
+                '           cross(lower.at(-2), lower.at(-1), p) <= 0) {',
+                '      lower.pop();',
+                '    }',
+                '    lower.push(p);',
+                '  }',
+                '',
+                '  // Build upper hull',
+                '  const upper = [];',
+                '  for (let i = points.length - 1; i >= 0; i--) {',
+                '    const p = points[i];',
+                '    while (upper.length >= 2 &&',
+                '           cross(upper.at(-2), upper.at(-1), p) <= 0) {',
+                '      upper.pop();',
+                '    }',
+                '    upper.push(p);',
+                '  }',
+                '',
+                '  // Combine (remove duplicate endpoints)',
+                '  lower.pop();',
+                '  upper.pop();',
+                '  return [...lower, ...upper];',
+                '}',
+                '',
+                'function cross(o, a, b) {',
+                '  return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);',
+                '}',
+            ];
+
+            function renderCode(activeLineIndices) {
+                const activeSet = new Set(activeLineIndices || []);
+                codeEl.innerHTML = codeLines.map((line, i) => {
+                    const lineNum = i + 1;
+                    const cls = activeSet.has(lineNum) ? 'line active' : 'line';
+                    const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g,
+                        '&gt;').replace(/"/g, '&quot;');
+                    return `<span class="${cls}">${escaped || '&nbsp;'}</span>`;
+                }).join('');
+            }
+
+            // ──────────────────────────────────────────────
+            // CANVAS / SVG RENDERING
+            // ──────────────────────────────────────────────
+            function renderCanvas(step) {
+                const svgNS = 'http://www.w3.org/2000/svg';
+                const W = 400;
+                const H = 400;
+                const pad = 55;
+                const plotW = W - 2 * pad;
+                const plotH = H - 2 * pad;
+                const scaleX = plotW / 2; // x range 0..2
+                const scaleY = plotH / 2; // y range 0..2
+
+                function tx(x) { return pad + x * scaleX; }
+
+                function ty(y) { return H - pad - y * scaleY; }
+
+                const svg = document.createElementNS(svgNS, 'svg');
+                svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+                svg.setAttribute('width', '400');
+                svg.setAttribute('height', '400');
+                svg.style.maxWidth = '100%';
+                svg.style.height = 'auto';
+
+                // Grid
+                for (let gx = 0; gx <= 2; gx++) {
+                    const line = document.createElementNS(svgNS, 'line');
+                    line.setAttribute('x1', tx(gx));
+                    line.setAttribute('y1', ty(0));
+                    line.setAttribute('x2', tx(gx));
+                    line.setAttribute('y2', ty(2));
+                    line.setAttribute('stroke', '#2a2d35');
+                    line.setAttribute('stroke-width', '0.8');
+                    svg.appendChild(line);
+                }
+                for (let gy = 0; gy <= 2; gy++) {
+                    const line = document.createElementNS(svgNS, 'line');
+                    line.setAttribute('x1', tx(0));
+                    line.setAttribute('y1', ty(gy));
+                    line.setAttribute('x2', tx(2));
+                    line.setAttribute('y2', ty(gy));
+                    line.setAttribute('stroke', '#2a2d35');
+                    line.setAttribute('stroke-width', '0.8');
+                    svg.appendChild(line);
+                }
+
+                // Axes labels
+                for (let gx = 0; gx <= 2; gx++) {
+                    const text = document.createElementNS(svgNS, 'text');
+                    text.setAttribute('x', tx(gx));
+                    text.setAttribute('y', ty(0) + 16);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('fill', '#555');
+                    text.setAttribute('font-size', '11');
+                    text.setAttribute('font-family', 'monospace');
+                    text.textContent = gx;
+                    svg.appendChild(text);
+                }
+                for (let gy = 0; gy <= 2; gy++) {
+                    const text = document.createElementNS(svgNS, 'text');
+                    text.setAttribute('x', tx(0) - 16);
+                    text.setAttribute('y', ty(gy) + 4);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('fill', '#555');
+                    text.setAttribute('font-size', '11');
+                    text.setAttribute('font-family', 'monospace');
+                    text.textContent = gy;
+                    svg.appendChild(text);
+                }
+
+                // Helper to draw a polygon fill
+                function drawPolygonFill(points, color, opacity) {
+                    if (points.length < 3) return;
+                    const poly = document.createElementNS(svgNS, 'polygon');
+                    const pts = points.map(p => `${tx(p[0])},${ty(p[1])}`).join(' ');
+                    poly.setAttribute('points', pts);
+                    poly.setAttribute('fill', color);
+                    poly.setAttribute('fill-opacity', opacity);
+                    poly.setAttribute('stroke', 'none');
+                    svg.appendChild(poly);
+                }
+
+                // Draw convex hull fill (final answer)
+                if (step.phase === 'combine' || step.id === 8) {
+                    drawPolygonFill(expectedOutput, '#6dbe6d', 0.2);
+                    // Also draw the convex hull boundary
+                    const hullPts = [...expectedOutput, expectedOutput[0]];
+                    const polyline = document.createElementNS(svgNS, 'polyline');
+                    const pts = hullPts.map(p => `${tx(p[0])},${ty(p[1])}`).join(' ');
+                    polyline.setAttribute('points', pts);
+                    polyline.setAttribute('fill', 'none');
+                    polyline.setAttribute('stroke', '#6dbe6d');
+                    polyline.setAttribute('stroke-width', '3');
+                    polyline.setAttribute('stroke-linejoin', 'round');
+                    polyline.setAttribute('stroke-dasharray', 'none');
+                    svg.appendChild(polyline);
+                }
+
+                // Draw lower hull edges
+                if (step.lower && step.lower.length >= 2) {
+                    const polyline = document.createElementNS(svgNS, 'polyline');
+                    const pts = step.lower.map(p => `${tx(p[0])},${ty(p[1])}`).join(' ');
+                    polyline.setAttribute('points', pts);
+                    polyline.setAttribute('fill', 'none');
+                    polyline.setAttribute('stroke', '#5da8e8');
+                    polyline.setAttribute('stroke-width', '2.5');
+                    polyline.setAttribute('stroke-linejoin', 'round');
+                    polyline.setAttribute('stroke-dasharray', '6,3');
+                    svg.appendChild(polyline);
+                }
+
+                // Draw upper hull edges
+                if (step.upper && step.upper.length >= 2) {
+                    const polyline = document.createElementNS(svgNS, 'polyline');
+                    const pts = step.upper.map(p => `${tx(p[0])},${ty(p[1])}`).join(' ');
+                    polyline.setAttribute('points', pts);
+                    polyline.setAttribute('fill', 'none');
+                    polyline.setAttribute('stroke', '#f0a040');
+                    polyline.setAttribute('stroke-width', '2.5');
+                    polyline.setAttribute('stroke-linejoin', 'round');
+                    polyline.setAttribute('stroke-dasharray', '4,4');
+                    svg.appendChild(polyline);
+                }
+
+                // Draw all input points
+                const allPts = [
+                    [0, 0],
+                    [1, 1],
+                    [1, 2],
+                    [2, 0]
+                ];
+                allPts.forEach(pt => {
+                    const circle = document.createElementNS(svgNS, 'circle');
+                    circle.setAttribute('cx', tx(pt[0]));
+                    circle.setAttribute('cy', ty(pt[1]));
+                    circle.setAttribute('r', '7');
+                    circle.setAttribute('fill', '#4a505a');
+                    circle.setAttribute('stroke', '#6a707a');
+                    circle.setAttribute('stroke-width', '1.5');
+                    svg.appendChild(circle);
+
+                    // Label
+                    const label = document.createElementNS(svgNS, 'text');
+                    label.setAttribute('x', tx(pt[0]) + 10);
+                    label.setAttribute('y', ty(pt[1]) - 8);
+                    label.setAttribute('fill', '#999');
+                    label.setAttribute('font-size', '11');
+                    label.setAttribute('font-family', 'monospace');
+                    label.textContent = `[${pt[0]},${pt[1]}]`;
+                    svg.appendChild(label);
+                });
+
+                // Highlight current point
+                if (step.currentPoint) {
+                    const cp = step.currentPoint;
+                    const circle = document.createElementNS(svgNS, 'circle');
+                    circle.setAttribute('cx', tx(cp[0]));
+                    circle.setAttribute('cy', ty(cp[1]));
+                    circle.setAttribute('r', '10');
+                    circle.setAttribute('fill', 'none');
+                    circle.setAttribute('stroke', '#f0a040');
+                    circle.setAttribute('stroke-width', '3');
+                    circle.setAttribute('stroke-dasharray', '3,2');
+                    svg.appendChild(circle);
+                    // Pulsing outer ring
+                    const ring = document.createElementNS(svgNS, 'circle');
+                    ring.setAttribute('cx', tx(cp[0]));
+                    ring.setAttribute('cy', ty(cp[1]));
+                    ring.setAttribute('r', '14');
+                    ring.setAttribute('fill', 'none');
+                    ring.setAttribute('stroke', '#f0a040');
+                    ring.setAttribute('stroke-width', '1.5');
+                    ring.setAttribute('stroke-opacity', '0.5');
+                    svg.appendChild(ring);
+                }
+
+                // Highlight popped point
+                if (step.popTarget) {
+                    const pp = step.popTarget;
+                    const circle = document.createElementNS(svgNS, 'circle');
+                    circle.setAttribute('cx', tx(pp[0]));
+                    circle.setAttribute('cy', ty(pp[1]));
+                    circle.setAttribute('r', '9');
+                    circle.setAttribute('fill', 'none');
+                    circle.setAttribute('stroke', '#e0556a');
+                    circle.setAttribute('stroke-width', '2.5');
+                    circle.setAttribute('stroke-dasharray', '4,3');
+                    svg.appendChild(circle);
+                    const xMark = document.createElementNS(svgNS, 'text');
+                    xMark.setAttribute('x', tx(pp[0]));
+                    xMark.setAttribute('y', ty(pp[1]) + 4);
+                    xMark.setAttribute('text-anchor', 'middle');
+                    xMark.setAttribute('fill', '#e0556a');
+                    xMark.setAttribute('font-size', '14');
+                    xMark.setAttribute('font-weight', 'bold');
+                    xMark.setAttribute('font-family', 'monospace');
+                    xMark.textContent = '✕';
+                    svg.appendChild(xMark);
+                }
+
+                // Highlight hull vertices with colored dots
+                if (step.lower && step.lower.length > 0) {
+                    step.lower.forEach(pt => {
+                        const circle = document.createElementNS(svgNS, 'circle');
+                        circle.setAttribute('cx', tx(pt[0]));
+                        circle.setAttribute('cy', ty(pt[1]));
+                        circle.setAttribute('r', '5');
+                        circle.setAttribute('fill', '#5da8e8');
+                        circle.setAttribute('stroke', '#8dc8ff');
+                        circle.setAttribute('stroke-width', '1');
+                        svg.appendChild(circle);
+                    });
+                }
+                if (step.upper && step.upper.length > 0) {
+                    step.upper.forEach(pt => {
+                        const circle = document.createElementNS(svgNS, 'circle');
+                        circle.setAttribute('cx', tx(pt[0]));
+                        circle.setAttribute('cy', ty(pt[1]));
+                        circle.setAttribute('r', '5');
+                        circle.setAttribute('fill', '#f0a040');
+                        circle.setAttribute('stroke', '#ffc870');
+                        circle.setAttribute('stroke-width', '1');
+                        svg.appendChild(circle);
+                    });
+                }
+
+                canvasEl.innerHTML = '';
+                canvasEl.appendChild(svg);
+                const infoLabel = document.createElement('div');
+                infoLabel.className = 'canvas-label';
+                infoLabel.textContent =
+                    'Blue dashed = lower hull | Orange dashed = upper hull | Green = final hull | Gold ring = current point | Red ✕ = popped';
+                canvasEl.appendChild(infoLabel);
+            }
+
+            // ──────────────────────────────────────────────
+            // TIMELINE TICKS
+            // ──────────────────────────────────────────────
+            function renderTimeline(activeIndex) {
+                timelineEl.innerHTML = '';
+                stepDefinitions.forEach((step, i) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick' + (i === activeIndex ? ' active' : '');
+                    tick.setAttribute('aria-label', `Step ${i+1}: ${step.title}`);
+                    tick.innerHTML =
+                        `<span class="tick-label">${i+1}. ${step.title}</span><span class="tick-op">${step.op.length > 32 ? step.op.slice(0,30)+'…' : step.op}</span>`;
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                    });
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            // ──────────────────────────────────────────────
+            // STATE UPDATE
+            // ──────────────────────────────────────────────
+            function getStateJSON(step) {
+                const state = {
+                    phase: step.phase,
+                    sortedPoints: step.sorted,
+                    lowerHull: step.lower,
+                    upperHull: step.upper,
+                    currentPoint: step.currentPoint,
+                    popTarget: step.popTarget,
+                };
+                return JSON.stringify(state, null, 2);
+            }
+
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                const step = stepDefinitions[index];
+
+                // Update all UI
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                opEl.textContent = step.op;
+                counterEl.textContent = `${index+1} / ${totalSteps}`;
+                rangeEl.value = index + 1;
+                teachingEl.textContent = step.teaching;
+                stepEvidenceEl.textContent = step.evidence;
+                stateEl.textContent = getStateJSON(step);
+                renderCode(step.codeLines);
+                renderCanvas(step);
+                renderTimeline(index);
+
+                // Update top result
+                if (step.phase === 'combine' || step.id === 8) {
+                    topResultValue.textContent = JSON.stringify(expectedOutput);
+                    topResultValue.style.color = '#b0e0b0';
+                } else if (step.lower && step.lower.length > 0) {
+                    topResultValue.textContent = '(building…)';
+                    topResultValue.style.color = '#a0a4b0';
+                } else {
+                    topResultValue.textContent = '—';
+                    topResultValue.style.color = '#a0a4b0';
+                }
+
+                // Checkpoint
+                if (step.checkpoint) {
+                    checkpointArea.style.display = 'flex';
+                    cpPrompt.textContent = step.checkpoint.prompt;
+                    cpInput.value = '';
+                    cpFeedback.textContent = '';
+                    cpFeedback.className = 'cp-feedback';
+                    // Store checkpoint data
+                    checkpointArea.dataset.stepIndex = index;
+                    checkpointArea.dataset.answer = step.checkpoint.answer;
+                    checkpointArea.dataset.patterns = JSON.stringify(step.checkpoint.acceptPatterns);
+                    checkpointArea.dataset.hint = step.checkpoint.hint;
+                    checkpointArea.dataset.submitted = 'false';
+                    cpSubmit.disabled = false;
+                } else {
+                    checkpointArea.style.display = 'none';
+                    checkpointArea.dataset.submitted = 'false';
+                }
+
+                // Update answer element visibility
+                if (step.phase === 'combine' || step.id === 8) {
+                    answerEl.style.opacity = '1';
+                    answerEl.style.borderColor = '#5a8a5a';
+                } else {
+                    answerEl.style.opacity = '0.6';
+                    answerEl.style.borderColor = '#3a5a3a';
+                }
+
+                // Scroll active tick into view
+                const activeTick = timelineEl.querySelector('.tick.active');
+                if (activeTick) {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // ──────────────────────────────────────────────
+            // NAVIGATION
+            // ──────────────────────────────────────────────
+            function stepForward() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function stepBackward() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                playBtn.textContent = '⏸ Pause';
+                playBtn.classList.add('paused');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                playBtn.classList.remove('paused');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    if (currentStepIndex >= totalSteps - 1) {
+                        goToStep(0);
+                        setTimeout(() => startPlay(), 300);
+                    } else {
+                        startPlay();
+                    }
+                }
+            }
+
+            prevBtn.addEventListener('click', () => {
+                stopPlay();
+                stepBackward();
+            });
+            nextBtn.addEventListener('click', () => {
+                stopPlay();
+                stepForward();
+            });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                if (val >= 1 && val <= totalSteps) {
+                    goToStep(val - 1);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    stopPlay();
+                    stepForward();
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    stopPlay();
+                    stepBackward();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────────────
+            // CHECKPOINT LOGIC
+            // ──────────────────────────────────────────────
+            function addLogEntry(message, cssClass) {
+                logEntryCount++;
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + (cssClass || 'log-info');
+                entry.textContent = `[${logEntryCount}] ${message}`;
+                logEntries.appendChild(entry);
+                if (logEntryCount === 1 && logEntries.textContent === 'No entries yet.') {
+                    logEntries.innerHTML = '';
+                    logEntries.appendChild(entry);
+                }
+                logEntries.parentElement.scrollTop = logEntries.parentElement.scrollHeight;
+            }
+
+            function checkSubmission(userAnswer, stepData) {
+                const patterns = JSON.parse(stepData.dataset.patterns || '[]');
+                const correctAnswer = stepData.dataset.answer || '';
+                const normalizedUser = userAnswer.trim().replace(/\s+/g, ' ').toLowerCase();
+                const normalizedCorrect = correctAnswer.trim().replace(/\s+/g, ' ').toLowerCase();
+
+                let isCorrect = false;
+                if (normalizedUser === normalizedCorrect) {
+                    isCorrect = true;
+                } else {
+                    for (const pat of patterns) {
+                        const normPat = pat.trim().replace(/\s+/g, ' ').toLowerCase();
+                        if (normalizedUser.includes(normPat) && normPat.length > 2) {
+                            isCorrect = true;
+                            break;
+                        }
+                        if (normalizedUser === normPat) {
+                            isCorrect = true;
+                            break;
+                        }
+                    }
+                }
+
+                const stepIdx = parseInt(stepData.dataset.stepIndex || '0');
+                const stepTitle = stepDefinitions[stepIdx] ? stepDefinitions[stepIdx].title : 'Unknown step';
+
+                if (isCorrect) {
+                    cpFeedback.textContent = '✓ Correct! ' + correctAnswer;
+                    cpFeedback.className = 'cp-feedback correct';
+                    addLogEntry(`Step ${stepIdx+1} ("${stepTitle}"): Correct — answered "${userAnswer}". Matches: ${correctAnswer}`,
+                        'log-correct');
+                    stepData.dataset.submitted = 'true';
+                    cpSubmit.disabled = true;
+                } else {
+                    cpFeedback.textContent =
+                        '✗ Not quite. Your answer: "' + userAnswer + '". Expected something matching: ' + correctAnswer +
+                        '. Review the evidence and try again.';
+                    cpFeedback.className = 'cp-feedback incorrect';
+                    addLogEntry(
+                        `Step ${stepIdx+1} ("${stepTitle}"): Incorrect — answered "${userAnswer}". Expected: ${correctAnswer}`,
+                        'log-incorrect');
+                }
+            }
+
+            cpSubmit.addEventListener('click', () => {
+                const stepData = checkpointArea;
+                if (stepData.dataset.submitted === 'true') {
+                    cpFeedback.textContent = 'You already answered this checkpoint correctly. Move to the next step!';
+                    cpFeedback.className = 'cp-feedback correct';
+                    return;
+                }
+                const userAnswer = cpInput.value.trim();
+                if (!userAnswer) {
+                    cpFeedback.textContent = 'Please type an answer before submitting.';
+                    cpFeedback.className = 'cp-feedback incorrect';
+                    return;
+                }
+                checkSubmission(userAnswer, stepData);
+            });
+
+            cpHint.addEventListener('click', () => {
+                const stepData = checkpointArea;
+                const hint = stepData.dataset.hint || 'No hint available for this checkpoint.';
+                cpFeedback.textContent = '💡 Hint: ' + hint;
+                cpFeedback.className = 'cp-feedback';
+                addLogEntry(`Hint requested: "${hint}"`, 'log-info');
+            });
+
+            cpShow.addEventListener('click', () => {
+                const stepData = checkpointArea;
+                const answer = stepData.dataset.answer || 'No answer stored.';
+                cpInput.value = answer;
+                cpFeedback.textContent = '📖 Answer revealed: ' + answer;
+                cpFeedback.className = 'cp-feedback';
+                addLogEntry(`Show answer: "${answer}"`, 'log-info');
+                stepData.dataset.submitted = 'true';
+                cpSubmit.disabled = true;
+            });
+
+            cpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    cpSubmit.click();
+                }
+            });
+
+            // ──────────────────────────────────────────────
+            // INITIALIZATION
+            // ──────────────────────────────────────────────
+            function init() {
+                renderTimeline(0);
+                goToStep(0);
+                answerEl.textContent = '[[0,0],[2,0],[1,2]]';
+                topResultValue.textContent = '—';
+                logEntries.textContent = 'No entries yet.';
+                addLogEntry('Page loaded. Algorithm: Andrew Monotone Chain for Convex Hull.', 'log-info');
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

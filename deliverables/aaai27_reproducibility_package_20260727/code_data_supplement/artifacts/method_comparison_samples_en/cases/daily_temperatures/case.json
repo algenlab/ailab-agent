@@ -1,0 +1,146 @@
+{
+  "id": "daily_temperatures",
+  "algorithm_id": "daily_temperatures",
+  "title": "Daily Temperatures",
+  "family": "Stack / Queue / Monotonic Stack",
+  "family_id": "monotonic_stack",
+  "subfamily_id": "daily_temperatures",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "monotonic_stack",
+  "difficulty": "medium",
+  "problem": "An agricultural greenhouse has a series of future daily temperature forecasts `temperatures`. The administrator wants to know after each day how many days they must wait until a higher temperature occurs, in order to schedule automatic ventilation and shading strategies. If there is no future day with a higher temperature, the value for that position is 0.",
+  "strategy": "Maintain a monotonic decreasing stack of indices storing temperatures. When encountering a higher temperature, pop the stack and write the answer.",
+  "input_contract": "Input the `temperatures` array.",
+  "variant_name": "Monotonic Stack",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "Understand that the temperature values corresponding to the indices stored in the monotonic stack remain strictly decreasing, and be able to verify this state invariant through a trace.",
+    "Based on the current temperature and the temperature at the stack top, predict whether the next step is to pop the stack and write the answer or to push the current index.",
+    "Given an input `temperatures` array, manually simulate the pop order and write the final values of the `answer` array."
+  ],
+  "required_views": [
+    "array",
+    "stack"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! Because 75 > 74, so pop index 1 and record answer[1]=1.",
+      "feedback_wrong": "Observe again: Is the current temperature 75°C greater than the temperature at the top index? Compare 75 and 74.",
+      "id": "task_1",
+      "oracle": "According to the trace, pop the stack when temperatures[i] > temperatures[stack[-1]], otherwise push. The expected operation can be automatically compared.",
+      "prompt": "We are currently processing temperature 75°C (index 2). The stack currently contains indices 0 and 1 (corresponding to 73°C, 74°C). What will the next operation be? Please select: A. Pop the stack top and write to answer; B. Push the current index.",
+      "stage2_affordance": "Click the \"Next\" button, the animation will highlight the two temperature bars currently being compared and show the pop action.",
+      "trace_anchor": [
+        "state.stack",
+        "temperatures[stack[-1]]",
+        "temperatures[i]"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Exactly! The monotonic decreasing stack is the core invariant of this problem.",
+      "feedback_wrong": "Review the trace: Is the stack top the smallest temperature value? Observe the relative sizes of temperatures during pushes and pops.",
+      "id": "task_2",
+      "oracle": "The correct answer is A. Verify that the temperature values of adjacent elements in the stack maintain a decreasing relationship.",
+      "prompt": "During the entire scan, regarding the state of the stack, which of the following is correct? A. The temperature values in the stack are monotonically decreasing; B. The temperature values in the stack are monotonically increasing; C. The temperatures corresponding to indices in the stack are in random order.",
+      "stage2_affordance": "In the stack view, use color depth to represent temperature level, aiding observation of the decreasing property.",
+      "trace_anchor": [
+        "stack",
+        "temperatures[stack[:]]",
+        "invariant"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "You predicted correctly! Because 71°C is higher than the stack top, it will trigger pops and write new waiting days.",
+      "feedback_wrong": "Note: After the modification, this temperature may trigger pops immediately. Try to think about its relationship with subsequent temperatures.",
+      "id": "task_3",
+      "oracle": "After increasing this temperature, the calculation of waiting days for higher temperatures on the right will change; a verifier can compare the new expected values.",
+      "prompt": "Modify the temperature on day 4 in the `temperatures` array from 69°C to 71°C. Predict how the waiting days on day 4 in `answer` will change. Please drag the slider to adjust.",
+      "stage2_affordance": "Drag the slider to modify the value of temperatures[3], and observe in real time the changes in the answer array values and the immediate response of the stack view.",
+      "trace_anchor": [
+        "temperatures[3]",
+        "index=3",
+        "answer[3]"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "You have a thorough understanding! This is exactly the role of the while loop—continuously pop stack tops that are lower than the current temperature to maintain monotonic decreasing.",
+      "feedback_wrong": "Observe the while loop in the trace; it continuously compares the current temperature with the stack top, popping as long as the stack top temperature is lower, so multiple pops may occur.",
+      "id": "task_4",
+      "oracle": "Check if the student's explanation includes: the current temperature 72°C is higher than both temperatures on the stack top, so the loop pops until the stack is empty or the stack top temperature is higher. This can be judged using keyword matching or an LLM.",
+      "prompt": "In the trace, when processing temperature 72°C (index 5), indices 3 (71°C) and 4 (69°C) were popped successively. Please explain why two indices were popped.",
+      "stage2_affordance": "Click the play button to watch the slow motion: stack elements are popped one by one, and the popped indices fly to the corresponding positions in the answer array in an animation, with temperature values highlighted.",
+      "trace_anchor": [
+        "step",
+        "state.stack",
+        "temperatures[5]",
+        "temperatures[3]",
+        "temperatures[4]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": [
+        1,
+        1,
+        4,
+        2,
+        1,
+        1,
+        0,
+        0
+      ],
+      "index": 0,
+      "input_data": {
+        "temperatures": [
+          73,
+          74,
+          75,
+          71,
+          69,
+          72,
+          76,
+          73
+        ]
+      }
+    },
+    {
+      "expected": [
+        1,
+        1,
+        1,
+        0
+      ],
+      "index": 1,
+      "input_data": {
+        "temperatures": [
+          30,
+          40,
+          50,
+          60
+        ]
+      }
+    },
+    {
+      "expected": [
+        1,
+        1,
+        0
+      ],
+      "index": 2,
+      "input_data": {
+        "temperatures": [
+          30,
+          60,
+          90
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex Hull — Algorithm Tutoring</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface2: #273549;
+            --border: #334155;
+            --text: #e2e8f0;
+            --text2: #94a3b8;
+            --text3: #64748b;
+            --accent: #3b82f6;
+            --accent2: #2563eb;
+            --success: #10b981;
+            --success2: #059669;
+            --error: #ef4444;
+            --error2: #dc2626;
+            --warning: #f59e0b;
+            --hull-lower: #3b82f6;
+            --hull-upper: #f59e0b;
+            --hull-final: #10b981;
+            --point-fill: #e2e8f0;
+            --point-stroke: #1e293b;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 60%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(245, 158, 11, 0.04) 0%, transparent 50%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 28px;
+            box-shadow: var(--shadow-md);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+        }
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+        .header-subtitle {
+            font-size: 0.85rem;
+            color: var(--text2);
+            font-weight: 400;
+        }
+        .header-badge {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text2);
+            white-space: nowrap;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            grid-template-rows: auto auto;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+        }
+
+        /* Canvas card */
+        .canvas-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            grid-row: 1 / 3;
+        }
+        .canvas-wrapper {
+            position: relative;
+            background: #0a0f1a;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+            aspect-ratio: 1.3 / 1;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            outline: none;
+            border-radius: var(--radius-md);
+        }
+        canvas:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+        }
+        .canvas-label {
+            font-size: 0.75rem;
+            color: var(--text3);
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            padding: 4px 0;
+        }
+        .timeline-step {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 13px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1.5px solid transparent;
+            background: var(--surface2);
+            color: var(--text2);
+            white-space: nowrap;
+            user-select: none;
+        }
+        .timeline-step:hover {
+            background: #334155;
+            color: #fff;
+            border-color: var(--border);
+        }
+        .timeline-step.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent2);
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
+        }
+        .timeline-step.visited {
+            background: #1e3a5f;
+            color: #93c5fd;
+            border-color: #1e3a5f;
+        }
+        .timeline-arrow {
+            color: var(--text3);
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 9px 18px;
+            border-radius: 22px;
+            border: 1.5px solid transparent;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            letter-spacing: -0.01em;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent2);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:hover {
+            background: var(--accent2);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.45);
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--text);
+            border-color: var(--border);
+        }
+        .btn-outline:hover {
+            background: var(--surface2);
+            border-color: #64748b;
+        }
+        .btn-hint {
+            background: transparent;
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+        .btn-hint:hover {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--warning);
+        }
+        .btn-reveal {
+            background: transparent;
+            color: #a78bfa;
+            border-color: rgba(167, 139, 250, 0.4);
+        }
+        .btn-reveal:hover {
+            background: rgba(167, 139, 250, 0.1);
+            border-color: #a78bfa;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Right panel */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Checkpoint card */
+        .checkpoint-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+        }
+        .checkpoint-card.active-checkpoint {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12), var(--shadow-md);
+        }
+        .checkpoint-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+        .checkpoint-question {
+            font-weight: 500;
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 14px;
+        }
+        .checkpoint-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .checkpoint-option {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .checkpoint-option:hover {
+            border-color: #64748b;
+            background: #334155;
+        }
+        .checkpoint-option.selected-correct {
+            background: var(--success);
+            border-color: var(--success2);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+        }
+        .checkpoint-option.selected-incorrect {
+            background: var(--error);
+            border-color: var(--error2);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
+        }
+        .checkpoint-option.revealed-correct {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+        .checkpoint-feedback {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: none;
+        }
+        .checkpoint-feedback.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        .checkpoint-feedback.correct {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .checkpoint-feedback.incorrect {
+            background: rgba(239, 68, 68, 0.12);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Learning log */
+        .log-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-md);
+            max-height: 280px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .log-card::-webkit-scrollbar {
+            width: 5px;
+        }
+        .log-card::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        .log-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text2);
+            margin-bottom: 2px;
+            position: sticky;
+            top: -4px;
+            background: var(--surface);
+            padding-bottom: 8px;
+            z-index: 1;
+        }
+        .log-entry {
+            font-size: 0.78rem;
+            color: var(--text2);
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            background: var(--surface2);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+        }
+        .log-entry .log-icon {
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+        .log-entry.correct-entry {
+            border-left: 3px solid var(--success);
+        }
+        .log-entry.incorrect-entry {
+            border-left: 3px solid var(--error);
+        }
+        .log-entry.hint-entry {
+            border-left: 3px solid var(--warning);
+        }
+        .log-entry.reveal-entry {
+            border-left: 3px solid #a78bfa;
+        }
+        .log-empty {
+            color: var(--text3);
+            font-size: 0.8rem;
+            font-style: italic;
+            text-align: center;
+            padding: 16px 0;
+        }
+
+        /* Final answer display */
+        .answer-display {
+            background: var(--surface);
+            border: 1.5px solid var(--success);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-md);
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        .answer-display.visible {
+            display: block;
+        }
+        .answer-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--success);
+            margin-bottom: 6px;
+        }
+        .answer-value {
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #fff;
+            background: #0a0f1a;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            letter-spacing: 0.02em;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+            }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Focus visible */
+        .btn:focus-visible,
+        .timeline-step:focus-visible,
+        .checkpoint-option:focus-visible,
+        canvas:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header" role="banner" aria-label="Page header">
+            <div class="header-left">
+                <div class="header-icon" aria-hidden="true">📐</div>
+                <div>
+                    <h1 class="header-title">Convex Hull</h1>
+                    <p class="header-subtitle">Geometry / Scanline — Andrew Monotone Chain Algorithm</p>
+                </div>
+            </div>
+            <span class="header-badge" aria-label="Algorithm family">🔬 Geometry / Scanline</span>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Canvas Card -->
+            <section class="canvas-card" aria-label="Visualization area">
+                <div class="canvas-wrapper">
+                    <canvas id="gameCanvas" width="650" height="500" tabindex="0"
+                    aria-label="Interactive convex hull visualization. Use arrow keys to navigate steps."></canvas>
+                </div>
+                <p class="canvas-label" id="canvasStatus">Use arrow keys or click timeline steps to navigate. Click points on canvas to select them.</p>
+
+                <!-- Timeline -->
+                <nav class="timeline" id="timeline" aria-label="Algorithm step timeline" role="tablist">
+                    <!-- Populated by JavaScript -->
+                </nav>
+
+                <!-- Controls -->
+                <div class="controls-row">
+                    <button class="btn btn-outline" id="btnPrev" aria-label="Previous step">◀ Prev</button>
+                    <button class="btn btn-primary pulse" id="btnNext" aria-label="Next step">Next ▶</button>
+                    <button class="btn btn-outline" id="btnReset" aria-label="Reset visualization">↺ Reset</button>
+                    <button class="btn btn-hint" id="btnHint" aria-label="Get a hint">💡 Hint</button>
+                    <button class="btn btn-reveal" id="btnReveal" aria-label="Show final answer">👁 Show Answer</button>
+                </div>
+            </section>
+
+            <!-- Right Panel -->
+            <aside class="right-panel" aria-label="Side panel with checkpoint and learning log">
+                <!-- Checkpoint -->
+                <article class="checkpoint-card" id="checkpointCard" aria-label="Learner checkpoint">
+                    <div class="checkpoint-title">🏁 Checkpoint</div>
+                    <div class="checkpoint-question" id="checkpointQuestion">Progress through the steps to reach a checkpoint.</div>
+                    <div class="checkpoint-options" id="checkpointOptions"></div>
+                    <div class="checkpoint-feedback" id="checkpointFeedback"></div>
+                </article>
+
+                <!-- Learning Log -->
+                <section class="log-card" id="logCard" aria-label="Learning log">
+                    <div class="log-title">📝 Learning Log</div>
+                    <div id="logEntries">
+                        <div class="log-empty">Your interactions will appear here.</div>
+                    </div>
+                </section>
+
+                <!-- Final Answer Display -->
+                <div class="answer-display" id="answerDisplay" aria-label="Final answer">
+                    <div class="answer-label">✅ Authoritative Final Answer</div>
+                    <div class="answer-value" id="answerValue"></div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // CONSTANTS & AUTHORITATIVE DATA
+            // ──────────────────────────────────────
+            const INPUT_POINTS = [
+                [0, 0],
+                [1, 1],
+                [2, 0],
+                [1, 2]
+            ];
+            const AUTHORITATIVE_ANSWER = [
+                [0, 0],
+                [2, 0],
+                [1, 2]
+            ]; // NEVER modified during interaction
+
+            // ──────────────────────────────────────
+            // ALGORITHM: Andrew Monotone Chain
+            // ──────────────────────────────────────
+            function cross(o, a, b) {
+                return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+            }
+
+            function computeConvexHull(points) {
+                if (points.length <= 1) return [...points];
+                const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+                const lower = [];
+                for (const p of sorted) {
+                    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+                        lower.pop();
+                    }
+                    lower.push([...p]);
+                }
+
+                const upper = [];
+                const reversed = [...sorted].reverse();
+                for (const p of reversed) {
+                    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+                        upper.pop();
+                    }
+                    upper.push([...p]);
+                }
+
+                lower.pop();
+                upper.pop();
+                return lower.concat(upper);
+            }
+
+            function sortPoints(points) {
+                return [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            }
+
+            function buildLowerHullSteps(sorted) {
+                const steps = [];
+                const lower = [];
+                const removed = [];
+                for (const p of sorted) {
+                    const stepInfo = { lower: [...lower.map(x => [...x])], adding: [...p], removed: [] };
+                    const popped = [];
+                    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+                        popped.push([...lower.pop()]);
+                    }
+                    stepInfo.removed = popped;
+                    lower.push([...p]);
+                    stepInfo.result = [...lower.map(x => [...x])];
+                    steps.push(stepInfo);
+                }
+                return { lower: [...lower.map(x => [...x])], steps };
+            }
+
+            function buildUpperHullSteps(sorted) {
+                const reversed = [...sorted].reverse();
+                const steps = [];
+                const upper = [];
+                for (const p of reversed) {
+                    const stepInfo = { upper: [...upper.map(x => [...x])], adding: [...p], removed: [] };
+                    const popped = [];
+                    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+                        popped.push([...upper.pop()]);
+                    }
+                    stepInfo.removed = popped;
+                    upper.push([...p]);
+                    stepInfo.result = [...upper.map(x => [...x])];
+                    steps.push(stepInfo);
+                }
+                return { upper: [...upper.map(x => [...x])], steps };
+            }
+
+            // Precompute algorithm steps
+            const sortedPoints = sortPoints(INPUT_POINTS);
+            const lowerData = buildLowerHullSteps(sortedPoints);
+            const upperData = buildUpperHullSteps(sortedPoints);
+            const finalHull = computeConvexHull(INPUT_POINTS);
+
+            // ──────────────────────────────────────
+            // TIMELINE STEP DEFINITIONS
+            // ──────────────────────────────────────
+            const timelineDefs = [
+                { id: 'input', label: '1. Input Points', icon: '📍' },
+                { id: 'sorted', label: '2. Sort Points', icon: '🔢' },
+                { id: 'lower_start', label: '3. Lower Hull Start', icon: '🔵' },
+            ];
+
+            // Add dynamic lower hull steps
+            lowerData.steps.forEach((step, i) => {
+                timelineDefs.push({
+                    id: 'lower_step_' + i,
+                    label: '3.' + String.fromCharCode(97 + i) + ' Lower: Add ' + JSON.stringify(step
+                        .adding),
+                    icon: '🔵',
+                });
+            });
+
+            timelineDefs.push({ id: 'lower_done', label: '4. Lower Hull Done', icon: '✅' });
+
+            const upperStartIndex = timelineDefs.length;
+            timelineDefs.push({ id: 'upper_start', label: '5. Upper Hull Start', icon: '🟠' });
+
+            upperData.steps.forEach((step, i) => {
+                timelineDefs.push({
+                    id: 'upper_step_' + i,
+                    label: '5.' + String.fromCharCode(97 + i) + ' Upper: Add ' + JSON.stringify(step
+                        .adding),
+                    icon: '🟠',
+                });
+            });
+
+            timelineDefs.push({ id: 'upper_done', label: '6. Upper Hull Done', icon: '✅' });
+            timelineDefs.push({ id: 'result', label: '7. Final Result', icon: '🏆' });
+
+            // ──────────────────────────────────────
+            // STATE
+            // ──────────────────────────────────────
+            let currentTimelineIndex = 0;
+            let hintLevel = 0;
+            let answerRevealed = false;
+            let checkpointState = null; // null | 'active' | 'answered_correct' | 'answered_incorrect'
+            let checkpointCorrectOption = null;
+            let learnerPrediction = null;
+            const learningLog = [];
+            const keys = {};
+
+            // ──────────────────────────────────────
+            // DOM REFERENCES
+            // ──────────────────────────────────────
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const canvasStatus = document.getElementById('canvasStatus');
+            const timelineEl = document.getElementById('timeline');
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnReset = document.getElementById('btnReset');
+            const btnHint = document.getElementById('btnHint');
+            const btnReveal = document.getElementById('btnReveal');
+            const checkpointCard = document.getElementById('checkpointCard');
+            const checkpointQuestion = document.getElementById('checkpointQuestion');
+            const checkpointOptions = document.getElementById('checkpointOptions');
+            const checkpointFeedback = document.getElementById('checkpointFeedback');
+            const logEntries = document.getElementById('logEntries');
+            const answerDisplay = document.getElementById('answerDisplay');
+            const answerValue = document.getElementById('answerValue');
+
+            // ──────────────────────────────────────
+            // CANVAS COORDINATE MAPPING
+            // ──────────────────────────────────────
+            const PADDING = 70;
+            const canvasW = canvas.width;
+            const canvasH = canvas.height;
+            const usableW = canvasW - 2 * PADDING;
+            const usableH = canvasH - 2 * PADDING;
+            const maxX = 2;
+            const maxY = 2;
+
+            function toCanvas(pt) {
+                const x = PADDING + (pt[0] / maxX) * usableW;
+                const y = canvasH - PADDING - (pt[1] / maxY) * usableH;
+                return { x, y };
+            }
+
+            function toData(cx, cy) {
+                const x = ((cx - PADDING) / usableW) * maxX;
+                const y = ((canvasH - PADDING - cy) / usableH) * maxY;
+                return [Math.round(x * 100) / 100, Math.round(y * 100) / 100];
+            }
+
+            function distance(a, b) {
+                const ca = toCanvas(a);
+                const cb = toCanvas(b);
+                return Math.sqrt((ca.x - cb.x) ** 2 + (ca.y - cb.y) ** 2);
+            }
+
+            function findClosestPoint(cx, cy, points, threshold) {
+                let best = null;
+                let bestDist = Infinity;
+                for (const pt of points) {
+                    const c = toCanvas(pt);
+                    const d = Math.sqrt((cx - c.x) ** 2 + (cy - c.y) ** 2);
+                    if (d < threshold && d < bestDist) {
+                        best = pt;
+                        bestDist = d;
+                    }
+                }
+                return best;
+            }
+
+            // ──────────────────────────────────────
+            // RENDER CANVAS
+            // ──────────────────────────────────────
+            function drawGrid() {
+                ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+                ctx.lineWidth = 1;
+                const stepX = usableW / 10;
+                const stepY = usableH / 10;
+                for (let i = 0; i <= 10; i++) {
+                    const x = PADDING + i * stepX;
+                    ctx.beginPath();
+                    ctx.moveTo(x, PADDING);
+                    ctx.lineTo(x, canvasH - PADDING);
+                    ctx.stroke();
+                }
+                for (let i = 0; i <= 10; i++) {
+                    const y = PADDING + i * stepY;
+                    ctx.beginPath();
+                    ctx.moveTo(PADDING, y);
+                    ctx.lineTo(canvasW - PADDING, y);
+                    ctx.stroke();
+                }
+            }
+
+            function drawAxes() {
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1.5;
+                const origin = toCanvas([0, 0]);
+                // x-axis
+                ctx.beginPath();
+                ctx.moveTo(PADDING, origin.y);
+                ctx.lineTo(canvasW - PADDING, origin.y);
+                ctx.stroke();
+                // y-axis
+                ctx.beginPath();
+                ctx.moveTo(origin.x, canvasH - PADDING);
+                ctx.lineTo(origin.x, PADDING);
+                ctx.stroke();
+                // Labels
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.font = '11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                for (let i = 0; i <= maxX; i++) {
+                    const c = toCanvas([i, 0]);
+                    ctx.fillText(i, c.x, origin.y + 18);
+                }
+                for (let i = 0; i <= maxY; i++) {
+                    const c = toCanvas([0, i]);
+                    ctx.fillText(i, origin.x - 16, c.y + 4);
+                }
+            }
+
+            function drawPoint(pt, radius, fillColor, strokeColor, label) {
+                const c = toCanvas(pt);
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = fillColor;
+                ctx.fill();
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                if (label) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, c.x, c.y - radius - 8);
+                    // Coordinate subtitle
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.font = '10px Inter, sans-serif';
+                    ctx.fillText('(' + pt[0] + ', ' + pt[1] + ')', c.x, c.y + radius + 14);
+                }
+            }
+
+            function drawLine(p1, p2, color, width, dash) {
+                const a = toCanvas(p1);
+                const b = toCanvas(p2);
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                if (dash) ctx.setLineDash(dash);
+                else ctx.setLineDash([]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            function drawPolygon(points, color, width, fillColor) {
+                if (points.length < 2) return;
+                ctx.beginPath();
+                const first = toCanvas(points[0]);
+                ctx.moveTo(first.x, first.y);
+                for (let i = 1; i < points.length; i++) {
+                    const c = toCanvas(points[i]);
+                    ctx.lineTo(c.x, c.y);
+                }
+                ctx.closePath();
+                if (fillColor) {
+                    ctx.fillStyle = fillColor;
+                    ctx.fill();
+                }
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
+                ctx.setLineDash([]);
+                ctx.stroke();
+            }
+
+            function renderCanvas() {
+                ctx.clearRect(0, 0, canvasW, canvasH);
+
+                // Background
+                ctx.fillStyle = '#0a0f1a';
+                ctx.fillRect(0, 0, canvasW, canvasH);
+
+                drawGrid();
+                drawAxes();
+
+                const timelineId = timelineDefs[currentTimelineIndex]?.id || 'input';
+
+                // Determine which points to highlight
+                const highlightedPoints = new Set();
+                const hullLines = [];
+                const hullPolygons = [];
+                const removedPoints = new Set();
+
+                if (timelineId === 'input') {
+                    // Show all input points
+                    for (const pt of INPUT_POINTS) highlightedPoints.add(JSON.stringify(pt));
+                } else if (timelineId === 'sorted') {
+                    for (const pt of sortedPoints) highlightedPoints.add(JSON.stringify(pt));
+                } else if (timelineId.startsWith('lower_step_')) {
+                    const idx = parseInt(timelineId.split('_')[2]);
+                    const step = lowerData.steps[idx];
+                    for (const pt of step.result) highlightedPoints.add(JSON.stringify(pt));
+                    if (step.adding) highlightedPoints.add(JSON.stringify(step.adding));
+                    for (const pt of step.removed) removedPoints.add(JSON.stringify(pt));
+                    // Draw lower hull lines so far
+                    if (step.result.length >= 2) {
+                        hullPolygons.push({ points: step.result, color: 'rgba(59,130,246,0.35)', width: 2,
+                            fill: 'rgba(59,130,246,0.06)' });
+                    }
+                } else if (timelineId === 'lower_done') {
+                    for (const pt of lowerData.lower) highlightedPoints.add(JSON.stringify(pt));
+                    if (lowerData.lower.length >= 2) {
+                        hullPolygons.push({ points: lowerData.lower, color: 'rgba(59,130,246,0.5)', width: 3,
+                            fill: 'rgba(59,130,246,0.08)' });
+                    }
+                } else if (timelineId === 'upper_start') {
+                    for (const pt of lowerData.lower) highlightedPoints.add(JSON.stringify(pt));
+                } else if (timelineId.startsWith('upper_step_')) {
+                    const idx = parseInt(timelineId.split('_')[2]);
+                    const step = upperData.steps[idx];
+                    for (const pt of step.result) highlightedPoints.add(JSON.stringify(pt));
+                    if (step.adding) highlightedPoints.add(JSON.stringify(step.adding));
+                    for (const pt of step.removed) removedPoints.add(JSON.stringify(pt));
+                    if (step.result.length >= 2) {
+                        hullPolygons.push({ points: step.result, color: 'rgba(245,158,11,0.35)', width: 2,
+                            fill: 'rgba(245,158,11,0.06)' });
+                    }
+                } else if (timelineId === 'upper_done') {
+                    for (const pt of upperData.upper) highlightedPoints.add(JSON.stringify(pt));
+                    if (upperData.upper.length >= 2) {
+                        hullPolygons.push({ points: upperData.upper, color: 'rgba(245,158,11,0.5)', width: 3,
+                            fill: 'rgba(245,158,11,0.08)' });
+                    }
+                } else if (timelineId === 'result') {
+                    for (const pt of finalHull) highlightedPoints.add(JSON.stringify(pt));
+                    if (finalHull.length >= 2) {
+                        hullPolygons.push({ points: finalHull, color: '#10b981', width: 4,
+                            fill: 'rgba(16,185,129,0.12)' });
+                    }
+                }
+
+                // If answer revealed, always show final hull
+                if (answerRevealed) {
+                    for (const pt of finalHull) highlightedPoints.add(JSON.stringify(pt));
+                    hullPolygons.push({ points: finalHull, color: '#10b981', width: 4,
+                    fill: 'rgba(16,185,129,0.15)' });
+                }
+
+                // Draw hull polygons
+                for (const poly of hullPolygons) {
+                    drawPolygon(poly.points, poly.color, poly.width, poly.fill);
+                }
+
+                // Draw hull lines between consecutive highlighted points (for step visualization)
+                const hlArr = [...highlightedPoints].map(s => JSON.parse(s));
+                if (hlArr.length >= 2 && timelineId.startsWith('lower_step_')) {
+                    const idx = parseInt(timelineId.split('_')[2]);
+                    const step = lowerData.steps[idx];
+                    const res = step.result;
+                    for (let i = 0; i < res.length - 1; i++) {
+                        drawLine(res[i], res[i + 1], 'rgba(59,130,246,0.7)', 3);
+                    }
+                    // Draw dashed line for the point being considered
+                    if (res.length >= 1 && step.adding) {
+                        drawLine(res[res.length - 1], step.adding, 'rgba(59,130,246,0.45)', 2, [6, 4]);
+                    }
+                }
+                if (hlArr.length >= 2 && timelineId.startsWith('upper_step_')) {
+                    const idx = parseInt(timelineId.split('_')[2]);
+                    const step = upperData.steps[idx];
+                    const res = step.result;
+                    for (let i = 0; i < res.length - 1; i++) {
+                        drawLine(res[i], res[i + 1], 'rgba(245,158,11,0.7)', 3);
+                    }
+                    if (res.length >= 1 && step.adding) {
+                        drawLine(res[res.length - 1], step.adding, 'rgba(245,158,11,0.45)', 2, [6, 4]);
+                    }
+                }
+
+                // Draw removed points
+                for (const ptStr of removedPoints) {
+                    const pt = JSON.parse(ptStr);
+                    const c = toCanvas(pt);
+                    ctx.beginPath();
+                    ctx.arc(c.x, c.y, 9, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(239,68,68,0.2)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 3]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    // X mark
+                    ctx.strokeStyle = 'rgba(239,68,68,0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(c.x - 5, c.y - 5);
+                    ctx.lineTo(c.x + 5, c.y + 5);
+                    ctx.moveTo(c.x + 5, c.y - 5);
+                    ctx.lineTo(c.x - 5, c.y + 5);
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.font = '10px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('removed', c.x, c.y - 16);
+                }
+
+                // Draw all input points (ghosted if not highlighted)
+                for (const pt of INPUT_POINTS) {
+                    const ptKey = JSON.stringify(pt);
+                    const isHighlighted = highlightedPoints.has(ptKey);
+                    const isRemoved = removedPoints.has(ptKey);
+                    if (isRemoved) continue; // Already drawn
+                    if (isHighlighted) {
+                        const label = INPUT_POINTS.indexOf(pt) === 0 ? 'A' : INPUT_POINTS.indexOf(pt) === 1 ? 'B' :
+                            INPUT_POINTS.indexOf(pt) === 2 ? 'C' : 'D';
+                        drawPoint(pt, 9, '#fff', '#1e293b', label);
+                    } else {
+                        const c = toCanvas(pt);
+                        ctx.beginPath();
+                        ctx.arc(c.x, c.y, 7, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+                }
+
+                // If answer revealed, annotate
+                if (answerRevealed && timelineId === 'result') {
+                    const c0 = toCanvas(finalHull[0]);
+                    ctx.fillStyle = '#10b981';
+                    ctx.font = 'bold 13px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('← Start', c0.x - 40, c0.y);
+                    // Draw arrow indicators for counterclockwise direction
+                    for (let i = 0; i < finalHull.length; i++) {
+                        const a = toCanvas(finalHull[i]);
+                        const b = toCanvas(finalHull[(i + 1) % finalHull.length]);
+                        const mx = (a.x + b.x) / 2;
+                        const my = (a.y + b.y) / 2;
+                        const angle = Math.atan2(b.y - a.y, b.x - a.x);
+                        ctx.fillStyle = '#10b981';
+                        ctx.save();
+                        ctx.translate(mx, my);
+                        ctx.rotate(angle);
+                        ctx.beginPath();
+                        ctx.moveTo(8, 0);
+                        ctx.lineTo(-5, -5);
+                        ctx.lineTo(-5, 5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }
+
+                // Checkpoint highlight: if checkpoint is active and it's the right step
+                if (checkpointState === 'active' && timelineId === 'lower_done') {
+                    // Pulse effect on the hull
+                    ctx.strokeStyle = 'rgba(59,130,246,0.6)';
+                    ctx.lineWidth = 5;
+                    ctx.setLineDash([8, 4]);
+                    const polyPts = lowerData.lower;
+                    if (polyPts.length >= 2) {
+                        ctx.beginPath();
+                        const f = toCanvas(polyPts[0]);
+                        ctx.moveTo(f.x, f.y);
+                        for (let i = 1; i < polyPts.length; i++) {
+                            const c = toCanvas(polyPts[i]);
+                            ctx.lineTo(c.x, c.y);
+                        }
+                        ctx.stroke();
+                    }
+                    ctx.setLineDash([]);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // TIMELINE RENDERING
+            // ──────────────────────────────────────
+            function renderTimeline() {
+                timelineEl.innerHTML = '';
+                timelineDefs.forEach((def, i) => {
+                    if (i > 0) {
+                        const arrow = document.createElement('span');
+                        arrow.className = 'timeline-arrow';
+                        arrow.textContent = '→';
+                        arrow.setAttribute('aria-hidden', 'true');
+                        timelineEl.appendChild(arrow);
+                    }
+                    const step = document.createElement('button');
+                    step.className = 'timeline-step';
+                    step.setAttribute('role', 'tab');
+                    step.setAttribute('aria-selected', i === currentTimelineIndex ? 'true' : 'false');
+                    step.dataset.index = i;
+                    step.innerHTML = def.icon + ' ' + def.label;
+                    if (i === currentTimelineIndex) step.classList.add('active');
+                    else if (i < currentTimelineIndex) step.classList.add('visited');
+                    step.addEventListener('click', () => {
+                        setTimelineIndex(i);
+                    });
+                    timelineEl.appendChild(step);
+                });
+            }
+
+            function setTimelineIndex(index) {
+                if (index < 0 || index >= timelineDefs.length) return;
+                currentTimelineIndex = index;
+                updateUI();
+                renderTimeline();
+                renderCanvas();
+                updateCheckpointForStep();
+                canvas.focus();
+            }
+
+            // ──────────────────────────────────────
+            // CHECKPOINT LOGIC
+            // ──────────────────────────────────────
+            function updateCheckpointForStep() {
+                const timelineId = timelineDefs[currentTimelineIndex]?.id || '';
+
+                // Checkpoint 1: After lower hull is done, ask which point is excluded
+                if (timelineId === 'lower_done' && checkpointState === null && !answerRevealed) {
+                    activateCheckpoint1();
+                } else if (timelineId === 'upper_done' && checkpointState === null && !answerRevealed) {
+                    activateCheckpoint2();
+                } else if (checkpointState !== null && timelineId !== 'lower_done' && timelineId !== 'upper_done') {
+                    // Keep checkpoint visible but not active-highlighted
+                    checkpointCard.classList.remove('active-checkpoint');
+                }
+            }
+
+            function activateCheckpoint1() {
+                checkpointState = 'active';
+                checkpointCorrectOption = '[1,1]';
+                checkpointCard.classList.add('active-checkpoint');
+                checkpointQuestion.textContent =
+                    'Checkpoint: After building the lower hull, which point from the original set is NOT part of the lower hull result?';
+                checkpointOptions.innerHTML = '';
+                const allPoints = INPUT_POINTS.map(p => JSON.stringify(p));
+                const uniquePoints = [...new Set(allPoints)].map(s => JSON.parse(s));
+                uniquePoints.forEach(pt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'checkpoint-option';
+                    btn.textContent = '[' + pt[0] + ', ' + pt[1] + ']';
+                    btn.addEventListener('click', () => handleCheckpointAnswer(JSON.stringify(pt), btn));
+                    btn.setAttribute('aria-label', 'Select point [' + pt[0] + ', ' + pt[1] + ']');
+                    checkpointOptions.appendChild(btn);
+                });
+                checkpointFeedback.className = 'checkpoint-feedback';
+                checkpointFeedback.textContent = '';
+                checkpointFeedback.style.display = 'none';
+                learnerPrediction = null;
+            }
+
+            function activateCheckpoint2() {
+                checkpointState = 'active';
+                checkpointCorrectOption = '3';
+                checkpointCard.classList.add('active-checkpoint');
+                checkpointQuestion.textContent =
+                    'Checkpoint: How many vertices will the upper hull contain (including the shared endpoint with the lower hull)?';
+                checkpointOptions.innerHTML = '';
+                ['2', '3', '4', '5'].forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'checkpoint-option';
+                    btn.textContent = opt;
+                    btn.addEventListener('click', () => handleCheckpointAnswer(opt, btn));
+                    btn.setAttribute('aria-label', 'Select ' + opt);
+                    checkpointOptions.appendChild(btn);
+                });
+                checkpointFeedback.className = 'checkpoint-feedback';
+                checkpointFeedback.textContent = '';
+                checkpointFeedback.style.display = 'none';
+                learnerPrediction = null;
+            }
+
+            function handleCheckpointAnswer(answer, clickedBtn) {
+                if (checkpointState !== 'active') return;
+
+                learnerPrediction = answer;
+                const isCorrect = (answer === checkpointCorrectOption);
+                const allOptions = checkpointOptions.querySelectorAll('.checkpoint-option');
+
+                // Clear previous selections
+                allOptions.forEach(btn => {
+                    btn.classList.remove('selected-correct', 'selected-incorrect',
+                    'revealed-correct');
+                    btn.disabled = true;
+                });
+
+                if (isCorrect) {
+                    checkpointState = 'answered_correct';
+                    clickedBtn.classList.add('selected-correct');
+                    checkpointFeedback.className = 'checkpoint-feedback correct show';
+                    checkpointFeedback.textContent =
+                        '✅ Correct! Great prediction. This point is indeed excluded because it lies inside the convex hull formed by the other points.';
+                    checkpointCard.classList.remove('active-checkpoint');
+                    addLogEntry('correct',
+                        'Checkpoint: Predicted ' + answer + ' — Correct! (Excluded from hull)');
+                } else {
+                    checkpointState = 'answered_incorrect';
+                    clickedBtn.classList.add('selected-incorrect');
+                    // Highlight correct answer
+                    allOptions.forEach(btn => {
+                        if (btn.textContent.trim() === checkpointCorrectOption || btn
+                            .textContent.trim() === checkpointCorrectOption.replace(/[\[\]]/g,
+                                '')) {
+                            btn.classList.add('revealed-correct');
+                        }
+                    });
+                    checkpointFeedback.className = 'checkpoint-feedback incorrect show';
+                    checkpointFeedback.textContent =
+                        '❌ Not quite. The correct answer is ' + checkpointCorrectOption +
+                        '. This point is collinear with two outer points, making it an intermediate point on the edge rather than a vertex.';
+                    checkpointCard.classList.remove('active-checkpoint');
+                    addLogEntry('incorrect',
+                        'Checkpoint: Predicted ' + answer + ' — Incorrect (Correct: ' +
+                        checkpointCorrectOption + ')');
+                }
+            }
+
+            // ──────────────────────────────────────
+            // LEARNING LOG
+            // ──────────────────────────────────────
+            function addLogEntry(type, message) {
+                const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit',
+                    second: '2-digit' });
+                const entry = { type, message, timestamp };
+                learningLog.push(entry);
+                renderLog();
+            }
+
+            function renderLog() {
+                if (learningLog.length === 0) {
+                    logEntries.innerHTML = '<div class="log-empty">Your interactions will appear here.</div>';
+                    return;
+                }
+                logEntries.innerHTML = '';
+                learningLog.slice().reverse().forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry ' + entry.type + '-entry';
+                    let icon = '📌';
+                    if (entry.type === 'correct') icon = '✅';
+                    if (entry.type === 'incorrect') icon = '❌';
+                    if (entry.type === 'hint') icon = '💡';
+                    if (entry.type === 'reveal') icon = '👁';
+                    if (entry.type === 'step') icon = '📍';
+                    div.innerHTML = '<span class="log-icon">' + icon + '</span><span>' + entry.timestamp +
+                        ' — ' + entry.message + '</span>';
+                    logEntries.appendChild(div);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // UI UPDATES
+            // ──────────────────────────────────────
+            function updateUI() {
+                btnPrev.disabled = (currentTimelineIndex <= 0);
+                btnNext.disabled = (currentTimelineIndex >= timelineDefs.length - 1);
+                const timelineId = timelineDefs[currentTimelineIndex]?.id || '';
+                canvasStatus.textContent = 'Step: ' + (timelineDefs[currentTimelineIndex]?.label ||
+                    'Unknown') + ' — Use arrow keys or click timeline steps to navigate.';
+            }
+
+            function revealAnswer() {
+                if (answerRevealed) return;
+                answerRevealed = true;
+                answerValue.textContent = JSON.stringify(AUTHORITATIVE_ANSWER);
+                answerDisplay.classList.add('visible');
+                setTimelineIndex(timelineDefs.length - 1); // Jump to result step
+                addLogEntry('reveal', 'Viewed the authoritative final answer: ' + JSON.stringify(
+                    AUTHORITATIVE_ANSWER));
+                // Disable checkpoint
+                checkpointState = 'answered_correct'; // Prevent further checkpoint interaction
+                checkpointCard.classList.remove('active-checkpoint');
+                checkpointQuestion.textContent = 'The answer has been revealed.';
+                checkpointOptions.innerHTML = '';
+                checkpointFeedback.className = 'checkpoint-feedback';
+                checkpointFeedback.textContent = '';
+                checkpointFeedback.style.display = 'none';
+            }
+
+            function showHint() {
+                hintLevel++;
+                let hintMsg = '';
+                if (hintLevel === 1) {
+                    hintMsg =
+                        'Hint 1: Consider which point might lie inside the triangle formed by the other three points. Look at the shape of the four delivery locations.';
+                } else if (hintLevel === 2) {
+                    hintMsg =
+                        'Hint 2: Point [1,1] lies on the straight line between [0,0] and [2,0] (the line y=x from x=0 to x=2 actually goes through [1,1]). Since it is collinear with two outer points on the same edge, it is an intermediate point — not a vertex of the convex hull.';
+                } else {
+                    hintMsg =
+                        'Hint 3: The convex hull is a triangle. Only 3 of the 4 points are vertices: [0,0], [2,0], and [1,2]. Point [1,1] is excluded because it falls on the edge between [0,0] and [2,0]. The final answer in counterclockwise order is [[0,0], [2,0], [1,2]].';
+                }
+                addLogEntry('hint', 'Hint level ' + hintLevel + ': ' + hintMsg);
+                // Show hint in checkpoint area if no active checkpoint
+                if (checkpointState === null || checkpointState === 'answered_correct' || checkpointState ===
+                    'answered_incorrect') {
+                    checkpointFeedback.className = 'checkpoint-feedback correct show';
+                    checkpointFeedback.textContent = '💡 ' + hintMsg;
+                    checkpointFeedback.style.display = 'block';
+                }
+                if (hintLevel >= 3) {
+                    btnHint.disabled = true;
+                    btnHint.textContent = '💡 No More Hints';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // EVENT HANDLERS
+            // ──────────────────────────────────────
+            btnPrev.addEventListener('click', () => {
+                setTimelineIndex(currentTimelineIndex - 1);
+                addLogEntry('step', 'Navigated to: ' + (timelineDefs[currentTimelineIndex]?.label ||
+                    'Unknown'));
+            });
+
+            btnNext.addEventListener('click', () => {
+                setTimelineIndex(currentTimelineIndex + 1);
+                addLogEntry('step', 'Navigated to: ' + (timelineDefs[currentTimelineIndex]?.label ||
+                    'Unknown'));
+            });
+
+            btnReset.addEventListener('click', () => {
+                currentTimelineIndex = 0;
+                hintLevel = 0;
+                answerRevealed = false;
+                checkpointState = null;
+                checkpointCorrectOption = null;
+                learnerPrediction = null;
+                answerDisplay.classList.remove('visible');
+                answerValue.textContent = '';
+                checkpointCard.classList.remove('active-checkpoint');
+                checkpointQuestion.textContent = 'Progress through the steps to reach a checkpoint.';
+                checkpointOptions.innerHTML = '';
+                checkpointFeedback.className = 'checkpoint-feedback';
+                checkpointFeedback.textContent = '';
+                checkpointFeedback.style.display = 'none';
+                btnHint.disabled = false;
+                btnHint.textContent = '💡 Hint';
+                updateUI();
+                renderTimeline();
+                renderCanvas();
+                addLogEntry('step', 'Reset visualization to beginning.');
+                canvas.focus();
+            });
+
+            btnHint.addEventListener('click', showHint);
+
+            btnReveal.addEventListener('click', revealAnswer);
+
+            // Canvas click for point selection (alternative checkpoint input)
+            canvas.addEventListener('click', (e) => {
+                if (checkpointState !== 'active') return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvasW / rect.width;
+                const scaleY = canvasH / rect.height;
+                const cx = (e.clientX - rect.left) * scaleX;
+                const cy = (e.clientY - rect.top) * scaleY;
+                const clickedPoint = findClosestPoint(cx, cy, INPUT_POINTS, 40);
+                if (clickedPoint) {
+                    const ptStr = JSON.stringify(clickedPoint);
+                    // Find the corresponding button
+                    const allOptions = checkpointOptions.querySelectorAll('.checkpoint-option');
+                    allOptions.forEach(btn => {
+                        if (btn.textContent.trim() === '[' + clickedPoint[0] + ', ' +
+                            clickedPoint[1] + ']') {
+                            handleCheckpointAnswer(ptStr, btn);
+                        }
+                    });
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                keys[e.key] = true;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    if (currentTimelineIndex > 0) {
+                        setTimelineIndex(currentTimelineIndex - 1);
+                        addLogEntry('step', 'Keyboard: Navigated to ' + (timelineDefs[
+                            currentTimelineIndex]?.label || 'Unknown'));
+                    }
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (currentTimelineIndex < timelineDefs.length - 1) {
+                        setTimelineIndex(currentTimelineIndex + 1);
+                        addLogEntry('step', 'Keyboard: Navigated to ' + (timelineDefs[
+                            currentTimelineIndex]?.label || 'Unknown'));
+                    }
+                } else if (e.key === 'h' || e.key === 'H') {
+                    e.preventDefault();
+                    showHint();
+                } else if (e.key === 'r' || e.key === 'R') {
+                    e.preventDefault();
+                    btnReset.click();
+                } else if (e.key === 'a' || e.key === 'A') {
+                    e.preventDefault();
+                    revealAnswer();
+                } else if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') {
+                    if (checkpointState === 'active') {
+                        e.preventDefault();
+                        const idx = parseInt(e.key) - 1;
+                        const allOptions = checkpointOptions.querySelectorAll('.checkpoint-option');
+                        if (allOptions[idx]) {
+                            allOptions[idx].click();
+                        }
+                    }
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
+
+            // ──────────────────────────────────────
+            // RENDER LOOP
+            // ──────────────────────────────────────
+            function gameLoop() {
+                // For this stepped visualization, we redraw if needed
+                // (continuous loop ensures smooth focus/blur and any future animations)
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ──────────────────────────────────────
+            // INITIALIZATION
+            // ──────────────────────────────────────
+            function init() {
+                // Set answer display content
+                answerValue.textContent = '';
+                answerDisplay.classList.remove('visible');
+
+                // Build timeline
+                renderTimeline();
+
+                // Initial render
+                updateUI();
+                renderCanvas();
+                updateCheckpointForStep();
+
+                // Focus canvas
+                canvas.focus();
+
+                // Add initial log entry
+                addLogEntry('step', 'Started Convex Hull tutorial. Input points: ' + JSON.stringify(INPUT_POINTS));
+
+                // Start game loop
+                gameLoop();
+
+                console.log('Convex Hull Algorithm Tutoring page initialized successfully.');
+                console.log('Input points:', JSON.stringify(INPUT_POINTS));
+                console.log('Authoritative answer (never modified):', JSON.stringify(AUTHORITATIVE_ANSWER));
+            }
+
+            // Run on load
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // Ensure canvas gets focus on any click within the page
+            document.addEventListener('click', (e) => {
+                if (!canvas.contains(e.target) && e.target !== canvas) {
+                    // Don't steal focus from buttons
+                    if (e.target.tagName !== 'BUTTON') {
+                        canvas.focus();
+                    }
+                }
+            });
+
+            // Expose for debugging
+            window._convexHullTutor = {
+                INPUT_POINTS,
+                AUTHORITATIVE_ANSWER,
+                finalHull,
+                sortedPoints,
+                lowerData,
+                upperData,
+                timelineDefs,
+                getState: () => ({
+                    currentTimelineIndex,
+                    hintLevel,
+                    answerRevealed,
+                    checkpointState,
+                    learningLog,
+                }),
+            };
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Temperatures - Monotonic Stack Algorithm Tutor</title>
+    <style>
+        :root {
+            --bg: #f8fafb;
+            --card-bg: #ffffff;
+            --border: #dee2e6;
+            --text: #1a1a2e;
+            --text-secondary: #495057;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --gold: #e9a820;
+            --gold-bg: #fef9e7;
+            --green: #16a34a;
+            --green-bg: #dcfce7;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --blue: #2563eb;
+            --blue-bg: #e8f0fe;
+            --stack-color: #6366f1;
+            --stack-bg: #eef2ff;
+            --popped-color: #f59e0b;
+            --popped-bg: #fffbeb;
+            --answer-set: #10b981;
+            --answer-unset: #e5e7eb;
+            --current-highlight: #fbbf24;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --code-highlight: #334155;
+            --timeline-active: #2563eb;
+            --timeline-inactive: #cbd5e1;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            --font-sans: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: 180ms ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: #eef1f5;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1e3a5f;
+            letter-spacing: -0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .result-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .result-block {
+            flex: 1;
+            min-width: 200px;
+            background: #f9fafb;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+        }
+        .result-block label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .result-block code {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            word-break: break-all;
+            color: #1e3a5f;
+        }
+        #answer {
+            font-weight: 700;
+            color: #16a34a;
+            font-size: 1rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+            position: relative;
+            min-height: 280px;
+            border: 1px solid #334155;
+        }
+        #code .line {
+            display: block;
+            padding: 1px 8px;
+            border-radius: 3px;
+            transition: background 0.15s;
+            cursor: default;
+        }
+        #code .line.active-line {
+            background: var(--code-highlight);
+            border-left: 3px solid #fbbf24;
+            padding-left: 5px;
+            font-weight: 600;
+            color: #fde68a;
+        }
+        #code .line-number {
+            display: inline-block;
+            width: 28px;
+            color: #64748b;
+            user-select: none;
+            text-align: right;
+            margin-right: 8px;
+            font-size: 0.78rem;
+        }
+
+        #canvas {
+            background: #fdfdfd;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            overflow-y: auto;
+            font-family: var(--font-sans);
+        }
+        #canvas .viz-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        #canvas .viz-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #6b7280;
+        }
+        #canvas .cell-row {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        #canvas .cell {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            position: relative;
+            cursor: default;
+        }
+        #canvas .cell .cell-idx {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: #6b7280;
+        }
+        #canvas .cell.cell-current {
+            border-color: #fbbf24;
+            background: #fef9e7;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.25);
+            z-index: 2;
+            transform: scale(1.06);
+        }
+        #canvas .cell.cell-stack {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+        #canvas .cell.cell-popped {
+            border-color: #f59e0b;
+            background: #fffbeb;
+            animation: popFlash 0.5s ease;
+        }
+        #canvas .cell.cell-answer-set {
+            background: #dcfce7;
+            border-color: #10b981;
+            color: #065f46;
+        }
+        #canvas .cell.cell-answer-unset {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #9ca3af;
+        }
+        #canvas .cell.cell-answer-highlight {
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+            z-index: 2;
+            transform: scale(1.05);
+        }
+        @keyframes popFlash {
+            0%,
+            100% {
+                background: #fffbeb;
+            }
+            50% {
+                background: #fde68a;
+            }
+        }
+        #canvas .stack-container {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #canvas .stack-item {
+            background: #eef2ff;
+            border: 2px solid #6366f1;
+            border-radius: var(--radius-sm);
+            padding: 6px 10px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: #4338ca;
+            transition: all 0.2s;
+        }
+        #canvas .stack-item.stack-top {
+            border-color: #f59e0b;
+            background: #fffbeb;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+        }
+        #canvas .stack-empty {
+            color: #9ca3af;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px 0;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            user-select: none;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn.btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn.btn-sm {
+            padding: 5px 10px;
+            font-size: 0.78rem;
+        }
+        .btn.btn-hint {
+            background: #fef9e7;
+            border-color: #e9a820;
+            color: #92400e;
+        }
+        .btn.btn-show {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        .btn.btn-submit {
+            background: #16a34a;
+            color: #fff;
+            border-color: #16a34a;
+        }
+        .btn.btn-submit:hover {
+            background: #15803d;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 220px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            color: var(--text);
+            min-width: 50px;
+            text-align: center;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            padding: 8px 0;
+        }
+        .tick {
+            flex: 1;
+            min-width: 60px;
+            padding: 8px 6px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--timeline-inactive);
+            background: #fafbfc;
+            cursor: pointer;
+            text-align: center;
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+        .tick.tick-active {
+            border-color: var(--timeline-active);
+            background: #dbeafe;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+            font-weight: 700;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #374151;
+            letter-spacing: 0.3px;
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: #6b7280;
+            font-family: var(--font-mono);
+        }
+        .tick.tick-active .tick-label {
+            color: #1e40af;
+        }
+        .tick.tick-active .tick-op {
+            color: #2563eb;
+        }
+
+        #step-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1e3a5f;
+        }
+        #step-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+        #op {
+            display: inline-block;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            letter-spacing: 0.4px;
+            margin-top: 4px;
+        }
+        #state {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            color: #374151;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 6px;
+        }
+        #step-evidence {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: #78350f;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+        #teaching {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: #0c4a6e;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+        .checkpoint-area {
+            background: #fef9e7;
+            border: 2px solid #e9a820;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+        .checkpoint-area h4 {
+            color: #92400e;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .checkpoint-area .cp-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .checkpoint-area input {
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            border: 2px solid #d1d5db;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 140px;
+            transition: border-color 0.2s;
+        }
+        .checkpoint-area input:focus {
+            outline: none;
+            border-color: #e9a820;
+            box-shadow: 0 0 0 3px rgba(233, 168, 32, 0.12);
+        }
+        .cp-feedback {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-top: 6px;
+            display: none;
+        }
+        .cp-feedback.cp-correct {
+            background: #dcfce7;
+            color: #065f46;
+            display: block;
+            border: 1px solid #10b981;
+        }
+        .cp-feedback.cp-incorrect {
+            background: #fef2f2;
+            color: #991b1b;
+            display: block;
+            border: 1px solid #ef4444;
+        }
+        .cp-feedback.cp-reveal {
+            background: #eef2ff;
+            color: #3730a3;
+            display: block;
+            border: 1px solid #6366f1;
+        }
+
+        .learning-log {
+            background: #fafbfc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+            font-size: 0.8rem;
+        }
+        .learning-log h4 {
+            font-size: 0.85rem;
+            color: #374151;
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px dotted #e5e7eb;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: #4b5563;
+        }
+        .log-entry .log-time {
+            color: #9ca3af;
+            font-size: 0.68rem;
+        }
+        .log-entry.log-correct {
+            color: #065f46;
+        }
+        .log-entry.log-incorrect {
+            color: #991b1b;
+        }
+        .log-entry.log-reveal {
+            color: #3730a3;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="card" style="padding-bottom:12px;">
+            <h1 id="title">Daily Temperatures</h1>
+            <p id="subtitle">Greenhouse ventilation scheduling using a monotonic decreasing stack. Find how many days until a warmer temperature for each forecast day.</p>
+        </div>
+
+        <!-- Top result and solution -->
+        <div class="card result-row">
+            <div class="result-block">
+                <label>Input Temperatures</label>
+                <code id="top-result">[73, 74, 75, 71, 69, 72, 76, 73]</code>
+            </div>
+            <div class="result-block">
+                <label>Expected Output</label>
+                <code id="top-solution">[1, 1, 4, 2, 1, 1, 0, 0]</code>
+            </div>
+            <div class="result-block" style="border-left:3px solid #10b981;">
+                <label>Final Answer (bare JSON)</label>
+                <code id="answer">[1,1,4,2,1,1,0,0]</code>
+            </div>
+        </div>
+
+        <!-- Main grid: code + canvas -->
+        <div class="main-grid">
+            <div class="card" style="padding:10px 12px;">
+                <div id="code" aria-label="Algorithm pseudocode with line numbers">
+                    <span class="line line-numbered" data-line="1"><span class="line-number">1</span>function dailyTemperatures(temps):</span>
+                    <span class="line line-numbered" data-line="2"><span class="line-number">2</span>    n = temps.length</span>
+                    <span class="line line-numbered" data-line="3"><span class="line-number">3</span>    answer = new Array(n).fill(0)</span>
+                    <span class="line line-numbered" data-line="4"><span class="line-number">4</span>    stack = []</span>
+                    <span class="line line-numbered" data-line="5"><span class="line-number">5</span></span>
+                    <span class="line line-numbered" data-line="6"><span class="line-number">6</span>    for i = 0; i &lt; n; i++:</span>
+                    <span class="line line-numbered" data-line="7"><span class="line-number">7</span>        while stack.length &gt; 0 AND</span>
+                    <span class="line line-numbered" data-line="8"><span class="line-number">8</span>              temps[stack.top()] &lt; temps[i]:</span>
+                    <span class="line line-numbered" data-line="9"><span class="line-number">9</span>            prev = stack.pop()</span>
+                    <span class="line line-numbered" data-line="10"><span class="line-number">10</span>            answer[prev] = i - prev</span>
+                    <span class="line line-numbered" data-line="11"><span class="line-number">11</span>        stack.push(i)</span>
+                    <span class="line line-numbered" data-line="12"><span class="line-number">12</span></span>
+                    <span class="line line-numbered" data-line="13"><span class="line-number">13</span>    return answer</span>
+                </div>
+            </div>
+            <div class="card" style="padding:12px 14px;">
+                <div id="canvas" aria-label="Algorithm visualization area showing temperatures, stack, and answer array">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card controls-row">
+            <button id="prev" class="btn" aria-label="Previous step">◀ Prev</button>
+            <button id="play" class="btn btn-primary" aria-label="Play auto-advance">▶ Play</button>
+            <button id="next" class="btn" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="10" value="1" step="1" aria-label="Step slider">
+            <span id="counter">1 / 10</span>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card" style="padding:10px 12px;">
+            <div id="timeline" aria-label="Step timeline with clickable ticks">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <!-- Step info cards -->
+        <div class="card" style="display:flex;flex-direction:column;gap:6px;">
+            <h3 id="step-title">Initialization</h3>
+            <p id="step-desc">Create an empty stack and initialize the answer array with zeros. Start at day 0.</p>
+            <span id="op">SETUP</span>
+        </div>
+
+        <!-- State JSON -->
+        <div class="card">
+            <label style="font-weight:700;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;">Current State (JSON)</label>
+            <div id="state">{"stack":[],"answer":[0,0,0,0,0,0,0,0],"i":0,"currentTemp":null}</div>
+        </div>
+
+        <!-- Step Evidence -->
+        <div class="card">
+            <label style="font-weight:700;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;">Step Evidence</label>
+            <div id="step-evidence">Stack initialized as empty. Answer array initialized to all zeros (meaning no warmer day found yet). Pointer i set to 0.</div>
+        </div>
+
+        <!-- Teaching -->
+        <div class="card">
+            <label style="font-weight:700;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;">Teaching &amp; Invariants</label>
+            <div id="teaching">We use a monotonic decreasing stack to track indices of days waiting for a warmer temperature. The stack will always contain indices with temperatures in strictly decreasing order (from bottom to top). When a warmer day arrives, it resolves all colder days on the stack at once — this is the key efficiency insight.</div>
+        </div>
+
+        <!-- Checkpoint area -->
+        <div class="checkpoint-area" id="checkpoint-area" style="display:none;" aria-live="polite">
+            <h4 id="cp-question">Checkpoint Question</h4>
+            <div class="cp-input-row">
+                <input type="text" id="cp-input" placeholder="Type your answer here..." aria-label="Checkpoint answer input">
+                <button id="cp-submit" class="btn btn-submit btn-sm">Submit</button>
+                <button id="cp-hint" class="btn btn-hint btn-sm">Hint</button>
+                <button id="cp-show" class="btn btn-show btn-sm">Show Answer</button>
+            </div>
+            <div id="cp-feedback" class="cp-feedback" aria-live="assertive"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="card learning-log" id="learning-log" aria-label="Learning log of checkpoint submissions">
+            <h4>📝 Learning Log</h4>
+            <div id="log-entries">
+                <p style="color:#9ca3af;font-style:italic;">No submissions yet. Interact with checkpoints to see entries here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step data for all 10 steps
+            // ──────────────────────────────────────
+            const temperatures = [73, 74, 75, 71, 69, 72, 76, 73];
+            const finalAnswer = [1, 1, 4, 2, 1, 1, 0, 0];
+
+            const stepsData = [{
+                id: 1,
+                title: 'Initialization',
+                desc: 'Create an empty stack and initialize the answer array with zeros. Set the day pointer i = 0.',
+                op: 'SETUP',
+                codeLines: [2, 3, 4],
+                stateJSON: '{"stack":[],"answer":[0,0,0,0,0,0,0,0],"i":0,"currentTemp":null}',
+                teaching: 'We use a monotonic decreasing stack to track indices of days waiting for a warmer temperature. The stack will always contain indices with temperatures in strictly decreasing order (from bottom to top). This invariant ensures we can efficiently resolve multiple waiting days when a warmer temperature appears.',
+                evidence: 'Stack initialized as empty. Answer array created with 8 zeros (no warmer day found yet for any position). Loop pointer i set to 0, ready to process day 0 (73°F).',
+                canvasData: {
+                    currentIndex: null,
+                    stackIndices: [],
+                    answerArray: [0, 0, 0, 0, 0, 0, 0, 0],
+                    poppedIndices: [],
+                    highlightAnswerIndex: null
+                },
+                isCheckpoint: false,
+                checkpoint: null
+            }, {
+                id: 2,
+                title: 'Process Day 0 — Temperature 73°F',
+                desc: 'Stack is empty, so we skip the while-loop and push index 0 onto the stack. Move to day 1.',
+                op: 'PUSH index 0',
+                codeLines: [6, 7, 11],
+                stateJSON: '{"stack":[0],"answer":[0,0,0,0,0,0,0,0],"i":0,"currentTemp":73,"action":"push"}',
+                teaching: 'When the stack is empty, there are no previous days to compare against. We simply push the current day\'s index and advance. The stack now contains index 0 (73°F), waiting for a warmer day.',
+                evidence: 'Checked while-condition: stack is empty, so skipped. Pushed index 0 (temperature 73°F) onto the stack. No answer values updated. The stack invariant holds: single element is trivially monotonic decreasing.',
+                canvasData: {
+                    currentIndex: 0,
+                    stackIndices: [0],
+                    answerArray: [0, 0, 0, 0, 0, 0, 0, 0],
+                    poppedIndices: [],
+                    highlightAnswerIndex: null
+                },
+                isCheckpoint: false,
+                checkpoint: null
+            }, {
+                id: 3,
+                title: 'Process Day 1 — Temperature 74°F',
+                desc: '74°F > 73°F (stack top). Pop index 0, set answer[0] = 1 - 0 = 1. Stack empty, push index 1.',
+                op: 'POP index 0 → answer[0]=1',
+                codeLines: [6, 7, 8, 9, 10, 11],
+                stateJSON: '{"stack":[1],"answer":[1,0,0,0,0,0,0,0],"i":1,"currentTemp":74,"popped":[0]}',
+                teaching: 'The current temperature (74°F) is warmer than the stack-top temperature (73°F at index 0). This means day 0 found its warmer day! We pop it and record wait time = 1 day. Then push index 1.',
+                evidence: 'Compared 74°F with stack top (73°F at index 0). 74 > 73, so entered while-loop. Popped index 0. Set answer[0] = 1 - 0 = 1. Stack became empty, exited while-loop. Pushed index 1 (74°F).',
+                canvasData: {
+                    currentIndex: 1,
+                    stackIndices: [1],
+                    answerArray: [1, 0, 0, 0, 0, 0, 0, 0],
+                    poppedIndices: [0],
+                    highlightAnswerIndex: 0
+                },
+                isCheckpoint: false,
+                checkpoint: null
+            }, {
+                id: 4,
+                title: 'Process Day 2 — Temperature 75°F',
+                desc: '75°F > 74°F (stack top). Pop index 1, set answer[1] = 2 - 1 = 1. Stack empty, push index 2.',
+                op: 'POP index 1 → answer[1]=1',
+                codeLines: [6, 7, 8, 9, 10, 11],
+                stateJSON: '{"stack":[2],"answer":[1,1,0,0,0,0,0,0],"i":2,"currentTemp":75,"popped":[1]}',
+                teaching: 'Again the current day is warmer than the stack top. Day 1 (74°F) gets its answer after just 1 day. The pattern so far shows consecutive warmer days resolving the previous day immediately.',
+                evidence: 'Compared 75°F with stack top (74°F at index 1). 75 > 74, popped index 1. Set answer[1] = 2 - 1 = 1. Stack empty, exited while-loop. Pushed index 2 (75°F).',
+                canvasData: {
+                    currentIndex: 2,
+                    stackIndices: [2],
+                    answerArray: [1, 1, 0, 0, 0, 0, 0, 0],
+                    poppedIndices: [1],
+                    highlightAnswerIndex: 1
+                },
+                isCheckpoint: false,
+                checkpoint: null
+            }, {
+                id: 5,
+                title: 'Process Day 3 — Temperature 71°F',
+                desc: '71°F < 75°F (stack top). No pop needed. Push index 3. Stack: [2, 3] with decreasing temps.',
+                op: 'PUSH index 3',
+                codeLines: [6, 7, 11],
+                stateJSON: '{"stack":[2,3],"answer":[1,1,0,0,0,0,0,0],"i":3,"currentTemp":71,"action":"push"}',
+                teaching: '71°F is NOT warmer than 75°F (stack top). So day 3 must wait. We push it, preserving the monotonic decreasing property: stack bottom→top temperatures are 75°F → 71°F (strictly decreasing).',
+                evidence: 'Compared 71°F with stack top (75°F at index 2). 71 < 75, so while-condition is false. Skipped the loop. Pushed index 3 (71°F). Stack now has indices [2, 3] with temperatures [75, 71] — decreasing.',
+                canvasData: {
+                    currentIndex: 3,
+                    stackIndices: [2, 3],
+                    answerArray: [1, 1, 0, 0, 0, 0, 0, 0],
+                    poppedIndices: [],
+                    highlightAnswerIndex: null
+                },
+                isCheckpoint: false,
+                checkpoint: null
+            }, {
+                id: 6,
+                title: 'Process Day 4 — Temperature 69°F',
+                desc: '69°F < 71°F (stack top). No pop. Push index 4. Stack: [2, 3, 4] — all waiting.',
+                op: 'PUSH index 4',
+                codeLines: [6, 7, 11],
+                stateJSON: '{"stack":[2,3,4],"answer":[1,1,0,0,0,0,0,0],"i":4,"currentTemp":69,"action":"push"}',
+                teaching: '69°F is even colder. The stack grows with indices [2, 3, 4] representing temperatures [75, 71, 69] — a strictly decreasing sequence. All these days are waiting for a warmer temperature.',
+                evidence: 'Compared 69°F with stack top (71°F at index 3). 69 < 71, while-condition false. Pushed index 4 (69°F). Stack: [2, 3, 4] with temps [75, 71, 69] — strictly decreasing invariant maintained.',
+                canvasData: {
+                    currentIndex: 4,
+                    stackIndices: [2, 3, 4],
+                    answerArray: [1, 1, 0, 0, 0, 0, 0, 0],
+                    poppedIndices: [],
+                    highlightAnswerIndex: null
+                },
+                isCheckpoint: false,
+                checkpoint: null
+            }, {
+                id: 7,
+                title: 'Process Day 5 — Temperature 72°F ⚡ Multi-Pop!',
+                desc: '72°F triggers multiple pops! 72 > 69 → pop 4 (answer[4]=1); 72 > 71 → pop 3 (answer[3]=2); 72 < 75 → stop. Push index 5. Stack: [2, 5].',
+                op: 'MULTI-POP: indices 4,3',
+                codeLines: [6, 7, 8, 9, 10, 11],
+                stateJSON: '{"stack":[2,5],"answer":[1,1,0,2,1,0,0,0],"i":5,"currentTemp":72,"popped":[4,3]}',
+                teaching: 'This is the key power of the monotonic stack! A single warmer day (72°F) resolves multiple waiting days at once. Day 4 (69°F) waited 1 day, and day 3 (71°F) waited 2 days. The while-loop efficiently pops all colder days in one pass — O(n) total across all operations.',
+                evidence: 'Entered while-loop: 72°F > 69°F (index 4) → popped index 4, answer[4] = 5-4 = 1. Continued: 72°F > 71°F (index 3) → popped index 3, answer[3] = 5-3 = 2. Checked: 72°F < 75°F (index 2) → stopped. Pushed index 5 (72°F). Two answers resolved in one step!',
+                canvasData: {
+                    currentIndex: 5,
+                    stackIndices: [2, 5],
+                    answerArray: [1, 1, 0, 2, 1, 0, 0, 0],
+                    poppedIndices: [4, 3],
+                    highlightAnswerIndex: null
+                },
+                isCheckpoint: true,
+                checkpoint: {
+                    question: 'After processing day 5 (72°F), how many days did index 3 (71°F) wait for a warmer temperature?',
+                    correctAnswer: '2',
+                    hint: 'Index 3 was popped when day 5 arrived. Calculate: 5 minus 3 equals the number of waiting days.',
+                    revealAnswer: '2 days. Index 3 (71°F at day 3) was popped by day 5 (72°F). Wait time = 5 - 3 = 2 days.',
+                    feedbackCorrect: 'Correct! Index 3 waited exactly 2 days (from day 3 to day 5) before encountering the warmer 72°F temperature. The monotonic stack resolved this efficiently.',
+                    feedbackIncorrect: 'Not quite. Look at the state: index 3 was at position 3, and it was popped when i=5. The wait time is the difference: 5 - 3 = 2 days.'
+                }
+            }, {
+                id: 8,
+                title: 'Process Day 6 — Temperature 76°F 🔥 Hottest Day!',
+                desc: '76°F clears the stack! 76 > 72 → pop 5 (answer[5]=1); 76 > 75 → pop 2 (answer[2]=4). Stack empty, push index 6.',
+                op: 'MULTI-POP: indices 5,2',
+                codeLines: [6, 7, 8, 9, 10, 11],
+                stateJSON: '{"stack":[6],"answer":[1,1,4,2,1,1,0,0],"i":6,"currentTemp":76,"popped":[5,2]}',
+                teaching: '76°F is the warmest day seen so far! It clears out all remaining waiting days on the stack. Day 2 (75°F) finally gets its answer after 4 long days. Notice how the stack allowed us to defer answering for day 2 until now.',
+                evidence: '76°F > 72°F (index 5) → popped index 5, answer[5] = 6-5 = 1. 76°F > 75°F (index 2) → popped index 2, answer[2] = 6-2 = 4. Stack empty, exited while-loop. Pushed index 6 (76°F). Day 2 waited 4 days — the longest wait in this dataset!',
+                canvasData: {
+                    currentIndex: 6,
+                    stackIndices: [6],
+                    answerArray: [1, 1, 4, 2, 1, 1, 0, 0],
+                    poppedIndices: [5, 2],
+                    highlightAnswerIndex: null
+                },
+                isCheckpoint: false,
+                checkpoint: null
+            }, {
+                id: 9,
+                title: 'Process Day 7 — Temperature 73°F',
+                desc: '73°F < 76°F (stack top). No pop. Push index 7. Stack: [6, 7]. These days will never see a warmer temperature.',
+                op: 'PUSH index 7',
+                codeLines: [6, 7, 11],
+                stateJSON: '{"stack":[6,7],"answer":[1,1,4,2,1,1,0,0],"i":7,"currentTemp":73,"action":"push"}',
+                teaching: '73°F is not warmer than 76°F. Push it onto the stack. Since this is the last day, indices 6 and 7 will remain on the stack with no future warmer day. Their answer values stay 0.',
+                evidence: 'Compared 73°F with stack top (76°F at index 6). 73 < 76, while-condition false. Pushed index 7 (73°F). Stack now [6, 7] with temps [76, 73] — decreasing. These are the final unresolved days.',
+                canvasData: {
+                    currentIndex: 7,
+                    stackIndices: [6, 7],
+                    answerArray: [1, 1, 4, 2, 1, 1, 0, 0],
+                    poppedIndices: [],
+                    highlightAnswerIndex: null
+                },
+                isCheckpoint: true,
+                checkpoint: {
+                    question: 'After processing all 8 days, how many indices remain in the stack (i.e., never found a warmer day)?',
+                    correctAnswer: '2',
+                    hint: 'Look at the stack after day 7 is processed. Count the indices still held in the stack.',
+                    revealAnswer: '2 indices remain: index 6 (76°F) and index 7 (73°F). These days have no warmer day in the future, so their answer stays 0.',
+                    feedbackCorrect: 'Correct! Two indices — 6 and 7 — remain in the stack. They represent days 6 (76°F) and 7 (73°F), which never encounter a warmer temperature ahead of them.',
+                    feedbackIncorrect: 'Not quite. Check the final stack contents: [6, 7]. That is 2 indices. Both correspond to days that have no warmer future day.'
+                }
+            }, {
+                id: 10,
+                title: 'Final Answer — Loop Complete',
+                desc: 'All 8 days processed. Remaining stack indices [6, 7] keep answer value 0. Final answer: [1, 1, 4, 2, 1, 1, 0, 0].',
+                op: 'RETURN answer',
+                codeLines: [13],
+                stateJSON: '{"stack":[6,7],"answer":[1,1,4,2,1,1,0,0],"i":7,"complete":true}',
+                teaching: 'After the for-loop finishes, any indices still on the stack have no warmer day ahead. Their answer remains at the initial value of 0. The algorithm runs in O(n) time because each index is pushed and popped at most once.',
+                evidence: 'Loop ended after i=7. Stack contains [6, 7] — these never found a warmer day. Their answer values stay 0 as initialized. Final answer array: [1, 1, 4, 2, 1, 1, 0, 0]. Total operations: each index pushed once, popped at most once → O(n).',
+                canvasData: {
+                    currentIndex: null,
+                    stackIndices: [6, 7],
+                    answerArray: [1, 1, 4, 2, 1, 1, 0, 0],
+                    poppedIndices: [],
+                    highlightAnswerIndex: null,
+                    isFinal: true
+                },
+                isCheckpoint: true,
+                checkpoint: {
+                    question: 'What value goes in answer[2] (for the 75°F day at index 2)?',
+                    correctAnswer: '4',
+                    hint: 'Trace when index 2 was popped from the stack. It happened when day 6 (76°F) arrived. Calculate 6 minus 2.',
+                    revealAnswer: '4. Index 2 (75°F) was popped when day 6 (76°F) arrived. Wait time = 6 - 2 = 4 days.',
+                    feedbackCorrect: 'Correct! answer[2] = 4 because index 2 (75°F at day 2) waited until day 6 (76°F) — a span of 4 days. This was the longest wait in the dataset.',
+                    feedbackIncorrect: 'Not quite. Index 2 was popped when i=6. The wait time is 6 - 2 = 4. Check the answer array: answer[2] should be 4.'
+                }
+            }];
+
+            const totalSteps = stepsData.length; // 10
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $answer = document.getElementById('answer');
+            const $code = document.getElementById('code');
+            const $canvas = document.getElementById('canvas');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $checkpointArea = document.getElementById('checkpoint-area');
+            const $cpQuestion = document.getElementById('cp-question');
+            const $cpInput = document.getElementById('cp-input');
+            const $cpSubmit = document.getElementById('cp-submit');
+            const $cpHint = document.getElementById('cp-hint');
+            const $cpShow = document.getElementById('cp-show');
+            const $cpFeedback = document.getElementById('cp-feedback');
+            const $logEntries = document.getElementById('log-entries');
+            const $learningLog = document.getElementById('learning-log');
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            let currentStepIndex = 0; // 0-based, maps to stepsData[0..9]
+            let playInterval = null;
+            let isPlaying = false;
+            let checkpointSubmitted = {}; // track which checkpoint steps have been submitted
+            let logEntryCount = 0;
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            const tickLabels = ['Init', 'Day 0', 'Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7', 'Final'];
+            const tickOps = ['setup', 'push', 'pop+push', 'pop+push', 'push', 'push', 'multi-pop', 'multi-pop',
+            'push', 'result'];
+
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                for (let i = 0; i < totalSteps; i++) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i);
+                    tick.setAttribute('role', 'button');
+                    tick.setAttribute('tabindex', '0');
+                    tick.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + tickLabels[i] + ' — ' + tickOps[i]);
+                    tick.innerHTML =
+                        '<span class="tick-label">' + tickLabels[i] + '</span><span class="tick-op">' + tickOps[i] +
+                        '</span>';
+                    tick.addEventListener('click', function() {
+                        const stepIdx = parseInt(this.getAttribute('data-step'));
+                        goToStep(stepIdx);
+                        stopPlay();
+                    });
+                    tick.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            const stepIdx = parseInt(this.getAttribute('data-step'));
+                            goToStep(stepIdx);
+                            stopPlay();
+                        }
+                    });
+                    $timeline.appendChild(tick);
+                }
+            }
+
+            function updateTimelineActive() {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    if (i === currentStepIndex) {
+                        t.classList.add('tick-active');
+                    } else {
+                        t.classList.remove('tick-active');
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Code line highlighting
+            // ──────────────────────────────────────
+            function updateCodeHighlight() {
+                const step = stepsData[currentStepIndex];
+                const allLines = $code.querySelectorAll('.line');
+                allLines.forEach(line => line.classList.remove('active-line'));
+                if (step.codeLines && step.codeLines.length > 0) {
+                    step.codeLines.forEach(ln => {
+                        const targetLine = $code.querySelector('.line[data-line="' + ln + '"]');
+                        if (targetLine) {
+                            targetLine.classList.add('active-line');
+                        }
+                    });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Canvas rendering
+            // ──────────────────────────────────────
+            function renderCanvas() {
+                const step = stepsData[currentStepIndex];
+                const cd = step.canvasData;
+                $canvas.innerHTML = '';
+
+                // Section 1: Temperatures array
+                const tempSection = document.createElement('div');
+                tempSection.className = 'viz-section';
+                const tempLabel = document.createElement('span');
+                tempLabel.className = 'viz-label';
+                tempLabel.textContent = '📊 Daily Temperatures';
+                tempSection.appendChild(tempLabel);
+                const tempRow = document.createElement('div');
+                tempRow.className = 'cell-row';
+                for (let i = 0; i < temperatures.length; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (cd.currentIndex === i) {
+                        cell.classList.add('cell-current');
+                    } else if (cd.stackIndices.includes(i) && cd.poppedIndices.includes(i)) {
+                        cell.classList.add('cell-popped');
+                    } else if (cd.stackIndices.includes(i)) {
+                        cell.classList.add('cell-stack');
+                    } else if (cd.poppedIndices.includes(i)) {
+                        cell.classList.add('cell-popped');
+                    }
+                    cell.innerHTML = '<span>' + temperatures[i] + '°</span><span class="cell-idx">[' + i + ']</span>';
+                    cell.setAttribute('aria-label', 'Day ' + i + ': ' + temperatures[i] + ' degrees');
+                    tempRow.appendChild(cell);
+                }
+                tempSection.appendChild(tempRow);
+                $canvas.appendChild(tempSection);
+
+                // Section 2: Stack visualization
+                const stackSection = document.createElement('div');
+                stackSection.className = 'viz-section';
+                const stackLabel = document.createElement('span');
+                stackLabel.className = 'viz-label';
+                stackLabel.textContent = '📚 Monotonic Stack (decreasing temps)';
+                stackSection.appendChild(stackLabel);
+                const stackContainer = document.createElement('div');
+                stackContainer.className = 'stack-container';
+                if (cd.stackIndices.length === 0) {
+                    const emptySpan = document.createElement('span');
+                    emptySpan.className = 'stack-empty';
+                    emptySpan.textContent = '(empty stack)';
+                    stackContainer.appendChild(emptySpan);
+                } else {
+                    cd.stackIndices.forEach((idx, pos) => {
+                        const item = document.createElement('span');
+                        item.className = 'stack-item';
+                        if (pos === cd.stackIndices.length - 1) {
+                            item.classList.add('stack-top');
+                        }
+                        item.textContent = '[' + idx + '] ' + temperatures[idx] + '°';
+                        if (pos === cd.stackIndices.length - 1) {
+                            item.textContent += ' ← top';
+                        }
+                        item.setAttribute('aria-label', 'Stack position ' + pos + ': index ' + idx +
+                            ', temperature ' + temperatures[idx] + ' degrees');
+                        stackContainer.appendChild(item);
+                    });
+                }
+                stackSection.appendChild(stackContainer);
+                $canvas.appendChild(stackSection);
+
+                // Section 3: Answer array
+                const ansSection = document.createElement('div');
+                ansSection.className = 'viz-section';
+                const ansLabel = document.createElement('span');
+                ansLabel.className = 'viz-label';
+                ansLabel.textContent = '✅ Answer Array (days to wait)';
+                ansSection.appendChild(ansLabel);
+                const ansRow = document.createElement('div');
+                ansRow.className = 'cell-row';
+                for (let i = 0; i < cd.answerArray.length; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (cd.answerArray[i] !== 0 || (cd.stackIndices.includes(i) && cd.isFinal)) {
+                        cell.classList.add('cell-answer-set');
+                    } else {
+                        cell.classList.add('cell-answer-unset');
+                    }
+                    if (cd.highlightAnswerIndex === i) {
+                        cell.classList.add('cell-answer-highlight');
+                    }
+                    cell.innerHTML = '<span>' + cd.answerArray[i] + '</span><span class="cell-idx">[' + i + ']</span>';
+                    cell.setAttribute('aria-label', 'Answer index ' + i + ': ' + cd.answerArray[i] + ' days to wait');
+                    ansRow.appendChild(cell);
+                }
+                ansSection.appendChild(ansRow);
+                $canvas.appendChild(ansSection);
+
+                // If final step, add a completion banner
+                if (cd.isFinal) {
+                    const banner = document.createElement('div');
+                    banner.style.cssText =
+                        'background:#dcfce7;border:2px solid #10b981;border-radius:8px;padding:10px;text-align:center;font-weight:700;color:#065f46;margin-top:6px;';
+                    banner.textContent = '🏁 Final Answer: [1, 1, 4, 2, 1, 1, 0, 0]';
+                    $canvas.appendChild(banner);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Update all UI for current step
+            // ──────────────────────────────────────
+            function updateUI() {
+                const step = stepsData[currentStepIndex];
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+                $state.textContent = step.stateJSON;
+                $stepEvidence.textContent = step.evidence;
+                $teaching.textContent = step.teaching;
+                $counter.textContent = (currentStepIndex + 1) + ' / ' + totalSteps;
+                $range.value = currentStepIndex + 1;
+                updateCodeHighlight();
+                renderCanvas();
+                updateTimelineActive();
+                updateCheckpointArea();
+                // Scroll active tick into view if needed
+                const activeTick = $timeline.querySelector('.tick-active');
+                if (activeTick) {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint management
+            // ──────────────────────────────────────
+            function updateCheckpointArea() {
+                const step = stepsData[currentStepIndex];
+                if (step.isCheckpoint && step.checkpoint) {
+                    $checkpointArea.style.display = 'block';
+                    $cpQuestion.textContent = '🔍 Checkpoint: ' + step.checkpoint.question;
+                    $cpInput.value = '';
+                    $cpFeedback.className = 'cp-feedback';
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.style.display = 'none';
+                    // If already submitted at this step, restore feedback
+                    if (checkpointSubmitted[currentStepIndex]) {
+                        const prev = checkpointSubmitted[currentStepIndex];
+                        $cpInput.value = prev.userAnswer;
+                        if (prev.isCorrect) {
+                            $cpFeedback.className = 'cp-feedback cp-correct';
+                            $cpFeedback.textContent = '✅ ' + step.checkpoint.feedbackCorrect;
+                            $cpFeedback.style.display = 'block';
+                        } else if (prev.isRevealed) {
+                            $cpFeedback.className = 'cp-feedback cp-reveal';
+                            $cpFeedback.textContent = '📖 Answer revealed: ' + step.checkpoint.revealAnswer;
+                            $cpFeedback.style.display = 'block';
+                        } else {
+                            $cpFeedback.className = 'cp-feedback cp-incorrect';
+                            $cpFeedback.textContent = '❌ ' + step.checkpoint.feedbackIncorrect;
+                            $cpFeedback.style.display = 'block';
+                        }
+                    }
+                    $cpInput.focus();
+                } else {
+                    $checkpointArea.style.display = 'none';
+                    $cpFeedback.className = 'cp-feedback';
+                    $cpFeedback.textContent = '';
+                    $cpFeedback.style.display = 'none';
+                }
+            }
+
+            function submitCheckpoint() {
+                const step = stepsData[currentStepIndex];
+                if (!step.isCheckpoint || !step.checkpoint) return;
+                const userAnswer = $cpInput.value.trim();
+                if (userAnswer === '') return;
+                const isCorrect = (userAnswer === step.checkpoint.correctAnswer);
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+                checkpointSubmitted[currentStepIndex] = {
+                    userAnswer: userAnswer,
+                    isCorrect: isCorrect,
+                    isRevealed: false,
+                    time: timeStr
+                };
+                // Update feedback
+                if (isCorrect) {
+                    $cpFeedback.className = 'cp-feedback cp-correct';
+                    $cpFeedback.textContent = '✅ ' + step.checkpoint.feedbackCorrect;
+                } else {
+                    $cpFeedback.className = 'cp-feedback cp-incorrect';
+                    $cpFeedback.textContent = '❌ ' + step.checkpoint.feedbackIncorrect;
+                }
+                $cpFeedback.style.display = 'block';
+                // Append to learning log
+                appendLogEntry(step, userAnswer, isCorrect, false, timeStr);
+            }
+
+            function showHint() {
+                const step = stepsData[currentStepIndex];
+                if (!step.isCheckpoint || !step.checkpoint) return;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+                $cpFeedback.className = 'cp-feedback cp-reveal';
+                $cpFeedback.textContent = '💡 Hint: ' + step.checkpoint.hint;
+                $cpFeedback.style.display = 'block';
+                appendLogEntryHint(step, timeStr);
+            }
+
+            function showAnswer() {
+                const step = stepsData[currentStepIndex];
+                if (!step.isCheckpoint || !step.checkpoint) return;
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+                $cpInput.value = step.checkpoint.correctAnswer;
+                $cpFeedback.className = 'cp-feedback cp-reveal';
+                $cpFeedback.textContent = '📖 Answer: ' + step.checkpoint.revealAnswer;
+                $cpFeedback.style.display = 'block';
+                checkpointSubmitted[currentStepIndex] = {
+                    userAnswer: step.checkpoint.correctAnswer,
+                    isCorrect: true,
+                    isRevealed: true,
+                    time: timeStr
+                };
+                appendLogEntry(step, step.checkpoint.correctAnswer, true, true, timeStr);
+            }
+
+            function appendLogEntry(step, userAnswer, isCorrect, isRevealed, timeStr) {
+                logEntryCount++;
+                if (logEntryCount === 1) {
+                    $logEntries.innerHTML = '';
+                }
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                if (isRevealed) {
+                    entry.classList.add('log-reveal');
+                } else if (isCorrect) {
+                    entry.classList.add('log-correct');
+                } else {
+                    entry.classList.add('log-incorrect');
+                }
+                const icon = isRevealed ? '📖' : (isCorrect ? '✅' : '❌');
+                const statusText = isRevealed ? 'Answer revealed' : (isCorrect ? 'Correct' : 'Incorrect');
+                entry.innerHTML =
+                    '<span class="log-time">[' + timeStr + ']</span> Step ' + step.id + ' — ' + icon + ' <strong>' +
+                    statusText + '</strong>: submitted "' + escapeHTML(userAnswer) + '" (expected: "' + escapeHTML(step
+                        .checkpoint.correctAnswer) + '") — ' + escapeHTML(step.checkpoint.question);
+                $logEntries.appendChild(entry);
+                $logEntries.scrollTop = $logEntries.scrollHeight;
+            }
+
+            function appendLogEntryHint(step, timeStr) {
+                logEntryCount++;
+                if (logEntryCount === 1) {
+                    $logEntries.innerHTML = '';
+                }
+                const entry = document.createElement('div');
+                entry.className = 'log-entry log-reveal';
+                entry.innerHTML = '<span class="log-time">[' + timeStr + ']</span> Step ' + step.id +
+                    ' — 💡 Hint requested for: ' + escapeHTML(step.checkpoint.question);
+                $logEntries.appendChild(entry);
+                $logEntries.scrollTop = $logEntries.scrollHeight;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0) index = 0;
+                if (index >= totalSteps) index = totalSteps - 1;
+                currentStepIndex = index;
+                updateUI();
+            }
+
+            function nextStep() {
+                if (currentStepIndex < totalSteps - 1) {
+                    goToStep(currentStepIndex + 1);
+                } else {
+                    stopPlay();
+                }
+            }
+
+            function prevStep() {
+                if (currentStepIndex > 0) {
+                    goToStep(currentStepIndex - 1);
+                }
+            }
+
+            function startPlay() {
+                if (playInterval) return;
+                isPlaying = true;
+                $play.textContent = '⏸ Pause';
+                $play.classList.add('btn-primary');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                isPlaying = false;
+                $play.textContent = '▶ Play';
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            $prev.addEventListener('click', () => { stopPlay();
+                prevStep(); });
+            $next.addEventListener('click', () => { stopPlay();
+                nextStep(); });
+            $play.addEventListener('click', togglePlay);
+            $range.addEventListener('input', function() {
+                stopPlay();
+                const val = parseInt(this.value);
+                goToStep(val - 1);
+            });
+            $range.addEventListener('change', function() {
+                const val = parseInt(this.value);
+                goToStep(val - 1);
+            });
+
+            $cpSubmit.addEventListener('click', submitCheckpoint);
+            $cpHint.addEventListener('click', showHint);
+            $cpShow.addEventListener('click', showAnswer);
+            $cpInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitCheckpoint();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowRight') { e.preventDefault();
+                    stopPlay();
+                    nextStep(); }
+                if (e.key === 'ArrowLeft') { e.preventDefault();
+                    stopPlay();
+                    prevStep(); }
+                if (e.key === ' ') { e.preventDefault();
+                    togglePlay(); }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize
+            // ──────────────────────────────────────
+            function init() {
+                buildTimeline();
+                $answer.textContent = '[1,1,4,2,1,1,0,0]';
+                $topResult.textContent = '[73, 74, 75, 71, 69, 72, 76, 73]';
+                $topSolution.textContent = '[1, 1, 4, 2, 1, 1, 0, 0]';
+                $range.min = 1;
+                $range.max = totalSteps;
+                $range.value = 1;
+                $counter.textContent = '1 / ' + totalSteps;
+                goToStep(0);
+                $checkpointArea.style.display = 'none';
+                $logEntries.innerHTML =
+                    '<p style="color:#9ca3af;font-style:italic;">No submissions yet. Interact with checkpoints to see entries here.</p>';
+                logEntryCount = 0;
+                checkpointSubmitted = {};
+            }
+
+            init();
+
+            console.log('Daily Temperatures algorithm tutor ready. Explore the monotonic stack step by step!');
+        })();
+    </script>
+</body>
+</html>

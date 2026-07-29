@@ -34,13 +34,13 @@
 | **Direct HTML** | 模型根据题目直接一次性编写完整 HTML、CSS 和 JavaScript 页面 | 没有独立的可执行轨迹、SceneGraph 编译和固定 Runtime，页面逻辑主要由模型自由生成 |
 | **WebGen-Agent** | 使用外部多步骤网页生成 agent 完成页面，再用本文相同的浏览器指标进行审计 | 比 Direct HTML 多了 agent 工作流，但最终仍是自由生成的网页代码 |
 | **Direct + HTMLCure** | 先取得 Direct HTML 页面，再交给 HTMLCure 判断并修复网页 | 属于生成后修复；正式结果使用 strict 口径，页面依赖外部资源也会判为失败 |
-| **Direct-BrowserRepair** | 根据浏览器检查结果反复重写整份自由 HTML | 1-call 条件尚未读取浏览器反馈；从第 2 次调用开始才进行反馈修复 |
+| **Direct-BrowserRepair** | 根据真实浏览器反馈反复重写整份自由 HTML | 最终结果使用 repair budget 5；通过即停止，并保留历史 best-so-far 页面 |
 
 ### 0.1 Full-200 基础可靠性
 
 本节使用同一组 200 个任务的 sample index 0。`通过数/200（通过率）` 表示在 200 个页面中，有多少页面通过对应检查。
 
-**Machine OK 首次定义：** 同一个页面必须同时通过九项浏览器行为检查：页面加载、答案正确、交互可达、正确反馈、错误反馈、提示、显示答案、学习日志和教学操作不改算法状态。它是九项的合取，不是平均分。`strict` 表示 HTML 文件本身必须不依赖外部资源；BrowserRepair `1-call` 只包含一次页面生成，尚未读取浏览器反馈。
+**Machine OK 首次定义：** 同一个页面必须同时通过九项浏览器行为检查：页面加载、答案正确、交互可达、正确反馈、错误反馈、提示、显示答案、学习日志和教学操作不改算法状态。它是九项的合取，不是平均分。`strict` 表示 HTML 文件本身必须不依赖外部资源；BrowserRepair 使用最多 5 次修复的 early-stop/best-so-far 最终页面。
 
 九项检查的具体判定规则如下。这里的“通过”均指浏览器自动审计通过，不是 LLM/VLM 主观评分。
 
@@ -65,7 +65,7 @@
 | Direct HTML | 188/200（94.0%） | **200/200（100.0%）** | 149/200（74.5%） | 120/200（60.0%） | 125/200（62.5%） | 132/200（66.0%） | 133/200（66.5%） | 135/200（67.5%） | 149/200（74.5%） | 98/200（49.0%） |
 | WebGen-Agent | 194/200（97.0%） | 169/200（84.5%） | 154/200（77.0%） | 74/200（37.0%） | 89/200（44.5%） | 136/200（68.0%） | 148/200（74.0%） | 109/200（54.5%） | 154/200（77.0%） | 45/200（22.5%） |
 | Direct + HTMLCure（strict） | 75/200（37.5%） | 75/200（37.5%） | 62/200（31.0%） | 52/200（26.0%） | 51/200（25.5%） | 53/200（26.5%） | 53/200（26.5%） | 59/200（29.5%） | 62/200（31.0%） | 40/200（20.0%） |
-| Direct-BrowserRepair（最多 1 次调用；无浏览器反馈） | 186/200（93.0%） | **200/200（100.0%）** | 155/200（77.5%） | 128/200（64.0%） | 133/200（66.5%） | 137/200（68.5%） | 138/200（69.0%） | 143/200（71.5%） | 155/200（77.5%） | 106/200（53.0%） |
+| Direct-BrowserRepair（repair budget 5） | **200/200（100.0%）** | **200/200（100.0%）** | 166/200（83.0%） | 140/200（70.0%） | 146/200（73.0%） | 152/200（76.0%） | 153/200（76.5%） | 158/200（79.0%） | 166/200（83.0%） | 120/200（60.0%） |
 
 AlgoTutorGen 最终有 200/200 个任务通过生成与物化检查，其中 198/200 个页面进一步通过完整的九项浏览器行为检查。`Generation pass` 只说明产生了有效机器 artifact，不等于 Machine OK。
 
@@ -82,11 +82,11 @@ AlgoTutorGen 与主 Direct HTML 的任务级配对统计如下。`pp` 是百分�
 - **Interaction：** 页面存在可达、可操作的学习者作答检查点；反馈、提示、显示答案和日志分别由后续独立指标检查。
 - **Machine OK：** 本文定义的九项浏览器行为检查全部通过；它不是各项分数的平均值，任何一项失败都会使该页面失败。
 
-**结果直读：** AlgoTutorGen 有 198/200 个页面同时通过九项检查；Direct HTML、WebGen-Agent、HTMLCure strict 和 BrowserRepair 1-call 分别为 98/200、45/200、40/200 和 106/200。Direct HTML 与 BrowserRepair 1-call 都能在 200/200 页面显示正确答案，但完整行为通过数明显低于答案通过数。
+**结果直读：** AlgoTutorGen 有 198/200 个页面同时通过九项检查；Direct HTML、WebGen-Agent、HTMLCure strict 和 BrowserRepair budget 5 分别为 98/200、45/200、40/200 和 120/200。Direct HTML 与 BrowserRepair 都能在 200/200 页面显示正确答案，但完整行为通过数明显低于答案通过数。
 
 最终两个 Machine OK 失败任务是 `stack_valid_parentheses_full_core`（Wrong FB 失败）和 `string_longest_common_prefix_full_core`（Correct FB、Wrong FB 失败）；两页的 Load、Answer、Interaction、Hint、Show、Log 和 Mutation-free 均通过。
 
-**主表口径：** 各方法的模型调用预算并不相同。BrowserRepair 的 1-call 条件尚未读取浏览器反馈；而且它与主 Direct 行不是逐题同一冻结页面，因此 106/200 对 98/200 不能直接解释为 repair 带来的提升。
+**主表口径：** 各方法的模型调用预算并不相同。BrowserRepair budget 5 是从另一组逐题冻结 Direct 页面出发的自适应修复实验；其 106→120 的增益只应在该实验内部解释，不能把 120/200 与主 Direct 的 98/200 直接当作同一初始页面上的因果差值。
 
 ### 0.2 九项指标的失败交集
 
@@ -98,9 +98,9 @@ AlgoTutorGen 与主 Direct HTML 的任务级配对统计如下。`pp` 是百分�
 | Direct HTML | 98/200（49.0%） | 25/200（12.5%） | 77/200（38.5%） |
 | WebGen-Agent | 45/200（22.5%） | 36/200（18.0%） | 119/200（59.5%） |
 | Direct + HTMLCure（strict） | 40/200（20.0%） | 12/200（6.0%） | 148/200（74.0%） |
-| Direct-BrowserRepair（最多 1 次调用；无浏览器反馈） | 106/200（53.0%） | 25/200（12.5%） | 69/200（34.5%） |
+| Direct-BrowserRepair（repair budget 5） | 120/200（60.0%） | 26/200（13.0%） | 54/200（27.0%） |
 
-**结果直读：** AlgoTutorGen 的两个失败页面中，一个只失败一项，另一个失败两项。Direct HTML、WebGen-Agent、HTMLCure strict 和 BrowserRepair 1-call 分别有 77、119、148 和 69 个页面同时失败至少两项，因此 Machine OK 会低于任何单项通过数。
+**结果直读：** AlgoTutorGen 的两个失败页面中，一个只失败一项，另一个失败两项。Direct HTML、WebGen-Agent、HTMLCure strict 和 BrowserRepair budget 5 分别有 77、119、148 和 54 个页面同时失败至少两项，因此 Machine OK 会低于任何单项通过数。
 
 ### 0.3 更换生成模型后的最终结果
 
@@ -260,20 +260,21 @@ Stage1 与 Direct 页面生成成本：
 
 **结果直读：** AlgoTutorGen 最终采用链路平均每题使用 5.33 次调用和 76.8k tokens；Direct HTML 平均每题使用 1.11 次调用和 21.9k tokens。五方法统一教学与视觉评价覆盖 1,000 个页面，共产生 1,001 次模型调用，其中 2 次是格式重试。
 
-### 3.2 Direct-BrowserRepair 固定调用上限
+### 3.2 Direct-BrowserRepair 公平 repair budget
 
-| 每题最多调用次数 | 页面加载 | 答案正确 | 交互可用 | 九项全部通过 | 平均 token/题 | 平均生成时间 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | 186/200 | 200/200 | 155/200 | **106/200** | 19.7k | 207.2 s |
-| 2 | 179/200 | 179/200 | 20/200 | 10/200 | 36.8k | 347.2 s |
-| 3 | 185/200 | 184/200 | 41/200 | 15/200 | 53.7k | 477.6 s |
-| 5 | 188/200 | 191/200 | 30/200 | 6/200 | 87.2k | 733.9 s |
+全部 200 题从同一冻结 Direct 页面开始。每轮先执行真实浏览器审计；Machine OK 后立即停止；未通过时收集通用浏览器反馈，并把完整上一版 HTML 交给模型重写；最终始终选择历史 best-so-far 页面。`repair budget=r` 表示初始页之外最多允许 (r) 次修复，不是强制执行恰好 (r) 次。
 
-**指标注释：** “每题最多调用次数”是独立的 fixed-budget 条件，不是同一页面逐轮累计后的存活数。1-call 只使用单次生成页；从 2-call 开始才包含浏览器反馈后的整页重写。平均生成时间以秒（s）计，越低表示平均等待越短。
+| Repair budget | Load | Answer | Interaction | Correct FB | Wrong FB | Hint | Show | Log | Mutation-free | Machine OK |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 186/200 | 200/200 | 155/200 | 128/200 | 133/200 | 137/200 | 138/200 | 143/200 | 155/200 | 106/200 |
+| 1 | 200/200 | 200/200 | 165/200 | 139/200 | 144/200 | 151/200 | 151/200 | 157/200 | 165/200 | 118/200 |
+| 2 | 200/200 | 200/200 | 166/200 | 140/200 | 145/200 | 152/200 | 153/200 | 158/200 | 166/200 | 119/200 |
+| 3 | 200/200 | 200/200 | 166/200 | 140/200 | 146/200 | 152/200 | 153/200 | 158/200 | 166/200 | 120/200 |
+| 5 | 200/200 | 200/200 | 166/200 | 140/200 | 146/200 | 152/200 | 153/200 | 158/200 | 166/200 | 120/200 |
 
-**结果直读：** 四个预算中，1-call 的 Machine OK 最高，为 106/200；2、3、5-call 分别为 10/200、15/200 和 6/200。调用上限增加时，平均 token 和平均生成时间均增加。
+**指标注释：** 单次修复输出上限为 32,768 tokens，API 超时 1,800 s，任务并发 32；repair token 和时间只统计新增修复调用。200 个冻结初始页逐文件哈希一致，417 个修复 prompt 均包含完整上一版 HTML，基础设施失败为 0/200。
 
-修正资源解析后，四个预算共 1,000 个尝试均满足 self-contained 检查。该结果说明本实验中的自由整页反馈重写没有随预算单调改善，不能外推成所有 browser-repair 方法的普遍规律。
+**结果直读：** Machine OK 单调从 106→118→119→120→120。第 1 次修复新增 12 个完整通过，第 2、3 次各新增 1 个，第 4、5 次没有新增。整体 fail→pass 为 14、pass→fail 为 0。完整协议、转移和成本见 [公平 Direct-BrowserRepair 实验报告](33_FAIR_DIRECT_BROWSER_REPAIR_EXPERIMENT.md)。
 
 ### 3.3 HTMLCure 的 strict 与 blocked-external 口径
 
@@ -484,7 +485,7 @@ Local 在两个模型上都降低了 spec generation/repair 成本，但 repair 
 | AlgoTutorGen Kimi final | 97.5% | 97.5% | 97.5% | 97.0% | 97.0% | 97.0% |
 | Direct Kimi | 99.5% | 95.0% | 68.0% | 52.5% | 43.5% | 43.5% |
 | WebGen-Agent | 84.5% | 84.5% | 67.5% | 27.5% | 22.5% | 22.5% |
-| Direct-BrowserRepair-5 | 95.5% | 92.5% | 14.0% | 6.0% | 3.0% | 3.0% |
+| Direct-BrowserRepair budget 5 | 100.0% | 100.0% | 83.0% | 64.0% | 60.0% | 60.0% |
 | HTMLCure blocked-external | 100.0% | 100.0% | 74.0% | 49.5% | 45.5% | 45.5% |
 
 #### 6.4.2 条件存活率
@@ -502,7 +503,7 @@ Local 在两个模型上都降低了 spec generation/repair 成本，但 repair 
 | AlgoTutorGen Kimi final | 97.5% | 100.0% | 100.0% | 99.5% | 100.0% | 100.0% |
 | Direct Kimi | 99.5% | 95.5% | 71.6% | 77.2% | 82.9% | 100.0% |
 | WebGen-Agent | 84.5% | 100.0% | 79.9% | 40.7% | 81.8% | 100.0% |
-| Direct-BrowserRepair-5 | 95.5% | 96.9% | 15.1% | 42.9% | 50.0% | 100.0% |
+| Direct-BrowserRepair budget 5 | 100.0% | 100.0% | 83.0% | 77.1% | 93.8% | 100.0% |
 | HTMLCure blocked-external | 100.0% | 100.0% | 74.0% | 66.9% | 91.9% | 100.0% |
 
 **结果直读：** AlgoTutorGen 的主要损失发生在最前面的 generation/answer 或极少数双向反馈边界；自由 HTML、agent 和 repair 条件在加载、交互与双向反馈处继续丢失。多数方法的 `α6=100%` 只表示已经通过 C5 的页面没有在当前 mutation-free 检查上继续下降，不表示全部页面通过。
@@ -577,9 +578,9 @@ Local 在两个模型上都降低了 spec generation/repair 成本，但 repair 
 | Direct HTML | 1.480 | 99/200 | 4.203 | 110/200 | 4.561 | 186/200 |
 | WebGen-Agent | 1.415 | 47/200 | 3.969 | 76/200 | 4.441 | 177/200 |
 | Direct + HTMLCure（strict） | 0.590 | 40/200 | 3.147 | 44/200 | 4.300 | 163/200 |
-| Direct-BrowserRepair（1-call） | 1.510 | 107/200 | 4.297 | 118/200 | 4.670 | 191/200 |
+| Direct-BrowserRepair（repair budget 0；视觉样本） | 1.510 | 107/200 | 4.297 | 118/200 | 4.670 | 191/200 |
 
-**结果直读：** AlgoTutorGen / Stage2 在本节六个汇总指标上均为最高。BrowserRepair 1-call 的教学和视觉代理分高于主 Direct，但两者不是逐题同一冻结页面，不能把差值直接解释为一次 repair 的因果收益。
+**结果直读：** AlgoTutorGen / Stage2 在本节六个汇总指标上均为最高。BrowserRepair 的视觉代理样本来自 repair budget 0，即冻结初始页；其分数高于主 Direct，但两者不是逐题同一冻结页面，不能把差值解释为 repair 的因果收益。
 
 ### 7.2 教学代理指标明细
 
@@ -593,7 +594,7 @@ Naps 的层级数量按 `0 / 1 / 2 / 3 / 4 / 5` 顺序列出，即“不可观�
 | Direct HTML | 12 / 80 / 108 / 0 / 0 / 0 | 1.480 | 99/200（49.5%） | 5.310 |
 | WebGen-Agent | 6 / 118 / 63 / 13 / 0 / 0 | 1.415 | 47/200（23.5%） | 4.965 |
 | Direct + HTMLCure（strict） | 125 / 32 / 43 / 0 / 0 / 0 | 0.590 | 40/200（20.0%） | 2.145 |
-| Direct-BrowserRepair（1-call） | 14 / 70 / 116 / 0 / 0 / 0 | 1.510 | 107/200（53.5%） | 5.465 |
+| Direct-BrowserRepair（repair budget 0；视觉样本） | 14 / 70 / 116 / 0 / 0 / 0 | 1.510 | 107/200（53.5%） | 5.465 |
 
 **结果直读：** WebGen-Agent 有 13 个页面达到“修改输入并重跑”层级，但双向反馈和完整自动练习组件通过数较低；AlgoTutorGen 的 198 个页面达到“作答并获得双向反馈”，且同样有 198 个页面通过 TRAKLA2-style 七项检查。
 
@@ -607,7 +608,7 @@ Naps 的层级数量按 `0 / 1 / 2 / 3 / 4 / 5` 顺序列出，即“不可观�
 | Direct HTML | 200 VLM | 4.203 | 4.720 | 4.605 | 3.300 | 3.885 | 4.460 | 4.180 | 4.270 | 110/200 |
 | WebGen-Agent | 199 VLM + 1 失败最低分 | 3.969 | 4.600 | 4.685 | 2.660 | 3.560 | 4.425 | 3.805 | 4.050 | 76/200 |
 | Direct + HTMLCure（strict） | 200 VLM | 3.147 | 4.100 | 4.180 | 1.930 | 2.160 | 4.300 | 2.990 | 2.370 | 44/200 |
-| Direct-BrowserRepair（1-call） | 200 VLM | 4.297 | 4.795 | 4.685 | 3.435 | 3.985 | **4.490** | 4.370 | 4.320 | 118/200 |
+| Direct-BrowserRepair（repair budget 0；视觉样本） | 200 VLM | 4.297 | 4.795 | 4.685 | 3.435 | 3.985 | **4.490** | 4.370 | 4.320 | 118/200 |
 
 **指标注释：** 浏览器行为证据用于反馈、交互和功能判断，截图用于内容呈现与展示设计；方法名称不进入评分提示。WebGen-Agent 的 `tarjan_scc` 页面自身出现渲染死循环，按七个教学维度均为 1 分计入，而不是删除该失败页或修复后重评。
 
@@ -619,9 +620,9 @@ Naps 的层级数量按 `0 / 1 / 2 / 3 / 4 / 5` 顺序列出，即“不可观�
 | Direct HTML | 200 VLM | 4.561 | 4.455 | 4.605 | 4.660 | 4.525 | 186/200 |
 | WebGen-Agent | 199 VLM + 1 失败最低分 | 4.441 | 4.500 | 4.645 | 4.150 | 4.470 | 177/200 |
 | Direct + HTMLCure（strict） | 200 VLM | 4.300 | 4.350 | 4.445 | 4.050 | 4.355 | 163/200 |
-| Direct-BrowserRepair（1-call） | 200 VLM | 4.670 | 4.590 | **4.725** | 4.730 | 4.635 | 191/200 |
+| Direct-BrowserRepair（repair budget 0；视觉样本） | 200 VLM | 4.670 | 4.590 | **4.725** | 4.730 | 4.635 | 191/200 |
 
-**结果直读：** AlgoTutorGen / Stage2 的视觉 Overall、题面贴合、过程变化和教学视觉设计均值最高；BrowserRepair 1-call 的算法状态可读性均值最高。这里报告的是自动视觉代理评分，不是人工审美或学习效果结论。
+**结果直读：** AlgoTutorGen / Stage2 的视觉 Overall、题面贴合、过程变化和教学视觉设计均值最高；BrowserRepair 冻结初始页样本的算法状态可读性均值最高。这里报告的是自动视觉代理评分，不是人工审美或学习效果结论，也不是 budget 5 最终页的视觉结果。
 
 ### 7.4 Stage2 单独展示层检查
 
@@ -724,7 +725,7 @@ Stage2 只增强展示层，算法 correctness 仍由 Stage1 负责。下面两�
 
 最终结果支持以下结论：AlgoTutorGen 在 Full-200、三种替代生成模型和 held-out 集合上都保持较高的完整行为通过率；正确答案本身不足以代表页面可靠，主要差异出现在交互、双向反馈和状态隔离；完整的 trace—scene—runtime 链比单独保留正确 trace 或固定 Runtime 更可靠。理论定向实验还表明，当前实现保持了已评估表示的状态投影，并在有限 mutation suite 和 1,561,298 次随机动作中未发现状态污染反例。
 
-当前结果不能外推为学生学习效果、任意算法的形式化正确性、validator 的 universal soundness/completeness、开放域泛化或更低成本。五方法视觉表是自动代理评分，不能表述为人工审美结论；BrowserRepair 1-call 的算法状态可读性均值也高于 Stage2。人工校准、专家评审和学生实验尚未完成，因此本文不报告相应结果。
+当前结果不能外推为学生学习效果、任意算法的形式化正确性、validator 的 universal soundness/completeness、开放域泛化或更低成本。五方法视觉表是自动代理评分，不能表述为人工审美结论；BrowserRepair 冻结初始页样本的算法状态可读性均值也高于 Stage2。人工校准、专家评审和学生实验尚未完成，因此本文不报告相应结果。
 
 ---
 
@@ -749,7 +750,7 @@ Stage2 只增强展示层，算法 correctness 仍由 Stage1 负责。下面两�
 | 主实验配对统计 | [paired_statistics.json](../output/experiments/algotutorgen_completion_20260713/statistics/paired_statistics.json) | 200 个相同 case ID；seeded paired bootstrap、exact McNemar、Holm |
 | 三个替代生成模型 | [multimodel_summary.json](../output/experiments/algotutorgen_multimodel_full200_20260713/multimodel_summary.json) | 只读取 final_quality 和 final_stage1，不读取补跑前结果 |
 | Held-out 40 | [heldout_40](../output/experiments/algotutorgen_plan_completion_20260713/heldout_40) | 原始生成结果固定为 39/40；后续补齐的第 40 个 artifact 只用于表示审计 |
-| Direct-BrowserRepair | [budget_curve_report.json](../output/experiments/algotutorgen_plan_completion_20260713/direct_browser_repair_5/budget_curve_report.json) | 四个独立预算：1、2、3、5 calls |
+| Direct-BrowserRepair | [fair_repair_report.json](../output/experiments/direct_browser_repair_fair_20260723/fair_repair_report.json) | 同一冻结初始页；repair budget 0、1、2、3、5；early-stop 与 best-so-far |
 | WebGen-Agent | [report.json](../output/external_baselines/webgen/audit_all200_sample0/report.json) | Full-200 sample 0；统一九项浏览器审计 |
 | HTMLCure | [htmlcure_full200_analysis.json](../output/external_baselines/htmlcure_all200_sample0/htmlcure_full200_analysis.json) | strict 为正式结果；blocked-external 为敏感性分析 |
 | 646 样例重放 | [cross_input_replay_report.json](../output/experiments/algotutorgen_completion_20260713/cross_input_replay/cross_input_replay_report.json) | 冻结主 artifact 在同题其他输入上的结构化重放 |
@@ -854,7 +855,7 @@ Held-out v1 使用 [heldout_cases_v1.json](../benchmark/heldout_cases_v1.json)�
 | Held-out Direct | DeepSeek-V4-Pro | 同一 40 题 | 1 candidate；最多 2 rounds | 8 | expected 可见；无浏览器反馈 |
 | WebGen-Agent | DeepSeek-V4-Pro | 200 题 sample 0 | max_iter=5 | 8 | feedback model=DeepSeek-V4-Pro；VLM=gemini-3-flash-preview |
 | HTMLCure | Repair: DeepSeek-V4-Pro；Evaluator: Gemini | 冻结 Direct 200 页 | max_iterations=1；共生成 269 个 repair candidates | 8 shards | vision_in_repair=false；browser_use_agent=false |
-| Direct-BrowserRepair | DeepSeek-V4-Pro | 独立 200 题运行 | 固定预算 1/2/3/5 calls；repair max_tokens=12000 | 按实验脚本分片 | 只向修复器暴露通用浏览器反馈；不暴露隐藏九项指标；每题目标 80k tokens |
+| Direct-BrowserRepair | DeepSeek-V4-Pro | 同一冻结 Direct 200 页 | repair budget 0/1/2/3/5；最多 5 次修复 | 32 | 通过即停止；保留 best-so-far；完整上一版 HTML；repair max_tokens=32768；API timeout=1800 s；不暴露隐藏九项指标 |
 | Stage2 | DeepSeek-V4-Pro | 200 个已验证 Stage1 artifact | 最终 247 次模型调用 | 并行分片运行 | 只增强展示层；47 次 creative-quality repair；不替代 Stage1 correctness |
 
 ### 11.4 浏览器与运行环境
@@ -929,41 +930,41 @@ Answer 的差值为 0，而其余主要交互和反馈指标有明显差距。�
 
 ### 12.2 分算法族的 Machine OK
 
-| 算法族 | 任务数 | AlgoTutorGen | Direct | WebGen-Agent | HTMLCure strict | BrowserRepair-1 |
+| 算法族 | 任务数 | AlgoTutorGen | Direct | WebGen-Agent | HTMLCure strict | BrowserRepair budget 5 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| BFS/DFS 基础图 | 18 | 18/18 | 10/18 | 4/18 | 4/18 | 10/18 |
-| DP 核心扩展 | 16 | 16/16 | 7/16 | 5/16 | 3/16 | 7/16 |
-| Trie | 2 | 2/2 | 0/2 | 0/2 | 0/2 | 1/2 |
+| BFS/DFS 基础图 | 18 | 18/18 | 10/18 | 4/18 | 4/18 | 11/18 |
+| DP 核心扩展 | 16 | 16/16 | 7/16 | 5/16 | 3/16 | 8/16 |
+| Trie | 2 | 2/2 | 0/2 | 0/2 | 0/2 | 2/2 |
 | 一维 DP | 9 | 9/9 | 4/9 | 1/9 | 3/9 | 4/9 |
-| 二分 | 9 | 9/9 | 4/9 | 3/9 | 3/9 | 4/9 |
+| 二分 | 9 | 9/9 | 4/9 | 3/9 | 3/9 | 5/9 |
 | 二维 DP | 5 | 5/5 | 3/5 | 3/5 | 2/5 | 3/5 |
 | 几何 / 扫描线 | 2 | 2/2 | 2/2 | 0/2 | 1/2 | 2/2 |
 | 区间结构 | 3 | 3/3 | 1/3 | 1/3 | 0/3 | 1/3 |
-| 哈希表 / map | 14 | 14/14 | 6/14 | 3/14 | 1/14 | 6/14 |
+| 哈希表 / map | 14 | 14/14 | 6/14 | 3/14 | 1/14 | 9/14 |
 | 回溯 / 递归 | 2 | 2/2 | 0/2 | 0/2 | 0/2 | 0/2 |
 | 图高级 | 5 | 5/5 | 3/5 | 1/5 | 2/5 | 4/5 |
 | 堆 / TopK / Huffman | 10 | 10/10 | 7/10 | 2/10 | 3/10 | 7/10 |
-| 字符串高级算法 | 15 | 14/15 | 4/15 | 7/15 | 0/15 | 5/15 |
+| 字符串高级算法 | 15 | 14/15 | 4/15 | 7/15 | 0/15 | 7/15 |
 | 并查集 | 5 | 5/5 | 4/5 | 0/5 | 0/5 | 4/5 |
 | 排序 | 13 | 13/13 | 7/13 | 2/13 | 3/13 | 9/13 |
-| 数学与位运算 | 7 | 7/7 | 4/7 | 0/7 | 0/7 | 4/7 |
-| 数组指针 / 窗口 / 前缀 | 21 | 21/21 | 15/21 | 5/21 | 7/21 | 15/21 |
+| 数学与位运算 | 7 | 7/7 | 4/7 | 0/7 | 0/7 | 5/7 |
+| 数组指针 / 窗口 / 前缀 | 21 | 21/21 | 15/21 | 5/21 | 7/21 | 16/21 |
 | 最短路 / MST | 6 | 6/6 | 3/6 | 0/6 | 0/6 | 5/6 |
-| 栈 / 队列 / 单调栈 | 10 | 9/10 | 5/10 | 0/10 | 2/10 | 5/10 |
-| 树 / BST / LCA | 15 | 15/15 | 4/15 | 5/15 | 2/15 | 4/15 |
+| 栈 / 队列 / 单调栈 | 10 | 9/10 | 5/10 | 0/10 | 2/10 | 7/10 |
+| 树 / BST / LCA | 15 | 15/15 | 4/15 | 5/15 | 2/15 | 5/15 |
 | 树形 DP | 1 | 1/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | 贪心 | 10 | 10/10 | 4/10 | 3/10 | 4/10 | 4/10 |
 | 链表与缓存 | 2 | 2/2 | 1/2 | 0/2 | 0/2 | 1/2 |
-| **总计** | **200** | **198/200** | **98/200** | **45/200** | **40/200** | **106/200** |
+| **总计** | **200** | **198/200** | **98/200** | **45/200** | **40/200** | **120/200** |
 
 AlgoTutorGen 的两个失败分别落在字符串高级算法和栈/队列/单调栈；其余 21 个算法族在主冻结页面上均为全通过。
 
 ### 12.3 Family-core 与 expansion 分层
 
-| Gate layer | 任务数 | AlgoTutorGen | Direct | WebGen-Agent | HTMLCure strict | BrowserRepair-1 |
+| Gate layer | 任务数 | AlgoTutorGen | Direct | WebGen-Agent | HTMLCure strict | BrowserRepair budget 5 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| family_core | 62 | 62/62 | 19/62 | 11/62 | 6/62 | 23/62 |
-| expansion | 138 | 136/138 | 79/138 | 34/138 | 34/138 | 83/138 |
+| family_core | 62 | 62/62 | 19/62 | 11/62 | 6/62 | 30/62 |
+| expansion | 138 | 136/138 | 79/138 | 34/138 | 34/138 | 90/138 |
 
 这张表只表示两个数据层的结果分布。family_core 并不自动比 expansion 更难；二者任务构成不同。
 
@@ -1022,21 +1023,23 @@ AlgoTutorGen 的两个失败分别落在字符串高级算法和栈/队列/单�
 | Wrong FB + Hint + Show | 2 |
 | 其余六种单页组合 | 6 |
 
-#### Direct-BrowserRepair 1-call
+#### Direct-BrowserRepair budget 5
 
 | 失败项组合 | 页面数 |
 | --- | ---: |
-| Interaction + Correct FB + Wrong FB + Hint + Show + Log + Mutation-free | 32 |
-| Load + Interaction + Correct FB + Wrong FB + Hint + Show + Log + Mutation-free | 13 |
-| Correct FB | 11 |
+| Interaction + Correct FB + Wrong FB + Hint + Show + Log + Mutation-free | 34 |
+| Correct FB | 14 |
 | Wrong FB | 9 |
-| Correct FB + Wrong FB + Log | 5 |
+| Correct FB + Wrong FB + Log | 6 |
 | Hint + Show | 5 |
 | Correct FB + Hint + Show | 4 |
-| Log | 3 |
-| Correct FB + Wrong FB + Hint + Show + Log | 3 |
 | Wrong FB + Hint + Show | 2 |
-| 其他低频组合 | 7 |
+| Log | 1 |
+| Correct FB + Wrong FB + Hint + Show + Log | 1 |
+| Show | 1 |
+| Wrong FB + Hint | 1 |
+| Hint | 1 |
+| Correct FB + Wrong FB | 1 |
 
 ### 12.5 主实验和替代模型的具体失败页面
 
@@ -1187,16 +1190,17 @@ Small、Medium 各 18/18 完成浏览器测量；Large 为 16/18。两个 Large 
 
 大页面使用完整帧快照，因此 HTML 体积近似随帧数和单帧状态共同增长。当前结果支持后续采用 delta encoding、按需加载和时间线虚拟化。
 
-### 12.10 Direct-BrowserRepair 的完整预算记录
+### 12.10 Direct-BrowserRepair 的完整 repair-budget 记录
 
-| Budget | Machine OK | Strict Machine OK | Self-contained | 平均 calls | 平均 tokens | token 中位数 | 超过 80k | 平均生成时间 |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 106/200 | 106/200 | 200/200 | 1.000 | 19,677 | 19,789 | 0/200 | 207.2 s |
-| 2 | 10/200 | 10/200 | 200/200 | 2.000 | 36,806 | 36,800 | 0/200 | 347.2 s |
-| 3 | 15/200 | 15/200 | 200/200 | 3.000 | 53,717 | 53,661 | 0/200 | 477.6 s |
-| 5 | 6/200 | 6/200 | 200/200 | 5.000 | 87,193 | 86,831 | 193/200 | 733.9 s |
+| Repair budget | Machine OK | 实际 repair calls | 平均 repair calls/题 | 新增 repair tokens | 平均 repair tokens/题 | 平均新增生成时间/题 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 106/200 | 0 | 0.000 | 0 | 0 | 0.0 s |
+| 1 | 118/200 | 94 | 0.470 | 3,281,080 | 16,405 | 94.1 s |
+| 2 | 119/200 | 176 | 0.880 | 6,275,831 | 31,379 | 177.1 s |
+| 3 | 120/200 | 257 | 1.285 | 9,329,988 | 46,650 | 259.1 s |
+| 5 | 120/200 | 417 | 2.085 | 15,647,489 | 78,237 | 424.8 s |
 
-四个预算是独立冻结条件。1-call 没有浏览器反馈，2-call 才包含一次反馈重写。增加调用后行为下降，说明当前通用反馈加整页重写容易破坏原有答案或交互；它不是对所有浏览器修复算法的普遍否定。
+五个预算来自同一自适应运行。106 个首轮通过页面不调用 repair；其他页面通过后也立即停止。第 1、2、3 次修复分别新增 12、1、1 个通过页面，第 4、5 次没有新增。总墙钟时间约 61.9 分钟，417 次修复的最大输出为 30,820 tokens，没有触及 32,768-token 上限；基础设施失败为 0/200。
 
 ### 12.11 Full-200 消融的完整机器统计
 
@@ -1274,7 +1278,7 @@ No teaching 与 Full 的 Machine OK 相同，是因为九项行为合同不评�
 | 主配对统计 | [paired_statistics.json](../output/experiments/algotutorgen_completion_20260713/statistics/paired_statistics.json) |
 | 跨模型汇总 | [multimodel_summary.json](../output/experiments/algotutorgen_multimodel_full200_20260713/multimodel_summary.json) |
 | Held-out | [heldout_40](../output/experiments/algotutorgen_plan_completion_20260713/heldout_40) |
-| BrowserRepair | [direct_browser_repair_5](../output/experiments/algotutorgen_plan_completion_20260713/direct_browser_repair_5) |
+| BrowserRepair | [direct_browser_repair_fair_20260723](../output/experiments/direct_browser_repair_fair_20260723) |
 | WebGen-Agent | [report.json](../output/external_baselines/webgen/audit_all200_sample0/report.json) |
 | HTMLCure | [htmlcure_full200_analysis.json](../output/external_baselines/htmlcure_all200_sample0/htmlcure_full200_analysis.json) |
 | Cross-input replay | [cross_input_replay_report.json](../output/experiments/algotutorgen_completion_20260713/cross_input_replay/cross_input_replay_report.json) |
@@ -1298,7 +1302,7 @@ No teaching 与 Full 的 Machine OK 相同，是因为九项行为合同不评�
 | 跨模型生成 | [run_cross_model_generation_experiment.py](../scripts/run_cross_model_generation_experiment.py) |
 | 同题换输入 | [run_cross_input_replay.py](../scripts/run_cross_input_replay.py) |
 | 长轨迹 | [run_long_trace_scalability.py](../scripts/run_long_trace_scalability.py) |
-| BrowserRepair | [run_direct_browser_repair_baseline.py](../scripts/run_direct_browser_repair_baseline.py) |
+| BrowserRepair | [run_direct_browser_repair_fair.py](../scripts/run_direct_browser_repair_fair.py) |
 | 浏览器反馈构造 | [build_browser_repair_feedback.py](../scripts/build_browser_repair_feedback.py) |
 | HTMLCure | [run_htmlcure_baseline.py](../scripts/run_htmlcure_baseline.py) |
 | WebGen-Agent 审计 | [audit_webgen_agent_baseline.py](../scripts/audit_webgen_agent_baseline.py) |
@@ -1345,4 +1349,3 @@ No teaching 与 Full 的 Machine OK 相同，是因为九项行为合同不评�
 | 学生实验 | 协议完成，参与者待招募 |
 
 详细版最终支持的主结论与第 9 节一致：AlgoTutorGen 的优势主要来自可执行轨迹、确定性表示链和受隔离教学交互共同提供的完整行为可靠性，而不是只把最终答案写对。代价是更多模型调用和 token；长轨迹仍存在明显体积与加载瓶颈；自动代理评价不能替代真人学习效果实验。
-

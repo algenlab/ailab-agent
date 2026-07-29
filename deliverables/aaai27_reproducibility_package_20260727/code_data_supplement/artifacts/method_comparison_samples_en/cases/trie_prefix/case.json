@@ -1,0 +1,181 @@
+{
+  "id": "trie_prefix",
+  "algorithm_id": "trie_prefix",
+  "title": "Trie Prefix Counting",
+  "family": "Trie",
+  "family_id": "trie",
+  "subfamily_id": "prefix_count",
+  "gate_layer": "family_core",
+  "support_level": "medium_plus",
+  "process_profile": "trie",
+  "difficulty": "medium",
+  "problem": "In a search engine's candidate word library, given an array of historical search words 'words' and the current prefix string 'prefix' entered by the user, calculate how many search words start with this prefix and return that integer.",
+  "strategy": "Insert all words into the Trie, then count the number of matches along the prefix path.",
+  "input_contract": "Input: words and prefix.",
+  "variant_name": "Trie Insertion and Prefix Counting",
+  "time_complexity": "O(total number of characters)",
+  "space_complexity": "O(total number of characters)",
+  "learning_objectives": [
+    "Understand the state changes of node count updates during Trie insertion",
+    "Master the branching logic for character matching when traversing the Trie along the prefix",
+    "Derive the final prefix match count based on the relationship between node counts and child nodes in the Trace"
+  ],
+  "required_views": [
+    "trie",
+    "prefix_visual"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! The system will create a new node 'p' and link it to 'a'.",
+      "feedback_wrong": "Observe the current node's children dictionary; if it does not exist, create it.",
+      "id": "task_1",
+      "oracle": "Check if the prediction creates a new node and links it, and the new node's count is initially 0.",
+      "prompt": "Current node 'a' has no child 'p'. If the next character is 'p', how will the state tree change in the next step?",
+      "stage2_affordance": "Click the current node to see child node changes, and manually input a character to trigger the creation animation.",
+      "trace_anchor": [
+        "state.trie.nodes",
+        "state.char"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Yes, the root node's count is always equal to the total number of words.",
+      "feedback_wrong": "Review the change in the root node's count when inserting each word.",
+      "id": "task_2",
+      "oracle": "The answer should state that root node count == words.length or an equivalent statement.",
+      "prompt": "After inserting all words, what invariant relationship exists between the root node's count and the words?",
+      "stage2_affordance": "Show the comparison between the root node count and the length of the word list.",
+      "trace_anchor": [
+        "state.trie.nodes[0].meta.count",
+        "state.words"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct, the match count changes from 3 to 4.",
+      "feedback_wrong": "Check if 'apx' starts with 'ap'.",
+      "id": "task_3",
+      "oracle": "The answer should increase by 1; the affected nodes include nodes along the prefix 'ap' path and the new node 'apx'.",
+      "prompt": "If a new word 'apx' is added to words, and the prefix remains 'ap', how will the final answer change? Which nodes' counts will be affected?",
+      "stage2_affordance": "Click to add a word on the interface, and observe the Trie update and answer change.",
+      "trace_anchor": [
+        "state.words",
+        "state.prefix",
+        "state.answer"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Clear explanation; the answer comes from the count attribute of the node at the end of the prefix.",
+      "feedback_wrong": "Pay attention to the sequence of nodes visited during prefix matching in the trace.",
+      "id": "task_4",
+      "oracle": "Describe traversing from root along characters 'a', 'p' to reach a node, whose count is 3.",
+      "prompt": "Currently prefix='ap', final answer=3, please explain step by step how the Trie derives this count.",
+      "stage2_affordance": "Play the prefix matching animation, progressively highlighting nodes and displaying counts.",
+      "trace_anchor": [
+        "state.prefix",
+        "state.trie.nodes",
+        "state.answer"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 3,
+      "index": 0,
+      "input_data": {
+        "prefix": "ap",
+        "words": [
+          "apple",
+          "app",
+          "ape",
+          "bat"
+        ]
+      }
+    },
+    {
+      "expected": 1,
+      "index": 1,
+      "input_data": {
+        "prefix": "doo",
+        "words": [
+          "dog",
+          "door",
+          "deer"
+        ]
+      }
+    },
+    {
+      "expected": 0,
+      "index": 2,
+      "input_data": {
+        "prefix": "z",
+        "words": [
+          "cat",
+          "car",
+          "dog"
+        ]
+      }
+    },
+    {
+      "expected": 1,
+      "index": 3,
+      "input_data": {
+        "prefix": "a",
+        "words": [
+          "a"
+        ]
+      }
+    },
+    {
+      "expected": 3,
+      "index": 4,
+      "input_data": {
+        "prefix": "sam",
+        "words": [
+          "same",
+          "same",
+          "sample"
+        ]
+      }
+    },
+    {
+      "expected": 3,
+      "index": 5,
+      "input_data": {
+        "prefix": "tea",
+        "words": [
+          "team",
+          "tear",
+          "tea",
+          "to"
+        ]
+      }
+    },
+    {
+      "expected": 2,
+      "index": 6,
+      "input_data": {
+        "prefix": "",
+        "words": [
+          "alpha",
+          "beta"
+        ]
+      }
+    },
+    {
+      "expected": 3,
+      "index": 7,
+      "input_data": {
+        "prefix": "pre",
+        "words": [
+          "prefix",
+          "pre",
+          "prevent",
+          "post"
+        ]
+      }
+    }
+  ]
+}

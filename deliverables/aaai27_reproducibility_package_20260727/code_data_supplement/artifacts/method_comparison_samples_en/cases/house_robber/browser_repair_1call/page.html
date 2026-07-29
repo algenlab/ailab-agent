@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Robber - 1D DP Tutoring</title>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --card-bg: #ffffff;
+            --border: #d1d5db;
+            --text: #1f2937;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --error: #ef4444;
+            --error-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --gold: #fbbf24;
+            --gold-light: #fef9c3;
+            --cell-unset: #e5e7eb;
+            --cell-computing: #fef08a;
+            --cell-dependency-a: #bfdbfe;
+            --cell-dependency-b: #bbf7d0;
+            --cell-computed: #86efac;
+            --cell-answer: #fde68a;
+            --timeline-bg: #f3f4f6;
+            --tick-active: #2563eb;
+            --tick-visited: #6366f1;
+            --tick-future: #9ca3af;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --code-highlight: #fef08a;
+            --code-line-bg: rgba(254, 240, 138, 0.18);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .main-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .header-left h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #111827;
+            letter-spacing: -0.01em;
+            margin: 0;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #top-result,
+        #top-solution {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: #f3f4f6;
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        #top-solution {
+            color: var(--success);
+            background: var(--success-light);
+        }
+        #answer {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #0f766e;
+            background: #ccfbf1;
+            padding: 5px 12px;
+            border-radius: 16px;
+            border: 1px solid #5eead4;
+            white-space: nowrap;
+        }
+
+        /* Grid layout */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 900px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        /* Canvas */
+        #canvas {
+            min-height: 200px;
+            background: #fafbfc;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            position: relative;
+            overflow-x: auto;
+        }
+        .array-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .array-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-right: 8px;
+            min-width: 36px;
+            text-align: right;
+        }
+        .cell {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: 2px solid transparent;
+            transition: all var(--transition);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .cell.index-cell {
+            width: 52px;
+            height: 28px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            border: none;
+            background: transparent;
+        }
+        .cell.unset {
+            background: var(--cell-unset);
+            color: #9ca3af;
+            border-color: #d1d5db;
+        }
+        .cell.computing {
+            background: var(--cell-computing);
+            color: #92400e;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.25);
+            animation: pulse-cell 1s ease-in-out infinite;
+        }
+        @keyframes pulse-cell {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(251, 191, 36, 0.05);
+            }
+        }
+        .cell.dep-a {
+            background: var(--cell-dependency-a);
+            color: #1e40af;
+            border-color: #3b82f6;
+        }
+        .cell.dep-b {
+            background: var(--cell-dependency-b);
+            color: #14532d;
+            border-color: #22c55e;
+        }
+        .cell.computed {
+            background: var(--cell-computed);
+            color: #14532d;
+            border-color: #10b981;
+        }
+        .cell.answer-highlight {
+            background: var(--cell-answer);
+            color: #78350f;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.3);
+        }
+        .cell.nums-highlight {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #f59e0b;
+        }
+        .arrow-indicator {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            font-weight: 500;
+            margin: 2px 0;
+        }
+        .dp-legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            justify-content: center;
+            margin-top: 4px;
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        /* Code */
+        #code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.82rem;
+            padding: 16px 18px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.7;
+            min-height: 140px;
+            position: relative;
+            counter-reset: codeline;
+        }
+        #code .cline {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background var(--transition);
+        }
+        #code .cline.active-line {
+            background: var(--code-line-bg);
+            border-left: 3px solid #fbbf24;
+            padding-left: 5px;
+            font-weight: 600;
+            color: #fef08a;
+        }
+
+        /* Teaching & Checkpoint */
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.55;
+            min-height: 60px;
+        }
+        #teaching .checkpoint-prompt {
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        #teaching .checkpoint-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 6px;
+        }
+        #teaching input[type="number"] {
+            width: 90px;
+            padding: 8px 10px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+            transition: border var(--transition);
+        }
+        #teaching input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all var(--transition);
+            background: #f9fafb;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn.primary:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+        .btn.success {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+        .btn.warning {
+            background: var(--warning);
+            color: #1f2937;
+            border-color: var(--warning);
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .feedback-msg {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-top: 4px;
+            display: inline-block;
+        }
+        .feedback-msg.correct {
+            background: var(--success-light);
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .feedback-msg.incorrect {
+            background: var(--error-light);
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        /* State & Evidence */
+        #state {
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.78rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            white-space: pre-wrap;
+            color: #334155;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            min-height: 50px;
+        }
+
+        /* Controls bar */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow-sm);
+            justify-content: center;
+        }
+        #range {
+            flex: 1 1 120px;
+            min-width: 100px;
+            max-width: 300px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text);
+            min-width: 55px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .nav-btn {
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: #fff;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .nav-btn:hover {
+            background: #f3f4f6;
+        }
+        .nav-btn:active {
+            transform: scale(0.96);
+        }
+        .nav-btn.play-btn {
+            background: #10b981;
+            color: #fff;
+            border-color: #10b981;
+            min-width: 70px;
+        }
+        .nav-btn.play-btn:hover {
+            background: #059669;
+        }
+        .nav-btn.play-btn.paused {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: #1f2937;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 8px 0;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #f3f4f6;
+            transition: all var(--transition);
+            font-size: 0.75rem;
+            min-width: 50px;
+            text-align: center;
+            user-select: none;
+            position: relative;
+        }
+        .tick:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+        .tick.active-tick {
+            background: #dbeafe;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+            font-weight: 700;
+        }
+        .tick.visited-tick {
+            background: #eef2ff;
+            border-color: #a5b4fc;
+        }
+        .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #4b5563;
+            white-space: nowrap;
+        }
+        .tick.active-tick .tick-label {
+            color: #1e40af;
+        }
+        .tick .tick-op {
+            font-size: 0.65rem;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        /* Learning Log */
+        #learning-log-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        #learning-log-container h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .log-entry {
+            font-size: 0.8rem;
+            padding: 7px 10px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            border-left: 4px solid #d1d5db;
+            background: #fafbfc;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .log-entry.correct-log {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .log-entry.incorrect-log {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .log-entry.info-log {
+            border-left-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        /* Step title */
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #111827;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        #op {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #6366f1;
+            background: #eef2ff;
+            padding: 3px 10px;
+            border-radius: 12px;
+            display: inline-block;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1 id="title">House Robber</h1>
+                <p id="subtitle">1D Dynamic Programming — Maximum non-adjacent sum</p>
+            </div>
+            <div class="header-right">
+                <span id="top-result">Input: [2, 7, 9, 3, 1]</span>
+                <span id="top-solution">Expected: 12</span>
+                <span id="answer">12</span>
+            </div>
+        </div>
+
+        <!-- Main content grid -->
+        <div class="content-grid">
+            <!-- Left column: Canvas, State, Evidence -->
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="panel">
+                    <span class="panel-label">Visualization</span>
+                    <div id="canvas" aria-label="DP table visualization showing nums array and dp array with color-coded cells"></div>
+                    <div class="dp-legend">
+                        <span><span class="legend-dot" style="background:#e5e7eb;border:1px solid #d1d5db;"></span> Unset</span>
+                        <span><span class="legend-dot" style="background:#fef08a;border:1px solid #f59e0b;"></span> Computing</span>
+                        <span><span class="legend-dot" style="background:#bfdbfe;border:1px solid #3b82f6;"></span> dp[i-1]</span>
+                        <span><span class="legend-dot" style="background:#bbf7d0;border:1px solid #22c55e;"></span> dp[i-2]+nums[i]</span>
+                        <span><span class="legend-dot" style="background:#86efac;border:1px solid #10b981;"></span> Computed</span>
+                        <span><span class="legend-dot" style="background:#fde68a;border:1px solid #f59e0b;"></span> Answer</span>
+                    </div>
+                </div>
+                <div class="panel">
+                    <span class="panel-label">Current State (JSON)</span>
+                    <div id="state">{"step":0,"dp":[null,null,null,null,null],"nums":[2,7,9,3,1]}</div>
+                </div>
+                <div class="panel">
+                    <span class="panel-label">Step Evidence</span>
+                    <div id="step-evidence">Initializing the problem. We have 5 houses with cash amounts [2, 7, 9, 3, 1]. The goal is to maximize robbed cash without triggering adjacent alarms.</div>
+                </div>
+            </div>
+
+            <!-- Right column: Code, Teaching -->
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="panel">
+                    <span class="panel-label">Algorithm — JavaScript</span>
+                    <div id="code" aria-label="JavaScript implementation of the House Robber DP solution with active line highlighting">
+                        <span class="cline">function rob(nums) {</span>
+                        <span class="cline">    const n = nums.length;</span>
+                        <span class="cline">    if (n === 0) return 0;</span>
+                        <span class="cline">    if (n === 1) return nums[0];</span>
+                        <span class="cline">    const dp = new Array(n).fill(null);</span>
+                        <span class="cline">    dp[0] = nums[0];</span>
+                        <span class="cline">    dp[1] = Math.max(nums[0], nums[1]);</span>
+                        <span class="cline">    for (let i = 2; i &lt; n; i++) {</span>
+                        <span class="cline">        dp[i] = Math.max(dp[i-1], dp[i-2] + nums[i]);</span>
+                        <span class="cline">    }</span>
+                        <span class="cline">    return dp[n-1];</span>
+                        <span class="cline">}</span>
+                    </div>
+                </div>
+                <div class="panel">
+                    <span class="panel-label">Teaching &amp; Checkpoints</span>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span id="step-title">Step 1: Setup</span>
+                        <span id="op">Initialize</span>
+                    </div>
+                    <p id="step-desc">Understanding the problem and setting up the DP array.</p>
+                    <div id="teaching">
+                        We start by understanding the problem. We have 5 houses with cash amounts <strong>[2, 7, 9, 3, 1]</strong>. We need to find the maximum amount we can rob without triggering adjacent alarms. We will use dynamic programming where <code>dp[i]</code> represents the maximum profit considering houses 0 through i.
+                    </div>
+                    <div id="checkpoint-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button class="nav-btn" id="prev" aria-label="Previous step">◀ Prev</button>
+            <button class="nav-btn play-btn" id="play" aria-label="Play auto-advance through steps">▶ Play</button>
+            <button class="nav-btn" id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="0" max="7" value="0" step="1" aria-label="Step progress slider">
+            <span id="counter">1 / 8</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline" aria-label="Step timeline with clickable tick marks"></div>
+
+        <!-- Learning Log -->
+        <div id="learning-log-container">
+            <h4>📝 Learning Log</h4>
+            <div id="learning-log-entries">
+                <div class="log-entry info-log">Page loaded. Ready to explore the House Robber DP solution. Navigate through steps using the buttons, slider, or timeline ticks.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $canvas = document.getElementById('canvas');
+            const $code = document.getElementById('code');
+            const $teaching = document.getElementById('teaching');
+            const $checkpointArea = document.getElementById('checkpoint-area');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $prevBtn = document.getElementById('prev');
+            const $nextBtn = document.getElementById('next');
+            const $playBtn = document.getElementById('play');
+            const $logEntries = document.getElementById('learning-log-entries');
+            const $answer = document.getElementById('answer');
+
+            // ──────────────────────────────────────
+            // Data
+            // ──────────────────────────────────────
+            const nums = [2, 7, 9, 3, 1];
+            const totalSteps = 8; // 0-indexed: 0..7
+            const checkpointSteps = { 3: true, 5: true }; // step indices with checkpoints
+            const checkpointAnswers = { 3: 11, 5: 12 }; // expected answers
+            const checkpointQuestions = {
+                3: 'What is <code>dp[2]</code>? Use the recurrence: <code>dp[i] = max(dp[i-1], dp[i-2] + nums[i])</code>. Enter your answer below.',
+                5: 'What is <code>dp[4]</code>? Use the recurrence: <code>dp[i] = max(dp[i-1], dp[i-2] + nums[i])</code>. Enter your answer below.',
+            };
+            const checkpointHints = {
+                3: 'Compare dp[1] (which is 7) with dp[0] + nums[2] (which is 2 + 9 = 11). Take the maximum of these two values.',
+                5: 'Compare dp[3] (which is 11) with dp[2] + nums[4] (which is 11 + 1 = 12). Take the maximum of these two values.',
+            };
+
+            // dp history per step
+            const dpHistory = [
+                [null, null, null, null, null], // step 0
+                [2, null, null, null, null], // step 1
+                [2, 7, null, null, null], // step 2
+                [2, 7, 11, null, null], // step 3
+                [2, 7, 11, 11, null], // step 4
+                [2, 7, 11, 11, 12], // step 5
+                [2, 7, 11, 11, 12], // step 6
+                [2, 7, 11, 11, 12], // step 7
+            ];
+
+            const stepMeta = [
+                { title: 'Step 1: Setup', desc: 'Understanding the problem and initializing the DP array.',
+                    op: 'Initialize', activeLines: [0, 1] },
+                { title: 'Step 2: Base Case dp[0]', desc: 'Setting the first DP value from nums[0].',
+                    op: 'Base dp[0]', activeLines: [5] },
+                { title: 'Step 3: Base Case dp[1]', desc: 'Setting dp[1] as the maximum of the first two houses.',
+                    op: 'Base dp[1]', activeLines: [6] },
+                { title: 'Step 4: Compute dp[2] ⚑', desc: 'Applying the recurrence for the third house (checkpoint).',
+                    op: 'Recurrence i=2', activeLines: [7, 8], isCheckpoint: true },
+                { title: 'Step 5: Compute dp[3]', desc: 'Applying the recurrence for the fourth house.', op: 'Recurrence i=3',
+                    activeLines: [7, 8] },
+                { title: 'Step 6: Compute dp[4] ⚑', desc: 'Applying the recurrence for the fifth house (checkpoint).',
+                    op: 'Recurrence i=4', activeLines: [7, 8], isCheckpoint: true },
+                { title: 'Step 7: Extract Result', desc: 'Returning dp[n-1] as the final answer.', op: 'Return',
+                    activeLines: [9] },
+                { title: 'Step 8: Summary', desc: 'Reviewing the solution and verifying the answer.', op: 'Summary',
+                    activeLines: [0, 1, 5, 6, 7, 8, 9] },
+            ];
+
+            const timelineLabels = ['Init', 'dp[0]', 'dp[1]', 'dp[2]⚑', 'dp[3]', 'dp[4]⚑', 'Result', 'Summary'];
+            const timelineOps = ['Setup', 'Base', 'Base', 'Recurrence', 'Recurrence', 'Recurrence', 'Extract',
+            'Summary'];
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            let currentStep = 0;
+            let isPlaying = false;
+            let playTimer = null;
+            let checkpointResolved = { 3: false, 5: false };
+            let learningLog = [
+                { type: 'info',
+                    msg: 'Page loaded. Ready to explore the House Robber DP solution. Navigate through steps using the buttons, slider, or timeline ticks.' },
+            ];
+            let checkpointFeedback = { 3: null, 5: null }; // 'correct' | 'incorrect' | null
+            let lastCheckpointInput = { 3: '', 5: '' };
+
+            // ──────────────────────────────────────
+            // Building blocks
+            // ──────────────────────────────────────
+            function getCellClass(idx, dpNow, stepIdx) {
+                const val = dpNow[idx];
+                const isCheckpoint = checkpointSteps[stepIdx];
+                const computingIdx = (stepIdx === 3) ? 2 : (stepIdx === 5) ? 4 : (stepIdx >= 1 && stepIdx <= 5 ? stepIdx :
+                    -1);
+                const isComputing = (idx === computingIdx && stepIdx >= 1 && stepIdx <= 5);
+                if (isComputing && val === null && stepIdx >= 3 && stepIdx <= 5) return 'computing';
+                if (isComputing && val !== null && stepIdx >= 1 && stepIdx <= 5) return 'computed';
+                if (stepIdx === 6 && idx === 4) return 'answer-highlight';
+                if (stepIdx === 7 && idx === 4) return 'answer-highlight';
+                if (val === null) return 'unset';
+                if (stepIdx === 3 && computingIdx === 2) {
+                    if (idx === 1) return 'dep-a';
+                    if (idx === 0) return 'dep-b';
+                }
+                if (stepIdx === 4 && computingIdx === 3) {
+                    if (idx === 2) return 'dep-a';
+                    if (idx === 1) return 'dep-b';
+                }
+                if (stepIdx === 5 && computingIdx === 4) {
+                    if (idx === 3) return 'dep-a';
+                    if (idx === 2) return 'dep-b';
+                }
+                return 'computed';
+            }
+
+            function getNumsCellClass(idx, stepIdx) {
+                if (stepIdx === 3 && idx === 2) return 'nums-highlight';
+                if (stepIdx === 4 && idx === 3) return 'nums-highlight';
+                if (stepIdx === 5 && idx === 4) return 'nums-highlight';
+                if (stepIdx === 1 && idx === 0) return 'nums-highlight';
+                if (stepIdx === 2 && (idx === 0 || idx === 1)) return 'nums-highlight';
+                return '';
+            }
+
+            function renderCanvas(stepIdx) {
+                const dpNow = dpHistory[stepIdx];
+                let html = '';
+                // Index row
+                html += '<div class="array-row">';
+                html += '<span class="array-label">Index</span>';
+                for (let i = 0; i < nums.length; i++) {
+                    html += '<div class="cell index-cell">' + i + '</div>';
+                }
+                html += '</div>';
+                // Nums row
+                html += '<div class="array-row">';
+                html += '<span class="array-label">nums</span>';
+                for (let i = 0; i < nums.length; i++) {
+                    const nc = getNumsCellClass(i, stepIdx);
+                    html += '<div class="cell ' + nc + '" style="background:#f0fdf4;border-color:#bbf7d0;">' + nums[
+                        i] + '</div>';
+                }
+                html += '</div>';
+                // DP row
+                html += '<div class="array-row">';
+                html += '<span class="array-label">dp</span>';
+                for (let i = 0; i < dpNow.length; i++) {
+                    const cls = getCellClass(i, dpNow, stepIdx);
+                    const displayVal = dpNow[i] === null ? '?' : dpNow[i];
+                    html += '<div class="cell ' + cls + '">' + displayVal + '</div>';
+                }
+                html += '</div>';
+                // Arrows for recurrence steps
+                if (stepIdx === 3) {
+                    html +=
+                        '<div class="arrow-indicator">⬆ dp[1]=7 (skip) &nbsp;|&nbsp; ⬆ dp[0]+nums[2]=2+9=11 (rob) → max = 11</div>';
+                } else if (stepIdx === 4) {
+                    html +=
+                        '<div class="arrow-indicator">⬆ dp[2]=11 (skip) &nbsp;|&nbsp; ⬆ dp[1]+nums[3]=7+3=10 (rob) → max = 11</div>';
+                } else if (stepIdx === 5) {
+                    html +=
+                        '<div class="arrow-indicator">⬆ dp[3]=11 (skip) &nbsp;|&nbsp; ⬆ dp[2]+nums[4]=11+1=12 (rob) → max = 12</div>';
+                }
+                $canvas.innerHTML = html;
+            }
+
+            function renderCode(stepIdx) {
+                const activeLines = stepMeta[stepIdx].activeLines;
+                const lines = $code.querySelectorAll('.cline');
+                lines.forEach((line, idx) => {
+                    line.classList.remove('active-line');
+                    if (activeLines.includes(idx)) {
+                        line.classList.add('active-line');
+                    }
+                });
+            }
+
+            function renderTeaching(stepIdx) {
+                $stepTitle.textContent = stepMeta[stepIdx].title;
+                $stepDesc.textContent = stepMeta[stepIdx].desc;
+                $op.textContent = stepMeta[stepIdx].op;
+                $checkpointArea.innerHTML = '';
+
+                if (checkpointSteps[stepIdx]) {
+                    // Checkpoint step
+                    const resolved = checkpointResolved[stepIdx];
+                    const feedback = checkpointFeedback[stepIdx];
+                    const prevInput = lastCheckpointInput[stepIdx];
+                    let html = '<div class="checkpoint-prompt">' + checkpointQuestions[stepIdx] + '</div>';
+                    html += '<div class="checkpoint-controls">';
+                    html += '<input type="number" id="checkpoint-input" value="' + (prevInput || '') +
+                        '" placeholder="Your answer" aria-label="Checkpoint answer input"' + (resolved ? ' disabled' :
+                            '') + '>';
+                    if (!resolved) {
+                        html +=
+                            '<button class="btn primary" id="checkpoint-submit" aria-label="Submit checkpoint answer">Submit</button>';
+                        html += '<button class="btn warning" id="checkpoint-hint" aria-label="Get a hint">Hint</button>';
+                        html +=
+                            '<button class="btn" id="checkpoint-show" aria-label="Show the correct answer">Show Answer</button>';
+                    } else {
+                        html += '<span style="color:#10b981;font-weight:700;">✓ Checkpoint completed</span>';
+                    }
+                    html += '</div>';
+                    if (feedback === 'correct') {
+                        html += '<div class="feedback-msg correct">Correct! Well done. dp[' + (stepIdx === 3 ? '2' : '4') +
+                            '] = ' + checkpointAnswers[stepIdx] + '.</div>';
+                    } else if (feedback === 'incorrect') {
+                        html += '<div class="feedback-msg incorrect">Not quite. Try again or use Hint / Show Answer.</div>';
+                    }
+                    html += '<div id="checkpoint-inline-feedback"></div>';
+                    $teaching.innerHTML = html;
+                    $checkpointArea.style.display = 'block';
+                    // Bind checkpoint events
+                    if (!resolved) {
+                        setTimeout(bindCheckpointEvents, 50);
+                    }
+                } else {
+                    // Non-checkpoint step
+                    $teaching.innerHTML = getTeachingContent(stepIdx);
+                    $checkpointArea.style.display = 'none';
+                }
+            }
+
+            function getTeachingContent(stepIdx) {
+                const contents = {
+                    0: 'We start by understanding the problem. We have <strong>5 houses</strong> with cash amounts <strong>[2, 7, 9, 3, 1]</strong>. We need to find the maximum amount we can rob without triggering adjacent alarms. We will use dynamic programming where <code>dp[i]</code> represents the maximum profit considering houses 0 through i. The recurrence is: <strong>dp[i] = max(dp[i-1], dp[i-2] + nums[i])</strong> for i ≥ 2.',
+                    1: '<strong>Base case:</strong> <code>dp[0] = nums[0] = 2</code>. If there is only one house, we simply rob it. This is the foundation of our DP table.',
+                    2: '<strong>Base case:</strong> <code>dp[1] = max(nums[0], nums[1]) = max(2, 7) = 7</code>. With two houses, we can only rob one of them (they are adjacent). We choose the house with more cash.',
+                    3: '', // checkpoint
+                    4: '<strong>Computing dp[3]:</strong> <code>dp[3] = max(dp[2], dp[1] + nums[3]) = max(11, 7 + 3) = max(11, 10) = 11</code>. We choose <em>not</em> to rob house 3, since robbing it (with house 1) yields only 10, while skipping it preserves the 11 from houses 0-2.',
+                    5: '', // checkpoint
+                    6: '<strong>Final result:</strong> We have computed all dp values. The answer is <code>dp[4] = 12</code>, which is the maximum profit from all 5 houses. The optimal strategy is to rob houses 0, 2, and 4 (2 + 9 + 1 = 12).',
+                    7: '<strong>Summary:</strong> The DP approach efficiently solved this problem in O(n) time and O(n) space. The optimal solution yields <strong>12</strong> by robbing houses at indices 0, 2, and 4. Key insight: at each house, we decide whether to rob it (adding its cash to dp[i-2]) or skip it (keeping dp[i-1]). This guarantees no adjacent houses are robbed.',
+                };
+                return contents[stepIdx] || '';
+            }
+
+            function renderState(stepIdx) {
+                const dpNow = dpHistory[stepIdx];
+                const obj = {
+                    step: stepIdx,
+                    dp: dpNow,
+                    nums: nums,
+                    currentIndex: (stepIdx >= 1 && stepIdx <= 5) ? stepIdx : null,
+                    checkpointActive: checkpointSteps[stepIdx] ? !checkpointResolved[stepIdx] : false,
+                };
+                $state.textContent = JSON.stringify(obj, null, 2);
+            }
+
+            function renderStepEvidence(stepIdx) {
+                const dpNow = dpHistory[stepIdx];
+                const prevDp = stepIdx > 0 ? dpHistory[stepIdx - 1] : [null, null, null, null, null];
+                const evidences = {
+                    0: 'Operation: Initialize the problem.\nTargets: dp array of size 5.\nDependencies: nums = [2, 7, 9, 3, 1].\nBefore: dp is empty.\nAfter: dp = [?, ?, ?, ?, ?] ready for computation.',
+                    1: 'Operation: dp[0] = nums[0].\nTargets: dp[0].\nDependencies: nums[0] = 2.\nBefore: dp[0] = ? (null).\nAfter: dp[0] = 2.',
+                    2: 'Operation: dp[1] = max(nums[0], nums[1]).\nTargets: dp[1].\nDependencies: nums[0] = 2, nums[1] = 7.\nBefore: dp[1] = ? (null).\nAfter: dp[1] = max(2, 7) = 7.',
+                    3: 'Operation: dp[2] = max(dp[1], dp[0] + nums[2]).\nTargets: dp[2].\nDependencies: dp[1] = 7, dp[0] = 2, nums[2] = 9.\nBefore: dp[2] = ? (null).\nAfter: dp[2] = max(7, 2+9) = max(7, 11) = 11.',
+                    4: 'Operation: dp[3] = max(dp[2], dp[1] + nums[3]).\nTargets: dp[3].\nDependencies: dp[2] = 11, dp[1] = 7, nums[3] = 3.\nBefore: dp[3] = ? (null).\nAfter: dp[3] = max(11, 7+3) = max(11, 10) = 11.',
+                    5: 'Operation: dp[4] = max(dp[3], dp[2] + nums[4]).\nTargets: dp[4].\nDependencies: dp[3] = 11, dp[2] = 11, nums[4] = 1.\nBefore: dp[4] = ? (null).\nAfter: dp[4] = max(11, 11+1) = max(11, 12) = 12.',
+                    6: 'Operation: return dp[n-1] = dp[4].\nTargets: final answer.\nDependencies: dp[4] = 12.\nBefore: answer not extracted.\nAfter: answer = 12.',
+                    7: 'Operation: Summary and verification.\nAll dp values computed: [2, 7, 11, 11, 12].\nOptimal robbery: houses 0, 2, 4 → 2+9+1=12.\nFinal answer confirmed: 12.',
+                };
+                $stepEvidence.textContent = evidences[stepIdx] || '';
+            }
+
+            function renderTimeline(stepIdx) {
+                $timeline.innerHTML = '';
+                for (let i = 0; i < totalSteps; i++) {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    if (i === stepIdx) tick.classList.add('active-tick');
+                    if (i < stepIdx) tick.classList.add('visited-tick');
+                    tick.setAttribute('data-step', i);
+                    tick.setAttribute('role', 'button');
+                    tick.setAttribute('tabindex', '0');
+                    tick.setAttribute('aria-label', 'Go to step ' + (i + 1) + ': ' + timelineLabels[i]);
+                    tick.innerHTML = '<span class="tick-label">' + timelineLabels[i] + '</span><span class="tick-op">' +
+                        timelineOps[i] + '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(parseInt(this.getAttribute('data-step')));
+                    });
+                    tick.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            goToStep(parseInt(this.getAttribute('data-step')));
+                        }
+                    });
+                    $timeline.appendChild(tick);
+                }
+            }
+
+            function updateCounter(stepIdx) {
+                $counter.textContent = (stepIdx + 1) + ' / ' + totalSteps;
+                $range.value = stepIdx;
+            }
+
+            function updateNextButton(stepIdx) {
+                if (checkpointSteps[stepIdx] && !checkpointResolved[stepIdx]) {
+                    $nextBtn.disabled = true;
+                } else if (stepIdx >= totalSteps - 1) {
+                    $nextBtn.disabled = true;
+                } else {
+                    $nextBtn.disabled = false;
+                }
+                $prevBtn.disabled = (stepIdx <= 0);
+            }
+
+            function bindCheckpointEvents() {
+                const submitBtn = document.getElementById('checkpoint-submit');
+                const hintBtn = document.getElementById('checkpoint-hint');
+                const showBtn = document.getElementById('checkpoint-show');
+                const inputEl = document.getElementById('checkpoint-input');
+                const inlineFb = document.getElementById('checkpoint-inline-feedback');
+
+                if (submitBtn) {
+                    submitBtn.addEventListener('click', function() {
+                        handleCheckpointSubmit(currentStep, inputEl, inlineFb);
+                    });
+                }
+                if (hintBtn) {
+                    hintBtn.addEventListener('click', function() {
+                        if (inlineFb) {
+                            inlineFb.innerHTML =
+                                '<div class="feedback-msg" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;">💡 Hint: ' +
+                                (checkpointHints[currentStep] || '') + '</div>';
+                        }
+                        appendLogEntry('info', 'Hint requested for Step ' + (currentStep + 1) + ': ' + (
+                            checkpointHints[currentStep] || ''));
+                    });
+                }
+                if (showBtn) {
+                    showBtn.addEventListener('click', function() {
+                        const answer = checkpointAnswers[currentStep];
+                        if (inputEl) {
+                            inputEl.value = answer;
+                            inputEl.disabled = true;
+                        }
+                        checkpointResolved[currentStep] = true;
+                        checkpointFeedback[currentStep] = 'correct';
+                        lastCheckpointInput[currentStep] = String(answer);
+                        appendLogEntry('info', 'Show Answer used for Step ' + (currentStep + 1) +
+                            '. The correct answer is ' + answer + '.');
+                        renderTeaching(currentStep);
+                        updateNextButton(currentStep);
+                        renderTimeline(currentStep);
+                    });
+                }
+                if (inputEl && !checkpointResolved[currentStep]) {
+                    inputEl.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            handleCheckpointSubmit(currentStep, inputEl, inlineFb);
+                        }
+                    });
+                }
+            }
+
+            function handleCheckpointSubmit(stepIdx, inputEl, inlineFb) {
+                if (!inputEl || checkpointResolved[stepIdx]) return;
+                const rawVal = inputEl.value.trim();
+                if (rawVal === '') {
+                    if (inlineFb) inlineFb.innerHTML =
+                        '<span style="color:#ef4444;font-weight:600;">Please enter a number.</span>';
+                    return;
+                }
+                const parsed = parseInt(rawVal, 10);
+                if (isNaN(parsed)) {
+                    if (inlineFb) inlineFb.innerHTML =
+                        '<span style="color:#ef4444;font-weight:600;">Please enter a valid integer.</span>';
+                    return;
+                }
+                const expected = checkpointAnswers[stepIdx];
+                lastCheckpointInput[stepIdx] = rawVal;
+                if (parsed === expected) {
+                    checkpointResolved[stepIdx] = true;
+                    checkpointFeedback[stepIdx] = 'correct';
+                    if (inlineFb) inlineFb.innerHTML =
+                        '<div class="feedback-msg correct">✅ Correct! dp[' + (stepIdx === 3 ? '2' : '4') + '] = ' +
+                        expected + '. Great job!</div>';
+                    appendLogEntry('correct', 'Step ' + (stepIdx + 1) + ' checkpoint: Submitted "' + parsed +
+                        '" — Correct! dp[' + (stepIdx === 3 ? '2' : '4') + '] = ' + expected + '.');
+                    inputEl.disabled = true;
+                } else {
+                    checkpointFeedback[stepIdx] = 'incorrect';
+                    if (inlineFb) inlineFb.innerHTML =
+                        '<div class="feedback-msg incorrect">❌ Incorrect. You entered ' + parsed +
+                        '. Think about the recurrence: dp[i] = max(dp[i-1], dp[i-2] + nums[i]). Try again!</div>';
+                    appendLogEntry('incorrect', 'Step ' + (stepIdx + 1) + ' checkpoint: Submitted "' + parsed +
+                        '" — Incorrect. Expected ' + expected + '.');
+                }
+                renderTeaching(stepIdx);
+                updateNextButton(stepIdx);
+                renderTimeline(stepIdx);
+            }
+
+            function appendLogEntry(type, msg) {
+                learningLog.push({ type, msg });
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry ' + (type === 'correct' ? 'correct-log' : type === 'incorrect' ?
+                    'incorrect-log' : 'info-log');
+                entryDiv.textContent = msg;
+                $logEntries.appendChild(entryDiv);
+                // Auto-scroll
+                const container = document.getElementById('learning-log-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            }
+
+            function goToStep(stepIdx) {
+                if (stepIdx < 0 || stepIdx >= totalSteps) return;
+                const prevStep = currentStep;
+                currentStep = stepIdx;
+                // If jumping to a checkpoint that was previously resolved, keep it resolved
+                // (state persists in checkpointResolved map)
+                renderAll();
+                updateNextButton(currentStep);
+                updateCounter(currentStep);
+                if (currentStep !== prevStep) {
+                    const label = timelineLabels[currentStep];
+                    appendLogEntry('info', 'Navigated to Step ' + (currentStep + 1) + ' (' + label + ').');
+                }
+            }
+
+            function renderAll() {
+                renderCanvas(currentStep);
+                renderCode(currentStep);
+                renderTeaching(currentStep);
+                renderState(currentStep);
+                renderStepEvidence(currentStep);
+                renderTimeline(currentStep);
+                updateCounter(currentStep);
+                updateNextButton(currentStep);
+                $range.value = currentStep;
+            }
+
+            function startPlay() {
+                if (playTimer) return;
+                isPlaying = true;
+                $playBtn.textContent = '⏸ Pause';
+                $playBtn.classList.add('paused');
+                advancePlay();
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playTimer) {
+                    clearTimeout(playTimer);
+                    playTimer = null;
+                }
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('paused');
+            }
+
+            function advancePlay() {
+                if (!isPlaying) return;
+                if (checkpointSteps[currentStep] && !checkpointResolved[currentStep]) {
+                    // Pause at unresolved checkpoint
+                    stopPlay();
+                    appendLogEntry('info',
+                        'Auto-play paused at Step ' + (currentStep + 1) +
+                        ' (checkpoint). Please answer the checkpoint question to continue.');
+                    return;
+                }
+                if (currentStep >= totalSteps - 1) {
+                    stopPlay();
+                    appendLogEntry('info', 'Auto-play completed. You have reached the final step.');
+                    return;
+                }
+                playTimer = setTimeout(function() {
+                    if (!isPlaying) return;
+                    goToStep(currentStep + 1);
+                    playTimer = null;
+                    if (isPlaying) {
+                        advancePlay();
+                    }
+                }, 1800);
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            $prevBtn.addEventListener('click', function() {
+                stopPlay();
+                if (currentStep > 0) {
+                    goToStep(currentStep - 1);
+                }
+            });
+
+            $nextBtn.addEventListener('click', function() {
+                stopPlay();
+                if (currentStep < totalSteps - 1 && !(checkpointSteps[currentStep] && !checkpointResolved[
+                        currentStep])) {
+                    goToStep(currentStep + 1);
+                }
+            });
+
+            $playBtn.addEventListener('click', function() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // If at an unresolved checkpoint, prompt the learner
+                    if (checkpointSteps[currentStep] && !checkpointResolved[currentStep]) {
+                        appendLogEntry('info',
+                            'Cannot auto-play from an unresolved checkpoint. Please answer the checkpoint question first.'
+                            );
+                        return;
+                    }
+                    if (currentStep >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            });
+
+            $range.addEventListener('input', function() {
+                stopPlay();
+                const targetStep = parseInt(this.value);
+                if (targetStep !== currentStep) {
+                    goToStep(targetStep);
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'number') return;
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStep < totalSteps - 1 && !(checkpointSteps[currentStep] && !checkpointResolved[
+                            currentStep])) {
+                        goToStep(currentStep + 1);
+                    }
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStep > 0) {
+                        goToStep(currentStep - 1);
+                    }
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isPlaying) {
+                        stopPlay();
+                    } else {
+                        if (!(checkpointSteps[currentStep] && !checkpointResolved[currentStep]) && currentStep <
+                            totalSteps - 1) {
+                            startPlay();
+                        }
+                    }
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initial render
+            // ──────────────────────────────────────
+            $answer.textContent = '12';
+            renderAll();
+            updateNextButton(0);
+            updateCounter(0);
+            $range.setAttribute('max', totalSteps - 1);
+            $range.value = 0;
+            appendLogEntry('info', 'Initial setup complete. The DP table is ready. Navigate to Step 2 to see the first base case.');
+
+            console.log('House Robber tutoring page initialized. Total steps: ' + totalSteps +
+                '. Checkpoints at steps 3 and 5. Final answer: 12.');
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+{
+  "schema_version": "unseen-family-cases-v1",
+  "description": "Independent live-LLM evaluation cases. These cases are not deterministic fixtures and intentionally do not contain solve, tracker, or verifier code; the benchmark must use the LLM generation, repair, validation, SceneGraph compiler, and renderer pipeline.",
+  "cases": [
+    {
+      "id": "unseen_min_cost_climbing_stairs",
+      "title": "使用最小花费爬楼梯",
+      "problem": "给定整数数组 cost，其中 cost[i] 表示踩到第 i 级台阶的花费。每次可以爬 1 级或 2 级，可以从第 0 级或第 1 级开始。返回到达楼顶的最小总花费。",
+      "family": "一维 DP",
+      "family_id": "dp_1d",
+      "subfamily_id": "linear_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "一维动态规划，dp[i] 表示到达第 i 级或楼顶前的最小花费。",
+      "samples": [
+        {"input_data": {"cost": [10, 15, 20]}, "expected": 15},
+        {"input_data": {"cost": [1, 100, 1, 1, 1, 100, 1, 1, 100, 1]}, "expected": 6}
+      ]
+    },
+    {
+      "id": "unseen_search_insert_position",
+      "title": "搜索插入位置",
+      "problem": "给定升序且无重复的数组 nums 和目标值 target。如果 target 存在，返回其下标；否则返回它按顺序插入时的下标。",
+      "family": "二分",
+      "family_id": "binary_search",
+      "subfamily_id": "closed_interval_search",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "binary_search",
+      "strategy": "闭区间二分查找，维护 left/right 并在循环结束后返回 left。",
+      "samples": [
+        {"input_data": {"nums": [1, 3, 5, 6], "target": 5}, "expected": 2},
+        {"input_data": {"nums": [1, 3, 5, 6], "target": 2}, "expected": 1}
+      ]
+    },
+    {
+      "id": "unseen_container_with_most_water",
+      "title": "盛最多水的容器",
+      "problem": "给定数组 height，其中每个元素表示一条竖线高度。选择两条线与 x 轴形成容器，返回可容纳的最大水量。",
+      "family": "数组指针 / 窗口 / 前缀",
+      "family_id": "array_pointer",
+      "subfamily_id": "two_pointer",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "array_pointer",
+      "strategy": "双指针从两端向中间收缩，每次移动较短的那条线。",
+      "samples": [
+        {"input_data": {"height": [1, 8, 6, 2, 5, 4, 8, 3, 7]}, "expected": 49},
+        {"input_data": {"height": [1, 1]}, "expected": 1}
+      ]
+    },
+    {
+      "id": "unseen_minimum_path_sum",
+      "title": "最小路径和",
+      "problem": "给定非负整数网格 grid，机器人只能向右或向下移动。返回从左上角到右下角路径上的最小数字和。",
+      "family": "二维 DP",
+      "family_id": "dp_2d",
+      "subfamily_id": "grid_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "二维 DP，dp[i][j] 等于 grid[i][j] 加上上方或左方较小路径和。",
+      "samples": [
+        {"input_data": {"grid": [[1, 3, 1], [1, 5, 1], [4, 2, 1]]}, "expected": 7},
+        {"input_data": {"grid": [[1, 2, 3], [4, 5, 6]]}, "expected": 12}
+      ]
+    },
+    {
+      "id": "unseen_partition_equal_subset_sum",
+      "title": "分割等和子集",
+      "problem": "给定只包含正整数的数组 nums，判断是否可以把数组分成两个元素和相等的子集。",
+      "family": "DP 核心扩展",
+      "family_id": "dp_core",
+      "subfamily_id": "knapsack_01",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "0/1 背包可达性 DP，目标为总和的一半。",
+      "samples": [
+        {"input_data": {"nums": [1, 5, 11, 5]}, "expected": true},
+        {"input_data": {"nums": [1, 2, 3, 5]}, "expected": false}
+      ]
+    },
+    {
+      "id": "unseen_unweighted_graph_shortest_path",
+      "title": "无权图最短路径长度",
+      "problem": "给定无权图的邻接表 graph、起点 start 和终点 target。返回从 start 到 target 的最短边数；如果不可达返回 -1。节点名为字符串。",
+      "family": "BFS/DFS 基础图",
+      "family_id": "basic_graph",
+      "subfamily_id": "bfs_shortest_layers",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "bfs",
+      "strategy": "BFS 按层扩展，首次到达 target 时返回层数。",
+      "samples": [
+        {"input_data": {"graph": {"A": ["B", "C"], "B": ["D"], "C": ["D", "E"], "D": ["F"], "E": ["F"], "F": []}, "start": "A", "target": "F"}, "expected": 3},
+        {"input_data": {"graph": {"A": ["B"], "B": [], "C": ["A"]}, "start": "A", "target": "C"}, "expected": -1}
+      ]
+    },
+    {
+      "id": "unseen_network_delay_time",
+      "title": "网络延迟时间",
+      "problem": "给定有向加权边 times，每条边为 [u, v, w]，共有 n 个编号 1..n 的节点，从 k 发出信号。返回所有节点收到信号所需的最短时间；若有节点不可达，返回 -1。",
+      "family": "最短路 / MST",
+      "family_id": "shortest_path_mst",
+      "subfamily_id": "dijkstra",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "shortest_path_mst",
+      "strategy": "Dijkstra 维护 dist 和优先队列，取所有最短距离的最大值。",
+      "samples": [
+        {"input_data": {"times": [[2, 1, 1], [2, 3, 1], [3, 4, 1]], "n": 4, "k": 2}, "expected": 2},
+        {"input_data": {"times": [[1, 2, 1]], "n": 2, "k": 2}, "expected": -1}
+      ]
+    },
+    {
+      "id": "unseen_longest_palindromic_substring_length",
+      "title": "最长回文子串长度",
+      "problem": "给定字符串 s，返回 s 中最长回文子串的长度。",
+      "family": "字符串高级算法",
+      "family_id": "string_advanced",
+      "subfamily_id": "manacher",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "string",
+      "strategy": "可用中心扩展或 Manacher 思路记录每个中心的半径。",
+      "samples": [
+        {"input_data": {"s": "babad"}, "expected": 3},
+        {"input_data": {"s": "cbbd"}, "expected": 2}
+      ]
+    },
+    {
+      "id": "unseen_next_greater_element_circular",
+      "title": "循环数组下一个更大元素",
+      "problem": "给定循环数组 nums，返回每个位置右侧循环方向遇到的第一个更大元素；如果不存在则为 -1。",
+      "family": "栈 / 队列 / 单调栈",
+      "family_id": "monotonic_stack",
+      "subfamily_id": "monotonic_stack",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "monotonic_stack",
+      "strategy": "扫描 2n 次，用单调递减栈保存尚未找到答案的下标。",
+      "samples": [
+        {"input_data": {"nums": [1, 2, 1]}, "expected": [2, -1, 2]},
+        {"input_data": {"nums": [3, 8, 4, 1, 2]}, "expected": [8, -1, 8, 2, 3]}
+      ]
+    },
+    {
+      "id": "unseen_binary_tree_level_order",
+      "title": "二叉树层序遍历",
+      "problem": "给定二叉树的层序数组表示，null 表示空节点。返回从上到下、从左到右的层序遍历结果，每一层作为一个数组。",
+      "family": "树 / BST / LCA",
+      "family_id": "tree_bst_lca",
+      "subfamily_id": "level_order_traversal",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "tree",
+      "strategy": "使用队列做 BFS 层序遍历，并按层收集节点值。",
+      "samples": [
+        {"input_data": {"nodes": [3, 9, 20, null, null, 15, 7]}, "expected": [[3], [9, 20], [15, 7]]},
+        {"input_data": {"nodes": [1, null, 2]}, "expected": [[1], [2]]}
+      ]
+    },
+    {
+      "id": "unseen_binary_tree_max_path_sum",
+      "title": "二叉树最大路径和",
+      "problem": "给定二叉树的层序数组表示，null 表示空节点。路径可以从任意节点开始和结束，但必须沿父子连接。返回最大路径和。",
+      "family": "树形 DP",
+      "family_id": "tree_dp",
+      "subfamily_id": "take_skip_dp",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "dp",
+      "strategy": "树形 DP，递归返回向父节点贡献的最大单边增益，同时更新全局最大路径和。",
+      "samples": [
+        {"input_data": {"nodes": [-10, 9, 20, null, null, 15, 7]}, "expected": 42},
+        {"input_data": {"nodes": [1, 2, 3]}, "expected": 6}
+      ]
+    },
+    {
+      "id": "unseen_connected_components_union_find",
+      "title": "无向图连通分量数量",
+      "problem": "给定节点数 n 和无向边 edges，节点编号为 0..n-1。返回图中的连通分量数量。",
+      "family": "并查集",
+      "family_id": "union_find",
+      "subfamily_id": "connected_components",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "union_find",
+      "strategy": "并查集初始化每个节点为独立集合，逐条 union 后统计根节点数量。",
+      "samples": [
+        {"input_data": {"n": 5, "edges": [[0, 1], [1, 2], [3, 4]]}, "expected": 2},
+        {"input_data": {"n": 4, "edges": [[0, 1], [2, 3], [1, 2]]}, "expected": 1}
+      ]
+    },
+    {
+      "id": "unseen_range_sum_query_mutable",
+      "title": "可更新区间和查询",
+      "problem": "给定初始数组 nums 和操作列表 operations。操作为 [\"sumRange\", left, right] 或 [\"update\", index, value]。依次执行操作，只返回所有 sumRange 的结果数组。",
+      "family": "区间结构",
+      "family_id": "range_structure",
+      "subfamily_id": "fenwick_tree",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "range_structure",
+      "strategy": "树状数组或线段树维护前缀和，update 做差量更新，sumRange 用前缀和相减。",
+      "samples": [
+        {"input_data": {"nums": [1, 3, 5], "operations": [["sumRange", 0, 2], ["update", 1, 2], ["sumRange", 0, 2]]}, "expected": [9, 8]},
+        {"input_data": {"nums": [2, 4, 6, 8], "operations": [["sumRange", 1, 3], ["update", 2, 10], ["sumRange", 0, 2]]}, "expected": [18, 16]}
+      ]
+    },
+    {
+      "id": "unseen_count_bits",
+      "title": "比特位计数",
+      "problem": "给定非负整数 n，返回长度为 n+1 的数组 ans，其中 ans[i] 是 i 的二进制表示中 1 的个数。",
+      "family": "数学与位运算",
+      "family_id": "math_bit",
+      "subfamily_id": "bitmask",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "math_bit",
+      "strategy": "使用 lowbit 或 ans[i] = ans[i >> 1] + (i & 1) 的位 DP。",
+      "samples": [
+        {"input_data": {"n": 5}, "expected": [0, 1, 1, 2, 1, 2]},
+        {"input_data": {"n": 2}, "expected": [0, 1, 1]}
+      ]
+    },
+    {
+      "id": "unseen_critical_connections",
+      "title": "网络中的关键连接",
+      "problem": "给定 n 个服务器和无向边 connections。若移除某条边会使图不再连通，则该边是关键连接。返回所有关键连接，每条边内部按升序排列，结果按字典序升序排列。",
+      "family": "图高级",
+      "family_id": "advanced_graph",
+      "subfamily_id": "articulation_bridges",
+      "gate_layer": "llm_eval",
+      "support_level": "strong",
+      "process_profile": "advanced_graph",
+      "strategy": "Tarjan DFS 维护 dfn/low，若 low[v] > dfn[u] 则 edge(u,v) 是桥。",
+      "samples": [
+        {"input_data": {"n": 4, "connections": [[0, 1], [1, 2], [2, 0], [1, 3]]}, "expected": [[1, 3]]},
+        {"input_data": {"n": 5, "connections": [[1, 0], [2, 0], [3, 2], [4, 2], [4, 3], [3, 0], [4, 0]]}, "expected": []}
+      ]
+    }
+  ]
+}

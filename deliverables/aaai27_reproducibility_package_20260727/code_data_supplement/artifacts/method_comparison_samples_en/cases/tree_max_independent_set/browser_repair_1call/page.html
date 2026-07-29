@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree DP Maximum Independent Set</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --accent-light: #dbeafe;
+            --success: #22c55e;
+            --success-light: #dcfce7;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --processed: #bbf7d0;
+            --current: #fde68a;
+            --unprocessed: #e2e8f0;
+            --answer-node: #bfdbfe;
+            --take-color: #16a34a;
+            --skip-color: #ea580c;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 1300px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+        }
+
+        #title {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        #top-result {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 1rem;
+            margin-top: 6px;
+        }
+
+        #top-solution {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        #main-content {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        #left-panel {
+            flex: 1 1 320px;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #code {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.7;
+            white-space: pre;
+            overflow-x: auto;
+            box-shadow: var(--shadow);
+            min-height: 280px;
+            position: relative;
+            border: 1px solid #334155;
+        }
+
+        #code .line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.25s, color 0.25s;
+            border-left: 3px solid transparent;
+        }
+
+        #code .line.active {
+            background: #fef3c7;
+            color: #1e293b;
+            border-left-color: #f59e0b;
+            font-weight: 600;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+        }
+
+        #code .line.processed-line {
+            background: #1e3a2f;
+            color: #bbf7d0;
+            border-left-color: #22c55e;
+        }
+
+        #center-panel {
+            flex: 1 1 420px;
+            min-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #step-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #0f172a;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow);
+        }
+
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow);
+            min-height: 40px;
+        }
+
+        #canvas {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            position: relative;
+            height: 370px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #canvas svg.edge-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #canvas .tree-node {
+            position: absolute;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        #canvas .node-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: 2.5px solid #cbd5e1;
+            background: var(--unprocessed);
+            color: #475569;
+            transition: all 0.35s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            position: relative;
+            z-index: 3;
+        }
+
+        #canvas .node-circle.processed {
+            background: var(--processed);
+            border-color: #22c55e;
+            color: #166534;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+        }
+
+        #canvas .node-circle.current {
+            background: var(--current);
+            border-color: #f59e0b;
+            color: #92400e;
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.2);
+            animation: pulse-current 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-current {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.08);
+            }
+        }
+
+        #canvas .node-circle.answer-highlight {
+            background: var(--answer-node);
+            border-color: #3b82f6;
+            color: #1e40af;
+            box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.22);
+        }
+
+        #canvas .node-value-tag {
+            font-size: 0.72rem;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: 500;
+            background: #f1f5f9;
+            padding: 1px 7px;
+            border-radius: 10px;
+            letter-spacing: 0.01em;
+        }
+
+        #canvas .dp-values {
+            display: flex;
+            gap: 5px;
+            margin-top: 3px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #canvas .dp-take {
+            background: #dcfce7;
+            color: #166534;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid #bbf7d0;
+            white-space: nowrap;
+        }
+
+        #canvas .dp-skip {
+            background: #fff7ed;
+            color: #9a3412;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid #fed7aa;
+            white-space: nowrap;
+        }
+
+        #canvas .dp-pending {
+            background: #f1f5f9;
+            color: #94a3b8;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px dashed #cbd5e1;
+            white-space: nowrap;
+            font-style: italic;
+        }
+
+        #controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+
+        #controls button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+            color: #334155;
+        }
+        #controls button:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        #controls button:active {
+            background: #e2e8f0;
+            transform: scale(0.97);
+        }
+        #controls button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #play {
+            background: #3b82f6 !important;
+            color: #fff !important;
+            border-color: #3b82f6 !important;
+            min-width: 70px;
+        }
+        #play:hover {
+            background: #2563eb !important;
+        }
+        #play.paused {
+            background: #f59e0b !important;
+            border-color: #f59e0b !important;
+        }
+
+        #range {
+            flex: 1 1 80px;
+            min-width: 60px;
+            accent-color: #3b82f6;
+            height: 6px;
+            cursor: pointer;
+        }
+
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #334155;
+            white-space: nowrap;
+            min-width: 40px;
+            text-align: center;
+            background: #f1f5f9;
+            padding: 5px 10px;
+            border-radius: 6px;
+        }
+
+        #right-panel {
+            flex: 1 1 300px;
+            min-width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 650px;
+            overflow-y: auto;
+        }
+
+        #state {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.78rem;
+            white-space: pre-wrap;
+            min-height: 100px;
+            box-shadow: var(--shadow);
+            border: 1px solid #334155;
+            line-height: 1.5;
+        }
+
+        #step-evidence {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            font-size: 0.82rem;
+            box-shadow: var(--shadow);
+            line-height: 1.5;
+            color: #334155;
+        }
+        #step-evidence strong {
+            color: #0f172a;
+        }
+        #step-evidence .evidence-row {
+            display: flex;
+            gap: 6px;
+            margin: 3px 0;
+            flex-wrap: wrap;
+        }
+        #step-evidence .evidence-label {
+            font-weight: 600;
+            color: #64748b;
+            min-width: 80px;
+        }
+        #step-evidence .evidence-val {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.78rem;
+            background: #f8fafc;
+            padding: 1px 7px;
+            border-radius: 3px;
+        }
+        #step-evidence .evidence-change {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        #teaching {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            box-shadow: var(--shadow);
+            line-height: 1.55;
+            color: #334155;
+        }
+        #teaching h4 {
+            font-size: 0.95rem;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+        #teaching .checkpoint-area {
+            margin-top: 10px;
+            padding: 12px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+        }
+        #teaching .checkpoint-area input {
+            padding: 6px 10px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            font-size: 0.85rem;
+            width: 70px;
+            text-align: center;
+            font-weight: 600;
+            margin: 4px 4px 4px 0;
+        }
+        #teaching .checkpoint-area button {
+            padding: 6px 14px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin: 3px;
+            transition: all 0.15s;
+        }
+        #teaching .checkpoint-area button:hover {
+            background: #f3f4f6;
+        }
+        #teaching .checkpoint-area button.btn-submit {
+            background: #3b82f6;
+            color: #fff;
+            border-color: #3b82f6;
+        }
+        #teaching .checkpoint-area button.btn-submit:hover {
+            background: #2563eb;
+        }
+        #teaching .checkpoint-area button.btn-hint {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fcd34d;
+        }
+        #teaching .checkpoint-area button.btn-show {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+        #teaching .feedback-msg {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            display: none;
+        }
+        #teaching .feedback-msg.correct {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        #teaching .feedback-msg.incorrect {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        #teaching .hint-msg {
+            margin-top: 6px;
+            font-style: italic;
+            color: #92400e;
+            font-size: 0.82rem;
+            display: none;
+            background: #fffbeb;
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+
+        #learning-log-area {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #learning-log-area h4 {
+            font-size: 0.9rem;
+            color: #0f172a;
+            margin-bottom: 6px;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+            z-index: 1;
+        }
+        #learning-log {
+            list-style: none;
+            font-size: 0.78rem;
+            color: #475569;
+        }
+        #learning-log li {
+            padding: 5px 8px;
+            border-left: 3px solid #e2e8f0;
+            margin-bottom: 4px;
+            border-radius: 0 4px 4px 0;
+            background: #fafafa;
+        }
+        #learning-log li.log-correct {
+            border-left-color: #22c55e;
+            background: #f0fdf4;
+        }
+        #learning-log li.log-incorrect {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        #learning-log li.log-revealed {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px 8px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            min-height: 52px;
+        }
+
+        #timeline .tick {
+            flex: 1 0 auto;
+            min-width: 70px;
+            padding: 8px 10px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            font-size: 0.75rem;
+            color: #64748b;
+            user-select: none;
+            position: relative;
+        }
+        #timeline .tick:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+        #timeline .tick.active {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+            z-index: 2;
+        }
+        #timeline .tick.completed {
+            background: #dcfce7;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        #timeline .tick .tick-label {
+            font-weight: 600;
+            font-size: 0.72rem;
+            letter-spacing: 0.02em;
+        }
+        #timeline .tick .tick-op {
+            font-size: 0.68rem;
+            opacity: 0.8;
+        }
+
+        #answer {
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.3rem;
+            color: #3b82f6;
+            background: #dbeafe;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            border: 2px solid #93c5fd;
+            letter-spacing: 0.02em;
+            box-shadow: var(--shadow);
+        }
+
+        @media (max-width: 900px) {
+            #main-content {
+                flex-direction: column;
+            }
+            #left-panel,
+            #center-panel,
+            #right-panel {
+                flex: 1 1 auto;
+                min-width: 100%;
+            }
+            #canvas {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1 id="title">Tree DP Maximum Independent Set</h1>
+            <p id="subtitle">Urban district planning: select non-adjacent plots to maximize total development value using tree dynamic programming.</p>
+            <div id="top-result">Optimal total value: <strong>14</strong></div>
+            <div id="top-solution">Strategy: dp_take[u] = value[u] + sum(dp_skip[children]); dp_skip[u] = sum(max(dp_take[child], dp_skip[child]))</div>
+        </header>
+
+        <div id="main-content">
+            <div id="left-panel">
+                <div id="code">
+                    <span class="line" data-line="0">function maxIndependentSet(tree):</span>
+                    <span class="line" data-line="1">    dp_take = {}  // selected</span>
+                    <span class="line" data-line="2">    dp_skip = {}  // not selected</span>
+                    <span class="line" data-line="3">    </span>
+                    <span class="line" data-line="4">    function dfs(u, parent):</span>
+                    <span class="line" data-line="5">        dp_take[u] = value[u]</span>
+                    <span class="line" data-line="6">        dp_skip[u] = 0</span>
+                    <span class="line" data-line="7">        for each child v of u:</span>
+                    <span class="line" data-line="8">            if v != parent:</span>
+                    <span class="line" data-line="9">                dfs(v, u)</span>
+                    <span class="line" data-line="10">                dp_take[u] += dp_skip[v]</span>
+                    <span class="line" data-line="11">                dp_skip[u] += max(dp_take[v], dp_skip[v])</span>
+                    <span class="line" data-line="12">    </span>
+                    <span class="line" data-line="13">    root = 1</span>
+                    <span class="line" data-line="14">    dfs(root, null)</span>
+                    <span class="line" data-line="15">    return max(dp_take[root], dp_skip[root])</span>
+                </div>
+            </div>
+
+            <div id="center-panel">
+                <div id="step-title">Step 1: Initialize</div>
+                <div id="step-desc">Set up the tree structure, identify the post-order traversal sequence, and prepare empty DP arrays for all five nodes.</div>
+                <div id="canvas">
+                    <svg class="edge-layer" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="250" y1="68" x2="140" y2="128" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" id="edge-1-2"/>
+                        <line x1="250" y1="68" x2="360" y2="128" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" id="edge-1-3"/>
+                        <line x1="140" y1="178" x2="60" y2="258" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" id="edge-2-4"/>
+                        <line x1="140" y1="178" x2="220" y2="258" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" id="edge-2-5"/>
+                    </svg>
+                    <div class="tree-node" id="node-1" style="left:250px;top:45px;">
+                        <div class="node-circle" id="circle-1">1</div>
+                        <div class="node-value-tag">v=3</div>
+                        <div class="dp-values" id="dp-1"><span class="dp-pending">T:?</span><span class="dp-pending">S:?</span></div>
+                    </div>
+                    <div class="tree-node" id="node-2" style="left:140px;top:155px;">
+                        <div class="node-circle" id="circle-2">2</div>
+                        <div class="node-value-tag">v=2</div>
+                        <div class="dp-values" id="dp-2"><span class="dp-pending">T:?</span><span class="dp-pending">S:?</span></div>
+                    </div>
+                    <div class="tree-node" id="node-3" style="left:360px;top:155px;">
+                        <div class="node-circle" id="circle-3">3</div>
+                        <div class="node-value-tag">v=1</div>
+                        <div class="dp-values" id="dp-3"><span class="dp-pending">T:?</span><span class="dp-pending">S:?</span></div>
+                    </div>
+                    <div class="tree-node" id="node-4" style="left:60px;top:285px;">
+                        <div class="node-circle" id="circle-4">4</div>
+                        <div class="node-value-tag">v=10</div>
+                        <div class="dp-values" id="dp-4"><span class="dp-pending">T:?</span><span class="dp-pending">S:?</span></div>
+                    </div>
+                    <div class="tree-node" id="node-5" style="left:220px;top:285px;">
+                        <div class="node-circle" id="circle-5">5</div>
+                        <div class="node-value-tag">v=1</div>
+                        <div class="dp-values" id="dp-5"><span class="dp-pending">T:?</span><span class="dp-pending">S:?</span></div>
+                    </div>
+                </div>
+                <div id="controls">
+                    <button id="prev" title="Previous step">Prev</button>
+                    <button id="play" title="Auto-play steps">Play</button>
+                    <button id="next" title="Next step">Next</button>
+                    <input type="range" id="range" min="1" max="7" value="1" step="1" title="Step slider">
+                    <span id="counter">1 / 7</span>
+                </div>
+            </div>
+
+            <div id="right-panel">
+                <div id="state">{
+                    "dp_take": {"1":"?","2":"?","3":"?","4":"?","5":"?"},
+                    "dp_skip": {"1":"?","2":"?","3":"?","4":"?","5":"?"},
+                    "current_node": null,
+                    "processed": [],
+                    "phase": "initialization"
+                    }</div>
+                <div id="step-evidence">
+                    <strong>Operation:</strong> <span id="ev-op">Initialize DP structures</span><br>
+                    <strong>Target:</strong> <span id="ev-target">All nodes</span><br>
+                    <strong>Dependencies:</strong> <span id="ev-deps">None (fresh start)</span><br>
+                    <strong>Before:</strong> <span id="ev-before">dp_take and dp_skip are empty</span><br>
+                    <strong>After:</strong> <span id="ev-after">All entries set to unknown (?)</span>
+                </div>
+                <div id="teaching">
+                    <h4>What is happening?</h4>
+                    <p>We initialize the Tree DP. Each node will get two values: <strong>dp_take</strong> (maximum value achievable from the subtree rooted at this node, assuming this node <em>is</em> selected) and <strong>dp_skip</strong> (assuming this node is <em>not</em> selected). The post-order traversal will process leaves first, then move upward. For a leaf, dp_take = its own value and dp_skip = 0.</p>
+                    <p style="margin-top:6px;font-size:0.8rem;color:#64748b;"><em>Invariant: Every node's dp_take and dp_skip represent the optimal value for its entire subtree under the respective selection constraint.</em></p>
+                </div>
+                <div id="learning-log-area">
+                    <h4>Learning Log</h4>
+                    <ul id="learning-log"></ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="timeline">
+            <button class="tick active" data-step="1"><span class="tick-label">Step 1</span><span class="tick-op">Initialize</span></button>
+            <button class="tick" data-step="2"><span class="tick-label">Step 2</span><span class="tick-op">Leaf 3</span></button>
+            <button class="tick" data-step="3"><span class="tick-label">Step 3</span><span class="tick-op">Leaf 4</span></button>
+            <button class="tick" data-step="4"><span class="tick-label">Step 4</span><span class="tick-op">Leaf 5</span></button>
+            <button class="tick" data-step="5"><span class="tick-label">Step 5</span><span class="tick-op">Node 2</span></button>
+            <button class="tick" data-step="6"><span class="tick-label">Step 6</span><span class="tick-op">Node 1</span></button>
+            <button class="tick" data-step="7"><span class="tick-label">Step 7</span><span class="tick-op">Result</span></button>
+        </div>
+
+        <div id="answer">14</div>
+    </div>
+
+    <script>
+        (function() {
+            const totalSteps = 7;
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointResolved = {}; // track which checkpoint steps have been resolved
+
+            const treeData = {
+                nodes: [
+                    { id: "1", value: 3, children: ["2", "3"] },
+                    { id: "2", value: 2, children: ["4", "5"] },
+                    { id: "3", value: 1, children: [] },
+                    { id: "4", value: 10, children: [] },
+                    { id: "5", value: 1, children: [] }
+                ],
+                edges: [
+                    ["1", "2"],
+                    ["1", "3"],
+                    ["2", "4"],
+                    ["2", "5"]
+                ],
+                parentMap: { "2": "1", "3": "1", "4": "2", "5": "2" },
+                nodeValues: { "1": 3, "2": 2, "3": 1, "4": 10, "5": 1 }
+            };
+
+            const correctDP = {
+                "3": { take: 1, skip: 0 },
+                "4": { take: 10, skip: 0 },
+                "5": { take: 1, skip: 0 },
+                "2": { take: 2, skip: 11 },
+                "1": { take: 14, skip: 12 }
+            };
+            const finalAnswer = 14;
+
+            const stepData = [{
+                id: 1,
+                title: "Step 1: Initialize",
+                desc: "Set up the tree structure, identify the post-order traversal sequence (leaves first: 3, 4, 5, then 2, then 1), and prepare empty DP arrays for all five nodes.",
+                op: "Initialize DP structures",
+                codeLine: 1,
+                currentNodes: [],
+                processedNodes: [],
+                dpState: { "1": { take: "?", skip: "?" }, "2": { take: "?", skip: "?" },
+                    "3": { take: "?", skip: "?" }, "4": { take: "?", skip: "?" }, "5": { take: "?",
+                    skip: "?" } },
+                evOp: "Initialize DP structures",
+                evTarget: "All nodes",
+                evDeps: "None (fresh start)",
+                evBefore: "dp_take and dp_skip are empty",
+                evAfter: "All entries set to unknown (?)",
+                teachingHTML: '<h4>What is happening?</h4><p>We initialize the Tree DP. Each node gets two values: <strong>dp_take</strong> (optimal value from subtree when this node <em>is</em> selected) and <strong>dp_skip</strong> (optimal value when this node is <em>not</em> selected). The post-order traversal processes leaves first, then moves upward.</p><p style="margin-top:6px;font-size:0.8rem;color:#64748b;"><em>Invariant: Every node\'s dp_take and dp_skip represent the optimal value for its entire subtree under the respective selection constraint.</em></p>',
+                isCheckpoint: false
+            }, {
+                id: 2,
+                title: "Step 2: Process Leaf Node 3",
+                desc: "Node 3 is a leaf (no children). Compute dp_take[3] = value[3] = 1, and dp_skip[3] = 0 since skipping a leaf yields zero value from its (empty) subtree.",
+                op: "Process leaf node 3",
+                codeLine: 5,
+                currentNodes: ["3"],
+                processedNodes: ["3"],
+                dpState: { "1": { take: "?", skip: "?" }, "2": { take: "?", skip: "?" },
+                    "3": { take: 1, skip: 0 }, "4": { take: "?", skip: "?" }, "5": { take: "?", skip: "?" } },
+                evOp: "Compute dp for leaf node 3",
+                evTarget: "Node 3 (value=1, leaf)",
+                evDeps: "None (leaf node has no children)",
+                evBefore: 'dp_take[3]=?, dp_skip[3]=?',
+                evAfter: 'dp_take[3]=1, dp_skip[3]=0',
+                teachingHTML: '<h4>Processing Leaf Node 3</h4><p>Node 3 has no children. When a leaf is <strong>selected</strong>, we gain its full value: <strong>dp_take[3] = 1</strong>. When it is <strong>skipped</strong>, we gain nothing from its subtree: <strong>dp_skip[3] = 0</strong>. This is the base case of our DP recurrence.</p>',
+                isCheckpoint: true,
+                checkpointQuestion: 'Predict the DP values for leaf node 3:',
+                checkpointFields: [{ label: 'dp_take[3]', id: 'cp-take-3', answer: 1 },
+                    { label: 'dp_skip[3]', id: 'cp-skip-3', answer: 0 }
+                ],
+                checkpointHint: 'A leaf has no children. If you select it, you get its value. If you skip it, you get nothing from its empty subtree.',
+                checkpointShowAnswer: 'dp_take[3] = 1 (the node\'s own value), dp_skip[3] = 0 (no subtree value when skipped).'
+            }, {
+                id: 3,
+                title: "Step 3: Process Leaf Node 4",
+                desc: "Node 4 is a leaf. Compute dp_take[4] = value[4] = 10, and dp_skip[4] = 0. Node 4 has the highest individual value in the tree.",
+                op: "Process leaf node 4",
+                codeLine: 5,
+                currentNodes: ["4"],
+                processedNodes: ["3", "4"],
+                dpState: { "1": { take: "?", skip: "?" }, "2": { take: "?", skip: "?" },
+                    "3": { take: 1, skip: 0 }, "4": { take: 10, skip: 0 }, "5": { take: "?", skip: "?" } },
+                evOp: "Compute dp for leaf node 4",
+                evTarget: "Node 4 (value=10, leaf)",
+                evDeps: "None (leaf node)",
+                evBefore: 'dp_take[4]=?, dp_skip[4]=?',
+                evAfter: 'dp_take[4]=10, dp_skip[4]=0',
+                teachingHTML: '<h4>Processing Leaf Node 4</h4><p>Node 4 is another leaf. Its value of <strong>10</strong> is the highest among all nodes. dp_take[4] = 10, dp_skip[4] = 0. Notice that even though node 4 is highly valuable, it is adjacent to node 2, so we cannot simply select all high-value nodes.</p>',
+                isCheckpoint: false
+            }, {
+                id: 4,
+                title: "Step 4: Process Leaf Node 5",
+                desc: "Node 5 is a leaf. Compute dp_take[5] = value[5] = 1, and dp_skip[5] = 0. All three leaves are now processed.",
+                op: "Process leaf node 5",
+                codeLine: 5,
+                currentNodes: ["5"],
+                processedNodes: ["3", "4", "5"],
+                dpState: { "1": { take: "?", skip: "?" }, "2": { take: "?", skip: "?" },
+                    "3": { take: 1, skip: 0 }, "4": { take: 10, skip: 0 }, "5": { take: 1, skip: 0 } },
+                evOp: "Compute dp for leaf node 5",
+                evTarget: "Node 5 (value=1, leaf)",
+                evDeps: "None (leaf node)",
+                evBefore: 'dp_take[5]=?, dp_skip[5]=?',
+                evAfter: 'dp_take[5]=1, dp_skip[5]=0',
+                teachingHTML: '<h4>Processing Leaf Node 5</h4><p>Node 5 is the last leaf. dp_take[5] = 1, dp_skip[5] = 0. Now all leaves are processed. The post-order traversal moves up to node 2, whose children (4 and 5) are now fully computed.</p>',
+                isCheckpoint: false
+            }, {
+                id: 5,
+                title: "Step 5: Process Node 2",
+                desc: "Node 2 has children 4 and 5 (both processed). Compute dp_take[2] = value[2] + dp_skip[4] + dp_skip[5] = 2 + 0 + 0 = 2. Compute dp_skip[2] = max(dp_take[4], dp_skip[4]) + max(dp_take[5], dp_skip[5]) = max(10,0) + max(1,0) = 10 + 1 = 11.",
+                op: "Process internal node 2",
+                codeLine: 10,
+                currentNodes: ["2"],
+                processedNodes: ["3", "4", "5", "2"],
+                dpState: { "1": { take: "?", skip: "?" }, "2": { take: 2, skip: 11 }, "3": { take: 1,
+                        skip: 0 }, "4": { take: 10, skip: 0 }, "5": { take: 1, skip: 0 } },
+                evOp: "Compute dp for node 2 using children 4 and 5",
+                evTarget: "Node 2 (value=2, children: 4, 5)",
+                evDeps: "dp_skip[4]=0, dp_take[4]=10, dp_skip[5]=0, dp_take[5]=1",
+                evBefore: 'dp_take[2]=?, dp_skip[2]=?',
+                evAfter: 'dp_take[2]=2+0+0=2, dp_skip[2]=max(10,0)+max(1,0)=11',
+                teachingHTML: '<h4>Processing Node 2</h4><p>Node 2 is an internal node. Its children (4 and 5) are already processed. <strong>dp_take[2]</strong> includes node 2\'s own value plus the skip-values of all children (since selecting node 2 forces us to skip both children). <strong>dp_skip[2]</strong> takes the best option from each child independently, since skipping node 2 means each child can be either selected or skipped.</p>',
+                isCheckpoint: true,
+                checkpointQuestion: 'Predict the DP values for node 2:',
+                checkpointFields: [{ label: 'dp_take[2]', id: 'cp-take-2', answer: 2 },
+                    { label: 'dp_skip[2]', id: 'cp-skip-2', answer: 11 }
+                ],
+                checkpointHint: 'dp_take[2] = value[2] + dp_skip[4] + dp_skip[5]. dp_skip[2] = max(dp_take[4], dp_skip[4]) + max(dp_take[5], dp_skip[5]). The children\'s values are already computed.',
+                checkpointShowAnswer: 'dp_take[2] = 2 + 0 + 0 = 2. dp_skip[2] = max(10,0) + max(1,0) = 10 + 1 = 11.'
+            }, {
+                id: 6,
+                title: "Step 6: Process Node 1 (Root)",
+                desc: "Node 1 has children 2 and 3 (both processed). Compute dp_take[1] = value[1] + dp_skip[2] + dp_skip[3] = 3 + 11 + 0 = 14. Compute dp_skip[1] = max(dp_take[2], dp_skip[2]) + max(dp_take[3], dp_skip[3]) = max(2,11) + max(1,0) = 11 + 1 = 12.",
+                op: "Process root node 1",
+                codeLine: 10,
+                currentNodes: ["1"],
+                processedNodes: ["3", "4", "5", "2", "1"],
+                dpState: { "1": { take: 14, skip: 12 }, "2": { take: 2, skip: 11 }, "3": { take: 1,
+                        skip: 0 }, "4": { take: 10, skip: 0 }, "5": { take: 1, skip: 0 } },
+                evOp: "Compute dp for root node 1 using children 2 and 3",
+                evTarget: "Node 1 (value=3, children: 2, 3)",
+                evDeps: "dp_skip[2]=11, dp_take[2]=2, dp_skip[3]=0, dp_take[3]=1",
+                evBefore: 'dp_take[1]=?, dp_skip[1]=?',
+                evAfter: 'dp_take[1]=3+11+0=14, dp_skip[1]=max(2,11)+max(1,0)=12',
+                teachingHTML: '<h4>Processing Root Node 1</h4><p>The root is processed last. dp_take[1] = 3 + 11 + 0 = <strong>14</strong>. dp_skip[1] = max(2,11) + max(1,0) = <strong>12</strong>. The answer will be max(14, 12) = 14, meaning the optimal solution selects node 1, skips node 2, and selects nodes 4 and 5 (and skips node 3).</p>',
+                isCheckpoint: false
+            }, {
+                id: 7,
+                title: "Step 7: Final Result",
+                desc: "The maximum total development value is max(dp_take[1], dp_skip[1]) = max(14, 12) = 14. This corresponds to selecting nodes 1, 4, and 5 (total: 3+10+1=14), with nodes 2 and 3 skipped.",
+                op: "Compute final answer",
+                codeLine: 15,
+                currentNodes: ["1"],
+                processedNodes: ["3", "4", "5", "2", "1"],
+                dpState: { "1": { take: 14, skip: 12 }, "2": { take: 2, skip: 11 }, "3": { take: 1,
+                        skip: 0 }, "4": { take: 10, skip: 0 }, "5": { take: 1, skip: 0 } },
+                evOp: "Return max(dp_take[root], dp_skip[root])",
+                evTarget: "Root node 1",
+                evDeps: "dp_take[1]=14, dp_skip[1]=12",
+                evBefore: 'Final answer not yet selected',
+                evAfter: 'max(14, 12) = 14',
+                teachingHTML: '<h4>Final Answer</h4><p>The optimal independent set has value <strong>14</strong>, achieved by selecting nodes 1, 4, and 5 (3 + 10 + 1 = 14). Nodes 2 and 3 are skipped. This satisfies the constraint: no two adjacent nodes are selected.</p><p style="margin-top:6px;font-size:0.8rem;color:#64748b;"><em>Common error: Selecting node 2 plus node 3 would give 2+1=3, but misses the valuable node 4 (value 10) which is adjacent to node 2. The DP correctly identifies that skipping node 2 unlocks node 4\'s high value.</em></p>',
+                isCheckpoint: true,
+                checkpointQuestion: 'What is the final maximum independent set value?',
+                checkpointFields: [{ label: 'Final answer', id: 'cp-final', answer: 14 }],
+                checkpointHint: 'Take the maximum of dp_take[1] and dp_skip[1]. Both values have been computed in the previous step.',
+                checkpointShowAnswer: 'max(dp_take[1], dp_skip[1]) = max(14, 12) = 14.'
+            }];
+
+            const codeLines = document.querySelectorAll('#code .line');
+            const counterEl = document.getElementById('counter');
+            const rangeEl = document.getElementById('range');
+            const stepTitleEl = document.getElementById('step-title');
+            const stepDescEl = document.getElementById('step-desc');
+            const teachingEl = document.getElementById('teaching');
+            const stateEl = document.getElementById('state');
+            const stepEvidenceEl = document.getElementById('step-evidence');
+            const evOpEl = document.getElementById('ev-op');
+            const evTargetEl = document.getElementById('ev-target');
+            const evDepsEl = document.getElementById('ev-deps');
+            const evBeforeEl = document.getElementById('ev-before');
+            const evAfterEl = document.getElementById('ev-after');
+            const playBtn = document.getElementById('play');
+            const prevBtn = document.getElementById('prev');
+            const nextBtn = document.getElementById('next');
+            const timelineTicks = document.querySelectorAll('#timeline .tick');
+            const learningLogEl = document.getElementById('learning-log');
+            const answerEl = document.getElementById('answer');
+
+            answerEl.textContent = '14';
+
+            function getNodeCircleEl(id) {
+                return document.getElementById('circle-' + id);
+            }
+
+            function getNodeDPEl(id) {
+                return document.getElementById('dp-' + id);
+            }
+
+            function buildDPHTML(dpVal) {
+                const takeVal = dpVal.take;
+                const skipVal = dpVal.skip;
+                let takeHTML = '';
+                let skipHTML = '';
+                if (takeVal === '?') {
+                    takeHTML = '<span class="dp-pending">T:?</span>';
+                } else {
+                    takeHTML = '<span class="dp-take">T:' + takeVal + '</span>';
+                }
+                if (skipVal === '?') {
+                    skipHTML = '<span class="dp-pending">S:?</span>';
+                } else {
+                    skipHTML = '<span class="dp-skip">S:' + skipVal + '</span>';
+                }
+                return takeHTML + skipHTML;
+            }
+
+            function updateCanvas(step) {
+                const sd = stepData[step - 1];
+                // Reset all circles
+                ['1', '2', '3', '4', '5'].forEach(function(nid) {
+                    const circle = getNodeCircleEl(nid);
+                    circle.classList.remove('processed', 'current', 'answer-highlight');
+                    const dpEl = getNodeDPEl(nid);
+                    const dpVal = sd.dpState[nid];
+                    dpEl.innerHTML = buildDPHTML(dpVal);
+                });
+
+                // Mark processed
+                sd.processedNodes.forEach(function(nid) {
+                    const circle = getNodeCircleEl(nid);
+                    if (sd.currentNodes.indexOf(nid) === -1) {
+                        circle.classList.add('processed');
+                    }
+                });
+
+                // Mark current
+                sd.currentNodes.forEach(function(nid) {
+                    const circle = getNodeCircleEl(nid);
+                    circle.classList.add('current');
+                });
+
+                // On final step, highlight root as answer
+                if (step === 7) {
+                    const circle1 = getNodeCircleEl('1');
+                    circle1.classList.remove('current');
+                    circle1.classList.add('answer-highlight');
+                }
+
+                // Update edge colors
+                const edge12 = document.getElementById('edge-1-2');
+                const edge13 = document.getElementById('edge-1-3');
+                const edge24 = document.getElementById('edge-2-4');
+                const edge25 = document.getElementById('edge-2-5');
+                const allEdges = [edge12, edge13, edge24, edge25];
+                allEdges.forEach(function(e) { e.setAttribute('stroke', '#cbd5e1');
+                    e.setAttribute('stroke-width', '2.5'); });
+
+                if (step >= 6) {
+                    edge12.setAttribute('stroke', '#93c5fd');
+                    edge13.setAttribute('stroke', '#93c5fd');
+                }
+                if (step >= 5) {
+                    edge24.setAttribute('stroke', '#bbf7d0');
+                    edge25.setAttribute('stroke', '#bbf7d0');
+                }
+                if (step >= 7) {
+                    edge12.setAttribute('stroke', '#3b82f6');
+                    edge12.setAttribute('stroke-width', '3');
+                    edge13.setAttribute('stroke', '#3b82f6');
+                    edge13.setAttribute('stroke-width', '3');
+                }
+            }
+
+            function updateCodeHighlight(lineNum) {
+                codeLines.forEach(function(cl) {
+                    cl.classList.remove('active', 'processed-line');
+                });
+                if (lineNum !== null && lineNum >= 0 && lineNum < codeLines.length) {
+                    codeLines[lineNum].classList.add('active');
+                }
+                // Mark earlier lines as processed
+                for (let i = 0; i < lineNum; i++) {
+                    if (i < codeLines.length && codeLines[i].textContent.trim() !== '') {
+                        codeLines[i].classList.add('processed-line');
+                    }
+                }
+            }
+
+            function updateTimeline(step) {
+                timelineTicks.forEach(function(tick, idx) {
+                    tick.classList.remove('active', 'completed');
+                    const tickStep = parseInt(tick.getAttribute('data-step'));
+                    if (tickStep === step) {
+                        tick.classList.add('active');
+                    } else if (tickStep < step) {
+                        tick.classList.add('completed');
+                    }
+                });
+            }
+
+            function formatStateJSON(dpState) {
+                let json = '{\n';
+                json += '  "dp_take": {';
+                const takeEntries = [];
+                for (const nid of ['1', '2', '3', '4', '5']) {
+                    const v = dpState[nid].take;
+                    takeEntries.push('"' + nid + '":' + (v === '?' ? '"?"' : v));
+                }
+                json += takeEntries.join(',') + '},\n';
+                json += '  "dp_skip": {';
+                const skipEntries = [];
+                for (const nid of ['1', '2', '3', '4', '5']) {
+                    const v = dpState[nid].skip;
+                    skipEntries.push('"' + nid + '":' + (v === '?' ? '"?"' : v));
+                }
+                json += skipEntries.join(',') + '},\n';
+                json += '  "processed_count": ' + stepData[currentStep - 1].processedNodes.length + ',\n';
+                json += '  "phase": "' + (currentStep === 7 ? 'complete' : currentStep >= 5 ? 'internal_nodes' :
+                    currentStep >= 2 ? 'leaves' : 'initialization') + '"\n';
+                json += '}';
+                return json;
+            }
+
+            function buildCheckpointHTML(sd) {
+                if (!sd.isCheckpoint) return '';
+                let html = '<div class="checkpoint-area" id="checkpoint-box">';
+                html += '<p style="font-weight:700;color:#92400e;margin-bottom:6px;"> Checkpoint: ' + sd
+                    .checkpointQuestion + '</p>';
+                sd.checkpointFields.forEach(function(field) {
+                    html += '<label style="font-size:0.82rem;font-weight:600;margin-right:4px;">' + field
+                        .label + ':</label>';
+                    html += '<input type="number" id="' + field.id + '" placeholder="?" style="width:70px;"> ';
+                });
+                html += '<div style="margin-top:8px;">';
+                html +=
+                    '<button class="btn-submit" onclick="window._checkpointSubmit(' + sd.id +
+                    ')">Submit</button> ';
+                html += '<button class="btn-hint" onclick="window._checkpointHint(' + sd.id +
+                    ')">Hint</button> ';
+                html += '<button class="btn-show" onclick="window._checkpointShow(' + sd.id +
+                    ')">Show Answer</button>';
+                html += '</div>';
+                html += '<div class="feedback-msg" id="feedback-msg-' + sd.id + '"></div>';
+                html += '<div class="hint-msg" id="hint-msg-' + sd.id + '"></div>';
+                html += '</div>';
+                return html;
+            }
+
+            function updateTeaching(step) {
+                const sd = stepData[step - 1];
+                let content = sd.teachingHTML;
+                if (sd.isCheckpoint) {
+                    content += buildCheckpointHTML(sd);
+                }
+                teachingEl.innerHTML = content;
+
+                // If checkpoint was already resolved, pre-fill and disable
+                if (sd.isCheckpoint && checkpointResolved[sd.id]) {
+                    const fbEl = document.getElementById('feedback-msg-' + sd.id);
+                    if (fbEl) {
+                        fbEl.textContent = ' Resolved: ' + (checkpointResolved[sd.id] === 'correct' ?
+                            'Correct!' : 'Answer revealed.');
+                        fbEl.className = 'feedback-msg ' + (checkpointResolved[sd.id] === 'correct' ? 'correct' :
+                            'incorrect');
+                        fbEl.style.display = 'block';
+                    }
+                    // Disable inputs
+                    sd.checkpointFields.forEach(function(field) {
+                        const inp = document.getElementById(field.id);
+                        if (inp) { inp.disabled = true;
+                            inp.value = field.answer; }
+                    });
+                    const box = document.getElementById('checkpoint-box');
+                    if (box) {
+                        const btns = box.querySelectorAll('button');
+                        btns.forEach(function(b) { b.disabled = true;
+                            b.style.opacity = '0.5';
+                            b.style.pointerEvents = 'none'; });
+                    }
+                }
+            }
+
+            function updateEvidence(step) {
+                const sd = stepData[step - 1];
+                evOpEl.textContent = sd.evOp;
+                evTargetEl.textContent = sd.evTarget;
+                evDepsEl.textContent = sd.evDeps;
+                evBeforeEl.textContent = sd.evBefore;
+                evAfterEl.textContent = sd.evAfter;
+            }
+
+            function goToStep(step, fromUser) {
+                if (step < 1 || step > totalSteps) return;
+                // If at a checkpoint that is not resolved, warn but allow navigation
+                const prevSD = stepData[currentStep - 1];
+                if (prevSD && prevSD.isCheckpoint && !checkpointResolved[prevSD.id] && fromUser && step > currentStep) {
+                    // Allow but log a gentle note
+                    appendLog('Navigated past checkpoint at Step ' + currentStep + ' without resolving it.',
+                        'log-revealed');
+                }
+
+                currentStep = step;
+                const sd = stepData[step - 1];
+
+                stepTitleEl.textContent = sd.title;
+                stepDescEl.textContent = sd.desc;
+                counterEl.textContent = step + ' / ' + totalSteps;
+                rangeEl.value = step;
+                updateCanvas(step);
+                updateCodeHighlight(sd.codeLine);
+                updateTimeline(step);
+                updateTeaching(step);
+                updateEvidence(step);
+                stateEl.textContent = formatStateJSON(sd.dpState);
+
+                // Update button states
+                prevBtn.disabled = (step === 1);
+                nextBtn.disabled = (step === totalSteps);
+
+                // Pause auto-play at checkpoints
+                if (sd.isCheckpoint && !checkpointResolved[sd.id] && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            function appendLog(message, cssClass) {
+                const li = document.createElement('li');
+                li.textContent = '[' + new Date().toLocaleTimeString() + '] ' + message;
+                if (cssClass) li.classList.add(cssClass);
+                learningLogEl.appendChild(li);
+                li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            window._checkpointSubmit = function(stepId) {
+                const sd = stepData.find(function(s) { return s.id === stepId; });
+                if (!sd || !sd.isCheckpoint) return;
+                if (checkpointResolved[stepId]) return;
+
+                const fbEl = document.getElementById('feedback-msg-' + stepId);
+                let allCorrect = true;
+                const userAnswers = [];
+                sd.checkpointFields.forEach(function(field) {
+                    const inp = document.getElementById(field.id);
+                    const userVal = inp ? parseInt(inp.value) : NaN;
+                    userAnswers.push({ label: field.label, user: userVal, correct: field.answer });
+                    if (isNaN(userVal) || userVal !== field.answer) {
+                        allCorrect = false;
+                    }
+                });
+
+                if (allCorrect) {
+                    checkpointResolved[stepId] = 'correct';
+                    if (fbEl) {
+                        fbEl.textContent = ' Correct! ' + sd.checkpointFields.map(function(f) { return f.label +
+                                ' = ' + f.answer; }).join(', ') + '.';
+                        fbEl.className = 'feedback-msg correct';
+                        fbEl.style.display = 'block';
+                    }
+                    appendLog('Step ' + stepId + ' checkpoint: Correct! ' + sd.checkpointFields.map(function(f) {
+                        return f.label + '=' + f.answer;
+                    }).join(', ') + '.', 'log-correct');
+                    // Disable checkpoint
+                    disableCheckpointUI(stepId, sd);
+                    // If play was waiting, resume
+                    if (!isPlaying && playBtn.textContent === 'Play') {
+                        // don't auto-resume
+                    }
+                } else {
+                    if (fbEl) {
+                        fbEl.textContent = ' Incorrect. You entered: ' + userAnswers.map(function(ua) {
+                            return ua.label + '=' + (isNaN(ua.user) ? '?' : ua.user);
+                        }).join(', ') + '. Try again or use Hint / Show Answer.';
+                        fbEl.className = 'feedback-msg incorrect';
+                        fbEl.style.display = 'block';
+                    }
+                    appendLog('Step ' + stepId + ' checkpoint: Incorrect submission - ' + userAnswers.map(function(
+                        ua) {
+                        return ua.label + '=' + (isNaN(ua.user) ? '?' : ua.user);
+                    }).join(', ') + '. Correct: ' + sd.checkpointFields.map(function(f) { return f.label + '=' + f
+                        .answer; }).join(', ') + '.', 'log-incorrect');
+                }
+            };
+
+            window._checkpointHint = function(stepId) {
+                const sd = stepData.find(function(s) { return s.id === stepId; });
+                if (!sd || !sd.isCheckpoint) return;
+                const hintEl = document.getElementById('hint-msg-' + stepId);
+                if (hintEl) {
+                    hintEl.textContent = ' Hint: ' + sd.checkpointHint;
+                    hintEl.style.display = 'block';
+                }
+                appendLog('Step ' + stepId + ' checkpoint: Hint requested.', 'log-revealed');
+            };
+
+            window._checkpointShow = function(stepId) {
+                const sd = stepData.find(function(s) { return s.id === stepId; });
+                if (!sd || !sd.isCheckpoint) return;
+                checkpointResolved[stepId] = 'revealed';
+                const fbEl = document.getElementById('feedback-msg-' + stepId);
+                if (fbEl) {
+                    fbEl.textContent = ' Answer: ' + sd.checkpointShowAnswer;
+                    fbEl.className = 'feedback-msg incorrect';
+                    fbEl.style.display = 'block';
+                }
+                // Fill inputs with correct answers
+                sd.checkpointFields.forEach(function(field) {
+                    const inp = document.getElementById(field.id);
+                    if (inp) { inp.value = field.answer;
+                        inp.disabled = true; }
+                });
+                disableCheckpointUI(stepId, sd);
+                appendLog('Step ' + stepId + ' checkpoint: Answer revealed - ' + sd.checkpointShowAnswer,
+                    'log-revealed');
+            };
+
+            function disableCheckpointUI(stepId, sd) {
+                const box = document.getElementById('checkpoint-box');
+                if (box) {
+                    const btns = box.querySelectorAll('button');
+                    btns.forEach(function(b) { b.disabled = true;
+                        b.style.opacity = '0.5';
+                        b.style.pointerEvents = 'none'; });
+                }
+                sd.checkpointFields.forEach(function(field) {
+                    const inp = document.getElementById(field.id);
+                    if (inp) inp.disabled = true;
+                });
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+                playBtn.textContent = 'Play';
+                playBtn.classList.remove('paused');
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                // If at final step, restart from 1
+                if (currentStep >= totalSteps) {
+                    goToStep(1, false);
+                }
+                isPlaying = true;
+                playBtn.textContent = 'Pause';
+                playBtn.classList.add('paused');
+                playInterval = setInterval(function() {
+                    if (currentStep < totalSteps) {
+                        const nextStep = currentStep + 1;
+                        const nextSD = stepData[nextStep - 1];
+                        if (nextSD.isCheckpoint && !checkpointResolved[nextSD.id]) {
+                            goToStep(nextStep, false);
+                            stopPlay();
+                            return;
+                        }
+                        goToStep(nextStep, false);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2000);
+            }
+
+            playBtn.addEventListener('click', function() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            });
+
+            prevBtn.addEventListener('click', function() {
+                stopPlay();
+                if (currentStep > 1) goToStep(currentStep - 1, true);
+            });
+
+            nextBtn.addEventListener('click', function() {
+                stopPlay();
+                if (currentStep < totalSteps) goToStep(currentStep + 1, true);
+            });
+
+            rangeEl.addEventListener('input', function() {
+                stopPlay();
+                const val = parseInt(rangeEl.value);
+                goToStep(val, true);
+            });
+
+            timelineTicks.forEach(function(tick) {
+                tick.addEventListener('click', function() {
+                    stopPlay();
+                    const stepVal = parseInt(tick.getAttribute('data-step'));
+                    goToStep(stepVal, true);
+                });
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStep > 1) goToStep(currentStep - 1, true);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    if (currentStep < totalSteps) goToStep(currentStep + 1, true);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    else startPlay();
+                }
+            });
+
+            // Initialize
+            goToStep(1, false);
+            answerEl.textContent = '14';
+        })();
+    </script>
+</body>
+</html>

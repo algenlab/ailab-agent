@@ -1,0 +1,132 @@
+{
+  "id": "segment_tree_range_sum",
+  "algorithm_id": "segment_tree_range_sum",
+  "title": "Segment Tree Range Sum",
+  "family": "Range Structure",
+  "family_id": "range_structure",
+  "subfamily_id": "segment_tree",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "range_structure",
+  "difficulty": "medium",
+  "problem": "The logistics center records the weight of parcels (in kilograms) every hour, stored in the array nums. Operators need to query the total weight of parcels from time point query[0] to query[1] (closed interval), then according to the received correction information update=[pos,value] change the weight at the pos-th hour to value, and then re-query the total weight of the same interval. Please use a segment tree to calculate and return the total weight before correction 'before' and after correction 'after'. The input includes the nums array, query interval, and update operation; the output is an object containing 'before' and 'after'.",
+  "strategy": "Segment tree node meta records the covered interval and interval sum; query sums along covering nodes; update path backtracks from leaf to maintain parent nodes.",
+  "input_contract": "Input nums array, query closed interval, and update single-point assignment.",
+  "variant_name": "Segment Tree Range Sum + Point Update",
+  "time_complexity": "O(log n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "Understand the representation of interval and sum in segment tree nodes (e.g., l, r, sum in meta)",
+    "Understand the backtracking update process from leaf node to root node during point update",
+    "Be able to determine the divide-and-conquer strategy for range sum based on node coverage"
+  ],
+  "required_views": [
+    "tree",
+    "array"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! Partial overlap requires decomposing to left and right child nodes for separate queries.",
+      "feedback_wrong": "Note that the current node interval [0,1] and the query interval [1,3] only overlap in the right half, so both left and right child nodes need to be considered.",
+      "id": "task_1",
+      "oracle": "Check the order of child node calls triggered by this node in the trace. The answer should include seg_0_0 and seg_1_1 (or corresponding interval representations), fuzzy matching allowed.",
+      "prompt": "When querying the range query=[1,3] on the segment tree, the current visited node seg_0_1 (covering [0,1], partial overlap), which two child nodes should be visited next?",
+      "stage2_affordance": "Highlight the current node in the tree view, and click on child nodes to expand and view.",
+      "trace_anchor": [
+        "state.node",
+        "state.query"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Absolutely correct! The parent node's sum is always the sum of its children's sums.",
+      "feedback_wrong": "Observe the node sum label, think about how the parent node's sum is calculated from its children.",
+      "id": "task_2",
+      "oracle": "The answer should be seg_0_3.sum = seg_0_1.sum + seg_2_3.sum, allowing variable names or specific values, as long as the equation is reflected.",
+      "prompt": "After construction, the sum of node seg_0_3 is 12, its left child seg_0_1 sum=3, right child seg_2_3 sum=9, please write the equation that satisfies the relationship among the three.",
+      "stage2_affordance": "Display the values on tree nodes, and allow students to click nodes to view child relationships.",
+      "trace_anchor": [
+        "state.node.sum",
+        "state.left.sum",
+        "state.right.sum"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct! A new value of 9 will change the interval sum to 15.",
+      "feedback_wrong": "The total before correction is 10. To change the total to 15, the difference is 5, so how much should nums[2] increase? Note the original value 4.",
+      "id": "task_3",
+      "oracle": "Calculation: before=10, update value at index2, after = before - 4 + new_val = 15 => new_val=9. Student answering 9 is correct.",
+      "prompt": "In the original problem, update=[2,6] changes nums[2] from 4 to 6, and the corrected sum for interval [1,3] is 12. If you want the corrected interval sum to become 15, what should the value in update be changed to?",
+      "stage2_affordance": "Provide a slider or input box to modify the value of update, and the array view and tree view will update the sum in real-time.",
+      "trace_anchor": [
+        "input.update.value",
+        "expected.after"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Exactly! The sum of a length-1 interval is the element value at that position.",
+      "feedback_wrong": "Recall the definition of a leaf node: when l == r, the node represents a single element, so what should its sum be?",
+      "id": "task_4",
+      "oracle": "The student should mention that the leaf node interval [3,3] contains only one element, so its sum is nums[3] (value 5), allowing keywords like 'leaf', 'single element', 'directly take value'.",
+      "prompt": "When constructing the leaf node seg_3_3 of the segment tree, why does its sum equal nums[3]? Explain using specific values from the array.",
+      "stage2_affordance": "Highlight nums[3] in the array view, and show its mapping to the leaf node seg_3_3 via a connection line.",
+      "trace_anchor": [
+        "state.node.meta.l",
+        "state.node.meta.r",
+        "input.nums[3]"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": {
+        "after": 12,
+        "before": 10
+      },
+      "index": 0,
+      "input_data": {
+        "nums": [
+          2,
+          1,
+          4,
+          5
+        ],
+        "query": [
+          1,
+          3
+        ],
+        "update": [
+          2,
+          6
+        ]
+      }
+    },
+    {
+      "expected": {
+        "after": 10,
+        "before": 4
+      },
+      "index": 1,
+      "input_data": {
+        "nums": [
+          3,
+          -1,
+          2,
+          7,
+          4
+        ],
+        "query": [
+          0,
+          2
+        ],
+        "update": [
+          1,
+          5
+        ]
+      }
+    }
+  ]
+}

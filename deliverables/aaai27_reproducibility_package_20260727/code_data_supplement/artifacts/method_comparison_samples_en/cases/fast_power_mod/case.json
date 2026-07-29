@@ -1,0 +1,112 @@
+{
+  "id": "fast_power_mod",
+  "algorithm_id": "fast_power_mod",
+  "title": "Fast Power Modulo",
+  "family": "Mathematics and Bitwise Operations",
+  "family_id": "math_bit",
+  "subfamily_id": "fast_power",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "math_bit",
+  "difficulty": "medium",
+  "problem": "In a security verification scenario, given base base, exponent exponent, and modulus mod, you need to compute the result of base raised to the exponent modulo mod. Implement the fast power algorithm and return the final modulus value.",
+  "strategy": "Break the exponent into binary, maintain a powers squaring table, and multiply into the answer whenever a 1-bit is encountered.",
+  "input_contract": "Input base, exponent, mod.",
+  "variant_name": "Binary Fast Power",
+  "time_complexity": "O(log exponent)",
+  "space_complexity": "O(log exponent)",
+  "learning_objectives": [
+    "Explain how each element of the powers array is obtained by squaring, and relate to binary bit weights",
+    "Predict whether answer should be updated based on the current binary bit of exponent",
+    "Identify and maintain the loop invariant answer * cur^e ≡ base^exponent (mod mod)"
+  ],
+  "required_views": [
+    "array",
+    "bits_scan",
+    "powers_table"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! You accurately applied the multiplication update rule.",
+      "feedback_wrong": "Please check: when the binary bit is 1, answer should be multiplied by cur and then taken modulo.",
+      "id": "task_1",
+      "oracle": "According to the algorithm, when bit is 1, answer should be multiplied by cur and then taken modulo, so answer = (1 * 3) % 13 = 3.",
+      "prompt": "Given base=3, exponent=5, mod=13, currently processing the 1st bit bit=1, answer=1, cur=3. What will answer become in the next step?",
+      "stage2_affordance": "Click the next step button to observe the changes in answer and cur.",
+      "trace_anchor": [
+        "state.answer",
+        "state.cur"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Very good! This invariant guarantees the correctness of the algorithm.",
+      "feedback_wrong": "Think: at each step, answer multiplied by cur raised to the power of e (the current remaining exponent) should equal the initial base^exponent mod mod.",
+      "id": "task_2",
+      "oracle": "The expected answer should include answer * cur^e ≡ 3^5 (mod 13) or more generally answer * cur^e ≡ base^exponent (mod mod).",
+      "prompt": "In the fast power loop with base=3, exponent=5, mod=13, before the loop starts answer=1, cur=3, e=5, please write the invariant maintained by the loop using these variables.",
+      "stage2_affordance": "Insert an assert statement in the code to verify the invariant.",
+      "trace_anchor": [
+        "state.answer",
+        "state.cur",
+        "state.exponent"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Right, when the modulus is small, the result only depends on the parity of base.",
+      "feedback_wrong": "Consider: any integer modulo 2 can only be 0 or 1, determined by base.",
+      "id": "task_3",
+      "oracle": "The expected answer should be 0, because any positive integer power of 2 is even, and modulo 2 yields 0.",
+      "prompt": "If the exponent is very large (e.g., 1000000) but mod is very small (e.g., 2), what will the result be? Please modify base=2, exponent=1000000, mod=2, and predict the final answer.",
+      "stage2_affordance": "Modify the input parameters at the bottom, re-run and observe the trace.",
+      "trace_anchor": [
+        "state.exponent",
+        "state.mod"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Clear explanation, this demonstrates the idea of exponentiation by squaring.",
+      "feedback_wrong": "Hint: when the binary representation of the exponent shifts left by one bit, the weight doubles, so cur needs to be squared to match the new bit weight.",
+      "id": "task_4",
+      "oracle": "Expected explanation: cur_i represents base^(2^i) mod mod; squaring each time gives base^(2^{i+1}) mod mod, so cur is updated to (cur * cur) % mod.",
+      "prompt": "During the execution with base=3, exponent=5, mod=13, cur changes from 3 (i=0) to 9 (i=1) and then to 3 (i=2). Please explain why cur changes in this way.",
+      "stage2_affordance": "Highlight the update process of the powers list.",
+      "trace_anchor": [
+        "state.cur",
+        "state.powers"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 9,
+      "index": 0,
+      "input_data": {
+        "base": 3,
+        "exponent": 5,
+        "mod": 13
+      }
+    },
+    {
+      "expected": 24,
+      "index": 1,
+      "input_data": {
+        "base": 2,
+        "exponent": 10,
+        "mod": 1000
+      }
+    },
+    {
+      "expected": 1,
+      "index": 2,
+      "input_data": {
+        "base": 7,
+        "exponent": 0,
+        "mod": 5
+      }
+    }
+  ]
+}

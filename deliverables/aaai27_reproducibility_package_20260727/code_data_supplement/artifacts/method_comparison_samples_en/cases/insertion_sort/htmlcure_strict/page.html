@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insertion Sort — Algorithm Tutoring</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --primary: #4f6ef7;
+            --primary-dark: #3b54d4;
+            --primary-light: #eef1ff;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --error: #ef4444;
+            --error-light: #fef2f2;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --sorted: #10b981;
+            --unsorted: #94a3b8;
+            --inserting: #f59e0b;
+            --highlight: #fbbf24;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.04);
+            --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(160deg, #e8eef5 0%, #f0f4f8 30%, #f8fafc 60%, #eef1f5 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse at 15% 20%, rgba(79, 110, 247, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 85% 60%, rgba(16, 185, 129, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 80%, rgba(245, 158, 11, 0.03) 0%, transparent 50%);
+        }
+
+        .page-container {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px 24px 60px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            padding: 24px 32px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4f6ef7, #10b981, #f59e0b);
+            border-radius: 3px 3px 0 0;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, #4f6ef7, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(79, 110, 247, 0.3);
+        }
+        .header-title-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .header-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+        }
+        .header-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .badge-sorting {
+            background: #eef1ff;
+            color: #4f6ef7;
+            border: 1px solid #dde3ff;
+        }
+        .badge-music {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+        .header-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+            transition: box-shadow var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .card-header {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-header .icon {
+            font-size: 1.3rem;
+        }
+
+        /* Problem description */
+        .problem-context {
+            font-size: 0.95rem;
+            color: var(--text);
+            line-height: 1.7;
+        }
+        .problem-context .highlight {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .io-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .io-block {
+            flex: 1;
+            min-width: 200px;
+            background: var(--surface-alt);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            border: 1px solid var(--border);
+        }
+        .io-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .io-value {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-all;
+        }
+        .io-value.output {
+            color: #10b981;
+        }
+
+        /* Final Answer */
+        .final-answer-card {
+            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+            border: 2px solid #a7f3d0;
+            border-radius: var(--radius-lg);
+            padding: 18px 24px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .final-answer-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #10b981;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+        }
+        .final-answer-content {
+            flex: 1;
+        }
+        .final-answer-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #059669;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .final-answer-value {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #065f46;
+        }
+        .final-answer-note {
+            font-size: 0.75rem;
+            color: #059669;
+            font-weight: 500;
+        }
+
+        /* Canvas */
+        .canvas-container {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .canvas-container canvas {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--radius-sm);
+            cursor: default;
+        }
+        .canvas-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        /* Step indicator */
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .step-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            cursor: pointer;
+            border: 2px solid var(--border);
+            background: var(--surface);
+            color: var(--text-muted);
+            position: relative;
+        }
+        .step-dot.active {
+            background: #4f6ef7;
+            color: #fff;
+            border-color: #4f6ef7;
+            box-shadow: 0 3px 10px rgba(79, 110, 247, 0.35);
+            transform: scale(1.1);
+        }
+        .step-dot.completed {
+            background: #10b981;
+            color: #fff;
+            border-color: #10b981;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+        }
+        .step-dot:hover:not(.active) {
+            border-color: #4f6ef7;
+            color: #4f6ef7;
+        }
+        .step-connector {
+            width: 28px;
+            height: 2px;
+            background: var(--border);
+            border-radius: 2px;
+        }
+        .step-connector.done {
+            background: #10b981;
+        }
+
+        /* Step timeline list */
+        .timeline-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            background: var(--surface-alt);
+            border: 1px solid var(--border-light);
+            font-size: 0.9rem;
+            transition: all var(--transition);
+        }
+        .timeline-item.current {
+            background: #eef1ff;
+            border-color: #c7d2fe;
+            font-weight: 600;
+        }
+        .timeline-item.completed {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+        }
+        .timeline-bullet {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: var(--unsorted);
+        }
+        .timeline-item.completed .timeline-bullet {
+            background: var(--sorted);
+        }
+        .timeline-item.current .timeline-bullet {
+            background: #4f6ef7;
+            box-shadow: 0 0 0 4px rgba(79, 110, 247, 0.2);
+        }
+        .timeline-array {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(20%);
+        }
+        .btn-primary {
+            background: #4f6ef7;
+            color: #fff;
+            box-shadow: 0 3px 12px rgba(79, 110, 247, 0.3);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #3b54d4;
+            box-shadow: 0 5px 18px rgba(79, 110, 247, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: #10b981;
+            color: #fff;
+            box-shadow: 0 3px 12px rgba(16, 185, 129, 0.3);
+        }
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+            box-shadow: 0 5px 18px rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-warning {
+            background: #f59e0b;
+            color: #fff;
+            box-shadow: 0 3px 12px rgba(245, 158, 11, 0.3);
+        }
+        .btn-warning:hover:not(:disabled) {
+            background: #d97706;
+            box-shadow: 0 5px 18px rgba(245, 158, 11, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            background: var(--surface);
+            color: #4f6ef7;
+            border: 2px solid #4f6ef7;
+        }
+        .btn-outline:hover:not(:disabled) {
+            background: #eef1ff;
+            transform: translateY(-1px);
+        }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover:not(:disabled) {
+            background: var(--surface-alt);
+            color: var(--text);
+            border-color: #cbd5e1;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            border-radius: 20px;
+        }
+        .btn-lg {
+            padding: 13px 28px;
+            font-size: 1rem;
+            border-radius: 28px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Checkpoint area */
+        .checkpoint-area {
+            background: #fffbeb;
+            border: 2px solid #fde68a;
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-bottom: 14px;
+            display: none;
+            box-shadow: var(--shadow-md);
+            animation: fadeSlideIn 0.35s ease-out;
+        }
+        .checkpoint-area.active {
+            display: block;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .checkpoint-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #92400e;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkpoint-desc {
+            font-size: 0.9rem;
+            color: #78350f;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .prediction-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .prediction-input {
+            flex: 1;
+            min-width: 180px;
+            padding: 10px 16px;
+            border-radius: 25px;
+            border: 2px solid #fde68a;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 0.9rem;
+            background: #fff;
+            color: var(--text);
+            transition: all var(--transition);
+            outline: none;
+        }
+        .prediction-input:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+        }
+        .prediction-input.correct-flash {
+            border-color: #10b981 !important;
+            background: #ecfdf5 !important;
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.15) !important;
+        }
+        .prediction-input.incorrect-flash {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+            box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.12) !important;
+        }
+
+        /* Feedback */
+        .feedback-banner {
+            padding: 12px 18px;
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: none;
+            animation: fadeSlideIn 0.3s ease-out;
+            align-items: center;
+            gap: 8px;
+        }
+        .feedback-banner.show {
+            display: flex;
+        }
+        .feedback-banner.correct {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 2px solid #a7f3d0;
+        }
+        .feedback-banner.incorrect {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 2px solid #fecaca;
+        }
+        .feedback-banner.info {
+            background: #eef1ff;
+            color: #3730a3;
+            border: 2px solid #c7d2fe;
+        }
+
+        /* Learning log */
+        .learning-log {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            margin-top: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .learning-log-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            padding-bottom: 8px;
+            z-index: 2;
+        }
+        .log-entry {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            border-left: 3px solid transparent;
+            animation: fadeSlideIn 0.25s ease-out;
+            background: var(--surface-alt);
+        }
+        .log-entry.correct {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .log-entry.incorrect {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .log-entry.hint {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .log-entry.info {
+            border-left-color: #4f6ef7;
+            background: #eef1ff;
+        }
+        .log-time {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-weight: 500;
+        }
+        .log-text {
+            flex: 1;
+            color: var(--text);
+        }
+        .log-empty {
+            text-align: center;
+            color: var(--text-light);
+            font-style: italic;
+            padding: 20px;
+            font-size: 0.85rem;
+        }
+
+        /* Hint area */
+        .hint-box {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-top: 8px;
+            display: none;
+            font-size: 0.85rem;
+            color: #78350f;
+            animation: fadeSlideIn 0.3s ease-out;
+            line-height: 1.5;
+        }
+        .hint-box.show {
+            display: block;
+        }
+        .hint-box .hint-level {
+            font-weight: 700;
+            color: #b45309;
+            margin-bottom: 3px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Range slider */
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0 14px;
+        }
+        .range-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #10b981 0%, #10b981 var(--range-progress, 0%), #e2e8f0 var(--range-progress, 0%), #e2e8f0 100%);
+            outline: none;
+            cursor: pointer;
+        }
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #4f6ef7;
+            cursor: pointer;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all var(--transition);
+        }
+        .range-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            padding: 0 4px;
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .page-container {
+                padding: 10px 12px 40px;
+            }
+            .header {
+                padding: 16px 18px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .card {
+                padding: 16px 18px;
+            }
+            .btn-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn {
+                justify-content: center;
+            }
+            .prediction-input-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .io-row {
+                flex-direction: column;
+            }
+            canvas {
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
+
+        /* Tooltip style */
+        .tt {
+            position: relative;
+            cursor: help;
+            border-bottom: 1px dotted var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="header-icon">&#9654;</div>
+                <div class="header-title-group">
+                    <h1 class="header-title">Insertion Sort</h1>
+                    <span class="header-subtitle">Interactive Algorithm Tutoring</span>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span class="badge badge-sorting">&#128190; Sorting</span>
+                <span class="badge badge-music">&#127925; Music Player</span>
+            </div>
+        </header>
+
+        <!-- Problem Context -->
+        <section class="card" aria-labelledby="problem-heading">
+            <div class="card-header">
+                <span class="icon">&#127911;</span>
+                <span id="problem-heading">Problem Context</span>
+            </div>
+            <p class="problem-context">
+                In a <span class="highlight">music player application</span>, you are given a list of
+                <strong>song favorability scores</strong> called <code>nums</code>. Use the
+                <strong>insertion sort</strong> method to sort them in
+                <strong>ascending order</strong> and return the sorted list, so that songs can be
+                played from <em>lowest to highest</em> score.
+            </p>
+            <div class="io-row">
+                <div class="io-block">
+                    <div class="io-label">&#128230; Input JSON</div>
+                    <div class="io-value">{"nums": [5, 2, 3, 1]}</div>
+                </div>
+                <div class="io-block">
+                    <div class="io-label">&#128640; Expected Output JSON</div>
+                    <div class="io-value output">[1, 2, 3, 5]</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final Answer (Authoritative, Never Changes) -->
+        <div class="final-answer-card" aria-label="Authoritative final answer">
+            <div class="final-answer-icon">&#10003;</div>
+            <div class="final-answer-content">
+                <div class="final-answer-label">Authoritative Final Answer</div>
+                <div class="final-answer-value">[1, 2, 3, 5]</div>
+            </div>
+            <div class="final-answer-note">Never changes</div>
+        </div>
+
+        <!-- Visualization Canvas -->
+        <section class="canvas-container" aria-labelledby="viz-heading">
+            <div class="card-header" style="margin-bottom:4px;">
+                <span class="icon">&#128202;</span>
+                <span id="viz-heading">Algorithm Visualization</span>
+            </div>
+            <canvas id="vizCanvas" width="720" height="320" tabindex="0" aria-label="Insertion sort visualization canvas showing array bars"></canvas>
+            <div class="canvas-label" id="canvasStateLabel">Initial State — [5, 2, 3, 1]</div>
+        </section>
+
+        <!-- Step Navigation -->
+        <div class="card" style="padding:16px 20px;">
+            <div class="step-indicator" id="stepIndicator">
+                <span class="step-dot active" data-step="0" title="Initial State">0</span>
+                <span class="step-connector" id="conn0"></span>
+                <span class="step-dot" data-step="1" title="After inserting 2">1</span>
+                <span class="step-connector" id="conn1"></span>
+                <span class="step-dot" data-step="2" title="After inserting 3">2</span>
+                <span class="step-connector" id="conn2"></span>
+                <span class="step-dot" data-step="3" title="After inserting 1 (Final)">3</span>
+            </div>
+            <div class="range-container">
+                <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Step:</span>
+                <input type="range" class="range-slider" id="stepRange" min="0" max="3" value="0" step="1" aria-label="Step progress slider" style="--range-progress:0%;">
+                <span style="font-size:0.8rem;font-weight:700;color:#4f6ef7;min-width:28px;text-align:center;" id="rangeValueLabel">0</span>
+            </div>
+            <div class="btn-row" style="justify-content:center;">
+                <button class="btn btn-outline btn-sm" id="btnPrev" disabled>&#9664; Previous Step</button>
+                <button class="btn btn-primary" id="btnNext">Next Step &#9654;</button>
+                <button class="btn btn-ghost btn-sm" id="btnReset">&#8634; Reset</button>
+            </div>
+        </div>
+
+        <!-- Step Timeline -->
+        <section class="card" aria-labelledby="timeline-heading">
+            <div class="card-header">
+                <span class="icon">&#128338;</span>
+                <span id="timeline-heading">Algorithm State Timeline</span>
+            </div>
+            <ul class="timeline-list" id="timelineList">
+                <li class="timeline-item current" data-timeline-step="0">
+                    <span class="timeline-bullet"></span>
+                    <span><strong>Step 0 (Initial):</strong> Unsorted array — <span class="timeline-array">[5, 2, 3, 1]</span></span>
+                </li>
+                <li class="timeline-item" data-timeline-step="1">
+                    <span class="timeline-bullet"></span>
+                    <span><strong>Step 1:</strong> Insert 2 into sorted portion — <span class="timeline-array">[2, 5, 3, 1]</span></span>
+                </li>
+                <li class="timeline-item" data-timeline-step="2">
+                    <span class="timeline-bullet"></span>
+                    <span><strong>Step 2:</strong> Insert 3 into sorted portion — <span class="timeline-array">[2, 3, 5, 1]</span></span>
+                </li>
+                <li class="timeline-item" data-timeline-step="3">
+                    <span class="timeline-bullet"></span>
+                    <span><strong>Step 3 (Final):</strong> Insert 1 into sorted portion — <span class="timeline-array">[1, 2, 3, 5]</span></span>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Checkpoint / Prediction -->
+        <div class="checkpoint-area" id="checkpointArea" aria-live="polite">
+            <div class="checkpoint-title">&#127919; Checkpoint: Predict the Next State</div>
+            <div class="checkpoint-desc" id="checkpointDesc"></div>
+            <div class="prediction-input-row">
+                <input type="text" class="prediction-input" id="predictionInput"
+                placeholder="e.g. [2, 3, 5, 1]"
+                aria-label="Type your array prediction here">
+                <button class="btn btn-warning btn-sm" id="btnCheck">&#128269; Check Prediction</button>
+                <button class="btn btn-outline btn-sm" id="btnHint">&#128161; Hint</button>
+                <button class="btn btn-ghost btn-sm" id="btnShowAnswer">&#128064; Show Answer</button>
+            </div>
+            <div class="hint-box" id="hintBox">
+                <div class="hint-level" id="hintLevel"></div>
+                <div id="hintText"></div>
+            </div>
+        </div>
+
+        <!-- Feedback -->
+        <div class="feedback-banner" id="feedbackBanner" aria-live="assertive"></div>
+
+        <!-- Learning Log -->
+        <section class="learning-log" aria-labelledby="log-heading">
+            <div class="learning-log-title">
+                <span>&#128214;</span> Learning Log
+                <span style="font-weight:400;font-size:0.75rem;color:var(--text-muted);">(all attempts recorded)</span>
+            </div>
+            <div id="logEntries">
+                <div class="log-empty">No entries yet. Interact with the algorithm to populate the log.</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        (function() {
+            // ─────────────────────────────────────
+            // CONSTANTS & STATE
+            // ─────────────────────────────────────
+            const algorithmStates = [
+                [5, 2, 3, 1], // Step 0: Initial
+                [2, 5, 3, 1], // Step 1: After inserting 2
+                [2, 3, 5, 1], // Step 2: After inserting 3
+                [1, 2, 3, 5], // Step 3: After inserting 1 (Final)
+            ];
+
+            const stateDescriptions = [
+                'Initial unsorted array — [5, 2, 3, 1]',
+                'After inserting 2 into sorted portion — [2, 5, 3, 1]',
+                'After inserting 3 into sorted portion — [2, 3, 5, 1]',
+                'After inserting 1 into sorted portion — [1, 2, 3, 5] (Fully Sorted)',
+            ];
+
+            const checkpointData = {
+                1: { // Transitioning FROM step 1 TO step 2
+                    desc: 'The sorted portion is currently <strong>[2, 5]</strong>. The next unsorted element is <strong>3</strong>. Predict what the entire array will look like after inserting 3 into its correct position.',
+                    expected: [2, 3, 5, 1],
+                    hints: [
+                        'Insertion sort takes the next unsorted element and places it into the correct spot within the already-sorted left portion.',
+                        'The sorted portion is [2, 5]. The next element is 3. Compare 3 with 5 (shift 5 right), then compare 3 with 2 (3 > 2, so 3 stays).',
+                        'Since 2 < 3 < 5, place 3 between 2 and 5. The sorted portion becomes [2, 3, 5], and the unsorted tail [1] remains. Full array: [2, 3, 5, 1].',
+                    ],
+                },
+                2: { // Transitioning FROM step 2 TO step 3
+                    desc: 'The sorted portion is now <strong>[2, 3, 5]</strong>. The next unsorted element is <strong>1</strong>. Predict what the entire array will look like after inserting 1 into its correct position.',
+                    expected: [1, 2, 3, 5],
+                    hints: [
+                        'The next element 1 needs to be placed into the correct spot within [2, 3, 5]. Compare from right to left.',
+                        '1 is less than 5, less than 3, and less than 2. So all three shift right, and 1 goes to the very front.',
+                        'After shifting 5, 3, and 2 to the right, place 1 at index 0. The full sorted array is [1, 2, 3, 5].',
+                    ],
+                },
+            };
+
+            let currentStep = 0; // 0-3
+            let maxRevealedStep = 0; // Furthest step the user has legitimately reached
+            let checkpointResolved = [false, false]; // For transitions 1->2 and 2->3
+            let activeCheckpoint = null; // null or 1 or 2 (the TO-step index)
+            let hintsShownForCheckpoint = {}; // {1: count, 2: count}
+            let answerRevealedForCheckpoint = {}; // {1: bool, 2: bool}
+            let learningLogEntries = [];
+            let isAnimating = false;
+            let animationId = null;
+
+            // Bar animation data
+            // Each value gets a persistent "bar entity" tracked by its original value
+            const barEntities = [
+                { value: 5, id: 'v5', currentX: 0, targetX: 0, currentY: 0, targetY: 0, color: '#94a3b8' },
+                { value: 2, id: 'v2', currentX: 0, targetX: 0, currentY: 0, targetY: 0, color: '#94a3b8' },
+                { value: 3, id: 'v3', currentX: 0, targetX: 0, currentY: 0, targetY: 0, color: '#94a3b8' },
+                { value: 1, id: 'v1', currentX: 0, targetX: 0, currentY: 0, targetY: 0, color: '#94a3b8' },
+            ];
+
+            function getBarEntityByValue(val) {
+                return barEntities.find(b => b.value === val);
+            }
+
+            // Canvas
+            const canvas = document.getElementById('vizCanvas');
+            const ctx = canvas.getContext('2d');
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+            // Bar layout constants
+            const barBaseY = 270;
+            const barMaxHeight = 180;
+            const barWidth = 90;
+            const barGap = 54;
+            const totalBarsWidth = 4 * barWidth + 3 * barGap;
+            const startX = (canvasWidth - totalBarsWidth) / 2;
+
+            function getBarXForIndex(index) {
+                return startX + index * (barWidth + barGap);
+            }
+
+            function getBarHeight(value) {
+                return (value / 5) * barMaxHeight;
+            }
+
+            // ─────────────────────────────────────
+            // DOM REFERENCES
+            // ─────────────────────────────────────
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnReset = document.getElementById('btnReset');
+            const stepRange = document.getElementById('stepRange');
+            const rangeValueLabel = document.getElementById('rangeValueLabel');
+            const checkpointArea = document.getElementById('checkpointArea');
+            const checkpointDesc = document.getElementById('checkpointDesc');
+            const predictionInput = document.getElementById('predictionInput');
+            const btnCheck = document.getElementById('btnCheck');
+            const btnHint = document.getElementById('btnHint');
+            const btnShowAnswer = document.getElementById('btnShowAnswer');
+            const hintBox = document.getElementById('hintBox');
+            const hintLevel = document.getElementById('hintLevel');
+            const hintText = document.getElementById('hintText');
+            const feedbackBanner = document.getElementById('feedbackBanner');
+            const logEntries = document.getElementById('logEntries');
+            const canvasStateLabel = document.getElementById('canvasStateLabel');
+            const timelineList = document.getElementById('timelineList');
+
+            // ─────────────────────────────────────
+            // UTILITY FUNCTIONS
+            // ─────────────────────────────────────
+            function formatArray(arr) {
+                return '[' + arr.join(', ') + ']';
+            }
+
+            function getTimestamp() {
+                const now = new Date();
+                return now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit',
+                    second: '2-digit' });
+            }
+
+            function arraysEqual(a, b) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }
+
+            function parseArrayFromInput(inputStr) {
+                // Accept formats: "[1,2,3,4]", "1,2,3,4", "1 2 3 4", "[1, 2, 3, 4]"
+                let cleaned = inputStr.trim();
+                cleaned = cleaned.replace(/^\[|\]$/g, '');
+                const parts = cleaned.split(/[,\s]+/).filter(s => s.length > 0);
+                const nums = [];
+                for (const p of parts) {
+                    const n = Number(p);
+                    if (isNaN(n) || !Number.isInteger(n)) return null;
+                    nums.push(n);
+                }
+                return nums.length === 4 ? nums : null;
+            }
+
+            // ─────────────────────────────────────
+            // BAR POSITION UPDATES
+            // ─────────────────────────────────────
+            function updateBarTargetsForState(stateArray) {
+                for (let i = 0; i < stateArray.length; i++) {
+                    const val = stateArray[i];
+                    const entity = getBarEntityByValue(val);
+                    if (entity) {
+                        entity.targetX = getBarXForIndex(i);
+                        entity.targetY = barBaseY - getBarHeight(val);
+                    }
+                }
+            }
+
+            function snapBarsToTargets() {
+                for (const entity of barEntities) {
+                    entity.currentX = entity.targetX;
+                    entity.currentY = entity.targetY;
+                }
+            }
+
+            function updateBarColorsForState(stateArray, insertingValue) {
+                // Determine sorted portion size based on state
+                const stateIndex = algorithmStates.findIndex(s => arraysEqual(s, stateArray));
+                let sortedCount = 0;
+                if (stateIndex === 0) sortedCount = 1; // First element is trivially sorted
+                if (stateIndex === 1) sortedCount = 2;
+                if (stateIndex === 2) sortedCount = 3;
+                if (stateIndex === 3) sortedCount = 4;
+
+                for (let i = 0; i < stateArray.length; i++) {
+                    const val = stateArray[i];
+                    const entity = getBarEntityByValue(val);
+                    if (!entity) continue;
+                    if (val === insertingValue) {
+                        entity.color = '#f59e0b'; // inserting highlight
+                    } else if (i < sortedCount) {
+                        entity.color = '#10b981'; // sorted
+                    } else {
+                        entity.color = '#94a3b8'; // unsorted
+                    }
+                }
+            }
+
+            function updateAllBarColorsForState(stateArray) {
+                const stateIndex = algorithmStates.findIndex(s => arraysEqual(s, stateArray));
+                let sortedCount = 0;
+                if (stateIndex === 0) sortedCount = 1;
+                if (stateIndex === 1) sortedCount = 2;
+                if (stateIndex === 2) sortedCount = 3;
+                if (stateIndex === 3) sortedCount = 4;
+                for (let i = 0; i < stateArray.length; i++) {
+                    const val = stateArray[i];
+                    const entity = getBarEntityByValue(val);
+                    if (!entity) continue;
+                    if (i < sortedCount) {
+                        entity.color = '#10b981';
+                    } else {
+                        entity.color = '#94a3b8';
+                    }
+                }
+            }
+
+            // ─────────────────────────────────────
+            // ANIMATION
+            // ─────────────────────────────────────
+            function easeInOutCubic(t) {
+                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            let animStartTime = 0;
+            let animDuration = 550; // ms
+            let animFromStates = null; // snapshot of {currentX, currentY} per entity
+            let animToStateArray = null;
+            let animInsertingValue = null;
+            let animOnComplete = null;
+
+            function startAnimation(toStateArray, insertingValue, onComplete) {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                isAnimating = true;
+                animStartTime = performance.now();
+                animDuration = 550;
+                animFromStates = barEntities.map(e => ({ id: e.id, fromX: e.currentX, fromY: e.currentY }));
+                animToStateArray = toStateArray;
+                animInsertingValue = insertingValue;
+                animOnComplete = onComplete || null;
+                updateBarTargetsForState(toStateArray);
+                updateBarColorsForState(toStateArray, insertingValue);
+                disableControlsDuringAnimation(true);
+            }
+
+            function completeAnimation() {
+                if (!isAnimating) return;
+                snapBarsToTargets();
+                updateAllBarColorsForState(animToStateArray || algorithmStates[currentStep]);
+                isAnimating = false;
+                animFromStates = null;
+                animToStateArray = null;
+                animInsertingValue = null;
+                if (animOnComplete) {
+                    const cb = animOnComplete;
+                    animOnComplete = null;
+                    cb();
+                }
+                disableControlsDuringAnimation(false);
+                drawCanvas();
+            }
+
+            function disableControlsDuringAnimation(disabled) {
+                btnPrev.disabled = disabled || (currentStep === 0);
+                btnNext.disabled = disabled;
+                btnReset.disabled = disabled;
+                stepRange.disabled = disabled;
+                if (!disabled) {
+                    updateButtonStates();
+                }
+            }
+
+            // ─────────────────────────────────────
+            // CANVAS DRAWING
+            // ─────────────────────────────────────
+            function drawCanvas() {
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+                // Background grid lines
+                ctx.strokeStyle = '#f1f5f9';
+                ctx.lineWidth = 1;
+                for (let y = barBaseY; y > barBaseY - barMaxHeight - 30; y -= 45) {
+                    ctx.beginPath();
+                    ctx.moveTo(30, y);
+                    ctx.lineTo(canvasWidth - 30, y);
+                    ctx.stroke();
+                }
+                // Baseline
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(30, barBaseY);
+                ctx.lineTo(canvasWidth - 30, barBaseY);
+                ctx.stroke();
+                // Small tick marks
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '11px "Inter", sans-serif';
+                ctx.textAlign = 'right';
+                for (let v = 1; v <= 5; v++) {
+                    const y = barBaseY - getBarHeight(v);
+                    ctx.fillText(v, 52, y + 4);
+                    ctx.beginPath();
+                    ctx.moveTo(56, y);
+                    ctx.lineTo(62, y);
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                // Draw bars
+                for (const entity of barEntities) {
+                    const x = entity.currentX;
+                    const y = entity.currentY;
+                    const h = barBaseY - y;
+                    const w = barWidth;
+
+                    // Bar shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+                    roundRect(ctx, x + 3, y + 3, w, h, 10);
+                    ctx.fill();
+
+                    // Bar body with gradient
+                    const grad = ctx.createLinearGradient(x, y, x, barBaseY);
+                    const baseColor = entity.color;
+                    grad.addColorStop(0, lightenColor(baseColor, 20));
+                    grad.addColorStop(0.5, baseColor);
+                    grad.addColorStop(1, darkenColor(baseColor, 15));
+                    ctx.fillStyle = grad;
+                    roundRect(ctx, x, y, w, h, 10);
+                    ctx.fill();
+
+                    // Bar highlight (top edge)
+                    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                    roundRectTop(ctx, x, y, w, Math.min(h * 0.35, 40), 10);
+                    ctx.fill();
+
+                    // Border
+                    ctx.strokeStyle = darkenColor(baseColor, 25);
+                    ctx.lineWidth = 2;
+                    roundRect(ctx, x, y, w, h, 10);
+                    ctx.stroke();
+
+                    // Value label on bar
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 18px "JetBrains Mono", "Courier New", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                    ctx.shadowBlur = 3;
+                    ctx.fillText(entity.value, x + w / 2, y + h / 2 + 6);
+                    ctx.shadowBlur = 0;
+                    ctx.shadowColor = 'transparent';
+
+                    // Index label below bar
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '12px "Inter", sans-serif';
+                    ctx.fillText('idx ' + getCurrentIndexForValue(entity.value), x + w / 2, barBaseY + 18);
+                }
+
+                // Legend
+                const legendY = 30;
+                const legendX = canvasWidth - 200;
+                drawLegendItem(legendX, legendY, '#10b981', 'Sorted portion');
+                drawLegendItem(legendX, legendY + 22, '#94a3b8', 'Unsorted');
+                drawLegendItem(legendX, legendY + 44, '#f59e0b', 'Being inserted');
+
+                // Title on canvas
+                ctx.fillStyle = '#1e293b';
+                ctx.font = '600 14px "Inter", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('Insertion Sort — Bar Visualization', 30, 28);
+            }
+
+            function roundRect(ctx, x, y, w, h, r) {
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
+            }
+
+            function roundRectTop(ctx, x, y, w, h, r) {
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h);
+                ctx.lineTo(x, y + h);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
+            }
+
+            function drawLegendItem(x, y, color, label) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 14, 14);
+                ctx.strokeStyle = darkenColor(color, 20);
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(x, y, 14, 14);
+                ctx.fillStyle = '#475569';
+                ctx.font = '11px "Inter", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(label, x + 20, y + 12);
+            }
+
+            function getCurrentIndexForValue(val) {
+                const state = algorithmStates[currentStep];
+                return state.indexOf(val);
+            }
+
+            function lightenColor(hex, percent) {
+                const num = parseInt(hex.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = Math.min(255, (num >> 16) + amt);
+                const G = Math.min(255, ((num >> 8) & 0x00FF00) + amt);
+                const B = Math.min(255, (num & 0x0000FF) + amt);
+                return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+            }
+
+            function darkenColor(hex, percent) {
+                const num = parseInt(hex.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = Math.max(0, (num >> 16) - amt);
+                const G = Math.max(0, ((num >> 8) & 0x00FF00) - amt);
+                const B = Math.max(0, (num & 0x0000FF) - amt);
+                return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+            }
+
+            // ─────────────────────────────────────
+            // ANIMATION LOOP
+            // ─────────────────────────────────────
+            function animationLoop(timestamp) {
+                if (isAnimating && animFromStates && animToStateArray) {
+                    const elapsed = timestamp - animStartTime;
+                    const rawT = Math.min(elapsed / animDuration, 1);
+                    const t = easeInOutCubic(rawT);
+
+                    // Interpolate each bar
+                    for (let i = 0; i < barEntities.length; i++) {
+                        const entity = barEntities[i];
+                        const from = animFromStates[i];
+                        entity.currentX = from.fromX + (entity.targetX - from.fromX) * t;
+                        entity.currentY = from.fromY + (entity.targetY - from.fromY) * t;
+                    }
+
+                    drawCanvas();
+
+                    if (rawT >= 1) {
+                        completeAnimation();
+                    }
+                } else if (!isAnimating) {
+                    drawCanvas();
+                }
+                animationId = requestAnimationFrame(animationLoop);
+            }
+
+            // ─────────────────────────────────────
+            // UI STATE UPDATES
+            // ─────────────────────────────────────
+            function updateButtonStates() {
+                btnPrev.disabled = isAnimating || currentStep === 0;
+                btnNext.disabled = isAnimating || currentStep >= 3;
+                btnReset.disabled = isAnimating;
+                stepRange.disabled = isAnimating;
+                stepRange.value = currentStep;
+                const progressPercent = (currentStep / 3) * 100;
+                stepRange.style.setProperty('--range-progress', progressPercent + '%');
+                rangeValueLabel.textContent = currentStep;
+            }
+
+            function updateStepDots() {
+                const dots = document.querySelectorAll('.step-dot');
+                dots.forEach(dot => {
+                    const step = parseInt(dot.getAttribute('data-step'));
+                    dot.classList.remove('active', 'completed');
+                    if (step === currentStep) dot.classList.add('active');
+                    else if (step < currentStep) dot.classList.add('completed');
+                });
+                const connectors = document.querySelectorAll('.step-connector');
+                connectors.forEach((conn, i) => {
+                    if (i < currentStep) conn.classList.add('done');
+                    else conn.classList.remove('done');
+                });
+            }
+
+            function updateTimeline() {
+                const items = timelineList.querySelectorAll('.timeline-item');
+                items.forEach(item => {
+                    const step = parseInt(item.getAttribute('data-timeline-step'));
+                    item.classList.remove('current', 'completed');
+                    if (step === currentStep) item.classList.add('current');
+                    else if (step < currentStep) item.classList.add('completed');
+                });
+            }
+
+            function updateCanvasLabel() {
+                canvasStateLabel.textContent = stateDescriptions[currentStep];
+            }
+
+            function refreshAllUI() {
+                updateButtonStates();
+                updateStepDots();
+                updateTimeline();
+                updateCanvasLabel();
+                updateAllBarColorsForState(algorithmStates[currentStep]);
+                updateBarTargetsForState(algorithmStates[currentStep]);
+                if (!isAnimating) {
+                    snapBarsToTargets();
+                }
+                drawCanvas();
+            }
+
+            function hideCheckpoint() {
+                checkpointArea.classList.remove('active');
+                hintBox.classList.remove('show');
+                feedbackBanner.classList.remove('show', 'correct', 'incorrect', 'info');
+                activeCheckpoint = null;
+                predictionInput.value = '';
+                predictionInput.classList.remove('correct-flash', 'incorrect-flash');
+            }
+
+            function showCheckpoint(stepIndex) {
+                // stepIndex is the TO step (1 or 2 for transitions 1->2 and 2->3)
+                const data = checkpointData[stepIndex];
+                if (!data) return;
+                if (checkpointResolved[stepIndex - 1]) return; // Already resolved
+                if (answerRevealedForCheckpoint[stepIndex]) return; // Answer was shown
+
+                activeCheckpoint = stepIndex;
+                checkpointArea.classList.add('active');
+                checkpointDesc.innerHTML = data.desc;
+                predictionInput.value = '';
+                predictionInput.classList.remove('correct-flash', 'incorrect-flash');
+                predictionInput.focus();
+                hintBox.classList.remove('show');
+                feedbackBanner.classList.remove('show', 'correct', 'incorrect', 'info');
+                if (!hintsShownForCheckpoint[stepIndex]) hintsShownForCheckpoint[stepIndex] = 0;
+                btnNext.disabled = true; // Must resolve checkpoint first
+            }
+
+            function resolveCheckpoint(stepIndex) {
+                checkpointResolved[stepIndex - 1] = true;
+                hideCheckpoint();
+                btnNext.disabled = isAnimating || currentStep >= 3;
+                // Proceed with the step transition
+                executeStepTransition(stepIndex);
+            }
+
+            function executeStepTransition(toStep) {
+                if (isAnimating) return;
+                const fromState = algorithmStates[currentStep];
+                const toState = algorithmStates[toStep];
+                // Determine the inserting value (the one that moved)
+                const insertingValue = findInsertingValue(fromState, toState);
+                startAnimation(toState, insertingValue, () => {
+                    currentStep = toStep;
+                    if (toStep > maxRevealedStep) maxRevealedStep = toStep;
+                    refreshAllUI();
+                    updateButtonStates();
+                });
+            }
+
+            function findInsertingValue(fromArr, toArr) {
+                // The value that is in a different position or newly placed in sorted portion
+                // In insertion sort, the element being inserted is the one from the unsorted portion
+                // that gets placed into the sorted portion.
+                // For our specific states:
+                // 0->1: value 2 moves from idx1 to idx0
+                // 1->2: value 3 moves from idx2 to idx1
+                // 2->3: value 1 moves from idx3 to idx0
+                for (const val of fromArr) {
+                    const fromIdx = fromArr.indexOf(val);
+                    const toIdx = toArr.indexOf(val);
+                    if (fromIdx !== toIdx) return val;
+                }
+                return null;
+            }
+
+            // ─────────────────────────────────────
+            // LEARNING LOG
+            // ─────────────────────────────────────
+            function addLogEntry(message, type) {
+                const entry = {
+                    time: getTimestamp(),
+                    message: message,
+                    type: type, // 'correct', 'incorrect', 'hint', 'info', 'answer'
+                };
+                learningLogEntries.push(entry);
+                renderLogEntries();
+            }
+
+            function renderLogEntries() {
+                if (learningLogEntries.length === 0) {
+                    logEntries.innerHTML =
+                        '<div class="log-empty">No entries yet. Interact with the algorithm to populate the log.</div>';
+                    return;
+                }
+                let html = '';
+                for (let i = learningLogEntries.length - 1; i >= 0; i--) {
+                    const entry = learningLogEntries[i];
+                    const iconMap = {
+                        correct: '&#9989;',
+                        incorrect: '&#10060;',
+                        hint: '&#128161;',
+                        info: '&#128196;',
+                        answer: '&#128064;',
+                    };
+                    const icon = iconMap[entry.type] || '&#128196;';
+                    html += `
+                <div class="log-entry ${entry.type}">
+                  <span class="log-time">${entry.time}</span>
+                  <span class="log-text">${icon} ${entry.message}</span>
+                </div>`;
+                }
+                logEntries.innerHTML = html;
+                // Scroll to top of log to show newest
+                const logContainer = logEntries.closest('.learning-log');
+                if (logContainer) logContainer.scrollTop = 0;
+            }
+
+            // ─────────────────────────────────────
+            // EVENT HANDLERS
+            // ─────────────────────────────────────
+            function handleNextStep() {
+                if (isAnimating) return;
+                if (currentStep >= 3) return;
+
+                const nextStep = currentStep + 1;
+
+                // Check if this transition has a checkpoint
+                if ((nextStep === 2 || nextStep === 3) && !checkpointResolved[nextStep - 1] && !
+                    answerRevealedForCheckpoint[nextStep]) {
+                    showCheckpoint(nextStep);
+                    return;
+                }
+
+                // No checkpoint needed, just execute
+                executeStepTransition(nextStep);
+            }
+
+            function handlePrevStep() {
+                if (isAnimating) return;
+                if (currentStep <= 0) return;
+                hideCheckpoint();
+                const prevStep = currentStep - 1;
+                const toState = algorithmStates[prevStep];
+                updateBarTargetsForState(toState);
+                updateAllBarColorsForState(toState);
+                snapBarsToTargets();
+                currentStep = prevStep;
+                refreshAllUI();
+                updateButtonStates();
+                drawCanvas();
+                addLogEntry('Navigated back to Step ' + prevStep + ' — ' + formatArray(algorithmStates[prevStep]),
+                    'info');
+            }
+
+            function handleReset() {
+                if (isAnimating) return;
+                hideCheckpoint();
+                checkpointResolved = [false, false];
+                hintsShownForCheckpoint = { 1: 0, 2: 0 };
+                answerRevealedForCheckpoint = { 1: false, 2: false };
+                activeCheckpoint = null;
+                currentStep = 0;
+                maxRevealedStep = 0;
+                const toState = algorithmStates[0];
+                updateBarTargetsForState(toState);
+                updateAllBarColorsForState(toState);
+                snapBarsToTargets();
+                refreshAllUI();
+                updateButtonStates();
+                drawCanvas();
+                predictionInput.value = '';
+                feedbackBanner.classList.remove('show', 'correct', 'incorrect', 'info');
+                hintBox.classList.remove('show');
+                addLogEntry('Reset — returned to initial state [5, 2, 3, 1]', 'info');
+            }
+
+            function handleCheckPrediction() {
+                if (!activeCheckpoint) return;
+                const data = checkpointData[activeCheckpoint];
+                if (!data) return;
+                const userInput = predictionInput.value.trim();
+                if (!userInput) {
+                    showFeedback('Please type a prediction before checking.', 'info');
+                    return;
+                }
+                const parsed = parseArrayFromInput(userInput);
+                if (!parsed) {
+                    showFeedback(
+                        'Could not parse your input. Please enter 4 numbers separated by commas, e.g. "2,3,5,1" or "[2, 3, 5, 1]".',
+                        'info');
+                    return;
+                }
+                const isCorrect = arraysEqual(parsed, data.expected);
+                if (isCorrect) {
+                    showFeedback('&#127881; Correct! Well done! The array is ' + formatArray(data.expected) + '.',
+                        'correct');
+                    predictionInput.classList.add('correct-flash');
+                    addLogEntry('Checkpoint Step ' + activeStepLabel(activeCheckpoint) + ': Predicted ' + formatArray(
+                        parsed) + ' — Correct!', 'correct');
+                    // Resolve after a brief delay so the user sees the feedback
+                    const resolvedStep = activeCheckpoint;
+                    setTimeout(() => {
+                        predictionInput.classList.remove('correct-flash');
+                        resolveCheckpoint(resolvedStep);
+                    }, 800);
+                } else {
+                    showFeedback(
+                        '&#10060; Not quite. Your prediction was ' + formatArray(parsed) +
+                        '. The correct result is ' + formatArray(data.expected) +
+                        '. Try again or use Hint / Show Answer.',
+                        'incorrect');
+                    predictionInput.classList.add('incorrect-flash');
+                    addLogEntry('Checkpoint Step ' + activeStepLabel(activeCheckpoint) + ': Predicted ' + formatArray(
+                        parsed) + ' — Incorrect (expected ' + formatArray(data.expected) + ')', 'incorrect');
+                    setTimeout(() => {
+                        predictionInput.classList.remove('incorrect-flash');
+                        predictionInput.focus();
+                        predictionInput.select();
+                    }, 600);
+                }
+            }
+
+            function activeStepLabel(stepIndex) {
+                return (stepIndex === 2) ? '1→2 (inserting 3)' : '2→3 (inserting 1)';
+            }
+
+            function handleHint() {
+                if (!activeCheckpoint) return;
+                const data = checkpointData[activeCheckpoint];
+                if (!data) return;
+                if (!hintsShownForCheckpoint[activeCheckpoint]) hintsShownForCheckpoint[activeCheckpoint] = 0;
+                const hintCount = hintsShownForCheckpoint[activeCheckpoint];
+                if (hintCount >= data.hints.length) {
+                    // All hints shown
+                    hintBox.classList.add('show');
+                    hintLevel.textContent = 'All Hints Shown';
+                    hintText.textContent =
+                        'You have seen all available hints. The expected answer is ' + formatArray(data.expected) +
+                        '.';
+                    return;
+                }
+                hintsShownForCheckpoint[activeCheckpoint]++;
+                const newCount = hintsShownForCheckpoint[activeCheckpoint];
+                hintBox.classList.add('show');
+                hintLevel.textContent = 'Hint ' + newCount + ' of ' + data.hints.length;
+                hintText.textContent = data.hints[newCount - 1];
+                addLogEntry('Hint #' + newCount + ' requested for Step ' + activeStepLabel(activeCheckpoint), 'hint');
+            }
+
+            function handleShowAnswer() {
+                if (!activeCheckpoint && currentStep < 3) {
+                    // If no active checkpoint but user clicks Show Answer, reveal all remaining steps
+                    revealAllRemainingSteps();
+                    return;
+                }
+                if (!activeCheckpoint) return;
+                const data = checkpointData[activeCheckpoint];
+                if (!data) return;
+                answerRevealedForCheckpoint[activeCheckpoint] = true;
+                checkpointResolved[activeCheckpoint - 1] = true;
+                showFeedback(
+                    '&#128064; Answer revealed: The correct array is ' + formatArray(data.expected) +
+                    '. Watch the animation.',
+                    'info');
+                addLogEntry('Show Answer used for Step ' + activeStepLabel(activeCheckpoint) + ' — Answer: ' + formatArray(
+                    data.expected), 'answer');
+                const resolvedStep = activeCheckpoint;
+                setTimeout(() => {
+                    hideCheckpoint();
+                    executeStepTransition(resolvedStep);
+                }, 600);
+            }
+
+            function revealAllRemainingSteps() {
+                // Jump to final state with animation
+                if (isAnimating) return;
+                if (currentStep >= 3) return;
+                hideCheckpoint();
+                // Mark all checkpoints as answer-revealed
+                for (let i = 1; i <= 2; i++) {
+                    answerRevealedForCheckpoint[i] = true;
+                    checkpointResolved[i - 1] = true;
+                }
+                // Animate directly to final state
+                const toState = algorithmStates[3];
+                const insertingValue = 1; // final insertion
+                startAnimation(toState, insertingValue, () => {
+                    currentStep = 3;
+                    maxRevealedStep = 3;
+                    refreshAllUI();
+                    updateButtonStates();
+                });
+                addLogEntry('Show Answer: All remaining steps revealed — final answer [1, 2, 3, 5]', 'answer');
+            }
+
+            function showFeedback(message, type) {
+                feedbackBanner.innerHTML = message;
+                feedbackBanner.className = 'feedback-banner show ' + type;
+                // Auto-hide info feedback after a few seconds
+                if (type === 'info') {
+                    clearTimeout(feedbackBanner._timeout);
+                    feedbackBanner._timeout = setTimeout(() => {
+                        feedbackBanner.classList.remove('show');
+                    }, 3500);
+                }
+            }
+
+            function handleRangeChange() {
+                if (isAnimating) return;
+                const targetStep = parseInt(stepRange.value);
+                if (targetStep === currentStep) return;
+                if (targetStep < 0 || targetStep > 3) return;
+
+                hideCheckpoint();
+
+                if (targetStep < currentStep) {
+                    // Going backward — just snap
+                    const toState = algorithmStates[targetStep];
+                    updateBarTargetsForState(toState);
+                    updateAllBarColorsForState(toState);
+                    snapBarsToTargets();
+                    currentStep = targetStep;
+                    refreshAllUI();
+                    updateButtonStates();
+                    drawCanvas();
+                    addLogEntry('Slider: jumped to Step ' + targetStep + ' — ' + formatArray(algorithmStates[targetStep]),
+                        'info');
+                    return;
+                }
+
+                // Going forward — check if we need to pass checkpoints
+                if (targetStep > maxRevealedStep + 1) {
+                    // Trying to skip too far ahead without resolving checkpoints
+                    stepRange.value = currentStep;
+                    rangeValueLabel.textContent = currentStep;
+                    const progressPercent = (currentStep / 3) * 100;
+                    stepRange.style.setProperty('--range-progress', progressPercent + '%');
+                    showFeedback('Please resolve the current checkpoint before skipping ahead.', 'info');
+                    return;
+                }
+
+                // Go forward step by step
+                let step = currentStep;
+                const advanceOne = () => {
+                    if (step >= targetStep || step >= 3) {
+                        refreshAllUI();
+                        updateButtonStates();
+                        return;
+                    }
+                    const nextStep = step + 1;
+                    if ((nextStep === 2 || nextStep === 3) && !checkpointResolved[nextStep - 1] && !
+                        answerRevealedForCheckpoint[nextStep]) {
+                        showCheckpoint(nextStep);
+                        stepRange.value = currentStep;
+                        rangeValueLabel.textContent = currentStep;
+                        const progressPercent = (currentStep / 3) * 100;
+                        stepRange.style.setProperty('--range-progress', progressPercent + '%');
+                        return;
+                    }
+                    const toState = algorithmStates[nextStep];
+                    const insertingValue = findInsertingValue(algorithmStates[step], toState);
+                    startAnimation(toState, insertingValue, () => {
+                        step = nextStep;
+                        currentStep = step;
+                        if (step > maxRevealedStep) maxRevealedStep = step;
+                        refreshAllUI();
+                        updateButtonStates();
+                        if (step < targetStep) {
+                            setTimeout(advanceOne, 400);
+                        }
+                    });
+                };
+                advanceOne();
+            }
+
+            // ─────────────────────────────────────
+            // INITIALIZATION
+            // ─────────────────────────────────────
+            function init() {
+                // Set initial bar positions
+                const initialState = algorithmStates[0];
+                updateBarTargetsForState(initialState);
+                updateAllBarColorsForState(initialState);
+                snapBarsToTargets();
+                currentStep = 0;
+                maxRevealedStep = 0;
+                refreshAllUI();
+                updateButtonStates();
+                drawCanvas();
+
+                // Focus canvas for accessibility
+                canvas.focus();
+
+                // Start animation loop
+                animationId = requestAnimationFrame(animationLoop);
+
+                // Add initial log entry
+                addLogEntry('Session started. Initial array: [5, 2, 3, 1]. Ready to learn Insertion Sort!', 'info');
+            }
+
+            // ─────────────────────────────────────
+            // EVENT LISTENERS
+            // ─────────────────────────────────────
+            btnNext.addEventListener('click', handleNextStep);
+            btnPrev.addEventListener('click', handlePrevStep);
+            btnReset.addEventListener('click', handleReset);
+            btnCheck.addEventListener('click', handleCheckPrediction);
+            btnHint.addEventListener('click', handleHint);
+            btnShowAnswer.addEventListener('click', handleShowAnswer);
+            stepRange.addEventListener('input', handleRangeChange);
+
+            // Allow Enter key in prediction input to trigger check
+            predictionInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCheckPrediction();
+                }
+            });
+
+            // Keyboard navigation for canvas
+            canvas.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    handleNextStep();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    handlePrevStep();
+                } else if (e.key === 'r' || e.key === 'R') {
+                    e.preventDefault();
+                    handleReset();
+                }
+            });
+
+            // Step dot clicks
+            document.querySelectorAll('.step-dot').forEach(dot => {
+                dot.addEventListener('click', function() {
+                    if (isAnimating) return;
+                    const targetStep = parseInt(this.getAttribute('data-step'));
+                    if (targetStep === currentStep) return;
+                    stepRange.value = targetStep;
+                    rangeValueLabel.textContent = targetStep;
+                    const progressPercent = (targetStep / 3) * 100;
+                    stepRange.style.setProperty('--range-progress', progressPercent + '%');
+                    handleRangeChange();
+                });
+            });
+
+            // ─────────────────────────────────────
+            // START
+            // ─────────────────────────────────────
+            init();
+
+            console.log('Insertion Sort Algorithm Tutoring page initialized successfully.');
+            console.log('Input: [5, 2, 3, 1] | Expected Output: [1, 2, 3, 5]');
+            console.log('All systems ready — canvas rendering, event handlers wired, animation loop active.');
+        })();
+    </script>
+</body>
+</html>

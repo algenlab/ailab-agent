@@ -1,0 +1,358 @@
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --primary: #2563eb;
+  --primary-light: #dbeafe;
+  --success: #16a34a;
+  --success-light: #dcfce7;
+  --error: #dc2626;
+  --error-light: #fef2f2;
+  --warning: #d97706;
+  --warning-light: #fffbeb;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-y: auto;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1rem 2rem;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.25rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.15s ease;
+  font-weight: 500;
+}
+
+button:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+button.primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+button.success {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+
+button.warning {
+  background: var(--warning);
+  color: white;
+  border-color: var(--warning);
+}
+
+.btn-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Grid layout */
+.page-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .page-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Graph display */
+.graph-node {
+  display: inline-block;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.graph-edge {
+  color: var(--text-secondary);
+  margin: 0 0.25rem;
+}
+
+.graph-row {
+  margin-bottom: 0.35rem;
+}
+
+/* SVG Graph */
+.graph-svg-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.graph-svg-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Algorithm visualization */
+.vis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.vis-table th,
+.vis-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.vis-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+.vis-table .highlight {
+  background: #fef3c7;
+  font-weight: 600;
+}
+
+.queue-display {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+.queue-item {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.queue-item.head {
+  background: var(--warning-light);
+  color: var(--warning);
+  border: 2px solid var(--warning);
+}
+
+.sorted-list {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.sorted-item {
+  background: var(--success-light);
+  color: var(--success);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Checkpoint */
+.checkpoint-prompt {
+  background: var(--warning-light);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.options-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+
+.option-btn {
+  padding: 0.5rem 1.25rem;
+  font-weight: 500;
+}
+
+.option-btn.selected {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.feedback {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.feedback.correct {
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.feedback.incorrect {
+  background: var(--error-light);
+  color: var(--error);
+  border: 1px solid var(--error);
+}
+
+/* Activity log */
+.log-container {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  background: #fafafa;
+}
+
+.log-entry {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.log-time {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  min-width: 55px;
+  white-space: nowrap;
+}
+
+.hint-box {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  color: #1e40af;
+}
+
+.objectives-list {
+  list-style-position: inside;
+  padding-left: 0.5rem;
+}
+
+.objectives-list li {
+  margin-bottom: 0.35rem;
+}
+
+.answer-reveal {
+  background: var(--success-light);
+  border: 1px solid var(--success);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+/* Responsive grid for visualization sub-panels */
+.vis-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .vis-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

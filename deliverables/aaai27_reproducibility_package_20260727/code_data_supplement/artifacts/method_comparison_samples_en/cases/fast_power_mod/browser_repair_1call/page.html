@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Power Modulo - AlgoLab Tutoring</title>
+    <style>
+        :root {
+            --bg: #1a1d23;
+            --surface: #21252b;
+            --surface2: #282c34;
+            --border: #3a3f4b;
+            --text: #e1e4e8;
+            --text2: #b0b5bd;
+            --accent: #61afef;
+            --green: #98c379;
+            --orange: #e5c07b;
+            --red: #e06c75;
+            --purple: #c678dd;
+            --teal: #56b6c2;
+            --result-color: #98c379;
+            --power-color: #61afef;
+            --exp-color: #e5c07b;
+            --highlight-line: rgba(97, 175, 239, 0.2);
+            --active-tick: #61afef;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 22px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text2);
+            font-weight: 400;
+        }
+        .header-right {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--green);
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: var(--text2);
+            font-style: italic;
+        }
+
+        /* Main grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 260px;
+            gap: 14px;
+        }
+        @media (max-width: 900px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+
+        /* Code panel */
+        #code {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 10px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+            color: var(--text);
+            min-height: 280px;
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            transition: background 0.3s;
+            cursor: default;
+        }
+        #code .code-line.active {
+            background: var(--highlight-line);
+            border-left: 3px solid var(--accent);
+            padding-left: 7px;
+            font-weight: 600;
+            color: #fff;
+        }
+        #code .code-line .line-num {
+            display: inline-block;
+            width: 28px;
+            color: var(--text2);
+            user-select: none;
+            opacity: 0.6;
+            text-align: right;
+            margin-right: 8px;
+            font-size: 0.75rem;
+        }
+
+        /* Canvas */
+        #canvas {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 280px;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .canvas-row {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .var-box {
+            border-radius: 10px;
+            padding: 14px 18px;
+            text-align: center;
+            min-width: 90px;
+            transition: all 0.35s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .var-box.result-box {
+            background: rgba(152, 195, 121, 0.12);
+            border-color: rgba(152, 195, 121, 0.5);
+            color: var(--result-color);
+        }
+        .var-box.power-box {
+            background: rgba(97, 175, 239, 0.12);
+            border-color: rgba(97, 175, 239, 0.5);
+            color: var(--power-color);
+        }
+        .var-box.exp-box {
+            background: rgba(229, 192, 123, 0.12);
+            border-color: rgba(229, 192, 123, 0.5);
+            color: var(--exp-color);
+        }
+        .var-box.mod-box {
+            background: rgba(198, 120, 221, 0.1);
+            border-color: rgba(198, 120, 221, 0.4);
+            color: var(--purple);
+        }
+        .var-box.highlighted {
+            border-color: #fff !important;
+            box-shadow: 0 0 18px rgba(255, 255, 255, 0.25);
+            transform: scale(1.04);
+            z-index: 2;
+        }
+        .var-box.updated {
+            animation: pulseUpdate 0.5s ease-out;
+        }
+        @keyframes pulseUpdate {
+            0% {
+                box-shadow: 0 0 0px rgba(255, 255, 255, 0.6);
+            }
+            60% {
+                box-shadow: 0 0 22px rgba(255, 255, 255, 0.5);
+            }
+            100% {
+                box-shadow: 0 0 0px rgba(255, 255, 255, 0);
+            }
+        }
+        .var-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+        .var-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .var-binary {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 2px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+        .op-arrow {
+            font-size: 1.6rem;
+            color: var(--text2);
+            font-weight: bold;
+            animation: fadeInOut 0.6s ease;
+        }
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0.3;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.7;
+            }
+        }
+
+        /* State panel */
+        #state {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            color: var(--text2);
+            white-space: pre-wrap;
+            min-height: 120px;
+            overflow-x: auto;
+        }
+        #state .json-key {
+            color: var(--accent);
+        }
+        #state .json-val {
+            color: var(--green);
+        }
+        #state .json-val.highlight-val {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* Teaching & evidence */
+        .teaching-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+        #op {
+            display: inline-block;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--teal);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: var(--text2);
+            line-height: 1.55;
+            padding: 8px 0;
+        }
+        #step-evidence {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            color: var(--text2);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            line-height: 1.5;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            background: var(--surface2);
+            border: 1px solid var(--orange);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .checkpoint-prompt {
+            font-weight: 600;
+            color: var(--orange);
+            font-size: 0.9rem;
+        }
+        .checkpoint-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkpoint-input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 8px 12px;
+            color: #fff;
+            font-size: 0.95rem;
+            width: 120px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .checkpoint-input:focus {
+            border-color: var(--accent);
+        }
+        .btn {
+            padding: 8px 14px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            background: var(--surface2);
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: var(--border);
+            border-color: #fff;
+        }
+        .btn-submit {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            font-weight: 700;
+        }
+        .btn-submit:hover {
+            background: #7cc4ff;
+        }
+        .btn-hint {
+            background: var(--surface2);
+            color: var(--orange);
+            border-color: var(--orange);
+        }
+        .btn-show-answer {
+            background: var(--surface2);
+            color: var(--red);
+            border-color: var(--red);
+        }
+        .checkpoint-feedback {
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-height: 20px;
+        }
+        .feedback-correct {
+            background: rgba(152, 195, 121, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(152, 195, 121, 0.4);
+        }
+        .feedback-incorrect {
+            background: rgba(224, 108, 117, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(224, 108, 117, 0.4);
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 6px 0;
+        }
+        .tick {
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+            min-width: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #888;
+            background: var(--surface);
+        }
+        .tick.active {
+            border-color: var(--active-tick) !important;
+            background: rgba(97, 175, 239, 0.15) !important;
+            box-shadow: 0 0 14px rgba(97, 175, 239, 0.3);
+        }
+        .tick .tick-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+        }
+        .tick .tick-op {
+            font-size: 0.68rem;
+            color: var(--text2);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+        .tick.active .tick-label {
+            color: #fff;
+        }
+        .tick.active .tick-op {
+            color: #fff;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #prev,
+        #play,
+        #next {
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        #prev {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        #play {
+            background: var(--teal);
+            color: #000;
+            border-color: var(--teal);
+        }
+        #play.paused {
+            background: var(--surface2);
+            color: var(--teal);
+            border-color: var(--teal);
+        }
+        #next {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        #range {
+            accent-color: var(--accent);
+            width: 140px;
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 50px;
+            text-align: center;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        /* Learning log */
+        .learning-log-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .learning-log-container h3 {
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+        .log-entry {
+            font-size: 0.78rem;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--text2);
+            line-height: 1.4;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+        .log-entry.correct-log {
+            color: var(--green);
+        }
+        .log-entry.incorrect-log {
+            color: var(--red);
+        }
+        .log-entry .log-icon {
+            margin-right: 4px;
+        }
+
+        #answer {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            #code {
+                min-height: auto;
+                font-size: 0.7rem;
+            }
+            #canvas {
+                min-height: auto;
+                padding: 12px;
+            }
+            .var-box {
+                padding: 10px 12px;
+                min-width: 60px;
+            }
+            .var-value {
+                font-size: 1.2rem;
+            }
+            #range {
+                width: 90px;
+            }
+            .tick {
+                min-width: 44px;
+                padding: 6px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <div id="title">Fast Power Modulo</div>
+                <div id="subtitle">Binary Exponentiation &mdash; Modular Arithmetic</div>
+            </div>
+            <div class="header-right">
+                <div id="top-result">Expected: 9</div>
+                <div id="top-solution">3<sup>5</sup> mod 13 = 9</div>
+            </div>
+        </div>
+
+        <!-- Content grid -->
+        <div class="content-grid">
+            <!-- Code -->
+            <div id="code">
+                <span class="code-line" data-line="1"><span class="line-num">1</span>def fast_power_mod(base, exponent, mod):</span>
+                <span class="code-line" data-line="2"><span class="line-num">2</span>    result = 1</span>
+                <span class="code-line" data-line="3"><span class="line-num">3</span>    power = base % mod</span>
+                <span class="code-line" data-line="4"><span class="line-num">4</span>    while exponent &gt; 0:</span>
+                <span class="code-line" data-line="5"><span class="line-num">5</span>        if exponent &amp; 1:</span>
+                <span class="code-line" data-line="6"><span class="line-num">6</span>            result = (result * power) % mod</span>
+                <span class="code-line" data-line="7"><span class="line-num">7</span>        power = (power * power) % mod</span>
+                <span class="code-line" data-line="8"><span class="line-num">8</span>        exponent = exponent &gt;&gt; 1</span>
+                <span class="code-line" data-line="9"><span class="line-num">9</span>    return result</span>
+            </div>
+
+            <!-- Canvas -->
+            <div id="canvas">
+                <div class="canvas-row" id="canvas-row">
+                    <div class="var-box result-box" id="var-result">
+                        <div class="var-label">Result</div>
+                        <div class="var-value" id="var-result-val">1</div>
+                    </div>
+                    <span class="op-arrow" id="op-arrow" style="display:none;">&rarr;</span>
+                    <div class="var-box power-box" id="var-power">
+                        <div class="var-label">Power</div>
+                        <div class="var-value" id="var-power-val">3</div>
+                    </div>
+                    <span class="op-arrow" style="display:none;">&times;</span>
+                    <div class="var-box exp-box" id="var-exp">
+                        <div class="var-label">Exponent</div>
+                        <div class="var-value" id="var-exp-val">5</div>
+                        <div class="var-binary" id="var-exp-bin">101₂</div>
+                    </div>
+                    <div class="var-box mod-box" id="var-mod">
+                        <div class="var-label">Modulus</div>
+                        <div class="var-value" id="var-mod-val">13</div>
+                    </div>
+                </div>
+                <div style="font-size:0.78rem;color:var(--text2);text-align:center;" id="canvas-note"></div>
+            </div>
+
+            <!-- State -->
+            <div id="state">{"result": 1, "power": 3, "exponent": 5, "mod": 13}</div>
+        </div>
+
+        <!-- Teaching panel -->
+        <div class="teaching-panel">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <span id="step-title">Initialization</span>
+                <span id="op">setup</span>
+            </div>
+            <div id="step-desc">Set result = 1, power = base % mod, and prepare the exponent for binary processing.</div>
+            <div id="teaching">We begin by initializing <strong>result</strong> to 1, the multiplicative identity. The <strong>power</strong> variable is set to base % mod = 3 % 13 = 3. The <strong>exponent</strong> is 5, which in binary is <code>101</code>. We will iterate through each bit from least significant to most significant.</div>
+            <div id="step-evidence">result &larr; 1 &nbsp;|&nbsp; power &larr; 3 % 13 = 3 &nbsp;|&nbsp; exponent &larr; 5 (binary 101)</div>
+            <!-- Checkpoint area (dynamically shown) -->
+            <div class="checkpoint-area" id="checkpoint-area" style="display:none;">
+                <div class="checkpoint-prompt" id="checkpoint-prompt"></div>
+                <div class="checkpoint-row">
+                    <input type="text" class="checkpoint-input" id="checkpoint-input" placeholder="Your answer..." autocomplete="off">
+                    <button class="btn btn-submit" id="checkpoint-submit">Submit</button>
+                    <button class="btn btn-hint" id="checkpoint-hint">Hint</button>
+                    <button class="btn btn-show-answer" id="checkpoint-show-answer">Show Answer</button>
+                </div>
+                <div class="checkpoint-feedback" id="checkpoint-feedback"></div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline"></div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <button class="btn" id="prev">&larr; Prev</button>
+            <button class="btn" id="play">&#9654; Play</button>
+            <button class="btn" id="next">Next &rarr;</button>
+            <input type="range" id="range" min="1" max="7" value="1" step="1">
+            <span id="counter">1 / 7</span>
+        </div>
+
+        <!-- Learning log -->
+        <div class="learning-log-container" id="learning-log-container">
+            <h3>Learning Log</h3>
+            <div id="learning-log-entries">
+                <div class="log-entry" style="opacity:0.5;">No submissions yet. Answer the checkpoint questions as you step through the algorithm.</div>
+            </div>
+        </div>
+
+        <!-- Hidden answer -->
+        <div id="answer">9</div>
+    </div>
+
+    <script>
+        (function() {
+            // ── Step definitions ──────────────────────────────────
+            const steps = [{
+                id: 1,
+                title: 'Initialization',
+                desc: 'Set result = 1, power = base % mod, and prepare the exponent for binary processing.',
+                op: 'setup',
+                codeLine: 2,
+                isCheckpoint: false,
+                state: { result: 1, power: 3, exponent: 5, mod: 13 },
+                teaching: 'We begin by initializing <strong>result</strong> to 1, the multiplicative identity. The <strong>power</strong> variable is set to base % mod = 3 % 13 = 3. The <strong>exponent</strong> is 5, which in binary is <code>101</code>. We will iterate through each bit from least significant to most significant.',
+                evidence: 'result ← 1  |  power ← 3 % 13 = 3  |  exponent ← 5 (binary 101)',
+                tickLabel: 'Init',
+                tickOp: 'result=1, power=3',
+                canvasHighlight: null,
+                canvasNote: 'Starting state: ready to process exponent bits.',
+                stateHighlight: null,
+            }, {
+                id: 2,
+                title: 'Iteration 1: Check LSB',
+                desc: 'Exponent = 5 (binary 101). The least significant bit is 1, so we must multiply result by power.',
+                op: 'check-bit',
+                codeLine: 5,
+                isCheckpoint: true,
+                checkpointQuestion: 'What will be the new value of result after computing (result × power) % mod, i.e., (1 × 3) % 13?',
+                checkpointAnswer: '3',
+                checkpointHint: 'Compute (1 × 3) = 3. Since 3 < 13, the modulo operation leaves it unchanged. So the answer is 3.',
+                state: { result: 1, power: 3, exponent: 5, mod: 13, pendingOp: 'multiply' },
+                teaching: 'Since the LSB of exponent (5 = 101₂) is <strong>1</strong>, we execute: <code>result = (result × power) % mod</code>. This will update result from 1 to (1 × 3) % 13 = 3.',
+                evidence: 'exponent & 1 = 1  →  result = (1 × 3) % 13 = 3',
+                tickLabel: 'Check LSB',
+                tickOp: '5&1=1 → multiply',
+                canvasHighlight: 'result',
+                canvasNote: 'LSB of exponent (5) is 1 — prepare to multiply result by power.',
+                stateHighlight: 'result',
+            }, {
+                id: 3,
+                title: 'Iteration 1: Execute & Square',
+                desc: 'Result updated to 3. Now square the power and right-shift the exponent.',
+                op: 'multiply-square-shift',
+                codeLine: 6,
+                isCheckpoint: false,
+                state: { result: 3, power: 9, exponent: 2, mod: 13 },
+                teaching: 'After multiplying, result becomes <strong>3</strong>. Then we square power: (3 × 3) % 13 = <strong>9</strong>. Finally, we right-shift exponent: 5 >> 1 = <strong>2</strong> (binary 10).',
+                evidence: 'result ← 3  |  power ← (3×3)%13 = 9  |  exponent ← 5>>1 = 2 (binary 10)',
+                tickLabel: 'Square & Shift',
+                tickOp: 'power=9, exp=2',
+                canvasHighlight: 'power',
+                canvasNote: 'Power squared to 9; exponent halved to 2.',
+                stateHighlight: 'power',
+            }, {
+                id: 4,
+                title: 'Iteration 2: Check LSB',
+                desc: 'Exponent = 2 (binary 10). The least significant bit is 0, so we skip the multiplication.',
+                op: 'check-bit',
+                codeLine: 5,
+                isCheckpoint: true,
+                checkpointQuestion: 'When exponent = 2 (binary 10), the LSB is 0. What value will result have after this iteration completes? (It will not be multiplied.)',
+                checkpointAnswer: '3',
+                checkpointHint: 'Since the LSB is 0, the if-block is skipped entirely. The result variable remains unchanged at its current value of 3.',
+                state: { result: 3, power: 9, exponent: 2, mod: 13, pendingOp: 'skip' },
+                teaching: 'The LSB of exponent (2 = 10₂) is <strong>0</strong>, so we <strong>skip</strong> the multiplication. Result stays at 3. We will still square power and shift exponent in the next substep.',
+                evidence: 'exponent & 1 = 0  →  skip multiplication, result remains 3',
+                tickLabel: 'Check LSB',
+                tickOp: '2&1=0 → skip',
+                canvasHighlight: 'exp',
+                canvasNote: 'LSB of exponent (2) is 0 — multiplication will be skipped.',
+                stateHighlight: 'exponent',
+            }, {
+                id: 5,
+                title: 'Iteration 2: Square & Shift',
+                desc: 'Skip multiplication. Square power and right-shift exponent.',
+                op: 'square-shift',
+                codeLine: 7,
+                isCheckpoint: false,
+                state: { result: 3, power: 3, exponent: 1, mod: 13 },
+                teaching: 'No multiplication occurred. We square power: (9 × 9) % 13 = 81 % 13 = <strong>3</strong>. Then shift exponent: 2 >> 1 = <strong>1</strong> (binary 1).',
+                evidence: 'result ← 3 (unchanged)  |  power ← (9×9)%13 = 81%13 = 3  |  exponent ← 2>>1 = 1 (binary 1)',
+                tickLabel: 'Square & Shift',
+                tickOp: 'power=3, exp=1',
+                canvasHighlight: 'power',
+                canvasNote: 'Power: 9²%13 = 3; exponent now 1.',
+                stateHighlight: 'power',
+            }, {
+                id: 6,
+                title: 'Iteration 3: Check LSB',
+                desc: 'Exponent = 1 (binary 1). The LSB is 1, so we multiply result by power one final time.',
+                op: 'check-bit',
+                codeLine: 5,
+                isCheckpoint: true,
+                checkpointQuestion: 'What will be the new value of result after computing (result × power) % mod, i.e., (3 × 3) % 13?',
+                checkpointAnswer: '9',
+                checkpointHint: 'Compute (3 × 3) = 9. Since 9 < 13, the modulo operation leaves it unchanged. So the answer is 9.',
+                state: { result: 3, power: 3, exponent: 1, mod: 13, pendingOp: 'multiply' },
+                teaching: 'The LSB of exponent (1 = 1₂) is <strong>1</strong>, so we execute: <code>result = (result × power) % mod</code>. This will update result from 3 to (3 × 3) % 13 = 9.',
+                evidence: 'exponent & 1 = 1  →  result = (3 × 3) % 13 = 9',
+                tickLabel: 'Check LSB',
+                tickOp: '1&1=1 → multiply',
+                canvasHighlight: 'result',
+                canvasNote: 'LSB of exponent (1) is 1 — final multiplication incoming.',
+                stateHighlight: 'result',
+            }, {
+                id: 7,
+                title: 'Final: Return Result',
+                desc: 'Exponent is now 0. The loop ends, and we return the final result.',
+                op: 'return',
+                codeLine: 9,
+                isCheckpoint: true,
+                checkpointQuestion: 'What is the final result of 3⁵ mod 13?',
+                checkpointAnswer: '9',
+                checkpointHint: 'After the last multiplication, result = (3 × 3) % 13 = 9. The exponent becomes 0 after the final shift, ending the loop. The answer is 9.',
+                state: { result: 9, power: 9, exponent: 0, mod: 13 },
+                teaching: 'After the final multiplication, result = <strong>9</strong>. We square power and shift exponent to 0. The while-loop condition <code>exponent > 0</code> is now false, so we exit and <strong>return 9</strong>. This matches 3⁵ = 243, and 243 mod 13 = 9.',
+                evidence: 'result ← 9  |  exponent ← 0  |  loop ends  |  return 9  ✓',
+                tickLabel: 'Return',
+                tickOp: 'result=9 ✓',
+                canvasHighlight: 'result',
+                canvasNote: 'Exponent is 0 — algorithm complete. Final answer: 9.',
+                stateHighlight: 'result',
+            }];
+
+            const N = steps.length; // 7
+
+            // ── DOM references ──────────────────────────────────
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const codeEl = $('#code');
+            const canvasEl = $('#canvas');
+            const canvasRow = $('#canvas-row');
+            const canvasNote = $('#canvas-note');
+            const stateEl = $('#state');
+            const stepTitle = $('#step-title');
+            const stepDesc = $('#step-desc');
+            const opEl = $('#op');
+            const teachingEl = $('#teaching');
+            const evidenceEl = $('#step-evidence');
+            const timelineEl = $('#timeline');
+            const counterEl = $('#counter');
+            const rangeEl = $('#range');
+            const prevBtn = $('#prev');
+            const playBtn = $('#play');
+            const nextBtn = $('#next');
+            const answerEl = $('#answer');
+            const checkpointArea = $('#checkpoint-area');
+            const checkpointPrompt = $('#checkpoint-prompt');
+            const checkpointInput = $('#checkpoint-input');
+            const checkpointSubmit = $('#checkpoint-submit');
+            const checkpointHint = $('#checkpoint-hint');
+            const checkpointShowAnswer = $('#checkpoint-show-answer');
+            const checkpointFeedback = $('#checkpoint-feedback');
+            const learningLogEntries = $('#learning-log-entries');
+            const varResult = $('#var-result');
+            const varPower = $('#var-power');
+            const varExp = $('#var-exp');
+            const varMod = $('#var-mod');
+            const varResultVal = $('#var-result-val');
+            const varPowerVal = $('#var-power-val');
+            const varExpVal = $('#var-exp-val');
+            const varExpBin = $('#var-exp-bin');
+            const varModVal = $('#var-mod-val');
+
+            // ── State ──────────────────────────────────────────
+            let currentStepIndex = 0; // 0-based
+            let isPlaying = false;
+            let playInterval = null;
+            const learningLog = [];
+
+            // ── Build timeline ticks ───────────────────────────
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                steps.forEach((step, i) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('type', 'button');
+                    tick.setAttribute('aria-label', 'Go to step ' + (i + 1) + ': ' + step.tickLabel);
+                    tick.innerHTML =
+                        '<span class="tick-label">' + step.tickLabel + '</span>' +
+                        '<span class="tick-op">' + step.tickOp + '</span>';
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                        stopPlay();
+                    });
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            // ── Highlight code line ────────────────────────────
+            function highlightCodeLine(lineNum) {
+                const allLines = codeEl.querySelectorAll('.code-line');
+                allLines.forEach(l => l.classList.remove('active'));
+                const target = codeEl.querySelector('.code-line[data-line="' + lineNum + '"]');
+                if (target) {
+                    target.classList.add('active');
+                    // Scroll into view if needed
+                    target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }
+
+            // ── Update canvas visualization ────────────────────
+            function updateCanvas(step) {
+                const s = step.state;
+                varResultVal.textContent = s.result;
+                varPowerVal.textContent = s.power;
+                varExpVal.textContent = s.exponent;
+                varModVal.textContent = s.mod;
+                // Binary representation
+                varExpBin.textContent = s.exponent.toString(2) + '₂';
+
+                // Remove all highlights
+                [varResult, varPower, varExp, varMod].forEach(el => el.classList.remove('highlighted', 'updated'));
+
+                // Highlight based on step
+                if (step.canvasHighlight === 'result') {
+                    varResult.classList.add('highlighted');
+                    if (step.id >= 3 && step.id <= 7 && steps[currentStepIndex - 1] && steps[currentStepIndex -
+                            1].state.result !== s.result && currentStepIndex > 0) {
+                        varResult.classList.add('updated');
+                    }
+                } else if (step.canvasHighlight === 'power') {
+                    varPower.classList.add('highlighted');
+                    varPower.classList.add('updated');
+                } else if (step.canvasHighlight === 'exp') {
+                    varExp.classList.add('highlighted');
+                }
+
+                canvasNote.textContent = step.canvasNote || '';
+            }
+
+            // ── Update state JSON display ──────────────────────
+            function updateStateDisplay(step) {
+                const s = step.state;
+                const highlightKey = step.stateHighlight;
+                let jsonStr = '{\n';
+                const keys = Object.keys(s);
+                keys.forEach((key, i) => {
+                    const val = s[key];
+                    const isHighlighted = (highlightKey === key);
+                    const comma = (i < keys.length - 1) ? ',' : '';
+                    if (isHighlighted) {
+                        jsonStr += '  <span class="json-key">"' + key + '"</span>: <span class="json-val highlight-val">' +
+                            JSON.stringify(val) + '</span>' + comma + '\n';
+                    } else {
+                        jsonStr += '  <span class="json-key">"' + key + '"</span>: <span class="json-val">' + JSON.stringify(
+                            val) + '</span>' + comma + '\n';
+                    }
+                });
+                jsonStr += '}';
+                stateEl.innerHTML = jsonStr;
+            }
+
+            // ── Update checkpoint UI ───────────────────────────
+            function updateCheckpointUI(step) {
+                if (step.isCheckpoint) {
+                    checkpointArea.style.display = 'flex';
+                    checkpointPrompt.textContent = step.checkpointQuestion;
+                    checkpointInput.value = '';
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.className = 'checkpoint-feedback';
+                    checkpointInput.disabled = false;
+                    checkpointSubmit.disabled = false;
+                } else {
+                    checkpointArea.style.display = 'none';
+                }
+            }
+
+            // ── Render a single step ───────────────────────────
+            function renderStep(index) {
+                const step = steps[index];
+                currentStepIndex = index;
+
+                // Update counter
+                counterEl.textContent = (index + 1) + ' / ' + N;
+
+                // Update range slider
+                rangeEl.value = index + 1;
+
+                // Update titles
+                stepTitle.textContent = step.title;
+                stepDesc.textContent = step.desc;
+                opEl.textContent = step.op;
+                teachingEl.innerHTML = step.teaching;
+                evidenceEl.textContent = step.evidence;
+
+                // Highlight code
+                highlightCodeLine(step.codeLine);
+
+                // Update canvas
+                updateCanvas(step);
+
+                // Update state display
+                updateStateDisplay(step);
+
+                // Update checkpoint UI
+                updateCheckpointUI(step);
+
+                // Update timeline ticks
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    if (i === index) {
+                        t.classList.add('active');
+                    } else {
+                        t.classList.remove('active');
+                    }
+                });
+
+                // Update answer element on final step
+                if (step.id === N) {
+                    answerEl.textContent = String(step.state.result);
+                }
+            }
+
+            // ── Go to step ─────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0) index = 0;
+                if (index >= N) index = N - 1;
+                renderStep(index);
+            }
+
+            // ── Play / pause ───────────────────────────────────
+            function startPlay() {
+                isPlaying = true;
+                playBtn.textContent = '⏸ Pause';
+                playBtn.classList.add('paused');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < N - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                playBtn.classList.remove('paused');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // If at the end, restart from beginning
+                    if (currentStepIndex >= N - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ── Learning log ───────────────────────────────────
+            function addLogEntry(stepIndex, question, userAnswer, isCorrect, correctAnswer) {
+                const step = steps[stepIndex];
+                const entry = {
+                    step: stepIndex + 1,
+                    stepTitle: step.title,
+                    question: question,
+                    userAnswer: userAnswer,
+                    isCorrect: isCorrect,
+                    correctAnswer: correctAnswer,
+                    timestamp: new Date().toLocaleTimeString(),
+                };
+                learningLog.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLog.length === 0) {
+                    learningLogEntries.innerHTML =
+                        '<div class="log-entry" style="opacity:0.5;">No submissions yet. Answer the checkpoint questions as you step through the algorithm.</div>';
+                    return;
+                }
+                let html = '';
+                learningLog.forEach((entry, i) => {
+                    const cls = entry.isCorrect ? 'correct-log' : 'incorrect-log';
+                    const icon = entry.isCorrect ? '✓' : '✗';
+                    html += '<div class="log-entry ' + cls + '">' +
+                        '<span class="log-icon">' + icon + '</span>' +
+                        '<strong>Step ' + entry.step + ' (' + entry.stepTitle + ')</strong>: ' +
+                        'Q: "' + entry.question + '" ' +
+                        'Your answer: <em>' + entry.userAnswer + '</em> ' +
+                        (entry.isCorrect ? '— Correct!' : '— Incorrect. Correct answer: <em>' + entry.correctAnswer +
+                            '</em>') +
+                        ' <span style="opacity:0.5;font-size:0.7rem;">[' + entry.timestamp + ']</span>' +
+                        '</div>';
+                });
+                learningLogEntries.innerHTML = html;
+                // Scroll to bottom
+                learningLogEntries.scrollTop = learningLogEntries.scrollHeight;
+            }
+
+            // ── Checkpoint handlers ────────────────────────────
+            function handleCheckpointSubmit() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                const userAnswer = checkpointInput.value.trim();
+                if (userAnswer === '') {
+                    checkpointFeedback.textContent = 'Please enter an answer before submitting.';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-incorrect';
+                    return;
+                }
+                const correctAnswer = step.checkpointAnswer;
+                const isCorrect = (userAnswer === correctAnswer);
+                if (isCorrect) {
+                    checkpointFeedback.textContent = '✓ Correct! Well done. ' + userAnswer + ' is the right answer.';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                } else {
+                    checkpointFeedback.textContent = '✗ Not quite. You answered "' + userAnswer +
+                        '". The correct answer is ' + correctAnswer + '. Review the hint below.';
+                    checkpointFeedback.className = 'checkpoint-feedback feedback-incorrect';
+                }
+                addLogEntry(currentStepIndex, step.checkpointQuestion, userAnswer, isCorrect, correctAnswer);
+                checkpointInput.disabled = true;
+                checkpointSubmit.disabled = true;
+            }
+
+            function handleCheckpointHint() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                checkpointFeedback.textContent = '💡 Hint: ' + step.checkpointHint;
+                checkpointFeedback.className = 'checkpoint-feedback';
+            }
+
+            function handleCheckpointShowAnswer() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                const correctAnswer = step.checkpointAnswer;
+                checkpointFeedback.textContent = '🔍 The correct answer is: ' + correctAnswer;
+                checkpointFeedback.className = 'checkpoint-feedback feedback-correct';
+                checkpointInput.value = correctAnswer;
+                checkpointInput.disabled = true;
+                checkpointSubmit.disabled = true;
+                // Also log that the learner used Show Answer
+                const userAnswer = checkpointInput.value.trim() || '(show answer used)';
+                addLogEntry(currentStepIndex, step.checkpointQuestion, userAnswer, true, correctAnswer);
+            }
+
+            // ── Event listeners ────────────────────────────────
+            prevBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex - 1);
+            });
+            nextBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex + 1);
+            });
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(rangeEl.value, 10);
+                goToStep(val - 1);
+            });
+            checkpointSubmit.addEventListener('click', handleCheckpointSubmit);
+            checkpointHint.addEventListener('click', handleCheckpointHint);
+            checkpointShowAnswer.addEventListener('click', handleCheckpointShowAnswer);
+
+            // Allow Enter key in checkpoint input
+            checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleCheckpointSubmit();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'checkpoint-input') return;
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ── Initialize ─────────────────────────────────────
+            function init() {
+                buildTimeline();
+                rangeEl.max = N;
+                rangeEl.value = 1;
+                answerEl.textContent = '9'; // Bare final-return JSON
+                renderStep(0);
+                learningLogEntries.innerHTML =
+                    '<div class="log-entry" style="opacity:0.5;">No submissions yet. Answer the checkpoint questions as you step through the algorithm.</div>';
+            }
+
+            init();
+        })();
+    </script>
+</body>
+</html>

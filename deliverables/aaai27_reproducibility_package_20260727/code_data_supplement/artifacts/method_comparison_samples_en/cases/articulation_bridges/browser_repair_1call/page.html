@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Articulation Points and Bridges - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --accent-light: #dbeafe;
+            --success: #22c55e;
+            --success-light: #dcfce7;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --node-unvisited: #e2e8f0;
+            --node-current: #fef08a;
+            --node-visited: #86efac;
+            --node-articulation: #fca5a5;
+            --edge-tree: #3b82f6;
+            --edge-back: #f59e0b;
+            --edge-bridge: #ef4444;
+            --edge-current: #8b5cf6;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --radius: 8px;
+            --radius-sm: 4px;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: #f1f5f9;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .page-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .header-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 2px 0;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .result-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        #top-result,
+        #top-solution {
+            flex: 1;
+            min-width: 260px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            font-size: 0.9rem;
+        }
+        #top-result .label,
+        #top-solution .label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+        }
+        #top-result .value {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 0.95rem;
+        }
+        #top-solution .value {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #334155;
+            word-break: break-all;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .code-panel {
+            flex: 1;
+            min-width: 340px;
+            max-width: 480px;
+            background: #1e293b;
+            border-radius: var(--radius);
+            padding: 16px 14px;
+            box-shadow: var(--shadow-md);
+            overflow-x: auto;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: #e2e8f0;
+            white-space: pre;
+            line-height: 1.55;
+            margin: 0;
+            user-select: text;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: background 0.2s, color 0.2s;
+            cursor: default;
+        }
+        #code .code-line.active {
+            background: #fef08a;
+            color: #1e293b;
+            font-weight: 700;
+            box-shadow: 0 0 0 2px #fbbf24 inset;
+        }
+        #code .code-line.dim {
+            opacity: 0.55;
+        }
+
+        .canvas-panel {
+            flex: 1.2;
+            min-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            box-shadow: var(--shadow);
+        }
+        #canvas {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            border: 1px dashed #d1d5db;
+            overflow: hidden;
+            user-select: none;
+        }
+        #canvas .graph-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        #canvas .graph-svg line {
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            transition: stroke 0.3s, stroke-width 0.3s, stroke-dasharray 0.3s;
+        }
+        #canvas .graph-svg line.tree-edge {
+            stroke: var(--edge-tree);
+            stroke-width: 2.5;
+        }
+        #canvas .graph-svg line.back-edge {
+            stroke: var(--edge-back);
+            stroke-dasharray: 7 4;
+            stroke-width: 2;
+        }
+        #canvas .graph-svg line.bridge-edge {
+            stroke: var(--edge-bridge);
+            stroke-width: 3.5;
+            stroke-dasharray: none;
+        }
+        #canvas .graph-svg line.current-edge {
+            stroke: var(--edge-current);
+            stroke-width: 4;
+            filter: drop-shadow(0 0 5px #8b5cf6aa);
+            animation: edge-pulse 0.7s ease-in-out infinite;
+        }
+        @keyframes edge-pulse {
+            0%,
+            100% {
+                stroke-width: 4;
+            }
+            50% {
+                stroke-width: 5.5;
+            }
+        }
+        #canvas .node-dot {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border: 3px solid transparent;
+            transform: translate(-50%, -50%);
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+            cursor: default;
+            z-index: 2;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+        #canvas .node-dot.unvisited {
+            background: var(--node-unvisited);
+            border-color: #cbd5e1;
+            color: #64748b;
+        }
+        #canvas .node-dot.current {
+            background: var(--node-current);
+            border-color: #eab308;
+            color: #1e293b;
+            box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.3);
+            z-index: 3;
+            animation: node-glow 0.8s ease-in-out infinite;
+        }
+        @keyframes node-glow {
+            0%,
+            100% {
+                box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(250, 204, 21, 0.08);
+            }
+        }
+        #canvas .node-dot.visited {
+            background: var(--node-visited);
+            border-color: #22c55e;
+            color: #14532d;
+        }
+        #canvas .node-dot.articulation {
+            background: var(--node-articulation);
+            border-color: #ef4444;
+            color: #7f1d1d;
+            box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.25);
+            animation: artic-pulse 1s ease-in-out infinite;
+        }
+        @keyframes artic-pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.05);
+            }
+        }
+        #canvas .node-label {
+            position: absolute;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #475569;
+            transform: translate(-50%, 28px);
+            pointer-events: none;
+            z-index: 1;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #canvas .data-tables {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            z-index: 4;
+            pointer-events: none;
+        }
+        #canvas .data-table {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            padding: 6px 10px;
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            min-width: 80px;
+        }
+        #canvas .data-table .dt-title {
+            font-weight: 700;
+            font-size: 0.65rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 2px;
+        }
+        #canvas .data-table .dt-row {
+            display: flex;
+            gap: 6px;
+        }
+        #canvas .data-table .dt-val {
+            color: #1e293b;
+            font-weight: 500;
+        }
+        #canvas .data-table .dt-val.highlight {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+        .nav-bar button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.15s;
+            color: #374151;
+        }
+        .nav-bar button:hover {
+            background: #f1f5f9;
+            border-color: #9ca3af;
+        }
+        .nav-bar button:active {
+            background: #e2e8f0;
+            transform: scale(0.97);
+        }
+        .nav-bar button.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .nav-bar button.primary:hover {
+            background: #2563eb;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #374151;
+            min-width: 60px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+
+        #timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            box-shadow: var(--shadow);
+            align-items: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 2px solid #e2e8f0;
+            background: #f9fafb;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.7rem;
+            min-width: 48px;
+            text-align: center;
+        }
+        .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .tick .tick-label {
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: #374151;
+        }
+        .tick .tick-op {
+            font-size: 0.62rem;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        .tick.active .tick-label {
+            color: #1d4ed8;
+        }
+        .tick.active .tick-op {
+            color: #2563eb;
+        }
+
+        .detail-area {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .detail-card {
+            flex: 1;
+            min-width: 280px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+        }
+        .detail-card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin: 0 0 6px 0;
+        }
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 2px 0;
+        }
+        #step-desc {
+            font-size: 0.88rem;
+            color: #475569;
+            margin: 0 0 4px 0;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: #6b7280;
+            margin: 0;
+            background: #f9fafb;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            word-break: break-all;
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: #334155;
+            line-height: 1.55;
+        }
+        #teaching .checkpoint-box {
+            background: #fffbeb;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+        #teaching .checkpoint-box .cp-prompt {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        #teaching .checkpoint-box input[type="text"] {
+            padding: 7px 10px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            font-size: 0.85rem;
+            width: 70%;
+            font-family: var(--font-mono);
+        }
+        #teaching .checkpoint-box button {
+            padding: 7px 13px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin: 3px;
+            transition: all 0.15s;
+        }
+        #teaching .checkpoint-box button.cp-submit {
+            background: #3b82f6;
+            color: #fff;
+            border-color: #3b82f6;
+        }
+        #teaching .checkpoint-box button.cp-submit:hover {
+            background: #2563eb;
+        }
+        #teaching .checkpoint-box button.cp-hint {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #f59e0b;
+        }
+        #teaching .checkpoint-box button.cp-show {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #ef4444;
+        }
+        #teaching .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        #teaching .cp-feedback.correct {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+        #teaching .cp-feedback.incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: #334155;
+            white-space: pre-wrap;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.45;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: #475569;
+            line-height: 1.5;
+        }
+        #step-evidence .ev-section {
+            margin-bottom: 6px;
+        }
+        #step-evidence .ev-label {
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: #0f172a;
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 8px;
+            padding: 14px 18px;
+            word-break: break-all;
+            font-weight: 600;
+        }
+        .answer-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        .answer-section .ans-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        #learning-log {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+        }
+        #learning-log .log-entry {
+            padding: 6px 10px;
+            border-left: 3px solid #3b82f6;
+            margin-bottom: 5px;
+            background: #f9fafb;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.78rem;
+        }
+        #learning-log .log-entry.correct-entry {
+            border-left-color: #22c55e;
+            background: #f0fdf4;
+        }
+        #learning-log .log-entry.incorrect-entry {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        #learning-log .log-entry.show-entry {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .code-panel,
+            .canvas-panel {
+                max-width: 100%;
+                min-width: auto;
+            }
+            #canvas {
+                height: 360px;
+            }
+            .detail-area {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <div class="header-section">
+            <h1 id="title">Articulation Points and Bridges</h1>
+            <p id="subtitle">DFS-based algorithm: discover critical nodes and unique connections in an undirected graph</p>
+        </div>
+
+        <!-- Top result and solution -->
+        <div class="result-row">
+            <div id="top-result">
+                <div class="label">Result Summary</div>
+                <div class="value">In progress — navigate through steps to build the solution</div>
+            </div>
+            <div id="top-solution">
+                <div class="label">Solution JSON</div>
+                <div class="value">{"articulation": [], "bridges": []}</div>
+            </div>
+        </div>
+
+        <!-- Main: code + canvas -->
+        <div class="main-content">
+            <div class="code-panel">
+                <pre id="code">
+<span class="code-line" data-line="0">function findArticulationPointsAndBridges(graph):</span>
+<span class="code-line" data-line="1">    dfn = {}  // discovery time</span>
+<span class="code-line" data-line="2">    low = {}  // lowest reachable dfn</span>
+<span class="code-line" data-line="3">    parent = {}  // DFS tree parent</span>
+<span class="code-line" data-line="4">    time = 0</span>
+<span class="code-line" data-line="5">    articulation = []</span>
+<span class="code-line" data-line="6">    bridges = []</span>
+<span class="code-line" data-line="7"></span>
+<span class="code-line" data-line="8">    function dfs(u):</span>
+<span class="code-line" data-line="9">        dfn[u] = low[u] = ++time</span>
+<span class="code-line" data-line="10">        children = 0</span>
+<span class="code-line" data-line="11">        for each neighbor v of u:</span>
+<span class="code-line" data-line="12">            if v not in dfn:           // tree edge</span>
+<span class="code-line" data-line="13">                parent[v] = u</span>
+<span class="code-line" data-line="14">                children++</span>
+<span class="code-line" data-line="15">                dfs(v)</span>
+<span class="code-line" data-line="16">                low[u] = min(low[u], low[v])</span>
+<span class="code-line" data-line="17">                if low[v] > dfn[u]:</span>
+<span class="code-line" data-line="18">                    bridges.push([u, v])</span>
+<span class="code-line" data-line="19">                if low[v] >= dfn[u] and parent[u] is not null:</span>
+<span class="code-line" data-line="20">                    articulation.push(u)</span>
+<span class="code-line" data-line="21">            else if v != parent[u]:     // back edge</span>
+<span class="code-line" data-line="22">                low[u] = min(low[u], dfn[v])</span>
+<span class="code-line" data-line="23">        if parent[u] is null and children > 1:</span>
+<span class="code-line" data-line="24">            articulation.push(u)</span>
+<span class="code-line" data-line="25"></span>
+<span class="code-line" data-line="26">    for each node in graph:</span>
+<span class="code-line" data-line="27">        if node not in dfn:</span>
+<span class="code-line" data-line="28">            dfs(node)</span>
+<span class="code-line" data-line="29">    return {articulation, bridges}</span>
+</pre>
+            </div>
+            <div class="canvas-panel">
+                <div id="canvas">
+                    <svg class="graph-svg" id="graph-svg"></svg>
+                    <!-- Node dots are created by JS -->
+                    <div class="data-tables" id="data-tables"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-bar">
+            <button id="prev" title="Previous step">◀ Prev</button>
+            <button id="play" title="Auto-play steps" class="primary">▶ Play</button>
+            <button id="next" title="Next step">Next ▶</button>
+            <input type="range" id="range" min="0" max="12" value="0" step="1" title="Step slider">
+            <span id="counter">1 / 13</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline"></div>
+
+        <!-- Step details -->
+        <div class="detail-area">
+            <div class="detail-card">
+                <h3>Current Step</h3>
+                <div id="step-title">Initialization</div>
+                <div id="step-desc">Set up data structures for DFS traversal</div>
+                <div id="op">Initialize dfn, low, parent, time = 0</div>
+            </div>
+            <div class="detail-card">
+                <h3>Teaching</h3>
+                <div id="teaching">We begin by creating empty dictionaries for discovery time (dfn), lowest reachable ancestor (low), and parent pointers. The global time counter starts at 0. Articulation points and bridges lists are empty.</div>
+            </div>
+            <div class="detail-card">
+                <h3>State</h3>
+                <div id="state">{ }</div>
+            </div>
+            <div class="detail-card">
+                <h3>Step Evidence</h3>
+                <div id="step-evidence">All nodes unvisited. No edges processed yet. Data structures are empty.</div>
+            </div>
+        </div>
+
+        <!-- Learning Log -->
+        <div id="learning-log">
+            <strong style="font-size:0.82rem;color:#64748b;">📝 Learning Log</strong>
+            <div style="color:#94a3b8;font-size:0.75rem;">Checkpoint submissions will appear here.</div>
+        </div>
+
+        <!-- Answer -->
+        <div class="answer-section">
+            <div class="ans-label">Final Answer (bare JSON)</div>
+            <div id="answer">{"articulation": ["B", "D"], "bridges": [["D", "E"], ["A", "B"]]}</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Graph data
+            // ──────────────────────────────────────
+            const graph = {
+                "A": ["B"],
+                "B": ["A", "C", "D"],
+                "C": ["B", "D"],
+                "D": ["B", "C", "E"],
+                "E": ["D"]
+            };
+            const allNodes = ["A", "B", "C", "D", "E"];
+
+            // Node positions for canvas (pixels within the 600x440 area, but relative %)
+            const nodePositions = {
+                "A": { x: 18, y: 14 },
+                "B": { x: 48, y: 32 },
+                "C": { x: 28, y: 62 },
+                "D": { x: 68, y: 62 },
+                "E": { x: 82, y: 80 }
+            };
+
+            // Edge definitions for SVG
+            const edgeDefs = [
+                { from: "A", to: "B" },
+                { from: "B", to: "C" },
+                { from: "B", to: "D" },
+                { from: "C", to: "D" },
+                { from: "D", to: "E" },
+            ];
+
+            // ──────────────────────────────────────
+            // Step definitions
+            // ──────────────────────────────────────
+            const stepData = [];
+            // We'll fill stepData with 13 steps (indices 0..12)
+
+            function makeStep(idx, title, desc, op, codeLine, stateObj, teaching, evidence, checkpoint) {
+                return {
+                    index: idx,
+                    title,
+                    desc,
+                    op,
+                    codeLine,
+                    stateObj,
+                    teaching,
+                    evidence,
+                    checkpoint: checkpoint || null,
+                };
+            }
+
+            // Step 0: Initialization
+            stepData.push(makeStep(0,
+                "Initialization",
+                "Set up data structures for DFS traversal",
+                "dfn = {}, low = {}, parent = {}, time = 0, articulation = [], bridges = []",
+                [1, 2, 3, 4, 5, 6],
+                { dfn: {}, low: {}, parent: {}, time: 0, articulation: [], bridges: [], current: null,
+                    visitedOrder: [] },
+                "We begin by creating empty dictionaries for discovery time (dfn), lowest reachable ancestor (low), and parent pointers. The global time counter starts at 0. Articulation points and bridges lists are empty. All five nodes (A through E) are unvisited.",
+                "All nodes unvisited. No edges processed. Data structures are empty. The graph has 5 nodes and 5 undirected edges: A-B, B-C, B-D, C-D, D-E.",
+                null
+            ));
+
+            // Step 1: Start DFS at A
+            stepData.push(makeStep(1,
+                "Start DFS at node A",
+                "Begin depth-first search from node A, the first unvisited node",
+                "dfs(A) → dfn[A] = low[A] = ++time → dfn[A]=1, low[A]=1, time=1",
+                [8, 9, 10],
+                { dfn: { A: 1 }, low: { A: 1 }, parent: { A: null }, time: 1, articulation: [], bridges: [],
+                    current: "A", visitedOrder: ["A"], children: { A: 0 } },
+                "Node A is the first unvisited node, so we call dfs(A). Its discovery time is set to 1, low is also 1, and it has no parent (it is the DFS tree root). The children counter for A is initialized to 0.",
+                "dfs(A) invoked. dfn[A]=1, low[A]=1, parent[A]=null. A is the DFS root. Stack: [A].",
+                null
+            ));
+
+            // Step 2: Visit B from A (tree edge A→B)
+            stepData.push(makeStep(2,
+                "Explore edge A→B — visit B",
+                "A's neighbor B is unvisited, so B becomes a tree child of A",
+                "neighbor B not in dfn → parent[B]=A, children[A]++, dfs(B) → dfn[B]=low[B]=2, time=2",
+                [11, 12, 13, 14, 15, 9],
+                { dfn: { A: 1, B: 2 }, low: { A: 1, B: 2 }, parent: { A: null, B: "A" }, time: 2, articulation: [],
+                    bridges: [], current: "B", visitedOrder: ["A", "B"], children: { A: 1, B: 0 } },
+                "From A, we examine neighbor B. B is unvisited, so this is a tree edge. We set parent[B]=A, increment children of A to 1, and recursively call dfs(B). B gets dfn=2, low=2.",
+                "Tree edge A→B discovered. parent[B]=A. children[A] becomes 1. dfs(B) sets dfn[B]=2, low[B]=2. Stack: [A, B].",
+                null
+            ));
+
+            // Step 3: Visit C from B (tree edge B→C)
+            stepData.push(makeStep(3,
+                "Explore edge B→C — visit C",
+                "B's neighbor C is unvisited, so C becomes a tree child of B",
+                "neighbor C not in dfn → parent[C]=B, children[B]++, dfs(C) → dfn[C]=low[C]=3, time=3",
+                [11, 12, 13, 14, 15, 9],
+                { dfn: { A: 1, B: 2, C: 3 }, low: { A: 1, B: 2, C: 3 }, parent: { A: null, B: "A", C: "B" },
+                    time: 3, articulation: [], bridges: [], current: "C", visitedOrder: ["A", "B", "C"],
+                    children: { A: 1, B: 1, C: 0 } },
+                "From B, neighbor C is unvisited. Tree edge B→C. parent[C]=B, children[B]=1. dfs(C) sets dfn[C]=3, low[C]=3.",
+                "Tree edge B→C discovered. parent[C]=B. children[B]=1. dfs(C) sets dfn[C]=3, low[C]=3. Stack: [A, B, C].",
+                null
+            ));
+
+            // Step 4: Visit D from C (tree edge C→D)
+            stepData.push(makeStep(4,
+                "Explore edge C→D — visit D",
+                "C's neighbor D is unvisited, so D becomes a tree child of C",
+                "neighbor D not in dfn → parent[D]=C, children[C]++, dfs(D) → dfn[D]=low[D]=4, time=4",
+                [11, 12, 13, 14, 15, 9],
+                { dfn: { A: 1, B: 2, C: 3, D: 4 }, low: { A: 1, B: 2, C: 3, D: 4 },
+                    parent: { A: null, B: "A", C: "B", D: "C" }, time: 4, articulation: [], bridges: [],
+                    current: "D", visitedOrder: ["A", "B", "C", "D"], children: { A: 1, B: 1, C: 1, D: 0 } },
+                "From C, neighbor D is unvisited. Tree edge C→D. parent[D]=C, children[C]=1. dfs(D) sets dfn[D]=4, low[D]=4.",
+                "Tree edge C→D discovered. parent[D]=C. children[C]=1. dfs(D) sets dfn[D]=4, low[D]=4. Stack: [A, B, C, D].",
+                null
+            ));
+
+            // Step 5: Back edge D→B
+            stepData.push(makeStep(5,
+                "Process back edge D→B",
+                "D's neighbor B is already visited and is not D's parent (C), so this is a back edge",
+                "neighbor B is in dfn and B != parent[D] → low[D] = min(low[D], dfn[B]) = min(4,2) = 2",
+                [21, 22],
+                { dfn: { A: 1, B: 2, C: 3, D: 4 }, low: { A: 1, B: 2, C: 3, D: 2 },
+                    parent: { A: null, B: "A", C: "B", D: "C" }, time: 4, articulation: [], bridges: [],
+                    current: "D", visitedOrder: ["A", "B", "C", "D"], children: { A: 1, B: 1, C: 1, D: 0 },
+                    lastBackEdge: "D→B" },
+                "D examines neighbor B. B is already visited (dfn=2) and B is not D's parent (parent[D]=C). This is a back edge! We update low[D] = min(low[D]=4, dfn[B]=2) = 2. This means D can reach an ancestor as high as B (dfn 2).",
+                "Back edge D→B detected. B has dfn=2, parent[D]=C (not B). low[D] updated from 4 to 2. This is crucial — D can reach back to B's discovery time.",
+                null
+            ));
+
+            // Step 6: Visit E from D (tree edge D→E)
+            stepData.push(makeStep(6,
+                "Explore edge D→E — visit E",
+                "D's neighbor E is unvisited, so E becomes a tree child of D",
+                "neighbor E not in dfn → parent[E]=D, children[D]++, dfs(E) → dfn[E]=low[E]=5, time=5",
+                [11, 12, 13, 14, 15, 9],
+                { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 3, D: 2, E: 5 },
+                    parent: { A: null, B: "A", C: "B", D: "C", E: "D" }, time: 5, articulation: [], bridges: [],
+                    current: "E", visitedOrder: ["A", "B", "C", "D", "E"], children: { A: 1, B: 1, C: 1, D: 1,
+                    E: 0 } },
+                "From D, neighbor E is unvisited. Tree edge D→E. parent[E]=D, children[D]=1. dfs(E) sets dfn[E]=5, low[E]=5. E has only neighbor D (its parent), so no further recursion from E.",
+                "Tree edge D→E discovered. parent[E]=D. children[D]=1. dfs(E) sets dfn[E]=5, low[E]=5. E's only neighbor is D (parent). Stack: [A, B, C, D, E].",
+                null
+            ));
+
+            // Step 7: Return from E — identify bridge D-E and articulation D
+            stepData.push(makeStep(7,
+                "Return from E — identify bridge D-E and articulation point D",
+                "After dfs(E) returns, we update low[D] and check bridge/articulation conditions",
+                "low[D]=min(low[D],low[E])=min(2,5)=2; low[E]=5 > dfn[D]=4 → bridge D-E; low[E]=5 >= dfn[D]=4 and parent[D] exists → articulation D",
+                [16, 17, 18, 19, 20],
+                { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 3, D: 2, E: 5 },
+                    parent: { A: null, B: "A", C: "B", D: "C", E: "D" }, time: 5, articulation: ["D"],
+                    bridges: [
+                        ["D", "E"]
+                    ], current: "D", visitedOrder: ["A", "B", "C", "D", "E"], children: { A: 1, B: 1, C: 1, D: 1,
+                        E: 0 }, lastReturn: "E→D" },
+                "dfs(E) returns to D. We update low[D] = min(2, 5) = 2 (no change). Now check: low[E]=5 > dfn[D]=4? YES! This means there is no back edge from E's subtree to D or above. Edge D-E is a BRIDGE. Also, low[E]=5 >= dfn[D]=4 and D is not root, so D is an ARTICULATION POINT.",
+                "Return from E to D. low[E]=5 > dfn[D]=4 → bridge [D,E] found! low[E]=5 >= dfn[D]=4 and parent[D]=C (not null) → D is articulation point. Added D to articulation list.",
+                { question: "After returning from node E, what bridge was identified? (Format: X-Y or [X,Y])",
+                    answer: "D-E", hint: "Check which edge has low[child] > dfn[parent]. The child is E and the parent is D.",
+                    showAnswer: "D-E (edge between D and E)", type: "text" }
+            ));
+
+            // Step 8: Return from D to C
+            stepData.push(makeStep(8,
+                "Return from D to C — update low[C]",
+                "After dfs(D) returns to C, update low[C] and check conditions for edge C-D",
+                "low[C]=min(low[C],low[D])=min(3,2)=2; low[D]=2 > dfn[C]=3? No; low[D]=2 >= dfn[C]=3? No",
+                [16, 17, 18, 19],
+                { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: "A", C: "B", D: "C", E: "D" }, time: 5, articulation: ["D"],
+                    bridges: [
+                        ["D", "E"]
+                    ], current: "C", visitedOrder: ["A", "B", "C", "D", "E"], children: { A: 1, B: 1, C: 1, D: 1,
+                        E: 0 }, lastReturn: "D→C" },
+                "dfs(D) returns to C. Update low[C] = min(3, 2) = 2. Now C knows it can reach as high as dfn 2 (node B). Check bridge: low[D]=2 > dfn[C]=3? No (2 < 3), so C-D is NOT a bridge. Check articulation: low[D]=2 >= dfn[C]=3? No (2 < 3), so C is not an articulation point from D's side.",
+                "Return from D to C. low[C] updated from 3 to 2. low[D]=2 is NOT > dfn[C]=3, so C-D is not a bridge. low[D]=2 is NOT >= dfn[C]=3, so C is not an articulation point from this child.",
+                null
+            ));
+
+            // Step 9: Return from C to B — identify articulation B
+            stepData.push(makeStep(9,
+                "Return from C to B — identify articulation point B",
+                "After dfs(C) returns to B, update low[B] and check conditions; low[C] >= dfn[B] reveals articulation B",
+                "low[B]=min(low[B],low[C])=min(2,2)=2; low[C]=2 >= dfn[B]=2 and parent[B] exists → articulation B; low[C]=2 > dfn[B]=2? No → B-C is not a bridge",
+                [16, 17, 18, 19, 20],
+                { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: "A", C: "B", D: "C", E: "D" }, time: 5, articulation: ["D", "B"],
+                    bridges: [
+                        ["D", "E"]
+                    ], current: "B", visitedOrder: ["A", "B", "C", "D", "E"], children: { A: 1, B: 1, C: 1, D: 1,
+                        E: 0 }, lastReturn: "C→B" },
+                "dfs(C) returns to B. low[B] = min(2, 2) = 2 (unchanged). Check: low[C]=2 >= dfn[B]=2? YES! And B is not root (parent[B]=A). So B is an ARTICULATION POINT. Check bridge: low[C]=2 > dfn[B]=2? No (equal), so B-C is NOT a bridge.",
+                "Return from C to B. low[B] stays 2. low[C]=2 >= dfn[B]=2 and parent[B]=A (not null) → B is articulation point! Added B to articulation list. low[C] is NOT > dfn[B], so B-C is not a bridge.",
+                { question: "Which node was just identified as an articulation point after returning from C?",
+                    answer: "B", hint: "Check the condition low[child] >= dfn[parent] where the child is C and the parent is the node we returned to.",
+                    showAnswer: "B (because low[C]=2 >= dfn[B]=2 and B is not the DFS root)", type: "text" }
+            ));
+
+            // Step 10: Process back edge B→D
+            stepData.push(makeStep(10,
+                "Process back edge B→D",
+                "B examines neighbor D; D is already visited and is not B's parent, so this is a back edge",
+                "neighbor D is in dfn and D != parent[B]=A → low[B] = min(low[B], dfn[D]) = min(2,4) = 2",
+                [21, 22],
+                { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: "A", C: "B", D: "C", E: "D" }, time: 5, articulation: ["D", "B"],
+                    bridges: [
+                        ["D", "E"]
+                    ], current: "B", visitedOrder: ["A", "B", "C", "D", "E"], children: { A: 1, B: 1, C: 1, D: 1,
+                        E: 0 }, lastBackEdge: "B→D" },
+                "B now examines its remaining neighbor D. D is already visited (dfn=4) and D is not B's parent (parent[B]=A). This is a back edge. Update low[B] = min(2, dfn[D]=4) = 2. No change — B already knew it could reach dfn 2.",
+                "Back edge B→D processed. D has dfn=4, parent[B]=A (not D). low[B] = min(2,4) = 2, unchanged. This confirms B's low value.",
+                null
+            ));
+
+            // Step 11: Return from B to A — identify bridge A-B
+            stepData.push(makeStep(11,
+                "Return from B to A — identify bridge A-B",
+                "After dfs(B) returns to A, update low[A] and check conditions; A is root so special handling applies",
+                "low[A]=min(low[A],low[B])=min(1,2)=1; low[B]=2 > dfn[A]=1 → bridge A-B; low[B]=2 >= dfn[A]=1 but A is root with only 1 child → A is NOT articulation",
+                [16, 17, 18, 19, 20, 23, 24],
+                { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: "A", C: "B", D: "C", E: "D" }, time: 5, articulation: ["D", "B"],
+                    bridges: [
+                        ["D", "E"],
+                        ["A", "B"]
+                    ], current: "A", visitedOrder: ["A", "B", "C", "D", "E"], children: { A: 1, B: 1, C: 1, D: 1,
+                        E: 0 }, lastReturn: "B→A" },
+                "dfs(B) returns to A. Update low[A] = min(1, 2) = 1. Check bridge: low[B]=2 > dfn[A]=1? YES! Edge A-B is a BRIDGE. Check articulation: low[B]=2 >= dfn[A]=1 is true, BUT A is the DFS root with only 1 child (children[A]=1). Root needs ≥2 children to be an articulation point, so A is NOT articulation.",
+                "Return from B to A. low[A]=min(1,2)=1. low[B]=2 > dfn[A]=1 → bridge [A,B] found! A is root with children=1, so despite low[B] >= dfn[A], A is NOT an articulation point (root rule: need ≥2 children).",
+                null
+            ));
+
+            // Step 12: Final answer
+            stepData.push(makeStep(12,
+                "Final Answer — Compile Results",
+                "All nodes visited; the DFS is complete. Compile the articulation points and bridges lists.",
+                "return {articulation: ['B', 'D'], bridges: [['D', 'E'], ['A', 'B']]}",
+                [29],
+                { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: "A", C: "B", D: "C", E: "D" }, time: 5, articulation: ["B", "D"],
+                    bridges: [
+                        ["D", "E"],
+                        ["A", "B"]
+                    ], current: null, visitedOrder: ["A", "B", "C", "D", "E"], children: { A: 1, B: 1, C: 1, D: 1,
+                        E: 0 }, complete: true },
+                "All nodes have been visited. The final articulation points are B and D (sorted as [B, D]). The bridges are D-E and A-B (as [['D','E'], ['A','B']]). Removing B or D disconnects the graph. Removing edge D-E isolates E; removing edge A-B isolates A.",
+                "DFS complete. Articulation points: [B, D]. Bridges: [['D','E'], ['A','B']]. Root A has only 1 child so it is not an articulation point. The algorithm correctly identified all critical nodes and edges.",
+                { question: "What are the final articulation points and bridges? (Format: articulation: X,Y; bridges: X-Y, ...)",
+                    answer: "B,D; D-E, A-B",
+                    hint: "Articulation points are nodes whose removal disconnects the graph. Bridges are edges whose removal disconnects the graph. Review the discovered lists.",
+                    showAnswer: "Articulation: [B, D]; Bridges: [D-E, A-B]", type: "text" }
+            ));
+
+            const totalSteps = stepData.length; // 13
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result').querySelector('.value');
+            const $topSolution = document.getElementById('top-solution').querySelector('.value');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $graphSvg = document.getElementById('graph-svg');
+            const $dataTables = document.getElementById('data-tables');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $learningLog = document.getElementById('learning-log');
+
+            let currentStepIndex = 0;
+            let playInterval = null;
+            let checkpointSubmitted = {}; // track which checkpoint steps have been submitted
+
+            // ──────────────────────────────────────
+            // Build initial answer
+            // ──────────────────────────────────────
+            $answer.textContent = '{"articulation": ["B", "D"], "bridges": [["D", "E"], ["A", "B"]]}';
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                stepData.forEach((step, i) => {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i);
+                    tick.innerHTML =
+                        `<span class="tick-label">S${i}</span><span class="tick-op">${escapeHtml(step.title)}</span>`;
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                    });
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            // Build graph nodes in #canvas
+            // ──────────────────────────────────────
+            function buildGraphNodes() {
+                // Remove any existing node dots
+                $canvas.querySelectorAll('.node-dot,.node-label').forEach(el => el.remove());
+
+                allNodes.forEach(node => {
+                    const pos = nodePositions[node];
+                    const dot = document.createElement('div');
+                    dot.className = 'node-dot unvisited';
+                    dot.id = 'node-' + node;
+                    dot.textContent = node;
+                    dot.style.left = pos.x + '%';
+                    dot.style.top = pos.y + '%';
+                    dot.title = 'Node ' + node;
+                    $canvas.appendChild(dot);
+
+                    const label = document.createElement('div');
+                    label.className = 'node-label';
+                    label.textContent = node;
+                    label.style.left = pos.x + '%';
+                    label.style.top = pos.y + '%';
+                    $canvas.appendChild(label);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Draw SVG edges
+            // ──────────────────────────────────────
+            function drawEdges(stepIdx) {
+                $graphSvg.innerHTML = '';
+                const step = stepData[stepIdx];
+                const state = step.stateObj;
+                const current = state.current || '';
+                const bridges = state.bridges || [];
+                const lastBackEdge = state.lastBackEdge || '';
+                const lastReturn = state.lastReturn || '';
+
+                edgeDefs.forEach(edge => {
+                    const posA = nodePositions[edge.from];
+                    const posB = nodePositions[edge.to];
+                    const x1 = posA.x + '%';
+                    const y1 = posA.y + '%';
+                    const x2 = posB.x + '%';
+                    const y2 = posB.y + '%';
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x1);
+                    line.setAttribute('y1', y1);
+                    line.setAttribute('x2', x2);
+                    line.setAttribute('y2', y2);
+
+                    // Determine edge type
+                    const isBridge = bridges.some(b =>
+                        (b[0] === edge.from && b[1] === edge.to) || (b[0] === edge.to && b[1] === edge
+                            .from)
+                    );
+                    const isBackEdge = (lastBackEdge === (edge.from + '→' + edge.to)) || (lastBackEdge === (
+                        edge.to + '→' + edge.from));
+                    const isReturnEdge = (lastReturn === (edge.from + '→' + edge.to)) || (lastReturn === (edge.to +
+                        '→' + edge.from));
+
+                    // Check if this is a tree edge (parent-child relationship)
+                    const parent = state.parent || {};
+                    const isTreeEdge = (parent[edge.to] === edge.from) || (parent[edge.from] === edge.to);
+
+                    if (isBridge && stepIdx >= 7) {
+                        line.classList.add('bridge-edge');
+                    } else if (isBackEdge && stepIdx === 5) {
+                        line.classList.add('current-edge');
+                    } else if (isBackEdge) {
+                        line.classList.add('back-edge');
+                    } else if (isReturnEdge && (stepIdx === 7 || stepIdx === 9 || stepIdx === 11)) {
+                        line.classList.add('current-edge');
+                    } else if (isTreeEdge && state.dfn && state.dfn[edge.from] && state.dfn[edge.to]) {
+                        line.classList.add('tree-edge');
+                    } else if (!isTreeEdge && state.dfn && state.dfn[edge.from] && state.dfn[edge.to]) {
+                        line.classList.add('back-edge');
+                    } else {
+                        line.classList.add('tree-edge');
+                        line.style.opacity = '0.3';
+                    }
+
+                    $graphSvg.appendChild(line);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Update data tables
+            // ──────────────────────────────────────
+            function updateDataTables(state) {
+                $dataTables.innerHTML = '';
+                const dfn = state.dfn || {};
+                const low = state.low || {};
+                const parent = state.parent || {};
+
+                // dfn table
+                const dfnTable = document.createElement('div');
+                dfnTable.className = 'data-table';
+                dfnTable.innerHTML = '<div class="dt-title">dfn</div>';
+                const dfnRow = document.createElement('div');
+                dfnRow.className = 'dt-row';
+                allNodes.forEach(n => {
+                    const span = document.createElement('span');
+                    span.className = 'dt-val';
+                    span.textContent = n + ':' + (dfn[n] !== undefined ? dfn[n] : '-');
+                    if (state.current === n) span.classList.add('highlight');
+                    dfnRow.appendChild(span);
+                });
+                dfnTable.appendChild(dfnRow);
+                $dataTables.appendChild(dfnTable);
+
+                // low table
+                const lowTable = document.createElement('div');
+                lowTable.className = 'data-table';
+                lowTable.innerHTML = '<div class="dt-title">low</div>';
+                const lowRow = document.createElement('div');
+                lowRow.className = 'dt-row';
+                allNodes.forEach(n => {
+                    const span = document.createElement('span');
+                    span.className = 'dt-val';
+                    span.textContent = n + ':' + (low[n] !== undefined ? low[n] : '-');
+                    if (state.current === n) span.classList.add('highlight');
+                    lowRow.appendChild(span);
+                });
+                lowTable.appendChild(lowRow);
+                $dataTables.appendChild(lowTable);
+
+                // parent table
+                const parTable = document.createElement('div');
+                parTable.className = 'data-table';
+                parTable.innerHTML = '<div class="dt-title">parent</div>';
+                const parRow = document.createElement('div');
+                parRow.className = 'dt-row';
+                allNodes.forEach(n => {
+                    const span = document.createElement('span');
+                    span.className = 'dt-val';
+                    const pVal = parent[n];
+                    span.textContent = n + ':' + (pVal !== undefined ? (pVal === null ? 'null' : pVal) : '-');
+                    if (state.current === n) span.classList.add('highlight');
+                    parRow.appendChild(span);
+                });
+                parTable.appendChild(parRow);
+                $dataTables.appendChild(parTable);
+
+                // Articulation & bridges summary
+                const summTable = document.createElement('div');
+                summTable.className = 'data-table';
+                summTable.innerHTML = '<div class="dt-title">articulation</div><div class="dt-row"><span class="dt-val">' +
+                    (state.articulation && state.articulation.length > 0 ? state.articulation.join(', ') : 'none') +
+                    '</span></div>';
+                $dataTables.appendChild(summTable);
+
+                const brTable = document.createElement('div');
+                brTable.className = 'data-table';
+                brTable.innerHTML = '<div class="dt-title">bridges</div><div class="dt-row"><span class="dt-val">' +
+                    (state.bridges && state.bridges.length > 0 ? state.bridges.map(b => b[0] + '-' + b[1]).join(', ') :
+                        'none') + '</span></div>';
+                $dataTables.appendChild(brTable);
+            }
+
+            // ──────────────────────────────────────
+            // Update node visuals
+            // ──────────────────────────────────────
+            function updateNodeVisuals(state) {
+                const dfn = state.dfn || {};
+                const current = state.current;
+                const articulation = state.articulation || [];
+                const visitedOrder = state.visitedOrder || [];
+
+                allNodes.forEach(node => {
+                    const dot = document.getElementById('node-' + node);
+                    if (!dot) return;
+                    // Remove all classes
+                    dot.className = 'node-dot';
+
+                    if (articulation.includes(node) && state.complete) {
+                        dot.classList.add('articulation');
+                    } else if (articulation.includes(node) && current !== node) {
+                        dot.classList.add('articulation');
+                    } else if (node === current) {
+                        dot.classList.add('current');
+                    } else if (dfn[node] !== undefined) {
+                        dot.classList.add('visited');
+                    } else {
+                        dot.classList.add('unvisited');
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Render a step
+            // ──────────────────────────────────────
+            function renderStep(stepIdx) {
+                const step = stepData[stepIdx];
+                const state = step.stateObj;
+
+                // Update counter
+                $counter.textContent = (stepIdx + 1) + ' / ' + totalSteps;
+
+                // Update range slider
+                $range.value = stepIdx;
+
+                // Update step details
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+
+                // Update state JSON
+                $state.textContent = JSON.stringify(state, null, 2);
+
+                // Update teaching
+                renderTeaching(stepIdx);
+
+                // Update step evidence
+                $stepEvidence.textContent = step.evidence;
+
+                // Update code highlighting
+                highlightCode(step.codeLine);
+
+                // Update canvas
+                drawEdges(stepIdx);
+                updateNodeVisuals(state);
+                updateDataTables(state);
+
+                // Update timeline
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((tick, i) => {
+                    tick.classList.toggle('active', i === stepIdx);
+                });
+
+                // Update top result and solution
+                if (state.complete) {
+                    $topResult.textContent = 'Articulation Points: [B, D] | Bridges: [D-E, A-B]';
+                    $topSolution.textContent = '{"articulation": ["B", "D"], "bridges": [["D", "E"], ["A", "B"]]}';
+                } else if (state.articulation && state.articulation.length > 0) {
+                    $topResult.textContent = 'Articulation so far: [' + state.articulation.join(', ') + '] | Bridges: ' +
+                        (state.bridges && state.bridges.length > 0 ? state.bridges.map(b => b[0] + '-' + b[1]).join(
+                            ', ') : 'none');
+                    $topSolution.textContent = JSON.stringify({ articulation: state.articulation, bridges: state
+                            .bridges || [] },
+                        null, 2);
+                } else {
+                    $topResult.textContent = 'In progress — navigate through steps to build the solution';
+                    $topSolution.textContent = '{"articulation": [], "bridges": []}';
+                }
+
+                // Update answer visibility
+                if (state.complete) {
+                    $answer.style.display = 'block';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Highlight code lines
+            // ──────────────────────────────────────
+            function highlightCode(lineNumbers) {
+                const lines = $code.querySelectorAll('.code-line');
+                lines.forEach(line => {
+                    const ln = parseInt(line.getAttribute('data-line'));
+                    line.classList.remove('active', 'dim');
+                    if (lineNumbers.includes(ln)) {
+                        line.classList.add('active');
+                    } else if (lineNumbers.length > 0) {
+                        line.classList.add('dim');
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Render teaching with checkpoint
+            // ──────────────────────────────────────
+            function renderTeaching(stepIdx) {
+                const step = stepData[stepIdx];
+                const cp = step.checkpoint;
+
+                if (!cp) {
+                    $teaching.innerHTML = '<p>' + step.teaching + '</p>';
+                    return;
+                }
+
+                // Build checkpoint UI
+                const submitted = checkpointSubmitted[stepIdx];
+                let html = '<p>' + step.teaching + '</p>';
+                html += '<div class="checkpoint-box">';
+                html += '<div class="cp-prompt">🔍 Checkpoint: ' + escapeHtml(cp.question) + '</div>';
+                if (!submitted) {
+                    html += '<input type="text" id="cp-input-' + stepIdx + '" placeholder="Type your answer..."> ';
+                    html += '<button class="cp-submit" onclick="submitCheckpoint(' + stepIdx + ')">Submit</button> ';
+                    html += '<button class="cp-hint" onclick="showHint(' + stepIdx + ')">💡 Hint</button> ';
+                    html += '<button class="cp-show" onclick="showAnswerCp(' + stepIdx + ')">👁 Show Answer</button>';
+                    html += '<div id="cp-feedback-' + stepIdx + '" class="cp-feedback" style="display:none;"></div>';
+                } else {
+                    html += '<div class="cp-feedback ' + (submitted.correct ? 'correct' : 'incorrect') + '">' +
+                        (submitted.correct ? '✅ Correct! ' : '❌ Incorrect. ') + escapeHtml(submitted.message) +
+                        '</div>';
+                    html += '<div style="font-size:0.78rem;color:#64748b;margin-top:4px;">Answer: ' + escapeHtml(cp
+                        .showAnswer) + '</div>';
+                }
+                html += '</div>';
+                $teaching.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint handlers (global scope)
+            // ──────────────────────────────────────
+            window.submitCheckpoint = function(stepIdx) {
+                const step = stepData[stepIdx];
+                const cp = step.checkpoint;
+                if (!cp) return;
+                if (checkpointSubmitted[stepIdx]) return;
+
+                const inputEl = document.getElementById('cp-input-' + stepIdx);
+                const feedbackEl = document.getElementById('cp-feedback-' + stepIdx);
+                if (!inputEl || !feedbackEl) return;
+
+                const userAnswer = inputEl.value.trim();
+                const correctAnswer = cp.answer;
+                const isCorrect = checkAnswer(userAnswer, correctAnswer);
+
+                const message = isCorrect ?
+                    'Great job! Your answer matches: ' + cp.showAnswer :
+                    'Not quite. The correct answer is: ' + cp.showAnswer;
+
+                checkpointSubmitted[stepIdx] = { correct: isCorrect, message: message };
+                feedbackEl.textContent = (isCorrect ? '✅ Correct! ' : '❌ Incorrect. ') + message;
+                feedbackEl.className = 'cp-feedback ' + (isCorrect ? 'correct' : 'incorrect');
+                feedbackEl.style.display = 'block';
+
+                // Disable input and buttons
+                inputEl.disabled = true;
+                const btns = $teaching.querySelectorAll('button');
+                btns.forEach(b => b.disabled = true);
+
+                // Append to learning log
+                appendLearningLog(stepIdx, userAnswer, isCorrect, message);
+                renderTeaching(stepIdx);
+            };
+
+            window.showHint = function(stepIdx) {
+                const step = stepData[stepIdx];
+                const cp = step.checkpoint;
+                if (!cp) return;
+                if (checkpointSubmitted[stepIdx]) return;
+                const feedbackEl = document.getElementById('cp-feedback-' + stepIdx);
+                if (feedbackEl) {
+                    feedbackEl.textContent = '💡 Hint: ' + cp.hint;
+                    feedbackEl.className = 'cp-feedback';
+                    feedbackEl.style.display = 'block';
+                    feedbackEl.style.background = '#fef3c7';
+                    feedbackEl.style.color = '#92400e';
+                    feedbackEl.style.border = '1px solid #f59e0b';
+                }
+            };
+
+            window.showAnswerCp = function(stepIdx) {
+                const step = stepData[stepIdx];
+                const cp = step.checkpoint;
+                if (!cp) return;
+                if (checkpointSubmitted[stepIdx]) return;
+
+                const inputEl = document.getElementById('cp-input-' + stepIdx);
+                if (inputEl) {
+                    inputEl.value = cp.answer;
+                    inputEl.disabled = true;
+                }
+                const feedbackEl = document.getElementById('cp-feedback-' + stepIdx);
+                if (feedbackEl) {
+                    feedbackEl.textContent = '👁 Answer revealed: ' + cp.showAnswer;
+                    feedbackEl.className = 'cp-feedback';
+                    feedbackEl.style.display = 'block';
+                    feedbackEl.style.background = '#fee2e2';
+                    feedbackEl.style.color = '#991b1b';
+                    feedbackEl.style.border = '1px solid #ef4444';
+                }
+                const btns = $teaching.querySelectorAll('button');
+                btns.forEach(b => b.disabled = true);
+
+                checkpointSubmitted[stepIdx] = { correct: false, message: 'Answer revealed: ' + cp.showAnswer,
+                    revealed: true };
+                appendLearningLog(stepIdx, '(revealed)', false, 'Answer was revealed: ' + cp.showAnswer);
+                renderTeaching(stepIdx);
+            };
+
+            function checkAnswer(userAnswer, correctAnswer) {
+                const ua = userAnswer.toLowerCase().replace(/\s+/g, '').replace(/[\[\]"]/g, '');
+                const ca = correctAnswer.toLowerCase().replace(/\s+/g, '').replace(/[\[\]"]/g, '');
+                // Also try to match individual components
+                if (ua === ca) return true;
+                // For multi-part answers, check if all components are present
+                const uaParts = ua.split(/[,;]/).sort();
+                const caParts = ca.split(/[,;]/).sort();
+                if (uaParts.length === caParts.length && uaParts.every((p, i) => p === caParts[i])) return true;
+                // Fuzzy: check if all ca parts appear in ua
+                if (caParts.every(cp => ua.includes(cp))) return true;
+                return false;
+            }
+
+            function appendLearningLog(stepIdx, userAnswer, isCorrect, message) {
+                const step = stepData[stepIdx];
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + (isCorrect ? 'correct-entry' : (message.includes('revealed') ?
+                    'show-entry' : 'incorrect-entry'));
+                const timestamp = new Date().toLocaleTimeString();
+                entry.innerHTML = '<strong>Step ' + stepIdx + ':</strong> ' + escapeHtml(step.title) +
+                    ' — Your answer: <em>' + escapeHtml(userAnswer) + '</em> — ' + (isCorrect ? '✅ Correct' :
+                        '❌ ' + escapeHtml(message));
+                entry.style.fontSize = '0.75rem';
+                // Remove placeholder if present
+                const placeholder = $learningLog.querySelector('div:not(.log-entry)');
+                if (placeholder && $learningLog.querySelectorAll('.log-entry').length === 0) {
+                    placeholder.remove();
+                }
+                $learningLog.appendChild(entry);
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(idx) {
+                if (idx < 0 || idx >= totalSteps) return;
+                currentStepIndex = idx;
+                renderStep(idx);
+            }
+
+            $prev.addEventListener('click', () => {
+                if (playInterval) stopPlay();
+                goToStep(currentStepIndex - 1);
+            });
+
+            $next.addEventListener('click', () => {
+                if (playInterval) stopPlay();
+                goToStep(currentStepIndex + 1);
+            });
+
+            $range.addEventListener('input', () => {
+                if (playInterval) stopPlay();
+                goToStep(parseInt($range.value));
+            });
+
+            $play.addEventListener('click', () => {
+                if (playInterval) {
+                    stopPlay();
+                    $play.textContent = '▶ Play';
+                    $play.classList.add('primary');
+                } else {
+                    startPlay();
+                    $play.textContent = '⏸ Pause';
+                    $play.classList.remove('primary');
+                }
+            });
+
+            function startPlay() {
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                        $play.textContent = '▶ Play';
+                        $play.classList.add('primary');
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    if (playInterval) stopPlay();
+                    $play.textContent = '▶ Play';
+                    $play.classList.add('primary');
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    if (playInterval) stopPlay();
+                    $play.textContent = '▶ Play';
+                    $play.classList.add('primary');
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    $play.click();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize
+            // ──────────────────────────────────────
+            function init() {
+                buildTimeline();
+                buildGraphNodes();
+                $range.max = totalSteps - 1;
+                $range.value = 0;
+                $counter.textContent = '1 / ' + totalSteps;
+                renderStep(0);
+                // Ensure answer is visible
+                $answer.style.display = 'block';
+            }
+
+            init();
+
+            console.log('Articulation Points and Bridges tutoring page initialized. Total steps: ' + totalSteps);
+            console.log('Use arrow keys to navigate, space to play/pause, or click timeline ticks.');
+        })();
+    </script>
+</body>
+</html>

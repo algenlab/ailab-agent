@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unique Paths - AlgoLab</title>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --accent-light: #eff6ff;
+            --green: #22c55e;
+            --green-light: #f0fdf4;
+            --amber: #f59e0b;
+            --amber-light: #fffbeb;
+            --red: #ef4444;
+            --red-light: #fef2f2;
+            --blue-light: #dbeafe;
+            --orange: #f97316;
+            --orange-light: #fff7ed;
+            --purple: #8b5cf6;
+            --purple-light: #f5f3ff;
+            --gray-light: #f1f5f9;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .header-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .badge-algo {
+            background: var(--purple-light);
+            color: #6d28d9;
+        }
+        .badge-type {
+            background: var(--blue-light);
+            color: #1d4ed8;
+        }
+
+        /* Top result & solution */
+        .top-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .top-mini {
+            flex: 1;
+            min-width: 160px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        .top-mini-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        #top-result {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0f172a;
+            font-family: var(--font-mono);
+        }
+        #top-solution {
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            color: #334155;
+            background: #f8fafc;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            word-break: break-all;
+        }
+
+        /* Main grid: code + canvas side by side */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 16px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Code panel */
+        .code-panel {
+            background: #1e293b;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-md);
+            overflow-x: auto;
+        }
+        .code-panel h4 {
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            color: #e2e8f0;
+            white-space: pre;
+            margin: 0;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            transition: background 0.25s, color 0.25s;
+            border-left: 3px solid transparent;
+        }
+        #code .code-line.active {
+            background: #334155;
+            border-left: 3px solid #facc15;
+            color: #fef9c3;
+            font-weight: 600;
+        }
+        #code .code-line.active::before {
+            content: '> ';
+            color: #facc15;
+            font-weight: 700;
+        }
+        .code-comment {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        .code-keyword {
+            color: #c084fc;
+        }
+        .code-func {
+            color: #60a5fa;
+        }
+
+        /* Canvas panel */
+        .canvas-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .canvas-panel h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        #canvas {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-height: 180px;
+            justify-content: center;
+            position: relative;
+        }
+        .dp-grid {
+            display: grid;
+            gap: 3px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .dp-cell {
+            width: 44px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            user-select: none;
+            position: relative;
+        }
+        .dp-cell.uncomputed {
+            background: #e9ecef;
+            color: #adb5bd;
+            border-color: #dee2e6;
+        }
+        .dp-cell.base {
+            background: #bbf7d0;
+            color: #166534;
+            border-color: #86efac;
+        }
+        .dp-cell.computed {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border-color: #a5d6a7;
+        }
+        .dp-cell.current {
+            background: #fef08a;
+            color: #713f12;
+            border-color: #facc15;
+            box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.35);
+            z-index: 2;
+            animation: pulse-cell 1s ease-in-out infinite;
+        }
+        .dp-cell.dependency {
+            background: #bfdbfe;
+            color: #1e3a5f;
+            border-color: #93c5fd;
+        }
+        .dp-cell.answer-highlight {
+            background: #fed7aa;
+            color: #7c2d12;
+            border-color: #fb923c;
+            box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.3);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        @keyframes pulse-cell {
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.35);
+            }
+            50% {
+                box-shadow: 0 0 0 7px rgba(250, 204, 21, 0.12);
+            }
+        }
+        .dp-labels {
+            display: flex;
+            gap: 4px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .dp-legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            justify-content: center;
+            margin-top: 4px;
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 4px;
+            vertical-align: middle;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+        }
+        .btn {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .btn:active {
+            background: #f1f5f9;
+            transform: scale(0.97);
+        }
+        .btn.active-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        #play {
+            background: #22c55e;
+            color: #fff;
+            border-color: #22c55e;
+            min-width: 52px;
+        }
+        #play:hover {
+            background: #16a34a;
+        }
+        #play.paused {
+            background: #f59e0b;
+            border-color: #f59e0b;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: #3b82f6;
+            height: 6px;
+            cursor: pointer;
+        }
+        #counter {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #334155;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Timeline */
+        .timeline-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+        }
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: nowrap;
+            min-width: fit-content;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 9px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #f8fafc;
+            transition: all 0.2s;
+            min-width: 50px;
+            text-align: center;
+            flex-shrink: 0;
+            user-select: none;
+        }
+        .tick:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+        .tick.active-tick {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            font-weight: 700;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .tick-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #475569;
+            letter-spacing: 0.03em;
+        }
+        .tick.active-tick .tick-label {
+            color: #1d4ed8;
+        }
+        .tick-op {
+            font-size: 0.6rem;
+            color: #94a3b8;
+            margin-top: 1px;
+            line-height: 1.2;
+            max-width: 70px;
+        }
+        .tick.active-tick .tick-op {
+            color: #3b82f6;
+        }
+
+        /* Info panels */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 800px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            font-size: 0.85rem;
+        }
+        .info-card h4 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+        #step-desc {
+            color: #475569;
+            margin-bottom: 4px;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #1e40af;
+            background: #eff6ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            word-break: break-all;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            background: #f8fafc;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            max-height: 160px;
+            overflow-y: auto;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            line-height: 1.5;
+        }
+        #teaching {
+            color: #334155;
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #475569;
+            line-height: 1.5;
+            background: #fffbeb;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid #f59e0b;
+        }
+
+        /* Checkpoint */
+        .checkpoint-card {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            transition: border-color 0.3s;
+        }
+        .checkpoint-card.active-checkpoint {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.08);
+        }
+        .checkpoint-prompt {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        .checkpoint-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .checkpoint-input-row input {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            width: 100px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .checkpoint-input-row input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+        .btn-submit {
+            background: #8b5cf6;
+            color: #fff;
+            border-color: #8b5cf6;
+            font-weight: 600;
+        }
+        .btn-submit:hover {
+            background: #7c3aed;
+        }
+        .btn-hint {
+            background: #fff;
+            color: #6d28d9;
+            border-color: #d8b4fe;
+        }
+        .btn-show-answer {
+            background: #fff;
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+        .feedback-area {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: 0.85rem;
+            min-height: 20px;
+            transition: all 0.3s;
+        }
+        .feedback-correct {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .feedback-incorrect {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Learning Log */
+        .log-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .log-card h4 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .log-entry {
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            border-left: 3px solid #cbd5e1;
+            background: #f9fafb;
+            line-height: 1.4;
+        }
+        .log-entry.log-correct {
+            border-left-color: #22c55e;
+            background: #f0fdf4;
+        }
+        .log-entry.log-incorrect {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .log-entry.log-reveal {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        /* Answer (hidden but present) */
+        #answer {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 8px;
+            }
+            .dp-cell {
+                width: 32px;
+                height: 30px;
+                font-size: 0.7rem;
+            }
+            .header-card {
+                padding: 12px 14px;
+            }
+            #title {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div>
+                <div id="title">Unique Paths</div>
+                <div id="subtitle">In a smart warehouse, compute distinct paths from top-left to bottom-right</div>
+            </div>
+            <div class="header-badges">
+                <span class="badge badge-algo">2D DP</span>
+                <span class="badge badge-type">Grid Path Counting</span>
+            </div>
+        </div>
+
+        <!-- Top result and solution -->
+        <div class="top-row">
+            <div class="top-mini">
+                <div class="top-mini-label">Result</div>
+                <div id="top-result">—</div>
+            </div>
+            <div class="top-mini">
+                <div class="top-mini-label">DP Formula</div>
+                <div id="top-solution">dp[i][j] = dp[i-1][j] + dp[i][j-1]</div>
+            </div>
+        </div>
+
+        <!-- Hidden answer element -->
+        <div id="answer">28</div>
+
+        <!-- Main grid: code + canvas -->
+        <div class="main-grid">
+            <!-- Code panel -->
+            <div class="code-panel">
+                <h4>Pseudocode</h4>
+                <pre id="code"><span class="code-line" data-line="0"><span class="code-keyword">function</span> <span class="code-func">uniquePaths</span>(m, n):</span>
+                    <span class="code-line" data-line="1">    dp = <span class="code-keyword">new</span> 2D array[m][n]</span>
+                    <span class="code-line" data-line="2">    <span class="code-comment">// Initialize base cases</span></span>
+                    <span class="code-line" data-line="3">    <span class="code-keyword">for</span> i = 0 <span class="code-keyword">to</span> m-1: dp[i][0] = 1</span>
+                    <span class="code-line" data-line="4">    <span class="code-keyword">for</span> j = 0 <span class="code-keyword">to</span> n-1: dp[0][j] = 1</span>
+                    <span class="code-line" data-line="5">    <span class="code-comment">// Fill the DP table</span></span>
+                    <span class="code-line" data-line="6">    <span class="code-keyword">for</span> i = 1 <span class="code-keyword">to</span> m-1:</span>
+                    <span class="code-line" data-line="7">        <span class="code-keyword">for</span> j = 1 <span class="code-keyword">to</span> n-1:</span>
+                    <span class="code-line" data-line="8">            dp[i][j] = dp[i-1][j] + dp[i][j-1]</span>
+                    <span class="code-line" data-line="9">    <span class="code-keyword">return</span> dp[m-1][n-1]</span></pre>
+            </div>
+
+            <!-- Canvas panel -->
+            <div class="canvas-panel">
+                <h4>DP Table Visualization</h4>
+                <div id="canvas"></div>
+                <div class="dp-legend">
+                    <span><span class="legend-dot" style="background:#bbf7d0;"></span> Base case</span>
+                    <span><span class="legend-dot" style="background:#e8f5e9;"></span> Computed</span>
+                    <span><span class="legend-dot" style="background:#bfdbfe;"></span> Dependency</span>
+                    <span><span class="legend-dot" style="background:#fef08a;"></span> Current cell</span>
+                    <span><span class="legend-dot" style="background:#fed7aa;"></span> Answer</span>
+                    <span><span class="legend-dot" style="background:#e9ecef;"></span> Uncomputed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <button class="btn" id="prev" aria-label="Previous step">◀ Prev</button>
+            <button class="btn" id="play" aria-label="Play auto-advance">▶ Play</button>
+            <button class="btn" id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="0" max="13" value="0" aria-label="Step scrubber">
+            <span id="counter">1 / 14</span>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-container">
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Info grid -->
+        <div class="info-grid">
+            <div class="info-card">
+                <h4>Step Info</h4>
+                <div id="step-title">Initial Setup</div>
+                <div id="step-desc">Preparing the DP table for computation.</div>
+                <div id="op">—</div>
+            </div>
+            <div class="info-card">
+                <h4>Current State (JSON)</h4>
+                <pre id="state">{"status": "initializing"}</pre>
+            </div>
+            <div class="info-card">
+                <h4>Teaching Notes</h4>
+                <div id="teaching">We start by creating a 2D DP table. The intuition: each cell represents the number of unique paths to reach that cell from (0,0).</div>
+            </div>
+            <div class="info-card">
+                <h4>Step Evidence</h4>
+                <div id="step-evidence">Operation: Create empty DP table. No dependencies yet. Awaiting initialization.</div>
+            </div>
+        </div>
+
+        <!-- Checkpoint -->
+        <div class="checkpoint-card" id="checkpoint-section">
+            <div class="checkpoint-prompt" id="checkpoint-prompt">No active checkpoint at this step. Explore freely!</div>
+            <div class="checkpoint-input-row" id="checkpoint-inputs" style="display:none;">
+                <input type="number" id="checkpoint-answer" placeholder="Your answer" aria-label="Checkpoint answer input">
+                <button class="btn btn-submit" id="checkpoint-submit">Submit</button>
+                <button class="btn btn-hint" id="checkpoint-hint">Hint</button>
+                <button class="btn btn-show-answer" id="checkpoint-show">Show Answer</button>
+            </div>
+            <div class="feedback-area" id="checkpoint-feedback"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="log-card">
+            <h4>Learning Log</h4>
+            <div id="learning-log">
+                <div class="log-entry">Session started. Ready to explore the Unique Paths DP algorithm.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step definitions (indices 0..13, total N=14)
+            // ──────────────────────────────────────
+            const m = 3;
+            const n = 7;
+            const totalSteps = 14; // steps 0 through 13
+
+            // Build an empty grid (all -1 = uncomputed)
+            function emptyGrid() {
+                const g = [];
+                for (let r = 0; r < m; r++) {
+                    g[r] = [];
+                    for (let c = 0; c < n; c++) {
+                        g[r][c] = -1;
+                    }
+                }
+                return g;
+            }
+
+            // Clone a grid
+            function cloneGrid(g) {
+                return g.map(row => [...row]);
+            }
+
+            // Build step data
+            function buildSteps() {
+                const steps = [];
+                // Step 0: Initial empty state
+                {
+                    const grid = emptyGrid();
+                    steps.push({
+                        index: 0,
+                        title: 'Step 0: Initial Setup',
+                        desc: 'Create an empty 3×7 DP table. All cells are uncomputed.',
+                        op: 'dp = new 2D array[3][7]',
+                        codeLine: 1,
+                        grid: grid,
+                        currentCell: null,
+                        aboveCell: null,
+                        leftCell: null,
+                        isFinal: false,
+                        teaching: 'We start by creating a 2D DP table with 3 rows and 7 columns. The cell dp[i][j] will store the number of unique paths from (0,0) to (i,j). Initially, all cells are uncomputed.',
+                        evidence: 'Operation: Create empty DP table of size 3×7. No dependencies. All cells marked as uncomputed (—).',
+                        checkpoint: null,
+                    });
+                }
+                // Step 1: Initialize base cases
+                {
+                    const grid = emptyGrid();
+                    for (let r = 0; r < m; r++) grid[r][0] = 1;
+                    for (let c = 0; c < n; c++) grid[0][c] = 1;
+                    steps.push({
+                        index: 1,
+                        title: 'Step 1: Initialize Base Cases',
+                        desc: 'Set first row and first column to 1. Only one way to reach any cell in the first row or first column.',
+                        op: 'dp[i][0] = 1 for all i; dp[0][j] = 1 for all j',
+                        codeLine: 3,
+                        grid: grid,
+                        currentCell: null,
+                        aboveCell: null,
+                        leftCell: null,
+                        isFinal: false,
+                        teaching: 'Base case reasoning: From (0,0), to reach any cell in the first row, you can only move right. To reach any cell in the first column, you can only move down. So there is exactly 1 path to each of these cells. This is the foundation of our DP.',
+                        evidence: 'Operation: Initialize base cases. First column (dp[i][0]) set to 1 for i=0,1,2. First row (dp[0][j]) set to 1 for j=0..6. These cells serve as dependencies for all later computations.',
+                        checkpoint: {
+                            question: 'What value is assigned to every cell in the first row and first column?',
+                            answer: 1,
+                            hint: 'Think about how many distinct ways the robot can reach a cell in the top row (only moving right) or the leftmost column (only moving down).',
+                            answerReveal: '1 — because from (0,0), there is exactly one path to any cell in the first row (all right moves) or first column (all down moves).',
+                        },
+                    });
+                }
+                // Steps 2-7: Fill row 1 (i=1, j=1..6)
+                const row1values = [2, 3, 4, 5, 6, 7];
+                for (let jj = 0; jj < 6; jj++) {
+                    const j = jj + 1; // j from 1 to 6
+                    const stepIdx = 2 + jj;
+                    const grid = emptyGrid();
+                    for (let r = 0; r < m; r++) grid[r][0] = 1;
+                    for (let c = 0; c < n; c++) grid[0][c] = 1;
+                    // Fill row 1 up to j
+                    for (let c = 1; c <= j; c++) {
+                        grid[1][c] = grid[0][c] + grid[1][c - 1];
+                    }
+                    const val = grid[1][j];
+                    steps.push({
+                        index: stepIdx,
+                        title: `Step ${stepIdx}: Fill dp[1][${j}]`,
+                        desc: `Compute dp[1][${j}] = dp[0][${j}] + dp[1][${j - 1}] = ${grid[0][j]} + ${grid[1][j-1]} = ${val}.`,
+                        op: `dp[1][${j}] = dp[0][${j}] + dp[1][${j-1}]`,
+                        codeLine: 8,
+                        grid: grid,
+                        currentCell: { r: 1, c: j },
+                        aboveCell: { r: 0, c: j },
+                        leftCell: { r: 1, c: j - 1 },
+                        isFinal: false,
+                        teaching: `We process row 1, cell (1,${j}). The recurrence dp[i][j] = dp[i-1][j] + dp[i][j-1] means we add the value from above (dp[0][${j}]=${grid[0][j]}) and the value from the left (dp[1][${j-1}]=${grid[1][j-1]}). This sums all paths that arrive from above plus all that arrive from the left. Result: ${val}.`,
+                        evidence: `Operation: Fill cell (1,${j}). Dependencies: above cell (0,${j}) = ${grid[0][j]}, left cell (1,${j-1}) = ${grid[1][j-1]}. Before: dp[1][${j}] was uncomputed. After: dp[1][${j}] = ${val}.`,
+                        checkpoint: (j === 6) ? {
+                            question: 'After completing row 1, what is the value at cell (1, 6)?',
+                            answer: 7,
+                            hint: 'Look at the pattern in row 1: each cell sums the cell above (always 1) and the cell to its left. Row 1 values are: 1, 2, 3, 4, 5, 6, 7.',
+                            answerReveal: '7 — Row 1 follows the pattern dp[1][j] = 1 + dp[1][j-1], producing the sequence 1, 2, 3, 4, 5, 6, 7.',
+                        } : null,
+                    });
+                }
+                // Steps 8-13: Fill row 2 (i=2, j=1..6)
+                const row2values = [3, 6, 10, 15, 21, 28];
+                for (let jj = 0; jj < 6; jj++) {
+                    const j = jj + 1;
+                    const stepIdx = 8 + jj;
+                    const grid = emptyGrid();
+                    for (let r = 0; r < m; r++) grid[r][0] = 1;
+                    for (let c = 0; c < n; c++) grid[0][c] = 1;
+                    // Fill row 1 completely
+                    for (let c = 1; c < n; c++) {
+                        grid[1][c] = grid[0][c] + grid[1][c - 1];
+                    }
+                    // Fill row 2 up to j
+                    for (let c = 1; c <= j; c++) {
+                        grid[2][c] = grid[1][c] + grid[2][c - 1];
+                    }
+                    const val = grid[2][j];
+                    const isLast = (j === 6);
+                    steps.push({
+                        index: stepIdx,
+                        title: `Step ${stepIdx}: Fill dp[2][${j}]`,
+                        desc: `Compute dp[2][${j}] = dp[1][${j}] + dp[2][${j - 1}] = ${grid[1][j]} + ${grid[2][j-1]} = ${val}.`,
+                        op: `dp[2][${j}] = dp[1][${j}] + dp[2][${j-1}]`,
+                        codeLine: isLast ? 9 : 8,
+                        grid: grid,
+                        currentCell: { r: 2, c: j },
+                        aboveCell: { r: 1, c: j },
+                        leftCell: { r: 2, c: j - 1 },
+                        isFinal: isLast,
+                        teaching: isLast ?
+                            `Final cell! dp[2][6] = dp[1][6] + dp[2][5] = ${grid[1][6]} + ${grid[2][5]} = ${val}. This is the answer: there are 28 unique paths from (0,0) to (2,6). The recurrence has correctly accumulated all possibilities.` :
+                            `Processing row 2, cell (2,${j}). Above: dp[1][${j}]=${grid[1][j]}, Left: dp[2][${j-1}]=${grid[2][j-1]}. Sum = ${val}. Each value builds on previously computed results.`,
+                        evidence: isLast ?
+                            `Operation: Fill final cell (2,6). Dependencies: above cell (1,6) = ${grid[1][6]}, left cell (2,5) = ${grid[2][5]}. Before: dp[2][6] was uncomputed. After: dp[2][6] = 28. This is the final answer. Return dp[m-1][n-1] = 28.` :
+                            `Operation: Fill cell (2,${j}). Dependencies: above cell (1,${j}) = ${grid[1][j]}, left cell (2,${j-1}) = ${grid[2][j-1]}. Before: dp[2][${j}] was uncomputed. After: dp[2][${j}] = ${val}.`,
+                        checkpoint: isLast ? {
+                            question: 'What is the total number of unique paths from (0,0) to (2,6)?',
+                            answer: 28,
+                            hint: 'The answer is the value in the bottom-right cell dp[2][6], which is computed as dp[1][6] + dp[2][5] = 7 + 21.',
+                            answerReveal: '28 — This is the total number of distinct paths the robot can take through the 3×7 warehouse grid.',
+                        } : null,
+                    });
+                }
+                return steps;
+            }
+
+            const steps = buildSteps();
+            const N = steps.length; // 14
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResult = document.getElementById('top-result');
+            const $topSolution = document.getElementById('top-solution');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $canvas = document.getElementById('canvas');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $range = document.getElementById('range');
+            const $counter = document.getElementById('counter');
+            const $timeline = document.getElementById('timeline');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $answer = document.getElementById('answer');
+            const $checkpointSection = document.getElementById('checkpoint-section');
+            const $checkpointPrompt = document.getElementById('checkpoint-prompt');
+            const $checkpointInputs = document.getElementById('checkpoint-inputs');
+            const $checkpointAnswer = document.getElementById('checkpoint-answer');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHint = document.getElementById('checkpoint-hint');
+            const $checkpointShow = document.getElementById('checkpoint-show');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $learningLog = document.getElementById('learning-log');
+
+            // Set range max
+            $range.max = N - 1;
+            $range.value = 0;
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playTimer = null;
+            const learningLogEntries = [
+                'Session started. Ready to explore the Unique Paths DP algorithm.',
+            ];
+            // Track which checkpoints have been attempted (to allow re-submission but log each)
+            const checkpointAttempts = {}; // key: stepIndex, value: count
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.setAttribute('role', 'button');
+                    tick.setAttribute('tabindex', '0');
+                    tick.setAttribute('aria-label', `Go to step ${idx}`);
+                    tick.innerHTML =
+                        `<span class="tick-label">S${idx}</span><span class="tick-op">${escapeHTML(step.op.length > 28 ? step.op.substring(0, 25) + '...' : step.op)}</span>`;
+                    tick.addEventListener('click', () => goToStep(idx));
+                    $timeline.appendChild(tick);
+                });
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            // Render DP table in #canvas
+            // ──────────────────────────────────────
+            function renderCanvas(step) {
+                const grid = step.grid;
+                const current = step.currentCell;
+                const above = step.aboveCell;
+                const left = step.leftCell;
+                const isFinal = step.isFinal;
+
+                let html = '<div class="dp-grid" style="grid-template-columns: repeat(' + n +
+                    ', 44px); grid-template-rows: repeat(' + m + ', 40px);">';
+                for (let r = 0; r < m; r++) {
+                    for (let c = 0; c < n; c++) {
+                        const val = grid[r][c];
+                        let cellClass = 'dp-cell';
+                        let displayVal = val === -1 ? '—' : String(val);
+
+                        // Determine cell class
+                        const isCurrent = current && current.r === r && current.c === c;
+                        const isAbove = above && above.r === r && above.c === c;
+                        const isLeft = left && left.r === r && left.c === c;
+                        const isBase = (r === 0 || c === 0) && val === 1;
+                        const isAnswerCell = isFinal && r === m - 1 && c === n - 1 && val === 28;
+
+                        if (isCurrent) {
+                            cellClass += ' current';
+                        } else if (isAnswerCell) {
+                            cellClass += ' answer-highlight';
+                        } else if (isAbove || isLeft) {
+                            cellClass += ' dependency';
+                        } else if (isBase && val === 1) {
+                            cellClass += ' base';
+                        } else if (val >= 0) {
+                            cellClass += ' computed';
+                        } else {
+                            cellClass += ' uncomputed';
+                        }
+
+                        html +=
+                            `<div class="${cellClass}" title="dp[${r}][${c}] = ${displayVal}" aria-label="Cell row ${r} column ${c} value ${displayVal}">${displayVal}</div>`;
+                    }
+                }
+                html += '</div>';
+
+                // Row/col labels
+                html += '<div class="dp-labels">Columns: ';
+                for (let c = 0; c < n; c++) {
+                    html += `<span style="margin:0 3px;">[${c}]</span>`;
+                }
+                html += ' &nbsp;| Rows: ';
+                for (let r = 0; r < m; r++) {
+                    html += `<span style="margin:0 3px;">[${r}]</span>`;
+                }
+                html += '</div>';
+
+                $canvas.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // Highlight code line
+            // ──────────────────────────────────────
+            function highlightCode(lineIndex) {
+                const lines = $code.querySelectorAll('.code-line');
+                lines.forEach((line, idx) => {
+                    line.classList.remove('active');
+                    if (idx === lineIndex) {
+                        line.classList.add('active');
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Update all UI for a given step
+            // ──────────────────────────────────────
+            function updateUIForStep(stepIndex) {
+                const step = steps[stepIndex];
+                currentStepIndex = stepIndex;
+
+                // Step info
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+                $teaching.textContent = step.teaching;
+                $stepEvidence.textContent = step.evidence;
+
+                // State JSON
+                const stateObj = {
+                    step: stepIndex,
+                    dp_table: step.grid.map(row => row.map(v => v === -1 ? null : v)),
+                    current_cell: step.currentCell ? [step.currentCell.r, step.currentCell.c] : null,
+                    dependencies: {
+                        above: step.aboveCell ? [step.aboveCell.r, step.aboveCell.c] : null,
+                        left: step.leftCell ? [step.leftCell.r, step.leftCell.c] : null,
+                    },
+                    operation: step.op,
+                };
+                $state.textContent = JSON.stringify(stateObj, null, 2);
+
+                // Top result
+                if (step.isFinal) {
+                    $topResult.textContent = '28';
+                } else if (step.currentCell && step.grid[step.currentCell.r][step.currentCell.c] >= 0) {
+                    $topResult.textContent = String(step.grid[step.currentCell.r][step.currentCell.c]);
+                } else if (stepIndex >= 1) {
+                    $topResult.textContent = 'Computing...';
+                } else {
+                    $topResult.textContent = '—';
+                }
+
+                // Counter
+                $counter.textContent = `${stepIndex + 1} / ${N}`;
+
+                // Range
+                $range.value = stepIndex;
+
+                // Code highlight
+                highlightCode(step.codeLine);
+
+                // Canvas
+                renderCanvas(step);
+
+                // Timeline active tick
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.toggle('active-tick', i === stepIndex);
+                });
+
+                // Checkpoint
+                renderCheckpoint(step);
+
+                // Scroll active tick into view
+                if (ticks[stepIndex]) {
+                    ticks[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint rendering
+            // ──────────────────────────────────────
+            function renderCheckpoint(step) {
+                const cp = step.checkpoint;
+                if (cp) {
+                    $checkpointSection.classList.add('active-checkpoint');
+                    $checkpointPrompt.textContent = '🔍 Checkpoint: ' + cp.question;
+                    $checkpointInputs.style.display = 'flex';
+                    $checkpointAnswer.value = '';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = 'feedback-area';
+                    // Store current checkpoint data
+                    $checkpointSection.dataset.stepIndex = step.index;
+                    $checkpointSection.dataset.answer = cp.answer;
+                    $checkpointSection.dataset.hint = cp.hint;
+                    $checkpointSection.dataset.reveal = cp.answerReveal;
+                } else {
+                    $checkpointSection.classList.remove('active-checkpoint');
+                    $checkpointPrompt.textContent = 'No active checkpoint at this step. Explore freely!';
+                    $checkpointInputs.style.display = 'none';
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = 'feedback-area';
+                    delete $checkpointSection.dataset.stepIndex;
+                    delete $checkpointSection.dataset.answer;
+                    delete $checkpointSection.dataset.hint;
+                    delete $checkpointSection.dataset.reveal;
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                const clamped = Math.max(0, Math.min(N - 1, index));
+                if (clamped === currentStepIndex && steps[clamped].checkpoint === null) return;
+                updateUIForStep(clamped);
+            }
+
+            $prev.addEventListener('click', () => goToStep(currentStepIndex - 1));
+            $next.addEventListener('click', () => goToStep(currentStepIndex + 1));
+            $range.addEventListener('input', () => {
+                goToStep(parseInt($range.value, 10));
+            });
+
+            // Play / Pause
+            $play.addEventListener('click', () => {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            });
+
+            function startPlay() {
+                isPlaying = true;
+                $play.textContent = '⏸ Pause';
+                $play.classList.add('paused');
+                advancePlay();
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $play.textContent = '▶ Play';
+                $play.classList.remove('paused');
+                if (playTimer) clearTimeout(playTimer);
+                playTimer = null;
+            }
+
+            function advancePlay() {
+                if (!isPlaying) return;
+                if (currentStepIndex >= N - 1) {
+                    stopPlay();
+                    return;
+                }
+                goToStep(currentStepIndex + 1);
+                playTimer = setTimeout(advancePlay, 1500);
+            }
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.type === 'number') return; // Don't interfere with checkpoint input
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isPlaying) stopPlay();
+                    else startPlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Checkpoint interactions
+            // ──────────────────────────────────────
+            function appendLogEntry(message, type) {
+                learningLogEntries.push({ message, type });
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                $learningLog.innerHTML = '';
+                learningLogEntries.forEach((entry) => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry';
+                    if (typeof entry === 'string') {
+                        div.textContent = entry;
+                        div.classList.add('log-correct');
+                    } else {
+                        div.textContent = entry.message;
+                        if (entry.type === 'correct') div.classList.add('log-correct');
+                        else if (entry.type === 'incorrect') div.classList.add('log-incorrect');
+                        else if (entry.type === 'reveal') div.classList.add('log-reveal');
+                    }
+                    $learningLog.appendChild(div);
+                });
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            $checkpointSubmit.addEventListener('click', () => {
+                const stepIdxStr = $checkpointSection.dataset.stepIndex;
+                if (!stepIdxStr) return;
+                const stepIdx = parseInt(stepIdxStr, 10);
+                const correctAnswer = parseInt($checkpointSection.dataset.answer, 10);
+                const userAnswerStr = $checkpointAnswer.value.trim();
+                const userAnswer = parseInt(userAnswerStr, 10);
+                const step = steps[stepIdx];
+
+                if (userAnswerStr === '' || isNaN(userAnswer)) {
+                    $checkpointFeedback.textContent =
+                        '⚠️ Please enter a numeric answer before submitting.';
+                    $checkpointFeedback.className = 'feedback-area feedback-incorrect';
+                    return;
+                }
+
+                // Track attempts
+                if (!checkpointAttempts[stepIdx]) checkpointAttempts[stepIdx] = 0;
+                checkpointAttempts[stepIdx]++;
+
+                if (userAnswer === correctAnswer) {
+                    $checkpointFeedback.textContent =
+                        `✅ Correct! The answer is indeed ${correctAnswer}. Well done!`;
+                    $checkpointFeedback.className = 'feedback-area feedback-correct';
+                    appendLogEntry(
+                        `Checkpoint at Step ${stepIdx}: Answered "${userAnswer}" — Correct! (${step.checkpoint.question})`,
+                        'correct');
+                } else {
+                    $checkpointFeedback.textContent =
+                        `❌ Not quite. You answered ${userAnswer}, but the correct answer is ${correctAnswer}. Review the DP table and try again.`;
+                    $checkpointFeedback.className = 'feedback-area feedback-incorrect';
+                    appendLogEntry(
+                        `Checkpoint at Step ${stepIdx}: Answered "${userAnswer}" — Incorrect. Correct answer: ${correctAnswer}. (${step.checkpoint.question})`,
+                        'incorrect');
+                }
+            });
+
+            $checkpointHint.addEventListener('click', () => {
+                const hint = $checkpointSection.dataset.hint;
+                if (hint) {
+                    $checkpointFeedback.textContent = '💡 Hint: ' + hint;
+                    $checkpointFeedback.className = 'feedback-area';
+                    appendLogEntry(`Hint requested at Step ${$checkpointSection.dataset.stepIndex}: "${hint}"`,
+                        'reveal');
+                }
+            });
+
+            $checkpointShow.addEventListener('click', () => {
+                const reveal = $checkpointSection.dataset.reveal;
+                const answer = $checkpointSection.dataset.answer;
+                if (reveal) {
+                    $checkpointFeedback.textContent = '📖 Answer: ' + reveal;
+                    $checkpointFeedback.className = 'feedback-area feedback-correct';
+                    $checkpointAnswer.value = answer;
+                    appendLogEntry(
+                        `Show Answer at Step ${$checkpointSection.dataset.stepIndex}: Answer is ${answer}.`,
+                        'reveal');
+                }
+            });
+
+            // Allow Enter key to submit checkpoint
+            $checkpointAnswer.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    $checkpointSubmit.click();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize
+            // ──────────────────────────────────────
+            function init() {
+                buildTimeline();
+                renderLearningLog();
+                updateUIForStep(0);
+                // Ensure #answer has the bare final result
+                $answer.textContent = '28';
+                $topSolution.textContent = 'dp[i][j] = dp[i-1][j] + dp[i][j-1]';
+            }
+
+            init();
+
+            // ──────────────────────────────────────
+            // Cleanup play timer on page unload
+            // ──────────────────────────────────────
+            window.addEventListener('beforeunload', () => {
+                if (playTimer) clearTimeout(playTimer);
+            });
+
+            console.log('AlgoLab Unique Paths tutoring page initialized. Steps:', N);
+            console.log('Answer (#answer):', $answer.textContent);
+        })();
+    </script>
+</body>
+</html>

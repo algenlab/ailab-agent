@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trie Prefix Counting – Interactive Algorithm Learning</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #f4f7fc;
+      color: #1a1a2e;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .app-container {
+      max-width: 1200px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .app-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+
+    /* Card style */
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      padding: 1.5rem;
+      margin-bottom: 1.8rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #0f3460;
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      color: #16213e;
+      margin-bottom: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      color: #16213e;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: #555;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    pre {
+      background: #f0f3f8;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+      margin: 0.5rem 0;
+    }
+
+    .input-answer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .json-block {
+      min-width: 200px;
+    }
+
+    .json-block.input-block {
+      flex: 1 1 280px;
+    }
+
+    .json-block.answer-block {
+      flex: 0 0 auto;
+      max-width: 220px;
+    }
+
+    .json-block h3 {
+      font-size: 0.95rem;
+      color: #444;
+    }
+
+    /* Controls */
+    .step-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin: 1rem 0;
+    }
+
+    .btn {
+      background: #e2e8f0;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      white-space: nowrap;
+      color: #1a1a2e;
+    }
+
+    .btn:hover {
+      background: #cbd5e1;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: #fff;
+    }
+
+    .btn-warning:hover {
+      background: #d97706;
+    }
+
+    /* Hint button with more visual contrast */
+    .btn-hint {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .btn-hint:hover {
+      background: #4f46e5;
+    }
+
+    .btn-hint:active {
+      transform: scale(0.97);
+    }
+
+    /* Visualization area */
+    .viz-container {
+      background: #fafbfc;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      width: 100%;
+      min-height: 300px;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    svg {
+      display: block;
+    }
+
+    .viz-placeholder {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 1rem;
+      padding: 2rem;
+    }
+
+    .viz-placeholder .icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Checkpoint */
+    .checkpoint {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+    }
+
+    .checkpoint input[type="number"] {
+      width: 80px;
+      padding: 0.4rem 0.6rem;
+      font-size: 1rem;
+      border: 2px solid #d1d5db;
+      border-radius: 6px;
+      margin-right: 0.5rem;
+    }
+
+    .checkpoint .feedback {
+      margin-top: 0.5rem;
+      font-weight: 600;
+    }
+
+    .feedback.correct {
+      color: #16a34a;
+    }
+
+    .feedback.incorrect {
+      color: #dc2626;
+    }
+
+    /* Hint & Answer */
+    .hint-box {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 0.8rem;
+      margin: 0.75rem 0;
+      display: none;
+    }
+
+    .hint-box.visible {
+      display: block;
+    }
+
+    /* Log */
+    .activity-log {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      padding: 0.8rem;
+      font-size: 0.85rem;
+    }
+
+    .log-entry {
+      margin-bottom: 0.3rem;
+      border-bottom: 1px solid #f1f1f1;
+      padding-bottom: 0.2rem;
+      color: #444;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .step-indicator {
+      font-weight: 600;
+      color: #3b82f6;
+      margin-bottom: 0.5rem;
+    }
+
+    .path-highlight {
+      fill: #fbbf24 !important;
+      stroke: #b45309 !important;
+    }
+
+    .node-circle {
+      stroke: #475569;
+      stroke-width: 2;
+      fill: #bfdbfe;
+      transition: fill 0.3s;
+    }
+
+    .node-circle.end {
+      stroke-width: 3;
+      stroke-dasharray: 4;
+    }
+
+    .edge {
+      stroke: #94a3b8;
+      stroke-width: 2;
+    }
+
+    .edge.highlight {
+      stroke: #f59e0b;
+      stroke-width: 3;
+    }
+
+    .node-text {
+      font-size: 12px;
+      font-weight: bold;
+      fill: #1e293b;
+    }
+
+    .count-label {
+      font-size: 11px;
+      fill: #64748b;
+    }
+
+    /* Keyboard shortcut hint */
+    .keyboard-hint {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- LEFT COLUMN: Problem + Visualization + Controls -->
+    <div>
+      <div class="card">
+        <h1>Trie Prefix Counting</h1>
+        <p class="subtitle">
+          Algorithm family: <strong>Trie</strong> · Given a list of historical search words and a user prefix,
+          compute how many words start with that prefix.
+        </p>
+
+        <div class="input-answer">
+          <div class="json-block input-block">
+            <h3>Concrete Input (JSON)</h3>
+            <pre>{
+  "prefix": "ap",
+  "words": [
+    "apple",
+    "app",
+    "ape",
+    "bat"
+  ]
+}</pre>
+          </div>
+          <div class="json-block answer-block">
+            <h3>Expected Final Answer (JSON)</h3>
+            <pre>3</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Step-by-Step Visualization</h2>
+        <p id="stepDescription" class="step-indicator">Step 0 of 5: Empty Trie (no words inserted yet)</p>
+
+        <div class="step-controls">
+          <button id="btnPrev" class="btn" disabled aria-label="Go to previous step">← Previous</button>
+          <button id="btnNext" class="btn" aria-label="Go to next step">Next →</button>
+          <button id="btnAutoPlay" class="btn" aria-label="Toggle auto play">▶ Auto Play</button>
+          <button id="btnReset" class="btn btn-warning" aria-label="Reset to initial state">↺ Reset</button>
+        </div>
+        <p class="keyboard-hint">Tip: Use ← → arrow keys to step through the visualization</p>
+
+        <div class="viz-container" id="vizContainer">
+          <div class="viz-placeholder" id="vizPlaceholder">
+            <div class="icon">🌳</div>
+            <p>The Trie will appear here as you insert words step by step.</p>
+            <p>Click <strong>Next</strong> or press <strong>→</strong> to begin.</p>
+          </div>
+          <svg id="trieSvg" viewBox="0 0 800 520" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="display:none;"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Checkpoint, Hints, Answer, Log -->
+    <div>
+      <div class="card checkpoint" id="checkpointCard">
+        <h3>🧠 Checkpoint Question</h3>
+        <p>After all words have been inserted, what is the prefix count for <code>"ap"</code>?</p>
+        <div style="margin-top: 0.5rem;">
+          <input type="number" id="checkpointInput" placeholder="?" min="0" step="1" aria-label="Enter your answer" />
+          <button id="btnSubmitCheckpoint" class="btn btn-primary" aria-label="Submit your answer">Submit</button>
+        </div>
+        <div id="checkpointFeedback" class="feedback" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h3>💡 Hint</h3>
+        <button id="btnHint" class="btn-hint" aria-label="Show hint">Show Hint</button>
+        <div id="hintContent" class="hint-box">
+          <p>After building the Trie, the prefix "ap" corresponds to the node reached by following characters 'a' then 'p'. The count stored at that node equals the number of words that pass through that path.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>👁️ Show Answer</h3>
+        <button id="btnShowAnswer" class="btn btn-success" aria-label="Reveal final answer">Reveal Final Answer</button>
+        <p id="answerDisplay" style="display:none; margin-top:0.5rem; font-weight:bold; font-size:1.2rem;">
+          The final answer is <code>3</code>.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>📋 Activity Log</h3>
+        <div id="activityLog" class="activity-log">
+          <div class="log-entry">Page loaded. Ready to learn!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- Data & State ----------
+      const wordsList = ["apple", "app", "ape", "bat"];
+      const prefix = "ap";
+      const finalAnswer = 3; // expected count
+
+      // Steps metadata
+      const steps = [
+        { insertedWords: [], highlightPrefix: false, desc: "Empty Trie (no words inserted yet)" },
+        { insertedWords: ["apple"], highlightPrefix: false, desc: 'After inserting "apple"' },
+        { insertedWords: ["apple", "app"], highlightPrefix: false, desc: 'After inserting "app"' },
+        { insertedWords: ["apple", "app", "ape"], highlightPrefix: false, desc: 'After inserting "ape"' },
+        { insertedWords: ["apple", "app", "ape", "bat"], highlightPrefix: false, desc: 'After inserting "bat" – all words inserted' },
+        { insertedWords: ["apple", "app", "ape", "bat"], highlightPrefix: true, desc: 'Counting prefix "ap": traverse a → p, count = 3' }
+      ];
+
+      let currentStep = 0;                 // 0-indexed step
+      let checkpointAnswered = false;
+      let checkpointCorrect = false;
+      let hintVisible = false;
+      let answerRevealed = false;
+      let activityLog = ["Page loaded. Ready to learn!"];
+
+      // DOM elements
+      const stepDescEl = document.getElementById('stepDescription');
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+      const btnAutoPlay = document.getElementById('btnAutoPlay');
+      const btnReset = document.getElementById('btnReset');
+      const vizContainer = document.getElementById('vizContainer');
+      const vizPlaceholder = document.getElementById('vizPlaceholder');
+      const svgEl = document.getElementById('trieSvg');
+      const checkpointInput = document.getElementById('checkpointInput');
+      const btnSubmitCheckpoint = document.getElementById('btnSubmitCheckpoint');
+      const checkpointFeedback = document.getElementById('checkpointFeedback');
+      const btnHint = document.getElementById('btnHint');
+      const hintContent = document.getElementById('hintContent');
+      const btnShowAnswer = document.getElementById('btnShowAnswer');
+      const answerDisplay = document.getElementById('answerDisplay');
+      const activityLogEl = document.getElementById('activityLog');
+
+      let autoPlayTimer = null;
+
+      // ---------- Trie building ----------
+      function buildTrie(words) {
+        const root = { children: {}, count: 0, isEnd: false, char: '' };
+        for (const word of words) {
+          let node = root;
+          for (const ch of word) {
+            node.count++;
+            if (!node.children[ch]) {
+              node.children[ch] = { children: {}, count: 0, isEnd: false, char: ch, parent: node };
+            }
+            node = node.children[ch];
+          }
+          node.count++;
+          node.isEnd = true;
+        }
+        return root;
+      }
+
+      // ---------- Layout precomputation ----------
+      function computeLayout(root) {
+        const positions = {};
+        const edges = [];
+
+        function getNodeId(node) {
+          let path = '';
+          let cur = node;
+          while (cur && cur.char) {
+            path = cur.char + path;
+            cur = cur.parent;
+          }
+          return path || 'root';
+        }
+
+        function leafCount(node) {
+          const children = Object.values(node.children);
+          if (children.length === 0) return 1;
+          return children.reduce((s, c) => s + leafCount(c), 0);
+        }
+
+        function assignPositions(node, depth, leftX, rightX) {
+          const nodeId = getNodeId(node);
+          const y = 40 + depth * 80;
+          const children = Object.values(node.children);
+          if (children.length === 0) {
+            const x = (leftX + rightX) / 2;
+            positions[nodeId] = { x, y };
+            return;
+          }
+          const childWeights = children.map(c => leafCount(c));
+          const totalWeight = childWeights.reduce((s, w) => s + w, 0);
+          const range = rightX - leftX;
+          let currentLeft = leftX;
+          for (let i = 0; i < children.length; i++) {
+            const childWidth = (childWeights[i] / totalWeight) * range;
+            const childRight = currentLeft + childWidth;
+            assignPositions(children[i], depth + 1, currentLeft, childRight);
+            currentLeft = childRight;
+          }
+          const x = children.reduce((sum, c) => sum + positions[getNodeId(c)].x, 0) / children.length;
+          positions[nodeId] = { x, y };
+          for (const child of children) {
+            const childId = getNodeId(child);
+            edges.push({
+              from: nodeId,
+              to: childId,
+              fromX: positions[nodeId].x,
+              fromY: positions[nodeId].y,
+              toX: positions[childId].x,
+              toY: positions[childId].y
+            });
+          }
+        }
+
+        assignPositions(root, 0, 50, 750);
+        return { positions, edges };
+      }
+
+      function getNodeByPath(root, path) {
+        if (path === 'root') return root;
+        let node = root;
+        for (const ch of path) {
+          if (!node.children || !node.children[ch]) return null;
+          node = node.children[ch];
+        }
+        return node;
+      }
+
+      // ---------- Rendering ----------
+      function renderStep() {
+        const stepData = steps[currentStep];
+        const words = stepData.insertedWords;
+        const highlightPrefix = stepData.highlightPrefix;
+        const trie = buildTrie(words);
+        const { positions, edges } = computeLayout(trie);
+
+        // Update description
+        stepDescEl.textContent = `Step ${currentStep} of ${steps.length - 1}: ${stepData.desc}`;
+
+        // Enable/disable buttons
+        btnPrev.disabled = (currentStep === 0);
+        btnNext.disabled = (currentStep === steps.length - 1);
+
+        // Show SVG if we have any nodes to display
+        const hasNodes = Object.keys(positions).length > 0;
+        if (hasNodes || highlightPrefix) {
+          vizPlaceholder.style.display = 'none';
+          svgEl.style.display = 'block';
+        } else {
+          vizPlaceholder.style.display = 'block';
+          svgEl.style.display = 'none';
+          return;
+        }
+
+        // Build SVG
+        svgEl.innerHTML = '';
+
+        // Edge lines
+        for (const edge of edges) {
+          const isHighlight = highlightPrefix && isEdgeOnPrefixPath(edge.from, edge.to);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', edge.fromX);
+          line.setAttribute('y1', edge.fromY);
+          line.setAttribute('x2', edge.toX);
+          line.setAttribute('y2', edge.toY);
+          line.setAttribute('class', 'edge' + (isHighlight ? ' highlight' : ''));
+          svgEl.appendChild(line);
+        }
+
+        // Nodes
+        for (const [nodeId, pos] of Object.entries(positions)) {
+          const node = getNodeByPath(trie, nodeId);
+          if (!node) continue;
+
+          const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          group.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+
+          const isOnPrefixPath = (nodeId === 'root' || nodeId === 'a' || nodeId === 'ap');
+          const shouldHighlight = highlightPrefix && isOnPrefixPath;
+
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', 18);
+          circle.setAttribute('class', 'node-circle' + (node.isEnd ? ' end' : '') + (shouldHighlight ? ' path-highlight' : ''));
+          group.appendChild(circle);
+
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('class', 'node-text');
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dy', '0.35em');
+          text.textContent = nodeId === 'root' ? 'root' : node.char;
+          group.appendChild(text);
+
+          const countText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          countText.setAttribute('class', 'count-label');
+          countText.setAttribute('text-anchor', 'middle');
+          countText.setAttribute('dy', '2em');
+          countText.textContent = `cnt:${node.count}`;
+          group.appendChild(countText);
+
+          svgEl.appendChild(group);
+        }
+
+        // Answer banner
+        if (highlightPrefix) {
+          const answerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          answerText.setAttribute('x', 650);
+          answerText.setAttribute('y', 200);
+          answerText.setAttribute('text-anchor', 'middle');
+          answerText.setAttribute('class', 'node-text');
+          answerText.setAttribute('fill', '#b45309');
+          answerText.setAttribute('font-size', '16');
+          answerText.textContent = `Prefix count: ${finalAnswer}`;
+          svgEl.appendChild(answerText);
+        }
+      }
+
+      function isEdgeOnPrefixPath(fromId, toId) {
+        return (fromId === 'root' && toId === 'a') || (fromId === 'a' && toId === 'ap');
+      }
+
+      // ---------- Activity Logging ----------
+      function addLog(message) {
+        activityLog.push(message);
+        updateLogDisplay();
+      }
+
+      function updateLogDisplay() {
+        activityLogEl.innerHTML = activityLog.map(entry => `<div class="log-entry">${entry}</div>`).join('');
+        activityLogEl.scrollTop = activityLogEl.scrollHeight;
+      }
+
+      // ---------- User Actions ----------
+      function goToStep(index) {
+        if (index < 0 || index >= steps.length) return;
+        currentStep = index;
+        renderStep();
+        addLog(`Navigated to Step ${currentStep}: ${steps[currentStep].desc}`);
+        if (autoPlayTimer) {
+          clearInterval(autoPlayTimer);
+          autoPlayTimer = null;
+          btnAutoPlay.textContent = '▶ Auto Play';
+        }
+      }
+
+      function nextStep() {
+        if (currentStep < steps.length - 1) goToStep(currentStep + 1);
+      }
+
+      function prevStep() {
+        if (currentStep > 0) goToStep(currentStep - 1);
+      }
+
+      function reset() {
+        goToStep(0);
+        checkpointAnswered = false;
+        checkpointCorrect = false;
+        checkpointInput.value = '';
+        checkpointFeedback.style.display = 'none';
+        checkpointFeedback.textContent = '';
+        hintVisible = false;
+        hintContent.classList.remove('visible');
+        answerRevealed = false;
+        answerDisplay.style.display = 'none';
+        addLog('Reset to initial state.');
+      }
+
+      function autoPlay() {
+        if (autoPlayTimer) {
+          clearInterval(autoPlayTimer);
+          autoPlayTimer = null;
+          btnAutoPlay.textContent = '▶ Auto Play';
+          addLog('Auto play stopped.');
+          return;
+        }
+        addLog('Auto play started.');
+        btnAutoPlay.textContent = '⏸️ Pause';
+        autoPlayTimer = setInterval(() => {
+          if (currentStep < steps.length - 1) {
+            nextStep();
+          } else {
+            clearInterval(autoPlayTimer);
+            autoPlayTimer = null;
+            btnAutoPlay.textContent = '▶ Auto Play';
+            addLog('Auto play finished.');
+          }
+        }, 1500);
+      }
+
+      // Checkpoint submission
+      function submitCheckpoint() {
+        const value = parseInt(checkpointInput.value, 10);
+        if (isNaN(value)) {
+          checkpointFeedback.style.display = 'block';
+          checkpointFeedback.textContent = '⚠️ Please enter a valid number.';
+          checkpointFeedback.className = 'feedback incorrect';
+          return;
+        }
+        checkpointAnswered = true;
+        if (value === finalAnswer) {
+          checkpointCorrect = true;
+          checkpointFeedback.style.display = 'block';
+          checkpointFeedback.textContent = '✅ Correct! The prefix count is 3.';
+          checkpointFeedback.className = 'feedback correct';
+          addLog(`Checkpoint answer: ${value} – Correct!`);
+        } else {
+          checkpointCorrect = false;
+          checkpointFeedback.style.display = 'block';
+          checkpointFeedback.textContent = `❌ Incorrect. Your answer was ${value}. The correct count is ${finalAnswer}.`;
+          checkpointFeedback.className = 'feedback incorrect';
+          addLog(`Checkpoint answer: ${value} – Incorrect.`);
+        }
+      }
+
+      function showHint() {
+        hintVisible = true;
+        hintContent.classList.add('visible');
+        addLog('Hint displayed.');
+      }
+
+      function revealAnswer() {
+        answerRevealed = true;
+        answerDisplay.style.display = 'block';
+        addLog('Final answer revealed.');
+        if (currentStep !== 5) {
+          goToStep(5);
+        }
+      }
+
+      // ---------- Event Listeners ----------
+      btnPrev.addEventListener('click', prevStep);
+      btnNext.addEventListener('click', nextStep);
+      btnAutoPlay.addEventListener('click', autoPlay);
+      btnReset.addEventListener('click', reset);
+      btnSubmitCheckpoint.addEventListener('click', submitCheckpoint);
+      btnHint.addEventListener('click', showHint);
+      btnShowAnswer.addEventListener('click', revealAnswer);
+
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          nextStep();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          prevStep();
+        }
+      });
+
+      // ---------- Initial render ----------
+      renderStep();
+    })();
+  </script>
+</body>
+</html>

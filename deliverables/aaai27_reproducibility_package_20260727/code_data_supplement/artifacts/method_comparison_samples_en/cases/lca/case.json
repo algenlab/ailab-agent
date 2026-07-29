@@ -1,0 +1,357 @@
+{
+  "id": "lca",
+  "algorithm_id": "lca",
+  "title": "Binary Tree Lowest Common Ancestor",
+  "family": "Tree / BST / LCA",
+  "family_id": "tree_bst_lca",
+  "subfamily_id": "lca",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "tree",
+  "difficulty": "medium",
+  "problem": "In a family lineage tracking system, users often need to understand the kinship between two members. Your task: given the complete family tree tree (with node ids and parent-child edges), for any specified members p and q, compute the deepest common ancestor node of the two, and return its id as a string.",
+  "strategy": "DFS returns whether the current subtree contains p or q; when both left and right subtrees contain a target, the current node is the LCA.",
+  "input_contract": "Input tree, p, q.",
+  "variant_name": "Post-order DFS",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(h)",
+  "learning_objectives": [
+    "Understand the state changes of whether the current subtree contains p or q during DFS recursion.",
+    "Based on the recursive backtracking order, predict which node will be processed next.",
+    "Use the invariant 'if both left and right subtrees return non-null, then the current node is the LCA' to verify the algorithm's correctness."
+  ],
+  "required_views": [
+    "tree",
+    "call_stack"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! You accurately tracked the recursive order.",
+      "feedback_wrong": "Take a look at the changes in call_stack in the trace to see which node will be pushed next.",
+      "id": "task_1",
+      "oracle": "Judge based on the node id recorded in the trace for the next step.",
+      "prompt": "The current recursive node is 5, the left child call returned None, which node will be processed next?",
+      "stage2_affordance": "Highlight the node that will be processed next and display the expected action.",
+      "trace_anchor": [
+        "state.current",
+        "state.call_stack"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Exactly! Both left and right hit, so the current node is the LCA.",
+      "feedback_wrong": "Review: When both left and right subtrees have targets, what role does the current node play?",
+      "id": "task_2",
+      "oracle": "The return value should be node 2, and it is the LCA of 7 and 4.",
+      "prompt": "When processing node 2 recursively, the left child returned 7 and the right child returned 4. What invariant should the return value of node 2 satisfy at this point?",
+      "stage2_affordance": "Highlight node 2 and its left and right child return values in the tree view.",
+      "trace_anchor": [
+        "state.return_values",
+        "state.current"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Great! You discovered that when p is an ancestor of q, the LCA is p.",
+      "feedback_wrong": "Check the relationship between p and q: Is 6 a child node of 5?",
+      "id": "task_3",
+      "oracle": "Expected LCA should be 5, because 5 itself is the ancestor of 6.",
+      "prompt": "If the tree structure remains unchanged, change q to 6 while keeping p as 5, what node will the LCA become?",
+      "stage2_affordance": "Allow students to drag to modify the values of p or q and observe the change in LCA.",
+      "trace_anchor": [
+        "state.p",
+        "state.q"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Perfect! This is exactly the core judgment logic of LCA.",
+      "feedback_wrong": "Think about it: At this point, node 3's left and right subtrees each contain one target, so who is the common ancestor of these two targets?",
+      "id": "task_4",
+      "oracle": "Because both left and right subtrees contain one target each, according to the algorithm logic, the current node is the lowest common ancestor.",
+      "prompt": "In the recursion at node 3, the left child (5) returned 5 and the right child (1) returned 1. Why does the final answer become 3?",
+      "stage2_affordance": "Animate recursive backtracking and flash a marker on node 3 when both subtrees turn green.",
+      "trace_anchor": [
+        "state.current",
+        "state.return_values"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": "3",
+      "index": 0,
+      "input_data": {
+        "p": "5",
+        "q": "1",
+        "tree": {
+          "edges": [
+            [
+              "3",
+              "5"
+            ],
+            [
+              "3",
+              "1"
+            ],
+            [
+              "5",
+              "6"
+            ],
+            [
+              "5",
+              "2"
+            ],
+            [
+              "1",
+              "0"
+            ],
+            [
+              "1",
+              "8"
+            ],
+            [
+              "2",
+              "7"
+            ],
+            [
+              "2",
+              "4"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "3"
+            },
+            {
+              "id": "5"
+            },
+            {
+              "id": "1"
+            },
+            {
+              "id": "6"
+            },
+            {
+              "id": "2"
+            },
+            {
+              "id": "0"
+            },
+            {
+              "id": "8"
+            },
+            {
+              "id": "7"
+            },
+            {
+              "id": "4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "expected": "2",
+      "index": 1,
+      "input_data": {
+        "p": "7",
+        "q": "4",
+        "tree": {
+          "edges": [
+            [
+              "3",
+              "5"
+            ],
+            [
+              "3",
+              "1"
+            ],
+            [
+              "5",
+              "6"
+            ],
+            [
+              "5",
+              "2"
+            ],
+            [
+              "2",
+              "7"
+            ],
+            [
+              "2",
+              "4"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "3"
+            },
+            {
+              "id": "5"
+            },
+            {
+              "id": "1"
+            },
+            {
+              "id": "6"
+            },
+            {
+              "id": "2"
+            },
+            {
+              "id": "7"
+            },
+            {
+              "id": "4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "expected": "5",
+      "index": 2,
+      "input_data": {
+        "p": "6",
+        "q": "4",
+        "tree": {
+          "edges": [
+            [
+              "3",
+              "5"
+            ],
+            [
+              "3",
+              "1"
+            ],
+            [
+              "5",
+              "6"
+            ],
+            [
+              "5",
+              "2"
+            ],
+            [
+              "2",
+              "7"
+            ],
+            [
+              "2",
+              "4"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "3"
+            },
+            {
+              "id": "5"
+            },
+            {
+              "id": "1"
+            },
+            {
+              "id": "6"
+            },
+            {
+              "id": "2"
+            },
+            {
+              "id": "7"
+            },
+            {
+              "id": "4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "expected": "B",
+      "index": 3,
+      "input_data": {
+        "p": "B",
+        "q": "D",
+        "tree": {
+          "edges": [
+            [
+              "A",
+              "B"
+            ],
+            [
+              "B",
+              "C"
+            ],
+            [
+              "C",
+              "D"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "A"
+            },
+            {
+              "id": "B"
+            },
+            {
+              "id": "C"
+            },
+            {
+              "id": "D"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "expected": "C",
+      "index": 4,
+      "input_data": {
+        "p": "D",
+        "q": "E",
+        "tree": {
+          "edges": [
+            [
+              "A",
+              "B"
+            ],
+            [
+              "A",
+              "C"
+            ],
+            [
+              "C",
+              "D"
+            ],
+            [
+              "C",
+              "E"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "A"
+            },
+            {
+              "id": "B"
+            },
+            {
+              "id": "C"
+            },
+            {
+              "id": "D"
+            },
+            {
+              "id": "E"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

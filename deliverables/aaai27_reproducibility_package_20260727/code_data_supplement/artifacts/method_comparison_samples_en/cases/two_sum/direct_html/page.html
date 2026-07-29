@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Sum - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --surface: #ffffff;
+            --border: #dee2e6;
+            --text: #212529;
+            --text-secondary: #495057;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --gold: #f59e0b;
+            --gold-light: #fef3c7;
+            --green: #10b981;
+            --green-light: #d1fae5;
+            --green-dark: #065f46;
+            --red: #ef4444;
+            --red-light: #fee2e2;
+            --blue-map: #6366f1;
+            --blue-map-light: #e0e7ff;
+            --gray-neutral: #e5e7eb;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --font-mono: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            border-left: 5px solid var(--accent);
+        }
+        header .title-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        #title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #111827;
+            letter-spacing: -0.01em;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        #top-result {
+            background: var(--green-light);
+            color: var(--green-dark);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+        }
+        #top-solution {
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        #main-content {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #left-panel {
+            flex: 1 1 480px;
+            min-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        #right-panel {
+            flex: 1 1 380px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #code {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            box-shadow: var(--shadow);
+            position: relative;
+            white-space: pre;
+            counter-reset: line;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 10px;
+            margin: 0 -10px;
+            border-radius: 3px;
+            transition: background var(--transition);
+            position: relative;
+        }
+        #code .code-line.active {
+            background: rgba(245, 158, 11, 0.25);
+            border-left: 3px solid var(--gold);
+            padding-left: 7px;
+            font-weight: 600;
+        }
+        #code .code-line .line-num {
+            display: inline-block;
+            width: 28px;
+            color: #6c7086;
+            user-select: none;
+            text-align: right;
+            margin-right: 12px;
+            font-size: 0.8rem;
+        }
+
+        #canvas {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            border: 1px solid var(--border);
+        }
+        #canvas .canvas-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+        #canvas .array-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        #canvas .array-cell {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all var(--transition);
+            position: relative;
+            border: 2px solid transparent;
+            background: var(--gray-neutral);
+            color: #374151;
+        }
+        #canvas .array-cell.current {
+            background: var(--gold-light);
+            border-color: var(--gold);
+            color: #92400e;
+            transform: translateY(-4px);
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+            z-index: 2;
+        }
+        #canvas .array-cell.found {
+            background: var(--green-light);
+            border-color: var(--green);
+            color: var(--green-dark);
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+        }
+        #canvas .array-cell.processed {
+            background: #d1d5db;
+            color: #6b7280;
+            border-color: #cbd5e1;
+        }
+        #canvas .array-index {
+            font-size: 0.7rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+        #canvas .map-area {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            min-height: 40px;
+        }
+        #canvas .map-entry {
+            background: var(--blue-map-light);
+            border: 2px solid var(--blue-map);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #3730a3;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            transition: all var(--transition);
+        }
+        #canvas .map-entry.highlighted {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+            animation: pulse 0.8s ease-in-out;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.05);
+            }
+        }
+        #canvas .complement-display {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            background: #fef2f2;
+            color: #b91c1c;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: inline-block;
+            border: 1px dashed #ef4444;
+        }
+        #canvas .arrow-indicator {
+            display: inline-block;
+            margin: 0 6px;
+            font-size: 1.2rem;
+            color: #6b7280;
+            font-weight: 700;
+        }
+
+        #step-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #111827;
+            padding: 10px 14px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--accent);
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            padding: 0 2px;
+            line-height: 1.5;
+        }
+        #op {
+            display: inline-block;
+            background: #f3f4f6;
+            color: #374151;
+            padding: 5px 12px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            align-self: flex-start;
+        }
+        #state {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #374151;
+            white-space: pre-wrap;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+        #teaching {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            font-size: 0.9rem;
+            color: #78350f;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: #14532d;
+            line-height: 1.5;
+        }
+        #checkpoint-area {
+            background: var(--surface);
+            border: 2px solid #e5e7eb;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            transition: border-color var(--transition);
+        }
+        #checkpoint-area.active-checkpoint {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-md);
+        }
+        #checkpoint-area .cp-prompt {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: #1f2937;
+        }
+        #checkpoint-area .cp-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #checkpoint-area input[type="text"] {
+            flex: 1;
+            min-width: 140px;
+            padding: 8px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            transition: border-color var(--transition);
+            outline: none;
+        }
+        #checkpoint-area input[type="text"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        #checkpoint-area .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            display: none;
+            line-height: 1.4;
+        }
+        #checkpoint-area .cp-feedback.correct {
+            display: block;
+            background: var(--green-light);
+            color: var(--green-dark);
+            border: 1px solid var(--green);
+        }
+        #checkpoint-area .cp-feedback.incorrect {
+            display: block;
+            background: var(--red-light);
+            color: #991b1b;
+            border: 1px solid var(--red);
+        }
+        .btn {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            font-family: var(--font-sans);
+            white-space: nowrap;
+        }
+        .btn-submit {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-submit:hover {
+            background: #1d4ed8;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+        }
+        .btn-hint {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .btn-hint:hover {
+            background: #fde68a;
+        }
+        .btn-show {
+            background: #e5e7eb;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        .btn-show:hover {
+            background: #d1d5db;
+        }
+        .btn-nav {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            min-width: 44px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .btn-nav:hover {
+            background: #e5e7eb;
+        }
+        .btn-nav.active-play {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        #controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            color: #374151;
+            min-width: 50px;
+            text-align: center;
+            background: #f3f4f6;
+            padding: 4px 10px;
+            border-radius: 14px;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        .tick {
+            flex: 1;
+            min-width: 90px;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            box-shadow: var(--shadow);
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #9ca3af;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            transform: translateY(-3px);
+        }
+        .tick.completed {
+            border-color: #a7f3d0;
+            background: #f0fdf4;
+        }
+        .tick .tick-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1f2937;
+        }
+        .tick .tick-op {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-family: var(--font-mono);
+        }
+
+        #learning-log {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        #learning-log h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        #learning-log .log-entry {
+            padding: 6px 10px;
+            margin: 4px 0;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            border-left: 3px solid #d1d5db;
+            background: #f9fafb;
+            line-height: 1.4;
+        }
+        #learning-log .log-entry.correct-log {
+            border-left-color: var(--green);
+            background: #f0fdf4;
+        }
+        #learning-log .log-entry.incorrect-log {
+            border-left-color: var(--red);
+            background: #fef2f2;
+        }
+        #learning-log .log-entry.info-log {
+            border-left-color: var(--accent);
+            background: #eff6ff;
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--green-dark);
+            background: var(--green-light);
+            padding: 8px 14px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        .answer-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .answer-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        @media (max-width: 800px) {
+            #main-content {
+                flex-direction: column;
+            }
+            #left-panel,
+            #right-panel {
+                flex: 1 1 auto;
+                min-width: auto;
+            }
+            #canvas .array-cell {
+                width: 40px;
+                height: 40px;
+                font-size: 0.9rem;
+            }
+            .tick {
+                min-width: 65px;
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="title-group">
+                <h1 id="title">Two Sum</h1>
+                <p id="subtitle">Hash Table / Map Strategy — Find two slots whose quantities sum to the target</p>
+            </div>
+            <div id="top-result">Result: [0, 1]</div>
+            <div id="top-solution">Strategy: Complement lookup with hash map</div>
+        </header>
+
+        <div id="main-content">
+            <div id="left-panel">
+                <div id="code">
+                    <span class="code-line" data-line="0"><span class="line-num">1</span>def two_sum(nums, target):</span>
+                    <span class="code-line" data-line="1"><span class="line-num">2</span>    seen = {}   # value → index map</span>
+                    <span class="code-line" data-line="2"><span class="line-num">3</span>    for i, val in enumerate(nums):</span>
+                    <span class="code-line" data-line="3"><span class="line-num">4</span>        complement = target - val</span>
+                    <span class="code-line" data-line="4"><span class="line-num">5</span>        if complement in seen:</span>
+                    <span class="code-line" data-line="5"><span class="line-num">6</span>            return [seen[complement], i]</span>
+                    <span class="code-line" data-line="6"><span class="line-num">7</span>        seen[val] = i</span>
+                    <span class="code-line" data-line="7"><span class="line-num">8</span>    return []</span>
+                </div>
+
+                <div id="canvas">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="canvas-label">Target:</span>
+                        <span style="font-weight:700;font-size:1.2rem;color:#1f2937;font-family:var(--font-mono);">9</span>
+                    </div>
+                    <div>
+                        <span class="canvas-label">Array (slot quantities):</span>
+                        <div class="array-row" id="array-visual"></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="canvas-label">Complement lookup:</span>
+                        <span id="complement-display" style="font-family:var(--font-mono);color:#6b7280;">—</span>
+                    </div>
+                    <div>
+                        <span class="canvas-label">Hash Map (value → index):</span>
+                        <div class="map-area" id="map-visual"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="right-panel">
+                <div id="step-title">Initialize</div>
+                <div id="step-desc">Create an empty hash map and prepare to traverse the array.</div>
+                <div id="op">Setup</div>
+                <div id="state">{"map": {}, "i": null, "currentVal": null, "complement": null, "found": null}</div>
+                <div id="teaching">We use a hash table (dictionary) to record each value's index as we scan. This lets us check in O(1) time whether the complement of the current value has already been seen. The key insight: for each element, we compute <code>target - val</code> and look it up in the map.</div>
+                <div id="step-evidence"><strong>Before:</strong> No data structures exist yet.<br><strong>After:</strong> An empty hash map <code>seen</code> is created. The array <code>[2, 7, 11, 15]</code> is ready for traversal with target <code>9</code>.</div>
+                <div id="checkpoint-area">
+                    <div class="cp-prompt" id="cp-prompt"></div>
+                    <div class="cp-input-row" id="cp-input-row" style="display:none;">
+                        <input type="text" id="cp-input" placeholder="Type your answer...">
+                        <button class="btn btn-submit" id="cp-submit">Submit</button>
+                        <button class="btn btn-hint" id="cp-hint">Hint</button>
+                        <button class="btn btn-show" id="cp-show">Show Answer</button>
+                    </div>
+                    <div class="cp-feedback" id="cp-feedback"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls">
+            <button class="btn btn-nav" id="prev" aria-label="Previous step">◀ Prev</button>
+            <button class="btn btn-nav" id="play" aria-label="Auto-play steps">▶ Play</button>
+            <button class="btn btn-nav" id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="0" max="3" value="0" step="1" aria-label="Step slider">
+            <span id="counter">1 / 4</span>
+        </div>
+
+        <div id="timeline">
+            <div class="tick active" data-step="0">
+                <span class="tick-label">Initialize</span>
+                <span class="tick-op">Create map</span>
+            </div>
+            <div class="tick" data-step="1">
+                <span class="tick-label">i = 0</span>
+                <span class="tick-op">Check value 2</span>
+            </div>
+            <div class="tick" data-step="2">
+                <span class="tick-label">i = 1</span>
+                <span class="tick-op">Check value 7</span>
+            </div>
+            <div class="tick" data-step="3">
+                <span class="tick-label">Result</span>
+                <span class="tick-op">Return [0, 1]</span>
+            </div>
+        </div>
+
+        <div id="learning-log">
+            <h3>📝 Learning Log</h3>
+            <div id="log-entries">
+                <div class="log-entry info-log">Page loaded. Explore the steps to learn how the Two Sum algorithm works with a hash table.</div>
+            </div>
+        </div>
+
+        <div class="answer-wrapper">
+            <span class="answer-label">Final Answer:</span>
+            <span id="answer">[0, 1]</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const codeLines = $$('#code .code-line');
+            const arrayVisual = $('#array-visual');
+            const mapVisual = $('#map-visual');
+            const complementDisplay = $('#complement-display');
+            const stepTitle = $('#step-title');
+            const stepDesc = $('#step-desc');
+            const opEl = $('#op');
+            const stateEl = $('#state');
+            const teachingEl = $('#teaching');
+            const stepEvidenceEl = $('#step-evidence');
+            const counterEl = $('#counter');
+            const rangeEl = $('#range');
+            const playBtn = $('#play');
+            const prevBtn = $('#prev');
+            const nextBtn = $('#next');
+            const timelineTicks = $$('#timeline .tick');
+            const checkpointArea = $('#checkpoint-area');
+            const cpPrompt = $('#cp-prompt');
+            const cpInputRow = $('#cp-input-row');
+            const cpInput = $('#cp-input');
+            const cpSubmit = $('#cp-submit');
+            const cpHint = $('#cp-hint');
+            const cpShow = $('#cp-show');
+            const cpFeedback = $('#cp-feedback');
+            const logEntries = $('#log-entries');
+            const answerEl = $('#answer');
+            const topResult = $('#top-result');
+
+            const nums = [2, 7, 11, 15];
+            const target = 9;
+            const totalSteps = 4;
+
+            // ──────────────────────────────────────
+            // Step definitions
+            // ──────────────────────────────────────
+            const steps = [{
+                title: 'Initialize',
+                desc: 'Create an empty hash map to store values and their indices as we traverse the array.',
+                op: 'Setup',
+                state: { map: {}, i: null, currentVal: null, complement: null, found: null },
+                teaching: 'We use a hash table (dictionary) to record each value\'s index as we scan. This lets us check in <strong>O(1)</strong> time whether the complement of the current value has already been seen. The key insight: for each element, we compute <code>complement = target - val</code> and look it up in the map. If found, we have our pair.',
+                evidence: '<strong>Before:</strong> No data structures exist yet.<br><strong>After:</strong> An empty hash map <code>seen</code> is created. The array <code>[2, 7, 11, 15]</code> is ready for traversal with target <code>9</code>.',
+                codeLines: [0, 1],
+                arrayHighlights: [],
+                arrayProcessed: [],
+                mapEntries: [],
+                mapHighlight: null,
+                complementText: '—',
+                checkpoint: null,
+            }, {
+                title: 'Process Index 0 — Value 2',
+                desc: 'At i=0, the current value is 2. Compute complement = 9 − 2 = 7. Check the hash map for 7 — not found. Add {2: 0} to the map and continue.',
+                op: 'Check complement, insert into map',
+                state: { map: { "2": 0 }, i: 0, currentVal: 2, complement: 7, found: false },
+                teaching: 'At index 0, <code>val = 2</code>. The complement is <code>9 − 2 = 7</code>. We look for <code>7</code> in the hash map — it\'s not there yet (the map is empty). So we record <code>seen[2] = 0</code> and move to the next index. <strong>Invariant:</strong> The map always contains values from indices we have already passed.',
+                evidence: '<strong>Operation:</strong> Compute complement <code>7</code>, query map for key <code>7</code> → <em>not found</em>.<br><strong>Before:</strong> map = {}<br><strong>After:</strong> map = {"2": 0}<br><strong>Target:</strong> 9 | <strong>Dependency:</strong> complement = target − currentVal',
+                codeLines: [2, 3, 4, 6],
+                arrayHighlights: [0],
+                arrayProcessed: [],
+                mapEntries: [{ key: '2', val: '0', highlighted: false }],
+                mapHighlight: null,
+                complementText: 'complement = 9 − 2 = 7 (not in map)',
+                checkpoint: {
+                    prompt: '🔍 <strong>Checkpoint:</strong> What is the complement of <code>nums[0] = 2</code> when the target is <code>9</code>?',
+                    answer: '7',
+                    hint: 'The complement is calculated as: target − current value = 9 − 2.',
+                    showAnswer: '7',
+                },
+            }, {
+                title: 'Process Index 1 — Value 7',
+                desc: 'At i=1, the current value is 7. Compute complement = 9 − 7 = 2. Check the hash map — 2 is found at index 0! Return [0, 1].',
+                op: 'Check complement, found pair',
+                state: { map: { "2": 0 }, i: 1, currentVal: 7, complement: 2, found: true, pair: [0, 1] },
+                teaching: 'At index 1, <code>val = 7</code>. The complement is <code>9 − 7 = 2</code>. We look for <code>2</code> in the hash map — <strong>found!</strong> The map tells us <code>2</code> was at index <code>0</code>. So the answer is <code>[0, 1]</code>. <strong>Common error:</strong> Forgetting that each value can only be used once — but our algorithm naturally avoids using the same element twice because we check the map <em>before</em> inserting the current value.',
+                evidence: '<strong>Operation:</strong> Compute complement <code>2</code>, query map for key <code>2</code> → <em>found at index 0</em>.<br><strong>Before:</strong> map = {"2": 0}, i = 1, val = 7<br><strong>After:</strong> Pair identified: indices [0, 1] with values 2 + 7 = 9<br><strong>Target:</strong> 9 | <strong>Dependency resolved:</strong> seen[complement] = 0',
+                codeLines: [2, 3, 4, 5],
+                arrayHighlights: [1],
+                arrayProcessed: [0],
+                mapEntries: [{ key: '2', val: '0', highlighted: true }],
+                mapHighlight: '2',
+                complementText: 'complement = 9 − 7 = 2 ✓ (found at index 0!)',
+                checkpoint: {
+                    prompt: '🔍 <strong>Checkpoint:</strong> At i=1 with <code>nums[1]=7</code>, what complement should we look for in the hash map?',
+                    answer: '2',
+                    hint: 'The complement is: target − current value = 9 − 7.',
+                    showAnswer: '2',
+                },
+            }, {
+                title: 'Result — Return the Pair',
+                desc: 'The algorithm found the pair at indices 0 and 1 (values 2 and 7). Return [0, 1].',
+                op: 'Return [0, 1]',
+                state: { map: { "2": 0 }, result: [0, 1], sum: 9, verified: true },
+                teaching: 'The algorithm returns <code>[0, 1]</code>. We can verify: <code>nums[0] + nums[1] = 2 + 7 = 9</code>, which equals the target. The hash table approach solved this in <strong>O(n)</strong> time with <strong>O(n)</strong> space, far better than the naive O(n²) double-loop approach.',
+                evidence: '<strong>Final result:</strong> [0, 1]<br><strong>Verification:</strong> nums[0] + nums[1] = 2 + 7 = 9 = target<br><strong>Time complexity:</strong> O(n) — single pass<br><strong>Space complexity:</strong> O(n) — hash map storage',
+                codeLines: [5],
+                arrayHighlights: [0, 1],
+                arrayProcessed: [0, 1],
+                mapEntries: [{ key: '2', val: '0', highlighted: false }],
+                mapHighlight: null,
+                complementText: '— (solution found)',
+                checkpoint: {
+                    prompt: '✅ <strong>Final Checkpoint:</strong> What does the algorithm return for <code>nums = [2, 7, 11, 15]</code> with <code>target = 9</code>?',
+                    answer: '[0, 1]',
+                    hint: 'The pair is at indices 0 and 1 because 2 + 7 = 9.',
+                    showAnswer: '[0, 1]',
+                },
+            }];
+
+            let currentStep = 0;
+            let autoPlayInterval = null;
+            let isPlaying = false;
+            let checkpointSubmittedForStep = {}; // track which steps have had checkpoint submissions
+
+            // ──────────────────────────────────────
+            // Rendering
+            // ──────────────────────────────────────
+            function renderAll() {
+                const s = steps[currentStep];
+                // Step title & desc
+                stepTitle.textContent = s.title;
+                stepDesc.textContent = s.desc;
+                opEl.textContent = s.op;
+                stateEl.textContent = JSON.stringify(s.state, null, 2);
+                teachingEl.innerHTML = s.teaching;
+                stepEvidenceEl.innerHTML = s.evidence;
+
+                // Counter
+                counterEl.textContent = (currentStep + 1) + ' / ' + totalSteps;
+
+                // Range
+                rangeEl.value = currentStep;
+
+                // Code highlighting
+                codeLines.forEach((line, idx) => {
+                    line.classList.remove('active');
+                    if (s.codeLines.includes(idx)) {
+                        line.classList.add('active');
+                    }
+                });
+
+                // Timeline ticks
+                timelineTicks.forEach((tick, idx) => {
+                    tick.classList.remove('active', 'completed');
+                    if (idx === currentStep) {
+                        tick.classList.add('active');
+                    } else if (idx < currentStep) {
+                        tick.classList.add('completed');
+                    }
+                });
+
+                // Canvas: array visualization
+                arrayVisual.innerHTML = '';
+                nums.forEach((val, idx) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'array-cell';
+                    if (s.arrayHighlights.includes(idx) && s.arrayProcessed.includes(idx)) {
+                        cell.classList.add('found');
+                    } else if (s.arrayHighlights.includes(idx) && !s.arrayProcessed.includes(
+                        idx)) {
+                        cell.classList.add('current');
+                    } else if (s.arrayProcessed.includes(idx)) {
+                        cell.classList.add('processed');
+                    }
+                    cell.innerHTML = '<span>' + val + '</span><span class="array-index">[' + idx +
+                        ']</span>';
+                    arrayVisual.appendChild(cell);
+                });
+
+                // Canvas: complement display
+                complementDisplay.innerHTML = s.complementText;
+                if (s.complementText.includes('found') || s.complementText.includes('✓')) {
+                    complementDisplay.style.color = '#059669';
+                    complementDisplay.style.fontWeight = '700';
+                } else if (s.complementText.includes('not in map') || s.complementText.includes('not found')) {
+                    complementDisplay.style.color = '#b91c1c';
+                    complementDisplay.style.fontWeight = '600';
+                } else {
+                    complementDisplay.style.color = '#6b7280';
+                    complementDisplay.style.fontWeight = '400';
+                }
+
+                // Canvas: map visualization
+                mapVisual.innerHTML = '';
+                if (s.mapEntries.length === 0) {
+                    mapVisual.innerHTML =
+                        '<span style="color:#9ca3af;font-style:italic;font-size:0.85rem;">{ } empty</span>';
+                } else {
+                    s.mapEntries.forEach(entry => {
+                        const span = document.createElement('span');
+                        span.className = 'map-entry';
+                        if (entry.highlighted || (s.mapHighlight && entry.key === s.mapHighlight)) {
+                            span.classList.add('highlighted');
+                        }
+                        span.textContent = entry.key + ' → ' + entry.val;
+                        mapVisual.appendChild(span);
+                    });
+                }
+
+                // Checkpoint
+                renderCheckpoint(s);
+
+                // Top result
+                if (currentStep >= totalSteps - 1) {
+                    topResult.textContent = 'Result: [0, 1] ✓';
+                    topResult.style.background = 'var(--green-light)';
+                    topResult.style.color = 'var(--green-dark)';
+                } else if (currentStep >= 2) {
+                    topResult.textContent = 'Result: [0, 1]';
+                    topResult.style.background = 'var(--green-light)';
+                    topResult.style.color = 'var(--green-dark)';
+                } else {
+                    topResult.textContent = 'Result: computing...';
+                    topResult.style.background = '#f3f4f6';
+                    topResult.style.color = '#6b7280';
+                }
+
+                // Answer element always holds the bare final JSON
+                answerEl.textContent = '[0, 1]';
+            }
+
+            function renderCheckpoint(s) {
+                cpFeedback.className = 'cp-feedback';
+                cpFeedback.style.display = 'none';
+                cpFeedback.textContent = '';
+                cpInput.value = '';
+
+                if (s.checkpoint) {
+                    checkpointArea.classList.add('active-checkpoint');
+                    cpPrompt.innerHTML = s.checkpoint.prompt;
+                    cpInputRow.style.display = 'flex';
+                    cpInput.placeholder = 'Type your answer...';
+                    cpInput.disabled = false;
+                    cpSubmit.disabled = false;
+                    cpHint.disabled = false;
+                    cpShow.disabled = false;
+                    // If already submitted correctly for this step, show a subtle indicator
+                    if (checkpointSubmittedForStep[currentStep] === 'correct') {
+                        cpFeedback.className = 'cp-feedback correct';
+                        cpFeedback.textContent = '✓ You answered this checkpoint correctly earlier.';
+                        cpFeedback.style.display = 'block';
+                    }
+                } else {
+                    checkpointArea.classList.remove('active-checkpoint');
+                    cpPrompt.innerHTML = '';
+                    cpInputRow.style.display = 'none';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Navigation
+            // ──────────────────────────────────────
+            function goToStep(stepIndex) {
+                if (stepIndex < 0 || stepIndex >= totalSteps) return;
+                currentStep = stepIndex;
+                renderAll();
+            }
+
+            function nextStep() {
+                if (currentStep < totalSteps - 1) {
+                    goToStep(currentStep + 1);
+                }
+            }
+
+            function prevStep() {
+                if (currentStep > 0) {
+                    goToStep(currentStep - 1);
+                }
+            }
+
+            function toggleAutoPlay() {
+                if (isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    startAutoPlay();
+                }
+            }
+
+            function startAutoPlay() {
+                isPlaying = true;
+                playBtn.textContent = '⏸ Pause';
+                playBtn.classList.add('active-play');
+                autoPlayInterval = setInterval(() => {
+                    if (currentStep < totalSteps - 1) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopAutoPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopAutoPlay() {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                playBtn.classList.remove('active-play');
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            prevBtn.addEventListener('click', () => {
+                stopAutoPlay();
+                prevStep();
+            });
+            nextBtn.addEventListener('click', () => {
+                stopAutoPlay();
+                nextStep();
+            });
+            playBtn.addEventListener('click', toggleAutoPlay);
+            rangeEl.addEventListener('input', () => {
+                stopAutoPlay();
+                goToStep(parseInt(rangeEl.value, 10));
+            });
+
+            timelineTicks.forEach(tick => {
+                tick.addEventListener('click', () => {
+                    stopAutoPlay();
+                    const stepIdx = parseInt(tick.getAttribute('data-step'), 10);
+                    goToStep(stepIdx);
+                });
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    stopAutoPlay();
+                    nextStep();
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    stopAutoPlay();
+                    prevStep();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    toggleAutoPlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Checkpoint handling
+            // ──────────────────────────────────────
+            function normalizeAnswer(raw) {
+                // Remove extra spaces, handle brackets consistently
+                let s = raw.trim().replace(/\s+/g, '');
+                // Normalize JSON array format
+                if (s.startsWith('[') && s.endsWith(']')) {
+                    try {
+                        const parsed = JSON.parse(s);
+                        return JSON.stringify(parsed);
+                    } catch (e) {
+                        return s;
+                    }
+                }
+                return s;
+            }
+
+            function addLogEntry(message, cssClass) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + (cssClass || 'info-log');
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                entry.textContent = '[' + timeStr + '] Step ' + (currentStep + 1) + ': ' + message;
+                logEntries.appendChild(entry);
+                logEntries.scrollTop = logEntries.scrollHeight;
+            }
+
+            cpSubmit.addEventListener('click', () => {
+                const s = steps[currentStep];
+                if (!s.checkpoint) return;
+                const userAnswer = cpInput.value.trim();
+                if (!userAnswer) {
+                    cpFeedback.className = 'cp-feedback incorrect';
+                    cpFeedback.textContent = '⚠ Please type an answer before submitting.';
+                    cpFeedback.style.display = 'block';
+                    return;
+                }
+                const normalizedUser = normalizeAnswer(userAnswer);
+                const normalizedCorrect = normalizeAnswer(s.checkpoint.answer);
+                const isCorrect = normalizedUser === normalizedCorrect;
+
+                if (isCorrect) {
+                    cpFeedback.className = 'cp-feedback correct';
+                    cpFeedback.textContent =
+                        '✅ Correct! ' + s.checkpoint.answer + ' is the right answer. Great job!';
+                    cpFeedback.style.display = 'block';
+                    checkpointSubmittedForStep[currentStep] = 'correct';
+                    addLogEntry('Submitted: "' + userAnswer + '" — ✅ Correct! The answer is ' + s.checkpoint.answer +
+                        '.', 'correct-log');
+                    cpInput.disabled = true;
+                    cpSubmit.disabled = true;
+                    cpHint.disabled = true;
+                    cpShow.disabled = true;
+                } else {
+                    cpFeedback.className = 'cp-feedback incorrect';
+                    cpFeedback.textContent =
+                        '❌ Not quite. "' + userAnswer + '" is incorrect. Think about the computation: target − current value. Try again!';
+                    cpFeedback.style.display = 'block';
+                    checkpointSubmittedForStep[currentStep] = 'incorrect';
+                    addLogEntry('Submitted: "' + userAnswer + '" — ❌ Incorrect. The correct answer is ' + s.checkpoint
+                        .answer + '.', 'incorrect-log');
+                    cpInput.focus();
+                    cpInput.select();
+                }
+            });
+
+            cpHint.addEventListener('click', () => {
+                const s = steps[currentStep];
+                if (!s.checkpoint) return;
+                cpFeedback.className = 'cp-feedback correct';
+                cpFeedback.textContent = '💡 Hint: ' + s.checkpoint.hint;
+                cpFeedback.style.display = 'block';
+                addLogEntry('Viewed hint: ' + s.checkpoint.hint, 'info-log');
+            });
+
+            cpShow.addEventListener('click', () => {
+                const s = steps[currentStep];
+                if (!s.checkpoint) return;
+                cpInput.value = s.checkpoint.showAnswer;
+                cpFeedback.className = 'cp-feedback correct';
+                cpFeedback.textContent = '📖 The answer is: ' + s.checkpoint.showAnswer + ' — shown for learning purposes.';
+                cpFeedback.style.display = 'block';
+                addLogEntry('Viewed answer: ' + s.checkpoint.showAnswer, 'info-log');
+                cpInput.disabled = true;
+                cpSubmit.disabled = true;
+                cpHint.disabled = true;
+                cpShow.disabled = true;
+                checkpointSubmittedForStep[currentStep] = 'revealed';
+            });
+
+            cpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    cpSubmit.click();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initial render
+            // ──────────────────────────────────────
+            goToStep(0);
+            answerEl.textContent = '[0, 1]';
+            topResult.textContent = 'Result: computing...';
+            topResult.style.background = '#f3f4f6';
+            topResult.style.color = '#6b7280';
+
+            console.log('Two Sum tutoring page initialized. Total steps: ' + totalSteps);
+            console.log('Navigate with buttons, slider, timeline ticks, or arrow keys. Press Space to auto-play.');
+        })();
+    </script>
+</body>
+</html>

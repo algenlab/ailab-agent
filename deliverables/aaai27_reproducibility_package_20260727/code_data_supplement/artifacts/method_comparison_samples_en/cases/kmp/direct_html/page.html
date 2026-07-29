@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KMP String Matching - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --surface: #ffffff;
+            --surface2: #f3f4f6;
+            --border: #d1d5db;
+            --text: #1f2937;
+            --text2: #4b5563;
+            --text3: #6b7280;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --green: #16a34a;
+            --green-light: #dcfce7;
+            --red: #dc2626;
+            --red-light: #fef2f2;
+            --amber: #d97706;
+            --amber-light: #fef3c7;
+            --purple: #7c3aed;
+            --purple-light: #ede9fe;
+            --teal: #0d9488;
+            --teal-light: #ccfbf1;
+            --gray: #6b7280;
+            --radius: 8px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --transition: 0.2s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 20px;
+        }
+
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text2);
+            flex-basis: 100%;
+            margin-top: -4px;
+        }
+
+        #top-result,
+        #top-solution {
+            font-size: 0.85rem;
+            background: var(--surface2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: var(--text2);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        #answer {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent);
+            background: var(--accent-light);
+            padding: 6px 16px;
+            border-radius: 20px;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        #main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 800px) {
+            #main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #code-panel,
+        #viz-panel,
+        #teaching-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        #code-panel {
+            min-height: 300px;
+            overflow: auto;
+        }
+
+        #code-panel h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text3);
+            margin-bottom: 8px;
+        }
+
+        #code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            white-space: pre;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 6px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            display: block;
+            margin: 0;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 1px 6px;
+            border-radius: 3px;
+            transition: background var(--transition);
+        }
+
+        #code .code-line.active-line {
+            background: #3b3f5c;
+            border-left: 3px solid #facc15;
+            padding-left: 3px;
+            font-weight: 600;
+            color: #f9f9f9;
+        }
+
+        #code .line-num {
+            color: #6c7086;
+            display: inline-block;
+            width: 28px;
+            text-align: right;
+            margin-right: 10px;
+            user-select: none;
+            font-size: 0.75rem;
+        }
+
+        #viz-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 280px;
+        }
+
+        #canvas {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            background: var(--surface2);
+            border-radius: 6px;
+            min-height: 180px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        }
+
+        .char-box-row {
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .char-box {
+            width: 44px;
+            height: 44px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: #fff;
+            transition: all var(--transition);
+            position: relative;
+            cursor: default;
+        }
+
+        .char-box.matched {
+            background: var(--green-light);
+            border-color: var(--green);
+            color: #15803d;
+        }
+        .char-box.mismatched {
+            background: var(--red-light);
+            border-color: var(--red);
+            color: #b91c1c;
+            animation: shake 0.4s ease;
+        }
+        .char-box.current-text {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .char-box.current-pattern {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+            background: #faf5ff;
+            color: #6d28d9;
+        }
+        .char-box.lps-cell {
+            width: 44px;
+            height: 38px;
+            font-size: 0.85rem;
+            background: var(--amber-light);
+            border-color: var(--amber);
+            color: #92400e;
+            font-weight: 600;
+        }
+        .char-box.lps-empty {
+            background: #f9fafb;
+            border-style: dashed;
+            color: #c4c4c4;
+        }
+        .char-box.found-highlight {
+            background: var(--teal-light);
+            border-color: var(--teal);
+            color: #0f766e;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            20% {
+                transform: translateX(-4px);
+            }
+            40% {
+                transform: translateX(4px);
+            }
+            60% {
+                transform: translateX(-3px);
+            }
+            80% {
+                transform: translateX(2px);
+            }
+        }
+
+        .pointer-indicator {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            letter-spacing: 0.03em;
+        }
+        .pointer-i {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .pointer-j {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+        .pointer-lps {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .canvas-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text3);
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .canvas-info {
+            font-size: 0.8rem;
+            color: var(--text2);
+            background: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+
+        #state {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.78rem;
+            background: #1e1e2e;
+            color: #a6e3a1;
+            padding: 10px 14px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        #teaching-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #step-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: var(--text2);
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: var(--text);
+            background: #f0f9ff;
+            border-left: 3px solid var(--accent);
+            padding: 10px 14px;
+            border-radius: 0 6px 6px 0;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: var(--text2);
+            background: var(--surface2);
+            padding: 10px 14px;
+            border-radius: 6px;
+            line-height: 1.5;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            white-space: pre-wrap;
+        }
+        #op {
+            display: inline-block;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-light);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            letter-spacing: 0.03em;
+        }
+
+        #checkpoint-area {
+            background: var(--surface);
+            border: 2px solid var(--amber);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-md);
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #checkpoint-area.active {
+            display: flex;
+        }
+        #checkpoint-area h4 {
+            font-size: 0.95rem;
+            color: #92400e;
+            font-weight: 700;
+        }
+        #checkpoint-area .cp-prompt {
+            font-size: 0.88rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+        #checkpoint-area .cp-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #checkpoint-area input {
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            flex: 1;
+            min-width: 140px;
+            transition: border-color var(--transition);
+        }
+        #checkpoint-area input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        #checkpoint-area button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            letter-spacing: 0.02em;
+        }
+        #checkpoint-area .btn-submit {
+            background: var(--accent);
+            color: #fff;
+        }
+        #checkpoint-area .btn-submit:hover {
+            background: #1d4ed8;
+            box-shadow: var(--shadow-md);
+        }
+        #checkpoint-area .btn-hint {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        #checkpoint-area .btn-hint:hover {
+            background: #fde68a;
+        }
+        #checkpoint-area .btn-show {
+            background: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
+        }
+        #checkpoint-area .btn-show:hover {
+            background: #e5e7eb;
+        }
+        #checkpoint-area .cp-feedback {
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        #checkpoint-area .cp-feedback.correct {
+            background: var(--green-light);
+            color: #15803d;
+            display: block;
+        }
+        #checkpoint-area .cp-feedback.incorrect {
+            background: var(--red-light);
+            color: #b91c1c;
+            display: block;
+        }
+        #checkpoint-area .cp-feedback.show-answer-reveal {
+            background: #e0f2fe;
+            color: #0369a1;
+            display: block;
+        }
+
+        #controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            box-shadow: var(--shadow);
+        }
+        #controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all var(--transition);
+            letter-spacing: 0.02em;
+        }
+        #prev,
+        #next {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        #prev:hover,
+        #next:hover {
+            background: #e5e7eb;
+        }
+        #play {
+            background: var(--green);
+            color: #fff;
+        }
+        #play:hover {
+            background: #15803d;
+        }
+        #play.paused {
+            background: var(--amber);
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            white-space: nowrap;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--surface2);
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+        }
+        #timeline .tick {
+            padding: 7px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            border: 2px solid transparent;
+            background: var(--surface2);
+            color: var(--text2);
+            transition: all var(--transition);
+            text-align: center;
+            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            align-items: center;
+            min-width: 52px;
+        }
+        #timeline .tick:hover {
+            border-color: #b0b8c4;
+            background: #e5e7eb;
+        }
+        #timeline .tick.active-tick {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: #1d4ed8;
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        #timeline .tick .tick-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: inherit;
+        }
+        #timeline .tick .tick-op {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: inherit;
+        }
+
+        #learning-log-area {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        #learning-log-area h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text3);
+            margin-bottom: 8px;
+        }
+        #learning-log {
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.82rem;
+        }
+        #learning-log .log-entry {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--border);
+            background: var(--surface2);
+            line-height: 1.4;
+        }
+        #learning-log .log-entry.log-correct {
+            border-left-color: var(--green);
+            background: #f0fdf4;
+        }
+        #learning-log .log-entry.log-incorrect {
+            border-left-color: var(--red);
+            background: #fef2f2;
+        }
+        #learning-log .log-entry.log-reveal {
+            border-left-color: var(--amber);
+            background: #fffbeb;
+        }
+        .log-time {
+            font-size: 0.7rem;
+            color: var(--text3);
+            font-weight: 500;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <span id="title">KMP String Matching</span>
+            <span id="subtitle">Knuth-Morris-Pratt algorithm: find the first occurrence of a pattern in text using a prefix table for smart jumps.</span>
+            <span id="top-result">Input: text="ababc", pattern="abc"</span>
+            <span id="top-solution">Expected output: first occurrence index</span>
+            <span id="answer">2</span>
+            <span id="op">Init</span>
+        </header>
+
+        <div id="main-content">
+            <div id="code-panel">
+                <h3>Algorithm Implementation</h3>
+                <pre id="code"><span class="code-line" data-line="1"><span class="line-num"> 1</span>function kmpSearch(text, pattern) {</span>
+<span class="code-line" data-line="2"><span class="line-num"> 2</span>  if (pattern === "") return 0;</span>
+<span class="code-line" data-line="3"><span class="line-num"> 3</span>  let lps = buildLPS(pattern);</span>
+<span class="code-line" data-line="4"><span class="line-num"> 4</span>  let i = 0, j = 0;</span>
+<span class="code-line" data-line="5"><span class="line-num"> 5</span>  while (i &lt; text.length) {</span>
+<span class="code-line" data-line="6"><span class="line-num"> 6</span>    if (text[i] === pattern[j]) {</span>
+<span class="code-line" data-line="7"><span class="line-num"> 7</span>      i++; j++;</span>
+<span class="code-line" data-line="8"><span class="line-num"> 8</span>    }</span>
+<span class="code-line" data-line="9"><span class="line-num"> 9</span>    if (j === pattern.length) {</span>
+<span class="code-line" data-line="10"><span class="line-num">10</span>      return i - j;</span>
+<span class="code-line" data-line="11"><span class="line-num">11</span>    }</span>
+<span class="code-line" data-line="12"><span class="line-num">12</span>    else if (i &lt; text.length &amp;&amp; text[i] !== pattern[j]) {</span>
+<span class="code-line" data-line="13"><span class="line-num">13</span>      if (j !== 0) {</span>
+<span class="code-line" data-line="14"><span class="line-num">14</span>        j = lps[j - 1];</span>
+<span class="code-line" data-line="15"><span class="line-num">15</span>      } else {</span>
+<span class="code-line" data-line="16"><span class="line-num">16</span>        i++;</span>
+<span class="code-line" data-line="17"><span class="line-num">17</span>      }</span>
+<span class="code-line" data-line="18"><span class="line-num">18</span>    }</span>
+<span class="code-line" data-line="19"><span class="line-num">19</span>  }</span>
+<span class="code-line" data-line="20"><span class="line-num">20</span>  return -1;</span>
+<span class="code-line" data-line="21"><span class="line-num">21</span>}</span>
+<span class="code-line" data-line="22"><span class="line-num">22</span></span>
+<span class="code-line" data-line="23"><span class="line-num">23</span>function buildLPS(pattern) {</span>
+<span class="code-line" data-line="24"><span class="line-num">24</span>  let lps = new Array(pattern.length).fill(0);</span>
+<span class="code-line" data-line="25"><span class="line-num">25</span>  let len = 0, i = 1;</span>
+<span class="code-line" data-line="26"><span class="line-num">26</span>  while (i &lt; pattern.length) {</span>
+<span class="code-line" data-line="27"><span class="line-num">27</span>    if (pattern[i] === pattern[len]) {</span>
+<span class="code-line" data-line="28"><span class="line-num">28</span>      len++; lps[i] = len; i++;</span>
+<span class="code-line" data-line="29"><span class="line-num">29</span>    } else {</span>
+<span class="code-line" data-line="30"><span class="line-num">30</span>      if (len !== 0) {</span>
+<span class="code-line" data-line="31"><span class="line-num">31</span>        len = lps[len - 1];</span>
+<span class="code-line" data-line="32"><span class="line-num">32</span>      } else {</span>
+<span class="code-line" data-line="33"><span class="line-num">33</span>        lps[i] = 0; i++;</span>
+<span class="code-line" data-line="34"><span class="line-num">34</span>      }</span>
+<span class="code-line" data-line="35"><span class="line-num">35</span>    }</span>
+<span class="code-line" data-line="36"><span class="line-num">36</span>  }</span>
+<span class="code-line" data-line="37"><span class="line-num">37</span>  return lps;</span>
+<span class="code-line" data-line="38"><span class="line-num">38</span>}</span></pre>
+            </div>
+            <div id="viz-panel">
+                <div id="canvas" aria-label="Algorithm visualization area showing text, pattern, LPS array, and pointer indicators"></div>
+                <div id="state" aria-label="Current state JSON summary">{"i":0,"j":0,"lps":[],"text":"ababc","pattern":"abc","phase":"init"}</div>
+            </div>
+        </div>
+
+        <div id="teaching-panel">
+            <div id="step-title">Step 1: Algorithm Initialization</div>
+            <div id="step-desc">Set up the text and pattern strings. Prepare to build the LPS prefix table.</div>
+            <div id="teaching">The KMP algorithm uses a prefix table (LPS - Longest Proper Prefix which is also Suffix) to avoid re-checking characters we already know match. First, we analyze the pattern itself to build this table. For pattern "abc", we will compute how much of the prefix repeats.</div>
+            <div id="step-evidence">Operation: Initialize
+                Targets: text="ababc", pattern="abc", lps=[], i=0, j=0
+                Dependencies: none
+                Before: undefined
+                After: text="ababc" (length 5), pattern="abc" (length 3), lps allocated, pointers at 0</div>
+        </div>
+
+        <div id="checkpoint-area" aria-label="Learner checkpoint - answer the question to test your understanding">
+            <h4>🧠 Checkpoint</h4>
+            <p class="cp-prompt"></p>
+            <div class="cp-input-row">
+                <input type="text" id="cp-input" placeholder="Type your answer here..." aria-label="Your answer input">
+                <button class="btn-submit" id="cp-submit">Submit</button>
+                <button class="btn-hint" id="cp-hint">Hint</button>
+                <button class="btn-show" id="cp-show-answer">Show Answer</button>
+            </div>
+            <div class="cp-feedback" id="cp-feedback" aria-live="polite"></div>
+        </div>
+
+        <div id="controls">
+            <button id="prev" aria-label="Previous step">◀ Prev</button>
+            <button id="play" aria-label="Auto-play steps">▶ Play</button>
+            <button id="next" aria-label="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="10" value="1" aria-label="Step scrubber">
+            <span id="counter">1 / 10</span>
+        </div>
+
+        <div id="timeline" aria-label="Step timeline with clickable ticks"></div>
+
+        <div id="learning-log-area">
+            <h3>📝 Learning Log</h3>
+            <div id="learning-log" aria-label="Learning log entries from checkpoint submissions">
+                <div class="log-entry" style="color:#6b7280;font-style:italic;">No submissions yet. Navigate to a checkpoint step and submit your answer.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const TOTAL_STEPS = 10;
+
+            const stepData = [
+                {
+                    id: 1,
+                    title: 'Step 1: Algorithm Initialization',
+                    desc: 'Set up the text "ababc" and pattern "abc". Prepare to build the LPS prefix table.',
+                    op: 'Init',
+                    teaching: 'The KMP algorithm works in two phases: (1) Build the LPS (Longest Proper Prefix which is also Suffix) table from the pattern, and (2) Use the LPS table to perform efficient matching. The LPS table tells us how far we can safely skip when a mismatch occurs. For pattern "abc" with all distinct characters, the LPS table will be all zeros.',
+                    evidence: 'Operation: Initialize\nTargets: text="ababc", pattern="abc"\nDependencies: none\nBefore: undefined\nAfter: text length=5, pattern length=3, LPS array allocated, i=0, j=0',
+                    activeLines: [1, 2, 3, 4, 23, 24, 25],
+                    stateJSON: '{"i":0,"j":0,"lps":[null,null,null],"text":"ababc","pattern":"abc","phase":"init"}',
+                    checkpoint: null,
+                    canvasType: 'init'
+                }, {
+                    id: 2,
+                    title: 'Step 2: Building LPS Table — Index 0',
+                    desc: 'Set lps[0] = 0. The first element of the LPS array is always 0 by definition.',
+                    op: 'LPS[0]',
+                    teaching: 'The LPS array tracks the length of the longest proper prefix of the pattern that is also a suffix for each position. For index 0, there is no proper prefix (a proper prefix must be shorter than the string itself), so lps[0] is always 0. We start with len=0 and i=1 for the buildLPS loop.',
+                    evidence: 'Operation: Set lps[0]=0\nTargets: lps[0]\nDependencies: pattern[0]="a"\nBefore: lps=[?,?,?]\nAfter: lps=[0,?,?], len=0, i=1',
+                    activeLines: [24, 25, 33],
+                    stateJSON: '{"i_pat":1,"len":0,"lps":[0,null,null],"pattern":"abc","phase":"build_lps"}',
+                    checkpoint: null,
+                    canvasType: 'lps0'
+                }, {
+                    id: 3,
+                    title: 'Step 3: Building LPS Table — Index 1',
+                    desc: 'Compare pattern[1]="b" with pattern[len]="a". No match, and len=0, so set lps[1]=0.',
+                    op: 'LPS[1]',
+                    teaching: 'At i=1, we compare pattern[1]="b" with pattern[0]="a". They differ. Since len is already 0, we cannot backtrack further, so we set lps[1]=0 and increment i to 2. This means there is no proper prefix of "ab" that is also a suffix (besides the trivial empty string).',
+                    evidence: 'Operation: Compute lps[1]\nTargets: lps[1], comparison pattern[1] vs pattern[0]\nDependencies: pattern[1]="b", pattern[0]="a", len=0\nBefore: lps=[0,?,?], i=1, len=0\nAfter: "b"≠"a", len=0 so lps[1]=0, i=2',
+                    activeLines: [26, 27, 29, 30, 32, 33],
+                    stateJSON: '{"i_pat":2,"len":0,"lps":[0,0,null],"pattern":"abc","phase":"build_lps","comparison":"b≠a"}',
+                    checkpoint: null,
+                    canvasType: 'lps1'
+                }, {
+                    id: 4,
+                    title: 'Step 4: Building LPS Table — Index 2',
+                    desc: 'Compare pattern[2]="c" with pattern[0]="a". No match, len=0, so set lps[2]=0. LPS table complete: [0,0,0].',
+                    op: 'LPS[2]',
+                    teaching: 'At i=2, we compare pattern[2]="c" with pattern[0]="a". Again they differ and len=0, so lps[2]=0. The LPS table is now complete: [0,0,0]. This tells us that for pattern "abc", there are no repeating prefix-suffix patterns, so any mismatch will reset j all the way back to 0.',
+                    evidence: 'Operation: Compute lps[2]\nTargets: lps[2], comparison pattern[2] vs pattern[0]\nDependencies: pattern[2]="c", pattern[0]="a", len=0\nBefore: lps=[0,0,?], i=2, len=0\nAfter: "c"≠"a", lps[2]=0, i=3, loop ends, return lps=[0,0,0]',
+                    activeLines: [26, 27, 29, 30, 32, 33, 36, 37],
+                    stateJSON: '{"lps":[0,0,0],"pattern":"abc","phase":"lps_complete"}',
+                    checkpoint: null,
+                    canvasType: 'lps2'
+                }, {
+                    id: 5,
+                    title: 'Step 5: Checkpoint — LPS Table Complete',
+                    desc: 'The LPS table for pattern "abc" has been built. Check your understanding.',
+                    op: 'Check LPS',
+                    teaching: 'Now that the LPS table is built, take a moment to understand what it represents. For each position in the pattern, the LPS value tells us the length of the longest proper prefix that matches a suffix ending at that position.',
+                    evidence: 'Operation: Verify LPS understanding\nTargets: lps array\nDependencies: pattern="abc", all characters distinct\nResult: lps=[0,0,0] because no character repeats',
+                    activeLines: [3, 37],
+                    stateJSON: '{"lps":[0,0,0],"pattern":"abc","phase":"checkpoint_lps"}',
+                    checkpoint: {
+                        prompt: 'What is the complete LPS (prefix) table for the pattern "abc"? Enter as comma-separated values or a JSON array, e.g., [0,0,0].',
+                        answer: '[0,0,0]',
+                        hint: 'Since all three characters "a", "b", "c" are distinct, no proper prefix can also be a suffix at any position. Each entry should be 0.',
+                        normalize: function(val) {
+                            let cleaned = val.replace(/[\[\]\s]/g, '').split(',').map(Number);
+                            if (cleaned.length !== 3 || cleaned.some(isNaN)) return null;
+                            return JSON.stringify(cleaned);
+                        }
+                    },
+                    canvasType: 'lpsComplete'
+                }, {
+                    id: 6,
+                    title: 'Step 6: Matching — First Character',
+                    desc: 'Compare text[0]="a" with pattern[0]="a". They match! Advance i to 1, j to 1.',
+                    op: 'Match[0]',
+                    teaching: 'Now we begin the matching phase. With i=0 and j=0, we compare text[0]="a" with pattern[0]="a". They match, so we increment both pointers. The green highlighting shows the successful match. We are building toward a full pattern match.',
+                    evidence: 'Operation: Compare and match\nTargets: text[0], pattern[0]\nDependencies: text="ababc", pattern="abc", i=0, j=0\nBefore: i=0, j=0\nAfter: "a"=="a" → i=1, j=1 (both advanced)',
+                    activeLines: [5, 6, 7],
+                    stateJSON: '{"i":1,"j":1,"lps":[0,0,0],"text":"ababc","pattern":"abc","phase":"matching","lastCompare":"match"}',
+                    checkpoint: null,
+                    canvasType: 'match0'
+                }, {
+                    id: 7,
+                    title: 'Step 7: Matching — Second Character',
+                    desc: 'Compare text[1]="b" with pattern[1]="b". They match! Advance i to 2, j to 2.',
+                    op: 'Match[1]',
+                    teaching: 'At i=1, j=1, we compare text[1]="b" with pattern[1]="b". Another match! Both pointers advance to i=2, j=2. The algorithm is making steady progress. Two out of three characters of the pattern have been matched.',
+                    evidence: 'Operation: Compare and match\nTargets: text[1], pattern[1]\nDependencies: text="ababc", pattern="abc", i=1, j=1\nBefore: i=1, j=1\nAfter: "b"=="b" → i=2, j=2',
+                    activeLines: [5, 6, 7],
+                    stateJSON: '{"i":2,"j":2,"lps":[0,0,0],"text":"ababc","pattern":"abc","phase":"matching","lastCompare":"match"}',
+                    checkpoint: null,
+                    canvasType: 'match1'
+                }, {
+                    id: 8,
+                    title: 'Step 8: Mismatch and Backtrack',
+                    desc: 'Compare text[2]="a" with pattern[2]="c". Mismatch! Backtrack j using lps[j-1]=lps[1]=0.',
+                    op: 'Mismatch',
+                    teaching: 'At i=2, j=2, we compare text[2]="a" with pattern[2]="c". They do NOT match! This is where KMP shines: instead of starting over, we consult the LPS table. Since j=2, we look at lps[j-1]=lps[1]=0. This tells us to set j=0 while keeping i at 2. We skip re-checking characters we already know match.',
+                    evidence: 'Operation: Mismatch detected, backtrack using LPS\nTargets: text[2]="a", pattern[2]="c", lps[1]\nDependencies: j=2, lps[1]=0\nBefore: i=2, j=2, comparison "a"≠"c"\nAfter: j=lps[1]=0, i stays at 2 (smart jump!)',
+                    activeLines: [9, 12, 13, 14],
+                    stateJSON: '{"i":2,"j":0,"lps":[0,0,0],"text":"ababc","pattern":"abc","phase":"mismatch_backtrack","backtrackFrom":2,"backtrackTo":0}',
+                    checkpoint: null,
+                    canvasType: 'mismatch'
+                }, {
+                    id: 9,
+                    title: 'Step 9: Checkpoint — After Backtrack',
+                    desc: 'The mismatch at j=2 triggered a backtrack. Verify your understanding of the LPS jump.',
+                    op: 'Check BT',
+                    teaching: 'After the mismatch at j=2 with text[2]="a" vs pattern[2]="c", we used the LPS table to backtrack. The value lps[1]=0 told us where to resume. Understanding this backtrack is key to mastering KMP.',
+                    evidence: 'Operation: Check backtrack understanding\nTargets: j after backtrack\nDependencies: mismatch at j=2, lps[1]=0\nResult: j becomes 0, i remains at 2',
+                    activeLines: [14],
+                    stateJSON: '{"i":2,"j":0,"lps":[0,0,0],"text":"ababc","pattern":"abc","phase":"checkpoint_backtrack"}',
+                    checkpoint: {
+                        prompt: 'After the mismatch at j=2 (pattern[2]="c" ≠ text[2]="a"), what value does j backtrack to? Enter a single number.',
+                        answer: '0',
+                        hint: 'Look at lps[j-1] = lps[1]. Since lps[1]=0, j is set to 0. The algorithm will resume comparing text[2] with pattern[0].',
+                        normalize: function(val) {
+                            let n = Number(val.trim());
+                            if (isNaN(n)) return null;
+                            return String(n);
+                        }
+                    },
+                    canvasType: 'afterBacktrack'
+                }, {
+                    id: 10,
+                    title: 'Step 10: Match Found — Return Result',
+                    desc: 'Resume matching from j=0, i=2. text[2]="a" matches pattern[0]="a", text[3]="b" matches pattern[1]="b", text[4]="c" matches pattern[2]="c". j reaches 3, pattern found at index i-j=5-3=2.',
+                    op: 'Found!',
+                    teaching: 'After backtracking to j=0 at i=2, we continue matching: text[2]="a"=pattern[0]="a" → i=3,j=1; text[3]="b"=pattern[1]="b" → i=4,j=2; text[4]="c"=pattern[2]="c" → i=5,j=3. Since j equals pattern.length (3), we found the pattern! The first occurrence starts at index i-j = 5-3 = 2. The final answer is 2.',
+                    evidence: 'Operation: Complete matching and return result\nTargets: all remaining characters, final index calculation\nDependencies: backtracked j=0, remaining text "abc" at indices 2-4\nBefore: i=2, j=0 after backtrack\nAfter: full match found, return i-j = 5-3 = 2',
+                    activeLines: [5, 6, 7, 9, 10],
+                    stateJSON: '{"i":5,"j":3,"lps":[0,0,0],"text":"ababc","pattern":"abc","phase":"match_found","result":2}',
+                    checkpoint: {
+                        prompt: 'What is the first occurrence index (0-based) of pattern "abc" in text "ababc"? The KMP algorithm returns this value.',
+                        answer: '2',
+                        hint: 'The pattern "abc" appears starting at index 2 in "ababc": positions 2,3,4 are "a","b","c". Remember indexing starts at 0.',
+                        normalize: function(val) {
+                            let n = Number(val.trim());
+                            if (isNaN(n)) return null;
+                            return String(n);
+                        }
+                    },
+                    canvasType: 'found'
+                }
+            ];
+
+            let currentStepIndex = 0;
+            let playInterval = null;
+            let isPlaying = false;
+            const logEntries = [];
+
+            const dom = {
+                title: document.getElementById('title'),
+                subtitle: document.getElementById('subtitle'),
+                topResult: document.getElementById('top-result'),
+                topSolution: document.getElementById('top-solution'),
+                answer: document.getElementById('answer'),
+                op: document.getElementById('op'),
+                code: document.getElementById('code'),
+                canvas: document.getElementById('canvas'),
+                state: document.getElementById('state'),
+                stepTitle: document.getElementById('step-title'),
+                stepDesc: document.getElementById('step-desc'),
+                teaching: document.getElementById('teaching'),
+                stepEvidence: document.getElementById('step-evidence'),
+                checkpointArea: document.getElementById('checkpoint-area'),
+                cpPrompt: document.querySelector('#checkpoint-area .cp-prompt'),
+                cpInput: document.getElementById('cp-input'),
+                cpSubmit: document.getElementById('cp-submit'),
+                cpHint: document.getElementById('cp-hint'),
+                cpShowAnswer: document.getElementById('cp-show-answer'),
+                cpFeedback: document.getElementById('cp-feedback'),
+                prevBtn: document.getElementById('prev'),
+                playBtn: document.getElementById('play'),
+                nextBtn: document.getElementById('next'),
+                range: document.getElementById('range'),
+                counter: document.getElementById('counter'),
+                timeline: document.getElementById('timeline'),
+                learningLog: document.getElementById('learning-log'),
+            };
+
+            dom.range.max = TOTAL_STEPS;
+            dom.range.value = 1;
+            dom.counter.textContent = '1 / ' + TOTAL_STEPS;
+            dom.answer.textContent = '2';
+
+            function buildTimeline() {
+                dom.timeline.innerHTML = '';
+                for (let i = 0; i < TOTAL_STEPS; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('aria-label', 'Go to step ' + (i + 1) + ': ' + stepData[i].op);
+                    tick.innerHTML =
+                        '<span class="tick-label">Step ' + (i + 1) + '</span><span class="tick-op">' + stepData[i]
+                        .op + '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(i);
+                    });
+                    dom.timeline.appendChild(tick);
+                }
+            }
+
+            function updateTimelineActive() {
+                const ticks = dom.timeline.querySelectorAll('.tick');
+                ticks.forEach(function(t, idx) {
+                    if (idx === currentStepIndex) {
+                        t.classList.add('active-tick');
+                    } else {
+                        t.classList.remove('active-tick');
+                    }
+                });
+            }
+
+            function highlightCode(lines) {
+                const allLines = dom.code.querySelectorAll('.code-line');
+                allLines.forEach(function(lineEl) {
+                    const lineNum = parseInt(lineEl.getAttribute('data-line'));
+                    if (lines.indexOf(lineNum) !== -1) {
+                        lineEl.classList.add('active-line');
+                    } else {
+                        lineEl.classList.remove('active-line');
+                    }
+                });
+            }
+
+            function renderCanvas(step) {
+                const type = step.canvasType;
+                let html = '';
+                switch (type) {
+                    case 'init':
+                        html = buildCanvasInit();
+                        break;
+                    case 'lps0':
+                        html = buildCanvasLPS0();
+                        break;
+                    case 'lps1':
+                        html = buildCanvasLPS1();
+                        break;
+                    case 'lps2':
+                        html = buildCanvasLPS2();
+                        break;
+                    case 'lpsComplete':
+                        html = buildCanvasLPSComplete();
+                        break;
+                    case 'match0':
+                        html = buildCanvasMatch0();
+                        break;
+                    case 'match1':
+                        html = buildCanvasMatch1();
+                        break;
+                    case 'mismatch':
+                        html = buildCanvasMismatch();
+                        break;
+                    case 'afterBacktrack':
+                        html = buildCanvasAfterBacktrack();
+                        break;
+                    case 'found':
+                        html = buildCanvasFound();
+                        break;
+                    default:
+                        html = '<div class="canvas-info">Canvas rendering for: ' + type + '</div>';
+                }
+                dom.canvas.innerHTML = html;
+            }
+
+            function charBox(char, cls) {
+                return '<span class="char-box ' + (cls || '') + '">' + char + '</span>';
+            }
+
+            function buildCanvasInit() {
+                return `
+                    <div class="canvas-label">Text (length 5)</div>
+                    <div class="char-box-row">
+                        ${charBox('a','')}${charBox('b','')}${charBox('a','')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-i">i = 0</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">Pattern (length 3)</div>
+                    <div class="char-box-row">
+                        ${charBox('a','')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-j">j = 0</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">LPS Table</div>
+                    <div class="char-box-row">
+                        ${charBox('?','lps-empty')}${charBox('?','lps-empty')}${charBox('?','lps-empty')}
+                    </div>
+                    <div class="canvas-info">Phase: Initialization — ready to build LPS table</div>`;
+            }
+
+            function buildCanvasLPS0() {
+                return `
+                    <div class="canvas-label">Pattern</div>
+                    <div class="char-box-row">
+                        ${charBox('a','current-pattern')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-lps">len = 0 (points to index 0)</span>
+                        <span class="pointer-indicator pointer-j">i_pat = 1</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">LPS Table</div>
+                    <div class="char-box-row">
+                        ${charBox('0','lps-cell')}${charBox('?','lps-empty')}${charBox('?','lps-empty')}
+                    </div>
+                    <div class="canvas-info">lps[0] is always 0 by definition</div>`;
+            }
+
+            function buildCanvasLPS1() {
+                return `
+                    <div class="canvas-label">Pattern Comparison</div>
+                    <div class="char-box-row">
+                        ${charBox('a','')}${charBox('b','current-pattern')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:2px;font-size:0.85rem;color:#b91c1c;">
+                        pattern[1]="b" ≠ pattern[0]="a"
+                    </div>
+                    <div class="canvas-label" style="margin-top:6px;">LPS Table</div>
+                    <div class="char-box-row">
+                        ${charBox('0','lps-cell')}${charBox('0','lps-cell')}${charBox('?','lps-empty')}
+                    </div>
+                    <div class="canvas-info">No match, len=0 → lps[1]=0, i_pat advances to 2</div>`;
+            }
+
+            function buildCanvasLPS2() {
+                return `
+                    <div class="canvas-label">Pattern Comparison</div>
+                    <div class="char-box-row">
+                        ${charBox('a','')}${charBox('b','')}${charBox('c','current-pattern')}
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:2px;font-size:0.85rem;color:#b91c1c;">
+                        pattern[2]="c" ≠ pattern[0]="a"
+                    </div>
+                    <div class="canvas-label" style="margin-top:6px;">LPS Table — Complete!</div>
+                    <div class="char-box-row">
+                        ${charBox('0','lps-cell')}${charBox('0','lps-cell')}${charBox('0','lps-cell')}
+                    </div>
+                    <div class="canvas-info">lps = [0, 0, 0] — all distinct characters, no prefix-suffix overlap</div>`;
+            }
+
+            function buildCanvasLPSComplete() {
+                return `
+                    <div class="canvas-label">Pattern "abc"</div>
+                    <div class="char-box-row">
+                        ${charBox('a','')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">Complete LPS Table</div>
+                    <div class="char-box-row">
+                        ${charBox('0','lps-cell')}${charBox('0','lps-cell')}${charBox('0','lps-cell')}
+                    </div>
+                    <div class="canvas-info" style="margin-top:6px;">🧠 Checkpoint: What is the LPS array? Enter your answer below.</div>`;
+            }
+
+            function buildCanvasMatch0() {
+                return `
+                    <div class="canvas-label">Text</div>
+                    <div class="char-box-row">
+                        ${charBox('a','matched')}${charBox('b','')}${charBox('a','')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-i">i = 1 (advanced)</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">Pattern</div>
+                    <div class="char-box-row">
+                        ${charBox('a','matched')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-j">j = 1 (advanced)</span>
+                    </div>
+                    <div class="canvas-info">✓ text[0]="a" matches pattern[0]="a" — both pointers advance</div>`;
+            }
+
+            function buildCanvasMatch1() {
+                return `
+                    <div class="canvas-label">Text</div>
+                    <div class="char-box-row">
+                        ${charBox('a','matched')}${charBox('b','matched')}${charBox('a','')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-i">i = 2</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">Pattern</div>
+                    <div class="char-box-row">
+                        ${charBox('a','matched')}${charBox('b','matched')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-j">j = 2</span>
+                    </div>
+                    <div class="canvas-info">✓ text[1]="b" matches pattern[1]="b" — two characters matched so far</div>`;
+            }
+
+            function buildCanvasMismatch() {
+                return `
+                    <div class="canvas-label">Text</div>
+                    <div class="char-box-row">
+                        ${charBox('a','matched')}${charBox('b','matched')}${charBox('a','mismatched')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-i">i = 2 (stays)</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">Pattern</div>
+                    <div class="char-box-row">
+                        ${charBox('a','matched')}${charBox('b','matched')}${charBox('c','mismatched')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-j">j was 2 → now 0</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:6px;">LPS Table (consulted for backtrack)</div>
+                    <div class="char-box-row">
+                        ${charBox('0','lps-cell')}${charBox('0','lps-cell')}${charBox('0','lps-cell')}
+                    </div>
+                    <div style="margin-top:2px;font-size:0.8rem;color:#b91c1c;text-align:center;">
+                        ✗ "a" ≠ "c" → j = lps[1] = 0 (smart backtrack!)
+                    </div>
+                    <div class="canvas-info">Mismatch detected! KMP uses lps[j-1]=lps[1]=0 to backtrack j to 0 without moving i.</div>`;
+            }
+
+            function buildCanvasAfterBacktrack() {
+                return `
+                    <div class="canvas-label">Text</div>
+                    <div class="char-box-row">
+                        ${charBox('a','matched')}${charBox('b','matched')}${charBox('a','current-text')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-i">i = 2</span>
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">Pattern (reset to start)</div>
+                    <div class="char-box-row">
+                        ${charBox('a','current-pattern')}${charBox('b','')}${charBox('c','')}
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                        <span class="pointer-indicator pointer-j">j = 0 (backtracked)</span>
+                    </div>
+                    <div class="canvas-info">🧠 Checkpoint: After backtrack, j=0. Now text[2]="a" will be compared with pattern[0]="a".</div>`;
+            }
+
+            function buildCanvasFound() {
+                return `
+                    <div class="canvas-label">Text — Pattern "abc" found at index 2!</div>
+                    <div class="char-box-row">
+                        ${charBox('a','')}${charBox('b','')}${charBox('a','found-highlight')}${charBox('b','found-highlight')}${charBox('c','found-highlight')}
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px;font-size:0.8rem;color:#0f766e;font-weight:700;">
+                        indices 2, 3, 4 match the full pattern
+                    </div>
+                    <div class="canvas-label" style="margin-top:8px;">Pattern — fully matched</div>
+                    <div class="char-box-row">
+                        ${charBox('a','found-highlight')}${charBox('b','found-highlight')}${charBox('c','found-highlight')}
+                    </div>
+                    <div style="margin-top:6px;font-size:1rem;font-weight:700;color:#0f766e;text-align:center;">
+                        🎯 Return: i - j = 5 - 3 = <strong>2</strong>
+                    </div>
+                    <div class="canvas-info">Full pattern matched! The first occurrence of "abc" in "ababc" is at index 2.</div>`;
+            }
+
+            function updateCheckpointUI(step) {
+                const cp = step.checkpoint;
+                if (cp) {
+                    dom.checkpointArea.classList.add('active');
+                    dom.cpPrompt.textContent = cp.prompt;
+                    dom.cpInput.value = '';
+                    dom.cpFeedback.textContent = '';
+                    dom.cpFeedback.className = 'cp-feedback';
+                    dom.cpInput.disabled = false;
+                    dom.cpSubmit.disabled = false;
+                    dom.cpHint.disabled = false;
+                    dom.cpShowAnswer.disabled = false;
+                } else {
+                    dom.checkpointArea.classList.remove('active');
+                    dom.cpFeedback.textContent = '';
+                    dom.cpFeedback.className = 'cp-feedback';
+                }
+            }
+
+            function addLogEntry(stepNum, question, userAnswer, correctAnswer, isCorrect) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const entry = {
+                    stepNum: stepNum,
+                    question: question,
+                    userAnswer: userAnswer,
+                    correctAnswer: correctAnswer,
+                    isCorrect: isCorrect,
+                    time: timeStr,
+                };
+                logEntries.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (logEntries.length === 0) {
+                    dom.learningLog.innerHTML =
+                        '<div class="log-entry" style="color:#6b7280;font-style:italic;">No submissions yet. Navigate to a checkpoint step and submit your answer.</div>';
+                    return;
+                }
+                let html = '';
+                for (let i = logEntries.length - 1; i >= 0; i--) {
+                    const entry = logEntries[i];
+                    const cls = entry.isCorrect ? 'log-correct' : 'log-incorrect';
+                    const icon = entry.isCorrect ? '✓' : '✗';
+                    html += '<div class="log-entry ' + cls + '">';
+                    html += '<span class="log-time">' + entry.time + ' — Step ' + entry.stepNum + '</span><br>';
+                    html += '<strong>' + icon + ' ' + (entry.isCorrect ? 'Correct' : 'Incorrect') + '</strong>: ';
+                    html += 'Your answer: <code>' + escapeHTML(entry.userAnswer) + '</code> | ';
+                    html += 'Correct answer: <code>' + escapeHTML(entry.correctAnswer) + '</code><br>';
+                    html += '<span style="font-size:0.75rem;color:#6b7280;">Q: ' + escapeHTML(entry.question) +
+                        '</span>';
+                    html += '</div>';
+                }
+                dom.learningLog.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function goToStep(index) {
+                if (index < 0 || index >= TOTAL_STEPS) return;
+                currentStepIndex = index;
+                const step = stepData[index];
+                dom.stepTitle.textContent = step.title;
+                dom.stepDesc.textContent = step.desc;
+                dom.teaching.textContent = step.teaching;
+                dom.stepEvidence.textContent = step.evidence;
+                dom.op.textContent = step.op;
+                dom.state.textContent = step.stateJSON;
+                dom.counter.textContent = (index + 1) + ' / ' + TOTAL_STEPS;
+                dom.range.value = index + 1;
+                highlightCode(step.activeLines);
+                renderCanvas(step);
+                updateTimelineActive();
+                updateCheckpointUI(step);
+                dom.prevBtn.disabled = (index === 0);
+                dom.nextBtn.disabled = (index === TOTAL_STEPS - 1);
+            }
+
+            function handleCheckpointSubmit() {
+                const step = stepData[currentStepIndex];
+                const cp = step.checkpoint;
+                if (!cp) return;
+                const rawValue = dom.cpInput.value.trim();
+                if (rawValue === '') {
+                    dom.cpFeedback.textContent = 'Please enter an answer before submitting.';
+                    dom.cpFeedback.className = 'cp-feedback incorrect';
+                    return;
+                }
+                const normalized = cp.normalize(rawValue);
+                const correctNormalized = cp.normalize(cp.answer);
+                if (normalized === null) {
+                    dom.cpFeedback.textContent =
+                        'Could not parse your answer. Please check the format and try again.';
+                    dom.cpFeedback.className = 'cp-feedback incorrect';
+                    return;
+                }
+                const isCorrect = (normalized === correctNormalized);
+                if (isCorrect) {
+                    dom.cpFeedback.textContent = '✓ Correct! Great job! ' + cp.answer + ' is the right answer.';
+                    dom.cpFeedback.className = 'cp-feedback correct';
+                } else {
+                    dom.cpFeedback.textContent = '✗ Incorrect. You entered "' + rawValue +
+                        '". The correct answer is ' + cp.answer +
+                        '. Review the explanation and try to understand why.';
+                    dom.cpFeedback.className = 'cp-feedback incorrect';
+                }
+                addLogEntry(step.id, cp.prompt, rawValue, cp.answer, isCorrect);
+            }
+
+            function handleCheckpointHint() {
+                const step = stepData[currentStepIndex];
+                const cp = step.checkpoint;
+                if (!cp) return;
+                dom.cpFeedback.textContent = '💡 Hint: ' + cp.hint;
+                dom.cpFeedback.className = 'cp-feedback show-answer-reveal';
+            }
+
+            function handleCheckpointShowAnswer() {
+                const step = stepData[currentStepIndex];
+                const cp = step.checkpoint;
+                if (!cp) return;
+                dom.cpInput.value = cp.answer;
+                dom.cpFeedback.textContent = '📖 The answer is: ' + cp.answer +
+                    '. Study this and make sure you understand why.';
+                dom.cpFeedback.className = 'cp-feedback show-answer-reveal';
+                addLogEntry(step.id, cp.prompt, '[SHOW ANSWER] ' + cp.answer, cp.answer, false);
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                dom.playBtn.textContent = '⏸ Pause';
+                dom.playBtn.classList.add('paused');
+                playInterval = setInterval(function() {
+                    if (currentStepIndex < TOTAL_STEPS - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                dom.playBtn.textContent = '▶ Play';
+                dom.playBtn.classList.remove('paused');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            dom.prevBtn.addEventListener('click', function() {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            dom.nextBtn.addEventListener('click', function() {
+                stopPlay();
+                if (currentStepIndex < TOTAL_STEPS - 1) goToStep(currentStepIndex + 1);
+            });
+            dom.playBtn.addEventListener('click', togglePlay);
+            dom.range.addEventListener('input', function() {
+                stopPlay();
+                const val = parseInt(dom.range.value);
+                goToStep(val - 1);
+            });
+            dom.cpSubmit.addEventListener('click', handleCheckpointSubmit);
+            dom.cpHint.addEventListener('click', handleCheckpointHint);
+            dom.cpShowAnswer.addEventListener('click', handleCheckpointShowAnswer);
+            dom.cpInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    handleCheckpointSubmit();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'cp-input') return;
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    if (currentStepIndex < TOTAL_STEPS - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            buildTimeline();
+            goToStep(0);
+            dom.answer.textContent = '2';
+            renderLearningLog();
+
+            console.log('KMP String Matching tutoring page initialized. Total steps: ' + TOTAL_STEPS +
+                '. Checkpoints at steps 5, 9, and 10.');
+        })();
+    </script>
+</body>
+</html>

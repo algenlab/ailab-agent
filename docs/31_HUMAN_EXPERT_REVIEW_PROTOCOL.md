@@ -1,5 +1,7 @@
 # Human Expert Review Protocol
 
+> **范围说明：** 本文件对应五方法页面质量与 VLM 可靠性的视觉人工校准，不用于证明 source-to-trace correctness 或完整算法轨迹正确性。算法轨迹的独立专家审计见 `docs/32_EXPERT_AUDIT_ALGORITHMIC_TRACE_FIDELITY.md`，两类实验的数据、评审表和统计结果必须分开保存与报告。
+
 ## Status
 
 `pending_human_data`. 本文件只规定研究流程，不包含或推断专家评价结果。

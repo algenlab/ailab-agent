@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permutations - Algorithm Tutoring</title>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --card-bg: #ffffff;
+            --border: #dde1e7;
+            --text: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --accent: #3b6df0;
+            --accent-light: #e8edfc;
+            --success: #22a861;
+            --success-light: #e6f7ee;
+            --warning: #f59e0b;
+            --warning-light: #fff8eb;
+            --danger: #e8453c;
+            --danger-light: #fdecea;
+            --code-bg: #f0f2f5;
+            --code-highlight: #fff3bf;
+            --path-color: #3b6df0;
+            --path-bg: #dce6fb;
+            --result-color: #b45309;
+            --result-bg: #fef3c7;
+            --used-true: #22a861;
+            --used-false: #cbd5e1;
+            --current-highlight: #ff6b35;
+            --timeline-active: #3b6df0;
+            --timeline-inactive: #cbd5e1;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Liberation Mono', monospace;
+            --font-sans: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 14px;
+        }
+
+        header {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a1f36;
+            letter-spacing: -0.3px;
+            margin: 0;
+        }
+
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        #top-result {
+            margin-left: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: var(--result-bg);
+            color: var(--result-color);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            white-space: nowrap;
+            max-width: 360px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #top-solution {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: #f1f5f9;
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 14px;
+            flex: 1;
+            min-height: 520px;
+        }
+
+        @media (max-width: 1100px) {
+            .main-layout {
+                flex-direction: column;
+                min-height: auto;
+            }
+        }
+
+        #code {
+            flex: 0 0 340px;
+            background: #fafbfc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 12px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.55;
+            overflow-y: auto;
+            box-shadow: var(--shadow-sm);
+            white-space: pre;
+            color: #3d4a5c;
+            position: relative;
+            user-select: text;
+        }
+
+        #code .code-line {
+            display: block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            transition: background 0.25s, color 0.25s;
+            cursor: default;
+            border-left: 3px solid transparent;
+        }
+
+        #code .code-line.highlight {
+            background: var(--code-highlight);
+            border-left-color: var(--accent);
+            font-weight: 600;
+            color: #1a1f36;
+            box-shadow: inset 2px 0 0 var(--accent);
+        }
+
+        #canvas {
+            flex: 1 1 auto;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+            min-width: 300px;
+        }
+
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .canvas-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .nums-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .num-cell {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: #e8edfc;
+            color: #3b6df0;
+            border: 2px solid #c5d4f7;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .num-cell.indexed::after {
+            content: attr(data-index);
+            position: absolute;
+            top: -18px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .path-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            min-height: 52px;
+            align-items: center;
+        }
+
+        .path-cell {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: var(--path-bg);
+            color: var(--path-color);
+            border: 2px solid #b0c8f5;
+            transition: all 0.35s;
+            animation: popIn 0.3s ease-out;
+        }
+
+        .path-cell.popping {
+            animation: popOut 0.3s ease-in;
+            background: #fdecea;
+            border-color: #f5b7b1;
+            color: #c0392b;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            70% {
+                transform: scale(1.12);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes popOut {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .used-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .used-indicator {
+            width: 48px;
+            height: 32px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            letter-spacing: 0.2px;
+        }
+        .used-true {
+            background: var(--success-light);
+            color: var(--success);
+            border: 2px solid #8eddb5;
+        }
+        .used-false {
+            background: #f1f5f9;
+            color: #94a3b8;
+            border: 2px solid #dde1e7;
+        }
+        .used-current {
+            border-color: var(--current-highlight);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.25);
+            animation: pulse 0.8s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 7px rgba(255, 107, 53, 0.08);
+            }
+        }
+
+        .result-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .result-perm {
+            background: var(--result-bg);
+            color: var(--result-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid #fcd34d;
+            transition: all 0.3s;
+        }
+        .result-perm.new {
+            animation: popIn 0.4s ease-out;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+        }
+
+        .depth-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .depth-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            flex: 1;
+            max-width: 160px;
+            position: relative;
+            overflow: hidden;
+        }
+        .depth-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--accent);
+            transition: width 0.4s;
+        }
+
+        .info-panel {
+            flex: 0 0 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (max-width: 1100px) {
+            .info-panel {
+                flex: 0 0 auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .info-panel>* {
+                flex: 1;
+                min-width: 200px;
+            }
+        }
+
+        .info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.85rem;
+        }
+        .info-card h4 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            white-space: pre-wrap;
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            color: #3d4a5c;
+            line-height: 1.4;
+        }
+        #teaching {
+            color: #3d4a5c;
+            line-height: 1.5;
+        }
+        #step-evidence {
+            font-size: 0.8rem;
+            color: #4a5568;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        .evidence-label {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-bar button {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            color: #2c3e50;
+        }
+        .nav-bar button:hover {
+            background: #f0f3f7;
+            border-color: #bcc5d1;
+        }
+        .nav-bar button:active {
+            background: #e2e8f0;
+            transform: scale(0.96);
+        }
+        .nav-bar button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            background: #f8f9fa;
+        }
+        #play {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            min-width: 80px;
+        }
+        #play:hover {
+            background: #2b5cd9;
+        }
+        #play.paused {
+            background: #22a861;
+            border-color: #22a861;
+        }
+        #range {
+            flex: 1;
+            min-width: 100px;
+            max-width: 220px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #2c3e50;
+            min-width: 60px;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1a1f36;
+        }
+        #step-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            background: #e8edfc;
+            color: #3b6df0;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            padding: 4px 0;
+            justify-content: center;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: var(--radius-sm);
+            border: 2px solid transparent;
+            background: #f8f9fb;
+            transition: all 0.2s;
+            min-width: 52px;
+            text-align: center;
+            font-family: var(--font-sans);
+            user-select: none;
+        }
+        .tick:hover {
+            background: #eef1f7;
+            border-color: #c5d0dc;
+        }
+        .tick.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            box-shadow: 0 0 0 3px rgba(59, 109, 240, 0.1);
+        }
+        .tick.active .tick-label {
+            color: #1a1f36;
+            font-weight: 700;
+        }
+        .tick-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #5a6c7d;
+            letter-spacing: 0.3px;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: #8899aa;
+            font-family: var(--font-mono);
+            max-width: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tick.active .tick-op {
+            color: #3b6df0;
+        }
+
+        #checkpoint-area {
+            background: #fffdf7;
+            border: 2px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: var(--shadow-md);
+        }
+        #checkpoint-area.visible {
+            display: flex;
+        }
+        #checkpoint-area h4 {
+            color: #92400e;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        #checkpoint-prompt {
+            font-weight: 600;
+            color: #78350f;
+            font-size: 0.95rem;
+        }
+        #checkpoint-input {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #d1d5db;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 500px;
+        }
+        #checkpoint-input:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-color: var(--accent);
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .checkpoint-btns button {
+            padding: 7px 16px;
+            border-radius: 20px;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: all 0.2s;
+        }
+        #checkpoint-submit {
+            background: #3b6df0;
+            color: #fff;
+            border-color: #3b6df0;
+        }
+        #checkpoint-submit:hover {
+            background: #2b5cd9;
+        }
+        #checkpoint-hint {
+            background: #fff;
+            color: #5a6c7d;
+        }
+        #checkpoint-hint:hover {
+            background: #f0f3f7;
+        }
+        #checkpoint-show {
+            background: #fff;
+            color: #b45309;
+            border-color: #f59e0b;
+        }
+        #checkpoint-show:hover {
+            background: #fffbeb;
+        }
+        #checkpoint-feedback {
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            min-height: 20px;
+        }
+        .feedback-correct {
+            background: var(--success-light);
+            color: #166534;
+            border: 1px solid #8eddb5;
+        }
+        .feedback-incorrect {
+            background: var(--danger-light);
+            color: #991b1b;
+            border: 1px solid #f5b7b1;
+        }
+        .feedback-revealed {
+            background: #fff8eb;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        #learning-log {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow-sm);
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        #learning-log h4 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .log-entry {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 8px 0;
+            font-size: 0.82rem;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: baseline;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-step {
+            font-weight: 700;
+            color: #3b6df0;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            min-width: 50px;
+        }
+        .log-question {
+            color: #4a5568;
+            flex: 1;
+            min-width: 140px;
+        }
+        .log-answer {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .log-correct {
+            background: #e6f7ee;
+            color: #166534;
+        }
+        .log-incorrect {
+            background: #fdecea;
+            color: #991b1b;
+        }
+        .log-revealed {
+            background: #fff8eb;
+            color: #92400e;
+        }
+
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: #64748b;
+            background: #f8fafc;
+            border: 1px dashed #dde1e7;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            word-break: break-all;
+            user-select: all;
+            white-space: pre-wrap;
+        }
+
+        .empty-state {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1 id="title">Permutations Generator</h1>
+            <p id="subtitle">Backtracking / Recursion — Build all possible sequences from non-repeating numbers</p>
+        </div>
+        <span id="top-result">Result: []</span>
+        <span id="top-solution">Expected: [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]</span>
+    </header>
+
+    <div class="main-layout">
+        <div id="code" aria-label="Algorithm pseudocode"></div>
+        <div id="canvas" aria-label="Algorithm state visualization">
+            <div class="canvas-section">
+                <span class="canvas-label">Input Array (nums)</span>
+                <div class="nums-row" id="nums-display"></div>
+            </div>
+            <div class="canvas-section">
+                <span class="canvas-label">Current Path (being built)</span>
+                <div class="path-row" id="path-display"></div>
+            </div>
+            <div class="canvas-section">
+                <span class="canvas-label">Used Flags</span>
+                <div class="used-row" id="used-display"></div>
+            </div>
+            <div class="canvas-section">
+                <span class="canvas-label">Recursion Depth</span>
+                <div class="depth-indicator">
+                    <span id="depth-text">0 / 3</span>
+                    <div class="depth-bar"><div class="depth-fill" id="depth-fill" style="width:0%"></div></div>
+                </div>
+            </div>
+            <div class="canvas-section">
+                <span class="canvas-label">Result (accumulated permutations)</span>
+                <div class="result-grid" id="result-display"></div>
+            </div>
+        </div>
+        <div class="info-panel">
+            <div class="info-card">
+                <h4>Current State (JSON)</h4>
+                <div id="state">{}</div>
+            </div>
+            <div class="info-card">
+                <h4>Teaching</h4>
+                <div id="teaching"></div>
+            </div>
+            <div class="info-card">
+                <h4>Step Evidence</h4>
+                <div id="step-evidence"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <span id="step-title">Initialize</span>
+        <span id="step-desc">Setting up variables</span>
+        <span id="op">init</span>
+        <button id="prev" aria-label="Previous step">◀ Prev</button>
+        <button id="play" aria-label="Play auto-advance">▶ Play</button>
+        <button id="next" aria-label="Next step">Next ▶</button>
+        <input type="range" id="range" min="1" max="12" value="1" aria-label="Step scrubber">
+        <span id="counter">1 / 12</span>
+    </div>
+
+    <div id="timeline" aria-label="Step timeline"></div>
+
+    <div id="checkpoint-area" aria-label="Learner checkpoint">
+        <h4>🧠 Checkpoint</h4>
+        <p id="checkpoint-prompt"></p>
+        <input type="text" id="checkpoint-input" placeholder="Type your answer here...">
+        <div class="checkpoint-btns">
+            <button id="checkpoint-submit">Submit</button>
+            <button id="checkpoint-hint">💡 Hint</button>
+            <button id="checkpoint-show">👁 Show Answer</button>
+        </div>
+        <div id="checkpoint-feedback"></div>
+    </div>
+
+    <div id="learning-log">
+        <h4>Learning Log</h4>
+        <div id="log-entries"><span class="empty-state">No submissions yet. Interact with checkpoints to build your learning log.</span></div>
+    </div>
+
+    <div id="answer">[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]</div>
+
+    <script>
+        (function() {
+            const nums = [1, 2, 3];
+            const expectedFinal = [
+                [1, 2, 3],
+                [1, 3, 2],
+                [2, 1, 3],
+                [2, 3, 1],
+                [3, 1, 2],
+                [3, 2, 1]
+            ];
+
+            const codeLines = [
+                'function permute(nums) {',
+                '  const result = [];',
+                '  const path = [];',
+                '  const used = new Array(nums.length).fill(false);',
+                '',
+                '  function backtrack() {',
+                '    if (path.length === nums.length) {',
+                '      result.push([...path]);',
+                '      return;',
+                '    }',
+                '    for (let i = 0; i < nums.length; i++) {',
+                '      if (used[i]) continue;',
+                '      path.push(nums[i]);',
+                '      used[i] = true;',
+                '      backtrack();',
+                '      path.pop();',
+                '      used[i] = false;',
+                '    }',
+                '  }',
+                '',
+                '  backtrack();',
+                '  return result;',
+                '}'
+            ];
+
+            const steps = [{
+                id: 1,
+                stepTitle: 'Initialize',
+                stepDesc: 'Set up the result array, path, and used flags. Call backtrack() to start.',
+                op: 'init',
+                codeLine: [1, 2, 3, 19],
+                path: [],
+                result: [],
+                used: [false, false, false],
+                currentI: null,
+                depth: 0,
+                teaching: 'We start by creating three key structures: an empty <strong>result</strong> array to hold all permutations, an empty <strong>path</strong> array to build the current sequence, and a <strong>used</strong> boolean array (all false) to track which numbers are already in the path. Then we call <code>backtrack()</code> to begin the recursive exploration.',
+                evidence: 'Operation: Initialize variables\nTarget: result[], path[], used[]\nDependencies: nums = [1, 2, 3]\nBefore: (nothing exists)\nAfter: result=[], path=[], used=[F, F, F], backtrack() called',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 2,
+                stepTitle: 'Enter Backtrack — Choose First Number',
+                stepDesc: 'At depth 0, iterate i=0. nums[0]=1 is unused, so push it onto path.',
+                op: 'push(1)',
+                codeLine: [10, 11, 12],
+                path: [1],
+                result: [],
+                used: [true, false, false],
+                currentI: 0,
+                depth: 0,
+                teaching: 'Inside <code>backtrack()</code>, the loop starts at i=0. Since <code>used[0]</code> is false, we select nums[0]=1. We push 1 onto <strong>path</strong> and mark <code>used[0]=true</code>. Then we recursively call <code>backtrack()</code> to go deeper. This is the core of the backtracking pattern: choose, recurse, then undo.',
+                evidence: 'Operation: Push nums[0]=1 onto path\nTarget: path array, used[0]\nDependencies: used[0] was false, nums[0]=1 is available\nBefore: path=[], used=[F, F, F]\nAfter: path=[1], used=[T, F, F], recursive call pending',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 3,
+                stepTitle: 'Recurse Deeper — Choose Second Number',
+                stepDesc: 'At depth 1, loop skips i=0 (used). At i=1, nums[1]=2 is free, so push 2.',
+                op: 'push(2)',
+                codeLine: [10, 11, 12],
+                path: [1, 2],
+                result: [],
+                used: [true, true, false],
+                currentI: 1,
+                depth: 1,
+                teaching: 'Now at recursion depth 1. The loop checks i=0 but <code>used[0]</code> is true so we skip it (<code>continue</code>). At i=1, nums[1]=2 is unused. We push 2, mark <code>used[1]=true</code>, and recurse again. The path now contains [1, 2].',
+                evidence: 'Operation: Push nums[1]=2 onto path\nTarget: path array, used[1]\nDependencies: used[0]=T (skip), used[1]=F (available)\nBefore: path=[1], used=[T, F, F]\nAfter: path=[1, 2], used=[T, T, F], recursive call pending',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 4,
+                stepTitle: 'Recurse to Leaf — Choose Third Number',
+                stepDesc: 'At depth 2, skip i=0 and i=1 (both used). At i=2, nums[2]=3 is free, so push 3.',
+                op: 'push(3)',
+                codeLine: [10, 11, 12],
+                path: [1, 2, 3],
+                result: [],
+                used: [true, true, true],
+                currentI: 2,
+                depth: 2,
+                teaching: 'At depth 2, both indices 0 and 1 are used so we skip them. At i=2, nums[2]=3 is still free. We push 3 and mark <code>used[2]=true</code>. Now <strong>path.length === nums.length</strong> (3 === 3), so the next recursive call will hit the base case.',
+                evidence: 'Operation: Push nums[2]=3 onto path\nTarget: path array, used[2]\nDependencies: used[0]=T (skip), used[1]=T (skip), used[2]=F (available)\nBefore: path=[1, 2], used=[T, T, F]\nAfter: path=[1, 2, 3], used=[T, T, T], about to hit base case',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 5,
+                stepTitle: 'Base Case — Add First Permutation',
+                stepDesc: 'path.length equals nums.length. Copy path and push onto result. Then return.',
+                op: 'add [1,2,3]',
+                codeLine: [6, 7],
+                path: [1, 2, 3],
+                result: [
+                    [1, 2, 3]
+                ],
+                used: [true, true, true],
+                currentI: null,
+                depth: 3,
+                teaching: 'The base case is reached! Since <code>path.length === nums.length</code>, we have a complete permutation. We push a <em>copy</em> of path (<code>[...path]</code>) into <strong>result</strong>. This is critical — pushing the path reference would cause all entries to reflect later mutations. Now result contains its first permutation: [1, 2, 3].',
+                evidence: 'Operation: Push copy of path into result\nTarget: result array\nDependencies: path.length (3) === nums.length (3)\nBefore: result=[], path=[1, 2, 3]\nAfter: result=[[1,2,3]], returning from base case',
+                isCheckpoint: true,
+                checkpointPrompt: 'What permutation was just added to the result array? (Type it in bracket notation, e.g. [1, 2, 3])',
+                correctAnswer: '[1, 2, 3]',
+                hint: 'Look at the current path displayed in the canvas — it contains three numbers. Those three numbers, in that exact order, were just copied into result.'
+            }, {
+                id: 6,
+                stepTitle: 'Backtrack — Pop the Last Number',
+                stepDesc: 'Return from base case. Pop 3 off path and mark used[2]=false.',
+                op: 'pop() 3',
+                codeLine: [15, 16],
+                path: [1, 2],
+                result: [
+                    [1, 2, 3]
+                ],
+                used: [true, true, false],
+                currentI: 2,
+                depth: 2,
+                teaching: 'After the base case returns, we unwind. The <strong>backtracking</strong> step executes: we <code>path.pop()</code> to remove 3, and set <code>used[2]=false</code> so 3 becomes available again. This "undo" is what makes backtracking work — we clean up so other branches can use the freed number.',
+                evidence: 'Operation: Pop from path, mark used[2]=false\nTarget: path (remove last), used[2] (free it)\nDependencies: Returning from base case recursion\nBefore: path=[1, 2, 3], used=[T, T, T]\nAfter: path=[1, 2], used=[T, T, F], loop at i=2 completes',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 7,
+                stepTitle: 'Backtrack Again — Pop 2, Explore i=2',
+                stepDesc: 'Loop at depth 1 resumes after i=1. Pop 2, then try i=2: nums[2]=3 is free, so push 3.',
+                op: 'pop() 2, push(3)',
+                codeLine: [15, 16, 10, 11, 12],
+                path: [1, 3],
+                result: [
+                    [1, 2, 3]
+                ],
+                used: [true, false, true],
+                currentI: 2,
+                depth: 1,
+                teaching: 'The loop at depth 2 finishes (i went through 0,1,2 and found nothing new). We backtrack further: pop 2 and mark <code>used[1]=false</code>. Now back at depth 1, the loop resumes at i=2. nums[2]=3 is unused, so we push 3 and mark <code>used[2]=true</code>. This explores the branch starting with [1, 3].',
+                evidence: 'Operation: Pop 2, then push nums[2]=3\nTarget: path, used[1], used[2]\nDependencies: Depth-2 loop exhausted, depth-1 loop advances to i=2\nBefore: path=[1, 2], used=[T, T, F] (after pop of 3)\nIntermediate: path=[1], used=[T, F, F] (after pop of 2)\nAfter: path=[1, 3], used=[T, F, T] (after push of 3)',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 8,
+                stepTitle: 'Complete the Branch — Push 2',
+                stepDesc: 'At depth 2, skip i=0 (used). i=1: nums[1]=2 is free, so push 2.',
+                op: 'push(2)',
+                codeLine: [10, 11, 12],
+                path: [1, 3, 2],
+                result: [
+                    [1, 2, 3]
+                ],
+                used: [true, true, true],
+                currentI: 1,
+                depth: 2,
+                teaching: 'Now at depth 2 in the [1, 3] branch. We skip i=0 (used). At i=1, nums[1]=2 is available. Push 2 and mark <code>used[1]=true</code>. The path is now [1, 3, 2] — all three numbers are in a new order. The next recursive call will hit the base case.',
+                evidence: 'Operation: Push nums[1]=2 onto path\nTarget: path, used[1]\nDependencies: used[0]=T (skip), used[1]=F (available), used[2]=T (skip later)\nBefore: path=[1, 3], used=[T, F, T]\nAfter: path=[1, 3, 2], used=[T, T, T], base case imminent',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 9,
+                stepTitle: 'Base Case — Add Second Permutation',
+                stepDesc: 'path.length equals nums.length. Add [1, 3, 2] to result. Now result has 2 permutations.',
+                op: 'add [1,3,2]',
+                codeLine: [6, 7],
+                path: [1, 3, 2],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2]
+                ],
+                used: [true, true, true],
+                currentI: null,
+                depth: 3,
+                teaching: 'Another base case! The path [1, 3, 2] is complete. We copy it into result. Now result holds two permutations. Notice how backtracking systematically explores every ordering — after [1,2,3] we backtracked, chose 3 instead of 2 at depth 1, and then picked up 2 at depth 2 to form [1,3,2].',
+                evidence: 'Operation: Push copy of [1, 3, 2] into result\nTarget: result array\nDependencies: path.length (3) === nums.length (3)\nBefore: result=[[1,2,3]], path=[1, 3, 2]\nAfter: result=[[1,2,3], [1,3,2]], returning from base case',
+                isCheckpoint: true,
+                checkpointPrompt: 'How many permutations are now in the result array? (Enter a number)',
+                correctAnswer: '2',
+                hint: 'Count the entries shown in the result display in the canvas. Each complete permutation is one entry.'
+            }, {
+                id: 10,
+                stepTitle: 'Backtrack to Root — Start New Branch with 2',
+                stepDesc: 'Unwind fully to depth 0. The loop advances to i=1. Push nums[1]=2 at the root.',
+                op: 'pop... push(2)',
+                codeLine: [15, 16, 10, 11, 12],
+                path: [2],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2]
+                ],
+                used: [false, true, false],
+                currentI: 1,
+                depth: 0,
+                teaching: 'After [1,3,2] is added, we backtrack all the way to the root (depth 0). The loop at depth 0 now advances past i=0 to i=1. nums[1]=2 is unused, so we push 2 and mark <code>used[1]=true</code>. This starts the branch of all permutations beginning with 2. The algorithm will now explore [2,1,3], [2,3,1], and so on.',
+                evidence: 'Operation: Backtrack fully, then push nums[1]=2 at root\nTarget: path reset, used reset except used[1]\nDependencies: All depth-0 i=0 branches exhausted, loop advances to i=1\nBefore (after full unwind): path=[], used=[F, F, F]\nAfter: path=[2], used=[F, T, F], recursive call pending',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 11,
+                stepTitle: 'Build and Add [2, 1, 3]',
+                stepDesc: 'From depth 0 with path=[2], recurse: pick 1 then 3. Add [2, 1, 3] to result.',
+                op: 'add [2,1,3]',
+                codeLine: [10, 11, 12, 6, 7],
+                path: [2, 1, 3],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2],
+                    [2, 1, 3]
+                ],
+                used: [true, true, true],
+                currentI: null,
+                depth: 3,
+                teaching: 'Following the backtracking pattern, from path=[2] we go to depth 1 and pick the first unused number (1), then to depth 2 and pick the remaining unused number (3). This yields [2, 1, 3], which is added to result. The algorithm now has 3 of the 6 total permutations. Notice how the used array guides every choice.',
+                evidence: 'Operation: Build path [2,1,3] through recursive calls, add to result\nTarget: result array\nDependencies: Root branch started with 2, then 1 (first free), then 3 (last free)\nBefore: result=[[1,2,3],[1,3,2]]\nAfter: result=[[1,2,3],[1,3,2],[2,1,3]]',
+                isCheckpoint: false,
+                checkpointPrompt: '',
+                correctAnswer: '',
+                hint: ''
+            }, {
+                id: 12,
+                stepTitle: 'Complete — All Permutations Found',
+                stepDesc: 'The algorithm finishes exploring all branches. Return the full result with all 6 permutations.',
+                op: 'return result',
+                codeLine: [20],
+                path: [],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2],
+                    [2, 1, 3],
+                    [2, 3, 1],
+                    [3, 1, 2],
+                    [3, 2, 1]
+                ],
+                used: [false, false, false],
+                currentI: null,
+                depth: 0,
+                teaching: 'All branches have been explored! After [2,1,3], the algorithm backtracks and continues: it finds [2,3,1], then backtracks to the root, starts with 3, and finds [3,1,2] and [3,2,1]. The final <code>return result</code> sends back all 6 permutations (3! = 6). The backtracking pattern ensures every ordering is visited exactly once with O(n!) time complexity.',
+                evidence: 'Operation: Return complete result array\nTarget: final return value\nDependencies: All recursive branches exhausted, all 3! = 6 permutations found\nFinal result: [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]\nState: path=[], used=[F,F,F], recursion fully unwound',
+                isCheckpoint: true,
+                checkpointPrompt: 'What is the complete list of all 6 permutations? (Type as a JSON array, e.g. [[1,2,3],[1,3,2],...])',
+                correctAnswer: '[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]',
+                hint: 'There are exactly 6 permutations (3 factorial = 3 x 2 x 1 = 6). The result display in the canvas shows all of them. Make sure to include all 6 in your answer.'
+            }];
+
+            const totalSteps = steps.length;
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointSubmitted = false;
+            const learningLogEntries = [];
+
+            const dom = {
+                code: document.getElementById('code'),
+                canvas: document.getElementById('canvas'),
+                numsDisplay: document.getElementById('nums-display'),
+                pathDisplay: document.getElementById('path-display'),
+                usedDisplay: document.getElementById('used-display'),
+                resultDisplay: document.getElementById('result-display'),
+                depthText: document.getElementById('depth-text'),
+                depthFill: document.getElementById('depth-fill'),
+                state: document.getElementById('state'),
+                teaching: document.getElementById('teaching'),
+                stepEvidence: document.getElementById('step-evidence'),
+                stepTitle: document.getElementById('step-title'),
+                stepDesc: document.getElementById('step-desc'),
+                op: document.getElementById('op'),
+                counter: document.getElementById('counter'),
+                range: document.getElementById('range'),
+                timeline: document.getElementById('timeline'),
+                prevBtn: document.getElementById('prev'),
+                playBtn: document.getElementById('play'),
+                nextBtn: document.getElementById('next'),
+                topResult: document.getElementById('top-result'),
+                topSolution: document.getElementById('top-solution'),
+                checkpointArea: document.getElementById('checkpoint-area'),
+                checkpointPrompt: document.getElementById('checkpoint-prompt'),
+                checkpointInput: document.getElementById('checkpoint-input'),
+                checkpointSubmit: document.getElementById('checkpoint-submit'),
+                checkpointHint: document.getElementById('checkpoint-hint'),
+                checkpointShow: document.getElementById('checkpoint-show'),
+                checkpointFeedback: document.getElementById('checkpoint-feedback'),
+                logEntries: document.getElementById('log-entries'),
+                answer: document.getElementById('answer')
+            };
+
+            function buildCodeLines() {
+                dom.code.innerHTML = '';
+                codeLines.forEach((line, idx) => {
+                    const div = document.createElement('span');
+                    div.className = 'code-line';
+                    div.textContent = line;
+                    div.dataset.lineIndex = idx;
+                    dom.code.appendChild(div);
+                });
+            }
+
+            function highlightCode(lineIndices) {
+                const allLines = dom.code.querySelectorAll('.code-line');
+                allLines.forEach(el => el.classList.remove('highlight'));
+                if (Array.isArray(lineIndices)) {
+                    lineIndices.forEach(idx => {
+                        const el = dom.code.querySelector(`[data-line-index="${idx}"]`);
+                        if (el) el.classList.add('highlight');
+                    });
+                } else if (typeof lineIndices === 'number') {
+                    const el = dom.code.querySelector(`[data-line-index="${lineIndices}"]`);
+                    if (el) el.classList.add('highlight');
+                }
+            }
+
+            function renderCanvas(step) {
+                dom.numsDisplay.innerHTML = '';
+                nums.forEach((n, i) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'num-cell indexed';
+                    cell.textContent = n;
+                    cell.dataset.index = i;
+                    if (step.currentI === i && step.depth < 3 && step.op !== 'return result' && step
+                        .op !== 'init') {
+                        cell.style.borderColor = '#ff6b35';
+                        cell.style.boxShadow = '0 0 0 4px rgba(255,107,53,0.2)';
+                        cell.style.background = '#fff5f0';
+                    }
+                    dom.numsDisplay.appendChild(cell);
+                });
+
+                dom.pathDisplay.innerHTML = '';
+                if (step.path.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.className = 'empty-state';
+                    empty.textContent = '(empty path)';
+                    dom.pathDisplay.appendChild(empty);
+                } else {
+                    step.path.forEach((val, idx) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'path-cell';
+                        cell.textContent = val;
+                        if (idx === step.path.length - 1 && (step.op.includes('push') || step.op
+                                .includes('add'))) {
+                            cell.style.animation = 'popIn 0.35s ease-out';
+                        }
+                        dom.pathDisplay.appendChild(cell);
+                    });
+                }
+
+                dom.usedDisplay.innerHTML = '';
+                step.used.forEach((u, i) => {
+                    const ind = document.createElement('div');
+                    ind.className = 'used-indicator ' + (u ? 'used-true' : 'used-false');
+                    ind.textContent = u ? 'USED' : 'free';
+                    if (step.currentI === i && !u && step.depth < 3 && step.op !== 'return result' && step
+                        .op !== 'init' && !step.op.includes('pop')) {
+                        ind.classList.add('used-current');
+                    }
+                    dom.usedDisplay.appendChild(ind);
+                });
+
+                dom.resultDisplay.innerHTML = '';
+                if (step.result.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.className = 'empty-state';
+                    empty.textContent = '(no permutations yet)';
+                    dom.resultDisplay.appendChild(empty);
+                } else {
+                    step.result.forEach((perm, idx) => {
+                        const permEl = document.createElement('span');
+                        permEl.className = 'result-perm';
+                        permEl.textContent = '[' + perm.join(', ') + ']';
+                        if (idx === step.result.length - 1 && step.result.length > 0 && (
+                                step.op.includes('add') || step.id === 12)) {
+                            permEl.classList.add('new');
+                        }
+                        dom.resultDisplay.appendChild(permEl);
+                    });
+                }
+
+                const maxDepth = 3;
+                const depthRatio = Math.min(step.depth / maxDepth, 1);
+                dom.depthText.textContent = step.depth + ' / ' + maxDepth;
+                dom.depthFill.style.width = (depthRatio * 100) + '%';
+                if (step.depth === 3) {
+                    dom.depthFill.style.background = '#22a861';
+                } else if (step.depth === 0 && step.result.length === 6) {
+                    dom.depthFill.style.background = '#22a861';
+                } else {
+                    dom.depthFill.style.background = '#3b6df0';
+                }
+            }
+
+            function updateInfoPanel(step) {
+                const stateObj = {
+                    path: step.path,
+                    result: step.result,
+                    used: step.used,
+                    depth: step.depth,
+                    currentI: step.currentI
+                };
+                dom.state.textContent = JSON.stringify(stateObj, null, 2);
+                dom.teaching.innerHTML = step.teaching;
+                dom.stepEvidence.textContent = step.evidence;
+                dom.stepTitle.textContent = step.stepTitle;
+                dom.stepDesc.textContent = step.stepDesc;
+                dom.op.textContent = step.op;
+                dom.topResult.textContent = 'Result: [' + step.result.map(p => '[' + p.join(',') + ']').join(', ') +
+                    ']';
+            }
+
+            function updateTimeline() {
+                dom.timeline.innerHTML = '';
+                steps.forEach((step, idx) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    if (idx === currentStepIndex) tick.classList.add('active');
+                    tick.setAttribute('aria-label', 'Step ' + step.id + ': ' + step.stepTitle);
+                    const label = document.createElement('span');
+                    label.className = 'tick-label';
+                    label.textContent = 'S' + step.id;
+                    const opSpan = document.createElement('span');
+                    opSpan.className = 'tick-op';
+                    opSpan.textContent = step.op.length > 10 ? step.op.substring(0, 9) + '…' : step.op;
+                    tick.appendChild(label);
+                    tick.appendChild(opSpan);
+                    tick.addEventListener('click', () => {
+                        goToStep(idx);
+                        stopPlay();
+                    });
+                    dom.timeline.appendChild(tick);
+                });
+            }
+
+            function updateAll(step) {
+                highlightCode(step.codeLine);
+                renderCanvas(step);
+                updateInfoPanel(step);
+                dom.counter.textContent = (currentStepIndex + 1) + ' / ' + totalSteps;
+                dom.range.value = currentStepIndex + 1;
+                dom.range.max = totalSteps;
+                dom.prevBtn.disabled = (currentStepIndex === 0);
+                dom.nextBtn.disabled = (currentStepIndex === totalSteps - 1);
+                updateTimeline();
+                setupCheckpoint(step);
+            }
+
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                checkpointSubmitted = false;
+                const step = steps[currentStepIndex];
+                updateAll(step);
+            }
+
+            function setupCheckpoint(step) {
+                dom.checkpointArea.classList.remove('visible');
+                dom.checkpointFeedback.textContent = '';
+                dom.checkpointFeedback.className = '';
+                dom.checkpointInput.value = '';
+                dom.checkpointPrompt.textContent = '';
+                if (step.isCheckpoint) {
+                    dom.checkpointArea.classList.add('visible');
+                    dom.checkpointPrompt.textContent = step.checkpointPrompt;
+                    dom.checkpointInput.focus();
+                }
+            }
+
+            function normalizeAnswer(str) {
+                return str.replace(/\s+/g, '').replace(/,,/g, ',').replace(/\[,/g, '[').replace(/,\]/g, ']').trim()
+                    .toLowerCase();
+            }
+
+            function submitCheckpoint() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                const userAnswer = dom.checkpointInput.value.trim();
+                if (userAnswer === '') {
+                    dom.checkpointFeedback.textContent = 'Please type an answer before submitting.';
+                    dom.checkpointFeedback.className = 'feedback-incorrect';
+                    return;
+                }
+                const normalizedUser = normalizeAnswer(userAnswer);
+                const normalizedCorrect = normalizeAnswer(step.correctAnswer);
+                const isCorrect = normalizedUser === normalizedCorrect;
+
+                if (isCorrect) {
+                    dom.checkpointFeedback.textContent =
+                        'Correct! Well done. ' + step.correctAnswer + ' is the right answer.';
+                    dom.checkpointFeedback.className = 'feedback-correct';
+                    checkpointSubmitted = true;
+                } else {
+                    dom.checkpointFeedback.textContent =
+                        'Not quite. Your answer: "' + userAnswer + '" does not match the expected result. Try again or use Hint / Show Answer.';
+                    dom.checkpointFeedback.className = 'feedback-incorrect';
+                }
+
+                addLogEntry(step, userAnswer, isCorrect, false);
+            }
+
+            function showHint() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                dom.checkpointFeedback.textContent = 'Hint: ' + step.hint;
+                dom.checkpointFeedback.className = 'feedback-revealed';
+            }
+
+            function showAnswer() {
+                const step = steps[currentStepIndex];
+                if (!step.isCheckpoint) return;
+                dom.checkpointInput.value = step.correctAnswer;
+                dom.checkpointFeedback.textContent = 'The answer is: ' + step.correctAnswer +
+                    '. Study it carefully so you understand why.';
+                dom.checkpointFeedback.className = 'feedback-revealed';
+                checkpointSubmitted = true;
+                addLogEntry(step, '(revealed)', false, true);
+            }
+
+            function addLogEntry(step, userAnswer, isCorrect, wasRevealed) {
+                const entry = {
+                    stepId: step.id,
+                    question: step.checkpointPrompt,
+                    userAnswer: userAnswer,
+                    isCorrect: isCorrect,
+                    wasRevealed: wasRevealed,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                learningLogEntries.push(entry);
+                renderLearningLog();
+            }
+
+            function renderLearningLog() {
+                if (learningLogEntries.length === 0) {
+                    dom.logEntries.innerHTML =
+                        '<span class="empty-state">No submissions yet. Interact with checkpoints to build your learning log.</span>';
+                    return;
+                }
+                dom.logEntries.innerHTML = '';
+                learningLogEntries.forEach((entry, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry';
+                    const stepSpan = document.createElement('span');
+                    stepSpan.className = 'log-step';
+                    stepSpan.textContent = 'Step ' + entry.stepId;
+                    const questionSpan = document.createElement('span');
+                    questionSpan.className = 'log-question';
+                    questionSpan.textContent = entry.question;
+                    const answerSpan = document.createElement('span');
+                    answerSpan.className = 'log-answer';
+                    if (entry.wasRevealed) {
+                        answerSpan.classList.add('log-revealed');
+                        answerSpan.textContent = 'Answer revealed';
+                    } else if (entry.isCorrect) {
+                        answerSpan.classList.add('log-correct');
+                        answerSpan.textContent = 'Correct: ' + entry.userAnswer;
+                    } else {
+                        answerSpan.classList.add('log-incorrect');
+                        answerSpan.textContent = 'Incorrect: ' + entry.userAnswer;
+                    }
+                    div.appendChild(stepSpan);
+                    div.appendChild(questionSpan);
+                    div.appendChild(answerSpan);
+                    dom.logEntries.appendChild(div);
+                });
+                dom.logEntries.scrollTop = dom.logEntries.scrollHeight;
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                if (playInterval) clearInterval(playInterval);
+                playInterval = null;
+                dom.playBtn.textContent = '▶ Play';
+                dom.playBtn.classList.remove('paused');
+            }
+
+            function startPlay() {
+                if (isPlaying) return;
+                isPlaying = true;
+                dom.playBtn.textContent = '⏸ Pause';
+                dom.playBtn.classList.add('paused');
+                playInterval = setInterval(() => {
+                    const step = steps[currentStepIndex];
+                    if (step.isCheckpoint && !checkpointSubmitted) {
+                        stopPlay();
+                        return;
+                    }
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 2200);
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    startPlay();
+                }
+            }
+
+            dom.prevBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            });
+            dom.nextBtn.addEventListener('click', () => {
+                stopPlay();
+                if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+            });
+            dom.playBtn.addEventListener('click', togglePlay);
+            dom.range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt(dom.range.value, 10);
+                if (val >= 1 && val <= totalSteps) goToStep(val - 1);
+            });
+            dom.checkpointSubmit.addEventListener('click', submitCheckpoint);
+            dom.checkpointHint.addEventListener('click', showHint);
+            dom.checkpointShow.addEventListener('click', showAnswer);
+            dom.checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitCheckpoint();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'checkpoint-input') return;
+                if (e.key === 'ArrowLeft') {
+                    stopPlay();
+                    if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopPlay();
+                    if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ' || e.code === 'Space') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            dom.answer.textContent = JSON.stringify(expectedFinal);
+
+            buildCodeLines();
+            goToStep(0);
+            dom.range.max = totalSteps;
+            dom.range.value = 1;
+            dom.counter.textContent = '1 / ' + totalSteps;
+            dom.topSolution.textContent = 'Expected: ' + JSON.stringify(expectedFinal);
+
+            console.log('Permutations algorithm tutoring page initialized. Total steps: ' + totalSteps +
+                '. Checkpoints at steps 5, 9, and 12.');
+        })();
+    </script>
+</body>
+</html>

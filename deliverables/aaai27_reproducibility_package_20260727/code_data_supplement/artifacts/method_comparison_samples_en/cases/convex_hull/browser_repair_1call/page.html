@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex Hull - Andrew Monotone Chain</title>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --card-bg: #ffffff;
+            --border: #dde1e6;
+            --text: #1a1d23;
+            --text-secondary: #5a5f6b;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --error: #dc2626;
+            --error-light: #fef2f2;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --highlight: #fef08a;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --code-highlight: #334155;
+            --point-default: #64748b;
+            --point-lower: #2563eb;
+            --point-upper: #7c3aed;
+            --point-final: #16a34a;
+            --point-current: #f59e0b;
+            --hull-line-lower: #2563eb;
+            --hull-line-upper: #7c3aed;
+            --hull-line-final: #16a34a;
+            --timeline-active: #2563eb;
+            --timeline-inactive: #cbd5e1;
+            --timeline-done: #16a34a;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header */
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a1d23;
+            letter-spacing: -0.01em;
+            margin: 0;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            background: var(--card-bg);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        /* Top result and solution */
+        .top-info-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #top-result,
+        #top-solution {
+            flex: 1;
+            min-width: 180px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            box-shadow: var(--shadow);
+        }
+        #top-result .info-label,
+        #top-solution .info-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+        #top-result .info-value,
+        #top-solution .info-value {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            color: var(--text);
+            word-break: break-all;
+        }
+        #top-result {
+            border-left: 4px solid var(--accent);
+        }
+        #top-solution {
+            border-left: 4px solid var(--success);
+        }
+        #answer {
+            display: none;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 12px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+        }
+        .card-title {
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+
+        /* Code block */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.7;
+            min-height: 260px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+        #code .code-line {
+            display: block;
+            padding: 1px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.25s;
+        }
+        #code .code-line.active {
+            background: var(--code-highlight);
+            border-left: 3px solid #facc15;
+            padding-left: 5px;
+            font-weight: 600;
+            color: #facc15;
+        }
+        #code .line-number {
+            display: inline-block;
+            width: 24px;
+            color: #64748b;
+            text-align: right;
+            margin-right: 12px;
+            user-select: none;
+            font-size: 0.7rem;
+        }
+
+        /* Canvas area */
+        #canvas {
+            position: relative;
+            width: 100%;
+            min-height: 280px;
+            background: #fafbfc;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            cursor: default;
+            user-select: none;
+        }
+        #canvas .plane {
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+        #canvas .grid-line {
+            position: absolute;
+            background: #e8ecf1;
+            pointer-events: none;
+        }
+        #canvas .grid-line.horizontal {
+            left: 0;
+            right: 0;
+            height: 1px;
+        }
+        #canvas .grid-line.vertical {
+            top: 0;
+            bottom: 0;
+            width: 1px;
+        }
+        #canvas .axis-label {
+            position: absolute;
+            font-size: 0.65rem;
+            color: #94a3b8;
+            font-family: var(--font-mono);
+            pointer-events: none;
+        }
+        #canvas .point-marker {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            transition: background 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+        #canvas .point-marker.default {
+            background: var(--point-default);
+        }
+        #canvas .point-marker.lower {
+            background: var(--point-lower);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+        }
+        #canvas .point-marker.upper {
+            background: var(--point-upper);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+        }
+        #canvas .point-marker.final {
+            background: var(--point-final);
+            box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.25);
+        }
+        #canvas .point-marker.current {
+            background: var(--point-current);
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.3);
+            animation: pulse-point 1s ease-in-out infinite;
+        }
+        @keyframes pulse-point {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.08);
+            }
+        }
+        #canvas .point-label {
+            position: absolute;
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            pointer-events: none;
+            color: #475569;
+            font-weight: 500;
+            transform: translate(-50%, -22px);
+            white-space: nowrap;
+        }
+        #canvas .hull-edge {
+            position: absolute;
+            height: 3px;
+            background: #94a3b8;
+            transform-origin: left center;
+            z-index: 2;
+            border-radius: 2px;
+            pointer-events: none;
+            transition: background 0.3s;
+        }
+        #canvas .hull-edge.lower-edge {
+            background: var(--hull-line-lower);
+        }
+        #canvas .hull-edge.upper-edge {
+            background: var(--hull-line-upper);
+        }
+        #canvas .hull-edge.final-edge {
+            background: var(--hull-line-final);
+            height: 4px;
+            box-shadow: 0 0 6px rgba(22, 163, 74, 0.4);
+        }
+        #canvas .hull-edge.ghost-edge {
+            background: #e2e8f0;
+            opacity: 0.5;
+            height: 2px;
+            border-style: dashed;
+        }
+
+        /* State and teaching */
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+        }
+        #teaching {
+            font-size: 0.88rem;
+            line-height: 1.55;
+            color: #374151;
+        }
+        #teaching .highlight-term {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        #step-evidence {
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            white-space: pre-wrap;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #78350f;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            box-shadow: var(--shadow);
+        }
+        .btn {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #c4c9d1;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn.active-btn {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .btn.hint-btn {
+            background: var(--warning-light);
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .btn.show-btn {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            color: var(--text);
+            min-width: 50px;
+            text-align: center;
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            max-width: 200px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 4px 0;
+        }
+        .tick {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 20px;
+            border: 1.5px solid var(--timeline-inactive);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.72rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: var(--accent-light);
+            font-weight: 600;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+        }
+        .tick.done {
+            border-color: var(--timeline-done);
+            background: #f0fdf4;
+        }
+        .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #475569;
+        }
+        .tick.active .tick-label {
+            color: #1d4ed8;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: #94a3b8;
+        }
+        .tick.active .tick-op {
+            color: #3b82f6;
+        }
+
+        /* Checkpoint */
+        .checkpoint-area {
+            background: #fffbeb;
+            border: 2px solid #fcd34d;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-top: 6px;
+        }
+        .checkpoint-area .cp-prompt {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #78350f;
+        }
+        .checkpoint-area input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1.5px solid #d1d5db;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        .checkpoint-area input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .checkpoint-area .cp-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .cp-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .cp-feedback.correct {
+            background: var(--success-light);
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .cp-feedback.incorrect {
+            background: var(--error-light);
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .cp-feedback.revealed {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Learning log */
+        #learning-log-container {
+            margin-top: 4px;
+        }
+        .log-entry {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            font-size: 0.78rem;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .log-entry .log-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .log-entry .log-detail {
+            flex: 1;
+            color: #475569;
+        }
+        .log-entry .log-step {
+            font-weight: 600;
+            color: #1a1d23;
+            font-size: 0.7rem;
+        }
+        .log-entry.correct-log {
+            border-left: 3px solid var(--success);
+        }
+        .log-entry.incorrect-log {
+            border-left: 3px solid var(--error);
+        }
+        .log-entry.revealed-log {
+            border-left: 3px solid #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-row">
+            <h1 id="title">Convex Hull</h1>
+            <span id="subtitle">Andrew Monotone Chain Algorithm</span>
+        </div>
+
+        <!-- Top info -->
+        <div class="top-info-row">
+            <div id="top-result">
+                <div class="info-label">Current Result</div>
+                <div class="info-value" id="top-result-value">—</div>
+            </div>
+            <div id="top-solution">
+                <div class="info-label">Expected Output</div>
+                <div class="info-value">[[0, 0], [2, 0], [1, 2]]</div>
+            </div>
+        </div>
+        <span id="answer" style="display:none;">[[0, 0], [2, 0], [1, 2]]</span>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Code -->
+            <div class="card" style="grid-row: span 2;">
+                <div class="card-title">Algorithm Pseudocode</div>
+                <div id="code">
+                    <span class="code-line" data-line="1"><span class="line-number">1</span>def convex_hull(points):</span>
+                    <span class="code-line" data-line="2"><span class="line-number">2</span>    points = sorted(points)</span>
+                    <span class="code-line" data-line="3"><span class="line-number">3</span></span>
+                    <span class="code-line" data-line="4"><span class="line-number">4</span>    lower = []</span>
+                    <span class="code-line" data-line="5"><span class="line-number">5</span>    for p in points:</span>
+                    <span class="code-line" data-line="6"><span class="line-number">6</span>        while len(lower) &gt;= 2 and cross(lower[-2], lower[-1], p) &lt;= 0:</span>
+                    <span class="code-line" data-line="7"><span class="line-number">7</span>            lower.pop()</span>
+                    <span class="code-line" data-line="8"><span class="line-number">8</span>        lower.append(p)</span>
+                    <span class="code-line" data-line="9"><span class="line-number">9</span></span>
+                    <span class="code-line" data-line="10"><span class="line-number">10</span>    upper = []</span>
+                    <span class="code-line" data-line="11"><span class="line-number">11</span>    for p in reversed(points):</span>
+                    <span class="code-line" data-line="12"><span class="line-number">12</span>        while len(upper) &gt;= 2 and cross(upper[-2], upper[-1], p) &lt;= 0:</span>
+                    <span class="code-line" data-line="13"><span class="line-number">13</span>            upper.pop()</span>
+                    <span class="code-line" data-line="14"><span class="line-number">14</span>        upper.append(p)</span>
+                    <span class="code-line" data-line="15"><span class="line-number">15</span></span>
+                    <span class="code-line" data-line="16"><span class="line-number">16</span>    return lower[:-1] + upper[:-1]</span>
+                </div>
+            </div>
+
+            <!-- Canvas -->
+            <div class="card">
+                <div class="card-title">Visualization</div>
+                <div id="canvas">
+                    <div class="plane" id="plane"></div>
+                </div>
+            </div>
+
+            <!-- State & Teaching -->
+            <div class="card">
+                <div class="card-title">Current State</div>
+                <div id="state">Initial state loading...</div>
+            </div>
+        </div>
+
+        <!-- Step evidence -->
+        <div class="card">
+            <div class="card-title">Step Evidence</div>
+            <div id="step-evidence">Awaiting first step...</div>
+        </div>
+
+        <!-- Teaching & Checkpoints -->
+        <div class="card" id="teaching-card">
+            <div class="card-title">Explanation</div>
+            <div id="teaching">Select a step to begin.</div>
+            <div id="checkpoint-container"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <button class="btn" id="prev" title="Previous step">◀ Prev</button>
+            <button class="btn" id="play" title="Play / Pause auto-advance">▶ Play</button>
+            <button class="btn" id="next" title="Next step">Next ▶</button>
+            <span id="counter">1 / 8</span>
+            <input type="range" id="range" min="1" max="8" value="1" title="Step slider">
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-title">Step Timeline</div>
+            <div id="timeline"></div>
+        </div>
+
+        <!-- Learning Log -->
+        <div class="card" id="learning-log-container">
+            <div class="card-title">Learning Log</div>
+            <div id="learning-log">No submissions yet. Interact with checkpoints to build your learning log.</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Constants & DOM references
+            // ──────────────────────────────────────
+            const TOTAL_STEPS = 8;
+            const inputPoints = [
+                [0, 0],
+                [1, 1],
+                [2, 0],
+                [1, 2]
+            ];
+            const sortedPoints = [
+                [0, 0],
+                [1, 1],
+                [1, 2],
+                [2, 0]
+            ];
+            const expectedOutput = [
+                [0, 0],
+                [2, 0],
+                [1, 2]
+            ];
+
+            // DOM refs
+            const $title = document.getElementById('title');
+            const $subtitle = document.getElementById('subtitle');
+            const $topResultValue = document.getElementById('top-result-value');
+            const $answer = document.getElementById('answer');
+            const $code = document.getElementById('code');
+            const $plane = document.getElementById('plane');
+            const $canvas = document.getElementById('canvas');
+            const $state = document.getElementById('state');
+            const $teaching = document.getElementById('teaching');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $prev = document.getElementById('prev');
+            const $play = document.getElementById('play');
+            const $next = document.getElementById('next');
+            const $timeline = document.getElementById('timeline');
+            const $checkpointContainer = document.getElementById('checkpoint-container');
+            const $learningLog = document.getElementById('learning-log');
+            const $stepTitle = document.createElement('div');
+            $stepTitle.id = 'step-title';
+            $stepTitle.style.cssText =
+                'font-weight:700;font-size:0.95rem;margin-bottom:4px;color:#1a1d23;';
+            const $stepDesc = document.createElement('div');
+            $stepDesc.id = 'step-desc';
+            $stepDesc.style.cssText = 'font-size:0.82rem;color:#5a5f6b;margin-bottom:6px;';
+            const teachingCard = document.getElementById('teaching-card');
+            const teachingTitle = teachingCard.querySelector('.card-title');
+            teachingTitle.insertAdjacentElement('afterend', $stepTitle);
+            $stepTitle.insertAdjacentElement('afterend', $stepDesc);
+
+            // State
+            let currentStep = 1;
+            let isPlaying = false;
+            let playInterval = null;
+            let checkpointSubmitted = {}; // track which checkpoint steps have been submitted
+            let checkpointRevealed = {}; // track which have been revealed
+
+            // ──────────────────────────────────────
+            // Step definitions
+            // ──────────────────────────────────────
+            const steps = [{
+                id: 1,
+                title: 'Sort Points',
+                desc: 'Sort all delivery points lexicographically: first by x-coordinate, then by y-coordinate. This ordering is essential for the monotone chain algorithm.',
+                codeLine: 2,
+                stateSummary: {
+                    original_points: inputPoints,
+                    sorted_points: sortedPoints,
+                    lower_hull: null,
+                    upper_hull: null
+                },
+                lowerHull: [],
+                upperHull: [],
+                hullEdgesLower: [],
+                hullEdgesUpper: [],
+                hullEdgesFinal: [],
+                currentPoint: null,
+                evidence: 'Operation: Sort\nTarget: input points [[0,0],[1,1],[2,0],[1,2]]\nBefore: unsorted order\nAfter: sorted = [[0,0],[1,1],[1,2],[2,0]]\nDependency: Lexicographic ordering is required for monotone chain.',
+                checkpoint: null,
+                pointStyles: {
+                    0: 'default',
+                    1: 'default',
+                    2: 'default',
+                    3: 'default'
+                }
+            }, {
+                id: 2,
+                title: 'Initialize Lower Hull',
+                desc: 'Create an empty list for the lower hull. The first sorted point (0,0) will be the starting anchor for the lower convex chain.',
+                codeLine: 4,
+                stateSummary: {
+                    sorted_points: sortedPoints,
+                    lower_hull: [
+                        [0, 0]
+                    ],
+                    upper_hull: null,
+                    note: 'Lower hull initialized with first point.'
+                },
+                lowerHull: [
+                    [0, 0]
+                ],
+                upperHull: [],
+                hullEdgesLower: [],
+                hullEdgesUpper: [],
+                hullEdgesFinal: [],
+                currentPoint: [0, 0],
+                evidence: 'Operation: Initialize lower hull\nTarget: lower = []\nBefore: lower is empty\nAfter: lower = [[0,0]] (seeded with first sorted point)\nDependency: The first point is always part of the lower hull.',
+                checkpoint: null,
+                pointStyles: {
+                    0: 'lower',
+                    1: 'default',
+                    2: 'default',
+                    3: 'default'
+                }
+            }, {
+                id: 3,
+                title: 'Build Lower Hull — Add First Points',
+                desc: 'Iterate through sorted points. Add (1,1) to the lower hull, then add (1,2). The cross product of the last three points is positive (left turn), so all points are retained. Lower hull is now [(0,0), (1,1), (1,2)].',
+                codeLine: 8,
+                stateSummary: {
+                    sorted_points: sortedPoints,
+                    lower_hull: [
+                        [0, 0],
+                        [1, 1],
+                        [1, 2]
+                    ],
+                    upper_hull: null,
+                    cross_check: 'cross((0,0),(1,1),(1,2)) = 1 > 0 → left turn, keep'
+                },
+                lowerHull: [
+                    [0, 0],
+                    [1, 1],
+                    [1, 2]
+                ],
+                upperHull: [],
+                hullEdgesLower: [
+                    [0, 1],
+                    [1, 2]
+                ],
+                hullEdgesUpper: [],
+                hullEdgesFinal: [],
+                currentPoint: [1, 2],
+                evidence: 'Operation: Add points to lower hull\nTarget: (1,1) then (1,2)\nBefore adding (1,2): lower = [[0,0],[1,1]]\nAfter: lower = [[0,0],[1,1],[1,2]]\nCross product check: cross((0,0),(1,1),(1,2)) = (1,1)×(0,1) = 1 > 0 → LEFT turn → retain all.',
+                checkpoint: null,
+                pointStyles: {
+                    0: 'lower',
+                    1: 'lower',
+                    2: 'lower',
+                    3: 'default'
+                }
+            }, {
+                id: 4,
+                title: 'Build Lower Hull — Remove Non-Hull Points',
+                desc: 'Add the final sorted point (2,0) to the lower hull. Check orientation: (1,1)→(1,2)→(2,0) is a right turn, so pop (1,2). Then (0,0)→(1,1)→(2,0) is also a right turn, so pop (1,1). The lower hull becomes [(0,0), (2,0)].',
+                codeLine: 7,
+                stateSummary: {
+                    sorted_points: sortedPoints,
+                    lower_hull: [
+                        [0, 0],
+                        [2, 0]
+                    ],
+                    upper_hull: null,
+                    popped: [
+                        [1, 2],
+                        [1, 1]
+                    ],
+                    cross_checks: [
+                        'cross((1,1),(1,2),(2,0)) = -1 ≤ 0 → pop (1,2)',
+                        'cross((0,0),(1,1),(2,0)) = -2 ≤ 0 → pop (1,1)'
+                    ]
+                },
+                lowerHull: [
+                    [0, 0],
+                    [2, 0]
+                ],
+                upperHull: [],
+                hullEdgesLower: [
+                    [0, 3]
+                ],
+                hullEdgesUpper: [],
+                hullEdgesFinal: [],
+                currentPoint: [2, 0],
+                evidence: 'Operation: Process (2,0) — two pops\nTarget: Add (2,0) to lower hull\nBefore: lower = [[0,0],[1,1],[1,2]]\nCheck 1: cross((1,1),(1,2),(2,0)) = -1 ≤ 0 → RIGHT turn → pop (1,2)\nCheck 2: cross((0,0),(1,1),(2,0)) = -2 ≤ 0 → RIGHT turn → pop (1,1)\nAfter: lower = [[0,0],[2,0]]\nDependency: Cross product ≤ 0 means non-left turn; collinear or right turns remove the middle point.',
+                checkpoint: {
+                    prompt: 'What is the lower hull after processing all points? Enter the coordinates as a JSON array, e.g., [[0,0],[2,0]]',
+                    correctAnswer: '[[0,0],[2,0]]',
+                    hint: 'After processing (2,0), both (1,2) and (1,1) are removed because they create right turns. Only the leftmost and rightmost points remain in the lower hull.',
+                    stepLabel: 'Lower Hull Checkpoint'
+                },
+                pointStyles: {
+                    0: 'lower',
+                    1: 'default',
+                    2: 'default',
+                    3: 'lower'
+                }
+            }, {
+                id: 5,
+                title: 'Lower Hull Complete',
+                desc: 'The lower hull construction is finished. The lower hull is [(0,0), (2,0)]. Now we prepare to build the upper hull by iterating through the sorted points in reverse order.',
+                codeLine: 10,
+                stateSummary: {
+                    sorted_points: sortedPoints,
+                    lower_hull: [
+                        [0, 0],
+                        [2, 0]
+                    ],
+                    upper_hull: [],
+                    note: 'Lower hull complete. Ready to build upper hull from reversed points.'
+                },
+                lowerHull: [
+                    [0, 0],
+                    [2, 0]
+                ],
+                upperHull: [],
+                hullEdgesLower: [
+                    [0, 3]
+                ],
+                hullEdgesUpper: [],
+                hullEdgesFinal: [],
+                currentPoint: null,
+                evidence: 'Operation: Transition to upper hull\nTarget: upper = []\nBefore: lower hull complete = [[0,0],[2,0]]\nAfter: upper initialized as empty list\nDependency: The upper hull is built by scanning points in reverse sorted order.',
+                checkpoint: null,
+                pointStyles: {
+                    0: 'lower',
+                    1: 'default',
+                    2: 'default',
+                    3: 'lower'
+                }
+            }, {
+                id: 6,
+                title: 'Build Upper Hull — Add Points',
+                desc: 'Iterate through reversed sorted points: (2,0), (1,2), (1,1), (0,0). Start upper hull with (2,0), add (1,2), then add (1,1). Cross product check for (2,0)→(1,2)→(1,1) is positive (left turn), so all are kept. Upper hull: [(2,0), (1,2), (1,1)].',
+                codeLine: 14,
+                stateSummary: {
+                    sorted_points: sortedPoints,
+                    lower_hull: [
+                        [0, 0],
+                        [2, 0]
+                    ],
+                    upper_hull: [
+                        [2, 0],
+                        [1, 2],
+                        [1, 1]
+                    ],
+                    cross_check: 'cross((2,0),(1,2),(1,1)) = 1 > 0 → left turn, keep'
+                },
+                lowerHull: [
+                    [0, 0],
+                    [2, 0]
+                ],
+                upperHull: [
+                    [2, 0],
+                    [1, 2],
+                    [1, 1]
+                ],
+                hullEdgesLower: [
+                    [0, 3]
+                ],
+                hullEdgesUpper: [
+                    [3, 2],
+                    [2, 1]
+                ],
+                hullEdgesFinal: [],
+                currentPoint: [1, 1],
+                evidence: 'Operation: Build upper hull from reversed points\nTarget: reversed = [(2,0),(1,2),(1,1),(0,0)]\nBefore upper additions: upper = [[2,0]]\nAfter adding (1,2) and (1,1): upper = [[2,0],[1,2],[1,1]]\nCross check: cross((2,0),(1,2),(1,1)) = (-1,2)×(0,-1) = 1 > 0 → LEFT turn → retain.',
+                checkpoint: null,
+                pointStyles: {
+                    0: 'lower',
+                    1: 'upper',
+                    2: 'upper',
+                    3: 'upper'
+                }
+            }, {
+                id: 7,
+                title: 'Build Upper Hull — Remove Non-Hull Point',
+                desc: 'Add (0,0) to the upper hull. Check (1,2)→(1,1)→(0,0): cross product is negative (right turn), so pop (1,1). Then check (2,0)→(1,2)→(0,0): cross product is positive (left turn), so keep. Upper hull becomes [(2,0), (1,2), (0,0)].',
+                codeLine: 13,
+                stateSummary: {
+                    sorted_points: sortedPoints,
+                    lower_hull: [
+                        [0, 0],
+                        [2, 0]
+                    ],
+                    upper_hull: [
+                        [2, 0],
+                        [1, 2],
+                        [0, 0]
+                    ],
+                    popped: [
+                        [1, 1]
+                    ],
+                    cross_checks: [
+                        'cross((1,2),(1,1),(0,0)) = -1 ≤ 0 → pop (1,1)',
+                        'cross((2,0),(1,2),(0,0)) = 4 > 0 → keep'
+                    ]
+                },
+                lowerHull: [
+                    [0, 0],
+                    [2, 0]
+                ],
+                upperHull: [
+                    [2, 0],
+                    [1, 2],
+                    [0, 0]
+                ],
+                hullEdgesLower: [
+                    [0, 3]
+                ],
+                hullEdgesUpper: [
+                    [3, 2],
+                    [2, 0]
+                ],
+                hullEdgesFinal: [],
+                currentPoint: [0, 0],
+                evidence: 'Operation: Process (0,0) for upper hull — one pop\nTarget: Add (0,0) to upper hull\nBefore: upper = [[2,0],[1,2],[1,1]]\nCheck 1: cross((1,2),(1,1),(0,0)) = -1 ≤ 0 → RIGHT turn → pop (1,1)\nCheck 2: cross((2,0),(1,2),(0,0)) = 4 > 0 → LEFT turn → keep\nAfter: upper = [[2,0],[1,2],[0,0]]',
+                checkpoint: {
+                    prompt: 'What is the upper hull after processing all reversed points? Enter as JSON, e.g., [[2,0],[1,2],[0,0]]',
+                    correctAnswer: '[[2,0],[1,2],[0,0]]',
+                    hint: 'Process points in reverse order: (2,0), (1,2), (1,1), (0,0). Check the cross product for each triple. The point (1,1) is popped because it creates a right turn with (1,2) and (0,0).',
+                    stepLabel: 'Upper Hull Checkpoint'
+                },
+                pointStyles: {
+                    0: 'upper',
+                    1: 'default',
+                    2: 'upper',
+                    3: 'upper'
+                }
+            }, {
+                id: 8,
+                title: 'Combine Hulls — Final Answer',
+                desc: 'Combine lower[:-1] and upper[:-1] to remove duplicate endpoints. lower[:-1] = [[0,0]], upper[:-1] = [[2,0],[1,2]]. The final convex hull is [[0,0], [2,0], [1,2]], arranged counterclockwise.',
+                codeLine: 16,
+                stateSummary: {
+                    lower_hull: [
+                        [0, 0],
+                        [2, 0]
+                    ],
+                    upper_hull: [
+                        [2, 0],
+                        [1, 2],
+                        [0, 0]
+                    ],
+                    lower_without_last: [
+                        [0, 0]
+                    ],
+                    upper_without_last: [
+                        [2, 0],
+                        [1, 2]
+                    ],
+                    final_hull: [
+                        [0, 0],
+                        [2, 0],
+                        [1, 2]
+                    ]
+                },
+                lowerHull: [
+                    [0, 0],
+                    [2, 0]
+                ],
+                upperHull: [
+                    [2, 0],
+                    [1, 2],
+                    [0, 0]
+                ],
+                hullEdgesLower: [],
+                hullEdgesUpper: [],
+                hullEdgesFinal: [
+                    [0, 3],
+                    [3, 2],
+                    [2, 0]
+                ],
+                currentPoint: null,
+                evidence: 'Operation: Combine hulls\nTarget: lower[:-1] + upper[:-1]\nlower[:-1] = [[0,0]]\nupper[:-1] = [[2,0],[1,2]]\nResult: [[0,0],[2,0],[1,2]]\nThese are the vertices of the convex hull in counterclockwise order.',
+                checkpoint: {
+                    prompt: 'What is the final convex hull? Enter the vertices as a JSON array, e.g., [[0,0],[2,0],[1,2]]',
+                    correctAnswer: '[[0,0],[2,0],[1,2]]',
+                    hint: 'Combine lower[:-1] = [[0,0]] with upper[:-1] = [[2,0],[1,2]]. Concatenate them in that order.',
+                    stepLabel: 'Final Answer Checkpoint'
+                },
+                pointStyles: {
+                    0: 'final',
+                    1: 'default',
+                    2: 'final',
+                    3: 'final'
+                }
+            }];
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            const tickOps = ['Sort', 'Init Lower', 'Add Points', 'Pop & Add', 'Lower Done', 'Init Upper',
+                'Build Upper', 'Pop & Combine'
+            ];
+            const tickLabels = ['Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5', 'Step 6', 'Step 7', 'Step 8'];
+
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                for (let i = 0; i < TOTAL_STEPS; i++) {
+                    const tick = document.createElement('span');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i + 1);
+                    tick.innerHTML =
+                        '<span class="tick-label">' + tickLabels[i] + '</span> <span class="tick-op">' + tickOps[
+                            i] + '</span>';
+                    tick.addEventListener('click', function() {
+                        goToStep(parseInt(this.getAttribute('data-step')));
+                    });
+                    $timeline.appendChild(tick);
+                }
+            }
+
+            function updateTimelineActive(step) {
+                const ticks = $timeline.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.remove('active', 'done');
+                    if (i + 1 === step) t.classList.add('active');
+                    if (i + 1 < step) t.classList.add('done');
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Canvas visualization helpers
+            // ──────────────────────────────────────
+            const PLANE_MARGIN_LEFT = 35;
+            const PLANE_MARGIN_RIGHT = 25;
+            const PLANE_MARGIN_TOP = 25;
+            const PLANE_MARGIN_BOTTOM = 30;
+            const X_MIN = 0;
+            const X_MAX = 2;
+            const Y_MIN = 0;
+            const Y_MAX = 2;
+
+            function toPixelX(x) {
+                const planeWidth = $plane.clientWidth || 400;
+                const drawWidth = planeWidth - PLANE_MARGIN_LEFT - PLANE_MARGIN_RIGHT;
+                return PLANE_MARGIN_LEFT + ((x - X_MIN) / (X_MAX - X_MIN)) * drawWidth;
+            }
+
+            function toPixelY(y) {
+                const planeHeight = 280;
+                const drawHeight = planeHeight - PLANE_MARGIN_TOP - PLANE_MARGIN_BOTTOM;
+                return PLANE_MARGIN_TOP + ((Y_MAX - y) / (Y_MAX - Y_MIN)) * drawHeight;
+            }
+
+            function buildPlaneBase() {
+                $plane.innerHTML = '';
+                // Grid lines
+                for (let gx = X_MIN; gx <= X_MAX; gx++) {
+                    const line = document.createElement('div');
+                    line.className = 'grid-line vertical';
+                    line.style.left = toPixelX(gx) + 'px';
+                    line.style.top = PLANE_MARGIN_TOP + 'px';
+                    line.style.bottom = PLANE_MARGIN_BOTTOM + 'px';
+                    $plane.appendChild(line);
+                    const label = document.createElement('span');
+                    label.className = 'axis-label';
+                    label.textContent = gx;
+                    label.style.left = (toPixelX(gx) - 8) + 'px';
+                    label.style.top = (280 - PLANE_MARGIN_BOTTOM + 6) + 'px';
+                    $plane.appendChild(label);
+                }
+                for (let gy = Y_MIN; gy <= Y_MAX; gy++) {
+                    const line = document.createElement('div');
+                    line.className = 'grid-line horizontal';
+                    line.style.top = toPixelY(gy) + 'px';
+                    line.style.left = PLANE_MARGIN_LEFT + 'px';
+                    line.style.right = PLANE_MARGIN_RIGHT + 'px';
+                    $plane.appendChild(line);
+                    const label = document.createElement('span');
+                    label.className = 'axis-label';
+                    label.textContent = gy;
+                    label.style.left = '4px';
+                    label.style.top = (toPixelY(gy) - 7) + 'px';
+                    $plane.appendChild(label);
+                }
+                // Axis titles
+                const xTitle = document.createElement('span');
+                xTitle.className = 'axis-label';
+                xTitle.textContent = 'x';
+                xTitle.style.right = '6px';
+                xTitle.style.top = (280 - PLANE_MARGIN_BOTTOM + 4) + 'px';
+                xTitle.style.fontWeight = '600';
+                $plane.appendChild(xTitle);
+                const yTitle = document.createElement('span');
+                yTitle.className = 'axis-label';
+                yTitle.textContent = 'y';
+                yTitle.style.left = '6px';
+                yTitle.style.top = (PLANE_MARGIN_TOP - 2) + 'px';
+                yTitle.style.fontWeight = '600';
+                $plane.appendChild(yTitle);
+            }
+
+            function drawHullEdge(px1, py1, px2, py2, className) {
+                const dx = px2 - px1;
+                const dy = py2 - py1;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                if (length < 0.5) return;
+                const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                const edge = document.createElement('div');
+                edge.className = 'hull-edge ' + (className || '');
+                edge.style.left = px1 + 'px';
+                edge.style.top = py1 + 'px';
+                edge.style.width = length + 'px';
+                edge.style.transform = 'rotate(' + angle + 'deg)';
+                $plane.appendChild(edge);
+            }
+
+            function updateVisualization(stepData) {
+                buildPlaneBase();
+                const ptCoords = sortedPoints; // [0,0],[1,1],[1,2],[2,0]
+                const styles = stepData.pointStyles || { 0: 'default', 1: 'default', 2: 'default', 3: 'default' };
+
+                // Draw hull edges first (behind points)
+                const allEdges = [];
+                if (stepData.hullEdgesLower && stepData.hullEdgesLower.length > 0) {
+                    stepData.hullEdgesLower.forEach(([a, b]) => {
+                        allEdges.push({ a, b, cls: 'lower-edge' });
+                    });
+                }
+                if (stepData.hullEdgesUpper && stepData.hullEdgesUpper.length > 0) {
+                    stepData.hullEdgesUpper.forEach(([a, b]) => {
+                        allEdges.push({ a, b, cls: 'upper-edge' });
+                    });
+                }
+                if (stepData.hullEdgesFinal && stepData.hullEdgesFinal.length > 0) {
+                    stepData.hullEdgesFinal.forEach(([a, b]) => {
+                        allEdges.push({ a, b, cls: 'final-edge' });
+                    });
+                }
+                // Deduplicate edges
+                const seenEdges = new Set();
+                const uniqueEdges = [];
+                allEdges.forEach(edge => {
+                    const key = Math.min(edge.a, edge.b) + '_' + Math.max(edge.a, edge.b) + '_' + edge.cls;
+                    if (!seenEdges.has(key)) {
+                        seenEdges.add(key);
+                        uniqueEdges.push(edge);
+                    }
+                });
+                uniqueEdges.forEach(edge => {
+                    const pxa = toPixelX(ptCoords[edge.a][0]);
+                    const pya = toPixelY(ptCoords[edge.a][1]);
+                    const pxb = toPixelX(ptCoords[edge.b][0]);
+                    const pyb = toPixelY(ptCoords[edge.b][1]);
+                    drawHullEdge(pxa, pya, pxb, pyb, edge.cls);
+                });
+
+                // Draw points
+                for (let i = 0; i < ptCoords.length; i++) {
+                    const px = toPixelX(ptCoords[i][0]);
+                    const py = toPixelY(ptCoords[i][1]);
+                    const marker = document.createElement('div');
+                    marker.className = 'point-marker ' + (styles[i] || 'default');
+                    marker.style.left = px + 'px';
+                    marker.style.top = py + 'px';
+                    marker.title = '(' + ptCoords[i][0] + ', ' + ptCoords[i][1] + ')';
+                    $plane.appendChild(marker);
+
+                    const label = document.createElement('span');
+                    label.className = 'point-label';
+                    label.textContent = '(' + ptCoords[i][0] + ',' + ptCoords[i][1] + ')';
+                    label.style.left = px + 'px';
+                    label.style.top = py + 'px';
+                    $plane.appendChild(label);
+                }
+
+                // Highlight current point if set
+                if (stepData.currentPoint) {
+                    const cpx = toPixelX(stepData.currentPoint[0]);
+                    const cpy = toPixelY(stepData.currentPoint[1]);
+                    const glow = document.createElement('div');
+                    glow.className = 'point-marker current';
+                    glow.style.left = cpx + 'px';
+                    glow.style.top = cpy + 'px';
+                    glow.style.pointerEvents = 'none';
+                    glow.style.zIndex = '5';
+                    $plane.appendChild(glow);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Code highlighting
+            // ──────────────────────────────────────
+            function highlightCodeLine(lineNum) {
+                const allLines = $code.querySelectorAll('.code-line');
+                allLines.forEach(l => l.classList.remove('active'));
+                const target = $code.querySelector('.code-line[data-line="' + lineNum + '"]');
+                if (target) target.classList.add('active');
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint UI
+            // ──────────────────────────────────────
+            function clearCheckpoint() {
+                $checkpointContainer.innerHTML = '';
+            }
+
+            function buildCheckpointUI(stepData, stepNum) {
+                clearCheckpoint();
+                if (!stepData.checkpoint) return;
+                const cp = stepData.checkpoint;
+                const container = document.createElement('div');
+                container.className = 'checkpoint-area';
+                container.innerHTML =
+                    '<div class="cp-prompt">🔍 <strong>Checkpoint:</strong> ' + cp.prompt + '</div>' +
+                    '<input type="text" id="cp-input" placeholder="Type your answer here...">' +
+                    '<div class="cp-buttons">' +
+                    '<button class="btn active-btn" id="cp-submit">Submit Answer</button>' +
+                    '<button class="btn hint-btn" id="cp-hint">💡 Hint</button>' +
+                    '<button class="btn show-btn" id="cp-show">👁 Show Answer</button>' +
+                    '</div>' +
+                    '<div id="cp-feedback"></div>';
+                $checkpointContainer.appendChild(container);
+
+                const $cpInput = document.getElementById('cp-input');
+                const $cpSubmit = document.getElementById('cp-submit');
+                const $cpHint = document.getElementById('cp-hint');
+                const $cpShow = document.getElementById('cp-show');
+                const $cpFeedback = document.getElementById('cp-feedback');
+
+                function normalizeAnswer(str) {
+                    return str.replace(/\s+/g, '').replace(/\(/g, '[').replace(/\)/g, ']').trim();
+                }
+
+                function addLogEntry(icon, detailText, cssClass) {
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry ' + cssClass;
+                    entry.innerHTML = '<span class="log-icon">' + icon + '</span>' +
+                        '<div class="log-detail"><span class="log-step">Step ' + stepNum + ' — ' + cp
+                        .stepLabel + '</span><br>' + detailText + '</div>';
+                    if ($learningLog.querySelector('.log-entry') === null && $learningLog.textContent.includes(
+                            'No submissions')) {
+                        $learningLog.innerHTML = '';
+                    }
+                    $learningLog.appendChild(entry);
+                }
+
+                $cpSubmit.addEventListener('click', function() {
+                    const userAnswer = normalizeAnswer($cpInput.value);
+                    const correctNorm = normalizeAnswer(cp.correctAnswer);
+                    if (userAnswer === correctNorm) {
+                        $cpFeedback.className = 'cp-feedback correct';
+                        $cpFeedback.textContent =
+                            '✅ Correct! The answer matches the expected result. Great work!';
+                        checkpointSubmitted[stepNum] = true;
+                        checkpointRevealed[stepNum] = false;
+                        addLogEntry('✅', 'Submitted: <code>' + ($cpInput.value ||
+                            '(empty)') + '</code> — Correct!', 'correct-log');
+                    } else {
+                        $cpFeedback.className = 'cp-feedback incorrect';
+                        $cpFeedback.textContent =
+                            '❌ Not quite. Your answer does not match the expected result. Review the step evidence and try again, or use the hint.';
+                        checkpointSubmitted[stepNum] = true;
+                        addLogEntry('❌', 'Submitted: <code>' + ($cpInput.value ||
+                            '(empty)') + '</code> — Incorrect. Expected: <code>' + cp.correctAnswer +
+                            '</code>', 'incorrect-log');
+                    }
+                });
+
+                $cpHint.addEventListener('click', function() {
+                    $cpFeedback.className = 'cp-feedback revealed';
+                    $cpFeedback.textContent = '💡 Hint: ' + cp.hint;
+                    addLogEntry('💡', 'Hint requested: ' + cp.hint, 'revealed-log');
+                });
+
+                $cpShow.addEventListener('click', function() {
+                    $cpFeedback.className = 'cp-feedback revealed';
+                    $cpFeedback.textContent = '📋 Answer: <code>' + cp.correctAnswer + '</code>';
+                    $cpInput.value = cp.correctAnswer;
+                    checkpointRevealed[stepNum] = true;
+                    addLogEntry('👁', 'Answer revealed: <code>' + cp.correctAnswer + '</code>',
+                        'revealed-log');
+                });
+
+                // Allow Enter key to submit
+                $cpInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') $cpSubmit.click();
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Main step navigation
+            // ──────────────────────────────────────
+            function goToStep(n) {
+                if (n < 1 || n > TOTAL_STEPS) return;
+                currentStep = n;
+                const stepData = steps[n - 1];
+
+                // Update counter
+                $counter.textContent = n + ' / ' + TOTAL_STEPS;
+
+                // Update range
+                $range.value = n;
+
+                // Update step title and description
+                $stepTitle.textContent = 'Step ' + n + ': ' + stepData.title;
+                $stepDesc.textContent = stepData.desc;
+
+                // Update teaching
+                $teaching.innerHTML = '<p>' + stepData.desc + '</p>';
+
+                // Update state
+                $state.textContent = JSON.stringify(stepData.stateSummary, null, 2);
+
+                // Update step evidence
+                $stepEvidence.textContent = stepData.evidence;
+
+                // Update code highlighting
+                highlightCodeLine(stepData.codeLine);
+
+                // Update visualization
+                updateVisualization(stepData);
+
+                // Update top result
+                if (stepData.lowerHull && stepData.upperHull && stepData.lowerHull.length > 0 && stepData.upperHull
+                    .length > 0) {
+                    const combined = stepData.lowerHull.slice(0, -1).concat(stepData.upperHull.slice(0, -1));
+                    $topResultValue.textContent = JSON.stringify(combined);
+                } else if (stepData.lowerHull && stepData.lowerHull.length > 0 && (!stepData.upperHull || stepData
+                        .upperHull.length === 0)) {
+                    $topResultValue.textContent = JSON.stringify(stepData.lowerHull) + ' (lower hull in progress)';
+                } else if (stepData.upperHull && stepData.upperHull.length > 0) {
+                    $topResultValue.textContent = JSON.stringify(stepData.upperHull) + ' (upper hull in progress)';
+                } else {
+                    $topResultValue.textContent = '—';
+                }
+                if (n === TOTAL_STEPS) {
+                    $topResultValue.textContent = JSON.stringify(expectedOutput);
+                }
+
+                // Update timeline
+                updateTimelineActive(n);
+
+                // Handle checkpoint
+                if (stepData.checkpoint) {
+                    buildCheckpointUI(stepData, n);
+                } else {
+                    clearCheckpoint();
+                }
+
+                // Update button states
+                $prev.disabled = (n === 1);
+                $next.disabled = (n === TOTAL_STEPS);
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            $prev.addEventListener('click', function() {
+                if (currentStep > 1) {
+                    stopAutoPlay();
+                    goToStep(currentStep - 1);
+                }
+            });
+
+            $next.addEventListener('click', function() {
+                if (currentStep < TOTAL_STEPS) {
+                    stopAutoPlay();
+                    goToStep(currentStep + 1);
+                }
+            });
+
+            $range.addEventListener('input', function() {
+                stopAutoPlay();
+                goToStep(parseInt($range.value));
+            });
+
+            $play.addEventListener('click', function() {
+                if (isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    startAutoPlay();
+                }
+            });
+
+            function startAutoPlay() {
+                isPlaying = true;
+                $play.textContent = '⏸ Pause';
+                $play.classList.add('active-btn');
+                playInterval = setInterval(function() {
+                    if (currentStep < TOTAL_STEPS) {
+                        goToStep(currentStep + 1);
+                    } else {
+                        stopAutoPlay();
+                    }
+                }, 2500);
+            }
+
+            function stopAutoPlay() {
+                isPlaying = false;
+                $play.textContent = '▶ Play';
+                $play.classList.remove('active-btn');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowLeft') {
+                    stopAutoPlay();
+                    if (currentStep > 1) goToStep(currentStep - 1);
+                } else if (e.key === 'ArrowRight') {
+                    stopAutoPlay();
+                    if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    if (isPlaying) stopAutoPlay();
+                    else startAutoPlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialization
+            // ──────────────────────────────────────
+            function init() {
+                buildTimeline();
+                $answer.textContent = JSON.stringify(expectedOutput);
+                $range.setAttribute('min', 1);
+                $range.setAttribute('max', TOTAL_STEPS);
+                $range.value = 1;
+                $prev.disabled = true;
+                $next.disabled = false;
+                goToStep(1);
+                // Ensure #canvas is a DOM container (it already is a div)
+                // Set initial learning log message
+                $learningLog.textContent = 'No submissions yet. Interact with checkpoints to build your learning log.';
+            }
+
+            // Handle resize for canvas
+            window.addEventListener('resize', function() {
+                const stepData = steps[currentStep - 1];
+                updateVisualization(stepData);
+            });
+
+            // Start
+            init();
+        })();
+    </script>
+</body>
+</html>

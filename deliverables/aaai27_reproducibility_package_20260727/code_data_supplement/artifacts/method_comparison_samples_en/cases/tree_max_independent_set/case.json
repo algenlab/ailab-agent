@@ -1,0 +1,224 @@
+{
+  "id": "tree_max_independent_set",
+  "algorithm_id": "tree_max_independent_set",
+  "title": "Tree DP Maximum Independent Set",
+  "family": "Tree DP",
+  "family_id": "tree_dp",
+  "subfamily_id": "tree_max_independent_set",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "dp",
+  "difficulty": "medium",
+  "problem": "In the planning of a new urban district, there is a tree-shaped street network where each plot (node) has a development value. Adjacent plots cannot be developed simultaneously to avoid traffic congestion. Given a tree, where nodes represent plots, value represents development value, and edges represent adjacency. Compute the maximum total development value achievable, returning only the maximum number. The input tree object includes nodes (id, value) and edges (undirected edges).",
+  "strategy": "dp_take[u] represents the optimal value when u is selected, dp_skip[u] represents the optimal value when u is not selected.",
+  "input_contract": "Input a tree with value weights.",
+  "variant_name": "Tree DP take/skip",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(n)",
+  "learning_objectives": [
+    "Understand the definition and recurrence relationship of dp_take[u] (optimal value when u is selected) and dp_skip[u] (optimal value when u is not selected).",
+    "Be able to predict the parent node's state update based on children's dp values.",
+    "Observe changes in the global optimal solution by modifying node weights, building an intuitive understanding of state dependencies."
+  ],
+  "required_views": [
+    "tree",
+    "dp_table",
+    "node_details"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! dp_take only sums children's skip values, dp_skip takes the sum of each child's optimal value.",
+      "feedback_wrong": "Check the formulas: take depends on children's skip, skip depends on each child's optimal value. Recalculate.",
+      "id": "task_1",
+      "oracle": "Compare predicted (take, skip) with (5+0+0=5, max(3,0)+max(4,0)=7). Allow floating-point error.",
+      "prompt": "Currently traversing node u (id='A'), its value=5, the dp states of its two children B (value=3) and C (value=4) are known: B: take=3, skip=0; C: take=4, skip=0. Predict the dp_take and dp_skip values for node A.",
+      "stage2_affordance": "Highlight node A and its children in the tree view, display relevant values in dp_table, auto-fill predicted results upon click.",
+      "trace_anchor": [
+        "dp_take",
+        "dp_skip",
+        "value",
+        "id"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Perfect! This invariant indeed holds at every step.",
+      "feedback_wrong": "The expression you proposed would fail at some step; observe the relationship between dp_take and value at leaf nodes.",
+      "id": "task_2",
+      "oracle": "Check whether the student-proposed invariant holds across all steps of the verifier or trace. May sample-verify or use symbolic checking.",
+      "prompt": "Given the state at any step in the current trace, write an invariant that always holds during the execution of the algorithm (e.g., a relationship between dp_take and value).",
+      "stage2_affordance": "Display the list of trace steps, highlight positions where the invariant is violated, allow browsing dp values of different nodes.",
+      "trace_anchor": [
+        "dp_take",
+        "value"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct! After modifying node 4, since its parent node 2 is not selected, the gain it brings increases directly.",
+      "feedback_wrong": "Node 4 is a leaf node; how does increasing its value affect the take/skip decision of its parent? Recall the recurrence formulas.",
+      "id": "task_3",
+      "oracle": "Run the verifier to obtain the optimal value of the modified tree (expected to become 18), compare with user's answer.",
+      "prompt": "The current tree is sample 0, with maximum development value 14. Change the value of node id='4' from 10 to 15, and predict the new maximum development value.",
+      "stage2_affordance": "Node value can be modified by dragging, recalculates in real-time and updates dp_table and tree colors.",
+      "trace_anchor": [
+        "tree",
+        "value",
+        "id"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Clear explanation! dp_take must add children's skip, dp_skip independently takes each child's optimal.",
+      "feedback_wrong": "Note: dp_take accumulates children's skip values, not directly adding value or max. Analyze more carefully.",
+      "id": "task_4",
+      "oracle": "Check whether the explanation explicitly mentions dp_take[2] = 2 + dp_skip[4] + dp_skip[5] = 2, dp_skip[2] = max(10,0)+max(1,0)=11. Can use natural language matching or formula extraction.",
+      "prompt": "For node 2 (value=2) in the tree, the dp values of its children 4 (value=10) and 5 (value=1) are known: dp_take(4)=10, dp_skip(4)=0; dp_take(5)=1, dp_skip(5)=0. Explain how node 2's dp_take and dp_skip are aggregated from its children.",
+      "stage2_affordance": "Tree view shows aggregation arrows, dp_table highlights the source cells for calculation.",
+      "trace_anchor": [
+        "dp_take",
+        "dp_skip",
+        "id",
+        "value"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": 14,
+      "index": 0,
+      "input_data": {
+        "tree": {
+          "edges": [
+            [
+              "1",
+              "2"
+            ],
+            [
+              "1",
+              "3"
+            ],
+            [
+              "2",
+              "4"
+            ],
+            [
+              "2",
+              "5"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "1",
+              "value": 3
+            },
+            {
+              "id": "2",
+              "value": 2
+            },
+            {
+              "id": "3",
+              "value": 1
+            },
+            {
+              "id": "4",
+              "value": 10
+            },
+            {
+              "id": "5",
+              "value": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "expected": 10,
+      "index": 1,
+      "input_data": {
+        "tree": {
+          "edges": [
+            [
+              "A",
+              "B"
+            ],
+            [
+              "A",
+              "C"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "A",
+              "value": 5
+            },
+            {
+              "id": "B",
+              "value": 4
+            },
+            {
+              "id": "C",
+              "value": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "expected": 20,
+      "index": 2,
+      "input_data": {
+        "tree": {
+          "edges": [
+            [
+              "R",
+              "L"
+            ],
+            [
+              "R",
+              "M"
+            ],
+            [
+              "M",
+              "N"
+            ]
+          ],
+          "nodes": [
+            {
+              "id": "R",
+              "value": 1
+            },
+            {
+              "id": "L",
+              "value": 10
+            },
+            {
+              "id": "M",
+              "value": 1
+            },
+            {
+              "id": "N",
+              "value": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "expected": 7,
+      "index": 3,
+      "input_data": {
+        "tree": {
+          "edges": [],
+          "nodes": [
+            {
+              "id": "X",
+              "value": 7
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "id": "two_pointer_pair_sum",
+  "algorithm_id": "two_pointer_pair_sum",
+  "title": "Two Sum in Sorted Array",
+  "family": "Array Pointer / Window / Prefix",
+  "family_id": "array_pointer",
+  "subfamily_id": "two_pointer",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "array_pointer",
+  "difficulty": "medium",
+  "problem": "In an e-commerce promotion, as a product selection assistant, you need to find two items from a product list nums sorted in ascending order of price, such that their total price exactly equals the target voucher amount held by the user. You need to return the indices of these two items (0-indexed) as a list; if no such combination exists, return an empty list.",
+  "strategy": "Move the left or right pointer based on the relationship between the current sum and target.",
+  "input_contract": "Input ascending nums array and target.",
+  "variant_name": "Left-Right Two Pointer",
+  "time_complexity": "O(n)",
+  "space_complexity": "O(1)",
+  "learning_objectives": [
+    "Understand the state transition of the two-pointer method in an ascending price list, where the movement direction is determined by comparing the current sum with the target.",
+    "Identify the invariant that the left pointer increases and the right pointer decreases, and the shrinking nature of the search interval.",
+    "Be able to predict the next pointer movement based on any step's nums[left], nums[right], and sum."
+  ],
+  "required_views": [
+    "array",
+    "sum_compare"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! The relationship between the sum and the target determines the pointer movement direction.",
+      "feedback_wrong": "Observe the current sum and target, think about which pointer to move to make the sum closer to the target.",
+      "id": "task_1",
+      "oracle": "Determine based on the relationship between sum and target: if sum < target, move the left pointer left; otherwise, move the right pointer right; check the change of left or right in the next step of the trace.",
+      "prompt": "Current left pointer index {state.left}, price {nums[state.left]}, right pointer index {state.right}, price {nums[state.right]}, sum {state.sum}, target={target}. Which pointer should be moved next?",
+      "stage2_affordance": "Provide left and right movement buttons; clicking them updates the pointer positions and highlights the items visually, showing the new sum in real time.",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.sum",
+        "target"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "Correct! The pointers always maintain the constraint that left is not greater than right.",
+      "feedback_wrong": "Review the loop condition while left < right, and consider the situation at exit.",
+      "id": "task_2",
+      "oracle": "The correct answer is A; the loop condition ensures left < right, but when left == right the loop ends, at that moment left == right, so left <= right always holds.",
+      "prompt": "During the execution of the two-pointer algorithm, which of the following conditions always holds? A. left <= right  B. nums[left]+nums[right]==target  C. left+right==len(nums)-1  D. There is at least one pair of solution in the array",
+      "stage2_affordance": "Display a set of four radio buttons; after the student selects, immediately show correct/incorrect and highlight the correct option.",
+      "trace_anchor": [
+        "state.left",
+        "state.right",
+        "state.nums"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Successfully constructed a scenario with no solution!",
+      "feedback_wrong": "Note that after modification, the sum of the smallest and largest prices should not exactly equal target, while maintaining ascending order.",
+      "id": "task_3",
+      "oracle": "Use the verifier to check the new input: if an empty list is returned, success; otherwise, adjust again until no combination sum equals target.",
+      "prompt": "Modify a price in nums (keeping it ascending) so that when target={target}, the algorithm returns an empty list, i.e., no solution. You can add a number greater than target at the end or adjust existing values.",
+      "stage2_affordance": "Provide an editable list of number input boxes, calling the verifier in real time to display whether a solution exists.",
+      "trace_anchor": [
+        "target",
+        "nums"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Explanation is reasonable, highlighting the ordered nature and reachability.",
+      "feedback_wrong": "Consider that under ascending order, the right pointer points to the maximum value in the current interval; how would the sum change if it is moved?",
+      "id": "task_4",
+      "oracle": "Sample answer: To increase the sum, only a larger left element can be swapped in; the right pointer already points to the maximum element, so moving it right would only make the sum smaller. Keywords may include 'ascending', 'right pointer maximum', 'sum becomes smaller'.",
+      "prompt": "At step {t}, sum={state.sum} is less than target, and the algorithm chooses to move the left pointer left. Explain in one short sentence why moving the right pointer right is wrong.",
+      "stage2_affordance": "Provide a text input box and a precomputed slider: dragging the slider simulates moving the pointer, showing the trend of the new sum value.",
+      "trace_anchor": [
+        "state.sum",
+        "state.target",
+        "state.left",
+        "state.right"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": [
+        1,
+        3
+      ],
+      "index": 0,
+      "input_data": {
+        "nums": [
+          1,
+          2,
+          4,
+          6,
+          10
+        ],
+        "target": 8
+      }
+    },
+    {
+      "expected": [],
+      "index": 1,
+      "input_data": {
+        "nums": [
+          1,
+          3,
+          5,
+          8
+        ],
+        "target": 20
+      }
+    },
+    {
+      "expected": [
+        0,
+        1
+      ],
+      "index": 2,
+      "input_data": {
+        "nums": [
+          2,
+          7
+        ],
+        "target": 9
+      }
+    }
+  ]
+}

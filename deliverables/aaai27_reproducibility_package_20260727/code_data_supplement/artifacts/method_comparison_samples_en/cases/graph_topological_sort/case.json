@@ -1,0 +1,185 @@
+{
+  "id": "graph_topological_sort",
+  "algorithm_id": "graph_topological_sort",
+  "title": "Topological Sort",
+  "family": "BFS/DFS Basic Graph",
+  "family_id": "basic_graph",
+  "subfamily_id": "topological_sort",
+  "gate_layer": "family_core",
+  "support_level": "strong",
+  "process_profile": "bfs",
+  "difficulty": "medium",
+  "problem": "You are developing a course selection recommendation feature for an academic administration system. Given a course dependency graph (adjacency list), where each course is represented as a string, please return a valid course sequence list such that all prerequisite courses appear before each course.",
+  "strategy": "Maintain an indegree table and a queue of zero indegree nodes; each time a node is popped, delete its outgoing edges.",
+  "input_contract": "Input DAG adjacency list graph.",
+  "variant_name": "Kahn Indegree Queue",
+  "time_complexity": "O(V+E)",
+  "space_complexity": "O(V)",
+  "learning_objectives": [
+    "Understand how the indegree table records the remaining dependency count.",
+    "Master the strategy of using a queue to manage zero indegree nodes.",
+    "Be able to predict the state updates after popping a node at each step from a trace."
+  ],
+  "required_views": [
+    "graph",
+    "queue",
+    "map"
+  ],
+  "interaction_tasks": [
+    {
+      "feedback_correct": "Correct! You have mastered the indegree update rule.",
+      "feedback_wrong": "Carefully check the current indegree table; popping a node only affects its immediate neighbors.",
+      "id": "task_1",
+      "oracle": "Determine whether the student's answer accurately includes the nodes among graph['B']'s neighbors whose indegree becomes 0.",
+      "prompt": "The current head of the queue is node 'B'. Please predict which neighbors' indegree will become 0 and will be added to the queue after popping 'B'.",
+      "stage2_affordance": "Click node 'B' and observe the animation of neighbors' indegree changes.",
+      "trace_anchor": [
+        "state.queue",
+        "state.indegree"
+      ],
+      "type": "predict_next_state"
+    },
+    {
+      "feedback_correct": "That's right, this is the core invariant of Kahn's algorithm.",
+      "feedback_wrong": "Please check the indegree table; what value do the nodes in the queue have in indegree?",
+      "id": "task_2",
+      "oracle": "Automatically check whether the answer includes 'the indegree of all nodes in the queue is 0'.",
+      "prompt": "During the entire algorithm execution, what invariant property does the queue always satisfy? (Hint: focus on indegree)",
+      "stage2_affordance": "Open the indegree table view and observe the correspondence between the queue and indegree frame by frame.",
+      "trace_anchor": [
+        "state.queue",
+        "state.indegree"
+      ],
+      "type": "identify_invariant"
+    },
+    {
+      "feedback_correct": "Correct, a cyclic graph has no topological order; the queue will eventually become empty with remaining nodes.",
+      "feedback_wrong": "Try to think: when there is a cycle, which nodes will never have a chance to get indegree 0?",
+      "id": "task_3",
+      "oracle": "Check whether the answer indicates that the algorithm eventually cannot process all nodes, or the queue becomes empty prematurely.",
+      "prompt": "Add an edge D->A to the original graph to create a cycle. Describe how this will affect the algorithm's behavior.",
+      "stage2_affordance": "Drag the mouse to add edge D->A in the graph, re-run the algorithm and observe the result.",
+      "trace_anchor": [
+        "input_data.graph",
+        "state.queue"
+      ],
+      "type": "modify_input"
+    },
+    {
+      "feedback_correct": "Explanation is very clear; you fully understand the state transition logic.",
+      "feedback_wrong": "Please focus on 'C's immediate neighbors in the adjacency list, and check the changes in their indegree before and after.",
+      "id": "task_4",
+      "oracle": "Automatically verify if the explanation includes: 'C's neighbors' indegree decreases by 1, and if it becomes 0, they are enqueued.",
+      "prompt": "What specific changes occur to indegree and queue after node 'C' is popped from the queue? Why?",
+      "stage2_affordance": "Click on each step on the timeline to replay the synchronized updates of indegree and queue.",
+      "trace_anchor": [
+        "state.indegree",
+        "state.queue"
+      ],
+      "type": "explain_transition"
+    }
+  ],
+  "samples": [
+    {
+      "expected": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "index": 0,
+      "input_data": {
+        "graph": {
+          "A": [
+            "B",
+            "C"
+          ],
+          "B": [
+            "D"
+          ],
+          "C": [
+            "D"
+          ],
+          "D": []
+        }
+      }
+    },
+    {
+      "expected": [
+        "1",
+        "2",
+        "3"
+      ],
+      "index": 1,
+      "input_data": {
+        "graph": {
+          "1": [
+            "3"
+          ],
+          "2": [
+            "3"
+          ],
+          "3": []
+        }
+      }
+    },
+    {
+      "expected": [
+        "S",
+        "A",
+        "B"
+      ],
+      "index": 2,
+      "input_data": {
+        "graph": {
+          "A": [
+            "B"
+          ],
+          "B": [],
+          "S": [
+            "A"
+          ]
+        }
+      }
+    },
+    {
+      "expected": [
+        "X"
+      ],
+      "index": 3,
+      "input_data": {
+        "graph": {
+          "X": []
+        }
+      }
+    },
+    {
+      "expected": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "index": 4,
+      "input_data": {
+        "graph": {
+          "0": [
+            "1",
+            "2"
+          ],
+          "1": [
+            "3"
+          ],
+          "2": [
+            "3"
+          ],
+          "3": [
+            "4"
+          ],
+          "4": []
+        }
+      }
+    }
+  ]
+}

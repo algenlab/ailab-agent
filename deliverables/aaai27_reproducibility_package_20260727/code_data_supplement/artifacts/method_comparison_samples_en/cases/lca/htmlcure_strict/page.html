@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Tree Lowest Common Ancestor - AlgoLab Tutorial</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --gold: #f59e0b;
+            --gold-light: #fef3c7;
+            --green: #10b981;
+            --green-light: #d1fae5;
+            --blue: #3b82f6;
+            --blue-light: #dbeafe;
+            --purple: #8b5cf6;
+            --purple-light: #ede9fe;
+            --red: #ef4444;
+            --red-light: #fee2e2;
+            --gray: #94a3b8;
+            --gray-light: #f1f5f9;
+            --node-default: #e2e8f0;
+            --node-current: #f59e0b;
+            --node-found-p: #10b981;
+            --node-found-q: #3b82f6;
+            --node-lca: #8b5cf6;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .page-wrapper {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Header */
+        .page-header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        #title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            flex: 1 1 auto;
+            min-width: 200px;
+        }
+        #subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            flex: 0 0 auto;
+            font-weight: 500;
+            background: var(--gray-light);
+            padding: 5px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .top-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #top-result {
+            font-weight: 600;
+            color: var(--purple);
+            font-size: 0.95rem;
+            background: var(--purple-light);
+            padding: 5px 12px;
+            border-radius: 16px;
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        #answer {
+            font-weight: 700;
+            color: var(--purple);
+            font-size: 1.1rem;
+            background: var(--purple-light);
+            padding: 6px 14px;
+            border-radius: 16px;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+
+        /* Main layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Canvas panel */
+        .canvas-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #canvas {
+            position: relative;
+            width: 100%;
+            height: 380px;
+            background: #fdfcfb;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: default;
+            min-height: 320px;
+        }
+        #canvas svg.edge-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        #canvas .tree-node {
+            position: absolute;
+            z-index: 2;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1e293b;
+            background: var(--node-default);
+            border: 3px solid #cbd5e1;
+            transform: translate(-50%, -50%);
+            transition: background 0.35s, border-color 0.35s, color 0.35s, box-shadow 0.35s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        #canvas .tree-node.node-current {
+            background: var(--node-current);
+            border-color: #d97706;
+            color: #fff;
+            box-shadow: 0 0 0 6px var(--gold-light), 0 2px 8px rgba(0, 0, 0, 0.18);
+            z-index: 5;
+        }
+        #canvas .tree-node.node-found-p {
+            background: var(--node-found-p);
+            border-color: #059669;
+            color: #fff;
+            box-shadow: 0 0 0 5px var(--green-light), 0 2px 8px rgba(0, 0, 0, 0.14);
+            z-index: 4;
+        }
+        #canvas .tree-node.node-found-q {
+            background: var(--node-found-q);
+            border-color: #1d4ed8;
+            color: #fff;
+            box-shadow: 0 0 0 5px var(--blue-light), 0 2px 8px rgba(0, 0, 0, 0.14);
+            z-index: 4;
+        }
+        #canvas .tree-node.node-lca {
+            background: var(--node-lca);
+            border-color: #6d28d9;
+            color: #fff;
+            box-shadow: 0 0 0 7px var(--purple-light), 0 3px 12px rgba(0, 0, 0, 0.2);
+            z-index: 6;
+            animation: pulse-lca 1s ease-in-out infinite;
+        }
+        @keyframes pulse-lca {
+            0%,
+            100% {
+                box-shadow: 0 0 0 7px var(--purple-light), 0 3px 12px rgba(0, 0, 0, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(139, 92, 246, 0.15), 0 4px 16px rgba(0, 0, 0, 0.25);
+            }
+        }
+        #canvas .tree-node.node-dimmed {
+            opacity: 0.45;
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+        }
+        #canvas .edge-line {
+            stroke: #cbd5e1;
+            stroke-width: 2;
+            transition: stroke 0.35s, stroke-width 0.35s;
+            fill: none;
+        }
+        #canvas .edge-line.edge-active {
+            stroke: #3b82f6;
+            stroke-width: 3;
+            stroke-dasharray: none;
+        }
+        #canvas .edge-line.edge-traversed {
+            stroke: #94a3b8;
+            stroke-width: 2.5;
+            stroke-dasharray: 6 3;
+        }
+
+        /* Code panel */
+        .code-panel {
+            background: #1e293b;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 280px;
+        }
+        .code-panel .code-label {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.7;
+            color: #cbd5e1;
+            white-space: pre;
+            overflow-x: auto;
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+        #code .code-line {
+            display: block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            transition: background 0.3s, color 0.3s;
+            border-left: 3px solid transparent;
+        }
+        #code .code-line.code-active {
+            background: #334155;
+            color: #f8fafc;
+            border-left-color: #f59e0b;
+            font-weight: 600;
+        }
+        #code .code-keyword {
+            color: #c084fc;
+        }
+        #code .code-func {
+            color: #60a5fa;
+        }
+        #code .code-string {
+            color: #fbbf24;
+        }
+        #code .code-comment {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* Step info bar */
+        .step-info-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow);
+        }
+        #step-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0f172a;
+            flex: 1 1 auto;
+            min-width: 120px;
+        }
+        #step-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            flex: 2 1 200px;
+        }
+        #op {
+            display: inline-block;
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            letter-spacing: 0.03em;
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            box-shadow: var(--shadow);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+            min-width: 40px;
+            user-select: none;
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn:active {
+            background: #e2e8f0;
+            transform: scale(0.97);
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn-accent:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+        .btn-play {
+            background: #10b981;
+            color: #fff;
+            border-color: #059669;
+            font-weight: 700;
+        }
+        .btn-play:hover {
+            background: #059669;
+        }
+        .btn-play.paused {
+            background: #f59e0b;
+            border-color: #d97706;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 55px;
+            text-align: center;
+            font-family: var(--font-mono);
+            background: var(--gray-light);
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+        #range {
+            flex: 1 1 80px;
+            min-width: 60px;
+            cursor: pointer;
+            accent-color: var(--accent);
+            height: 6px;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 0;
+            align-items: center;
+        }
+        .tick {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all 0.25s;
+            white-space: nowrap;
+            user-select: none;
+            font-family: var(--font-sans);
+        }
+        .tick:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .tick.tick-active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .tick.tick-visited {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .tick-label {
+            font-weight: 600;
+            color: inherit;
+        }
+        .tick-op {
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        /* Info panels */
+        .info-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        @media (max-width: 800px) {
+            .info-panels {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .info-card h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.55;
+            min-height: 60px;
+        }
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: #334155;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            min-height: 50px;
+            border: 1px solid #e2e8f0;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: var(--text);
+            line-height: 1.5;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 50px;
+        }
+
+        /* Checkpoint area */
+        #checkpoint-wrap {
+            background: #fefce8;
+            border: 2px solid #facc15;
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: var(--shadow);
+        }
+        #checkpoint-wrap.visible {
+            display: flex;
+        }
+        #checkpoint-prompt {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #0f172a;
+        }
+        #checkpoint-input {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 2px solid #d1d5db;
+            font-size: 0.9rem;
+            font-family: var(--font-sans);
+            width: 100%;
+            max-width: 280px;
+            transition: border-color 0.2s;
+        }
+        #checkpoint-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        #checkpoint-feedback {
+            font-weight: 600;
+            font-size: 0.88rem;
+            min-height: 22px;
+            padding: 4px 0;
+        }
+        .feedback-correct {
+            color: #059669;
+        }
+        .feedback-incorrect {
+            color: #dc2626;
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-hint {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+            font-weight: 600;
+        }
+        .btn-hint:hover {
+            background: #fde68a;
+        }
+        .btn-show {
+            background: #ede9fe;
+            border-color: #8b5cf6;
+            color: #5b21b6;
+            font-weight: 600;
+        }
+        .btn-show:hover {
+            background: #ddd6fe;
+        }
+        .btn-submit {
+            background: #2563eb;
+            color: #fff;
+            border-color: #1d4ed8;
+            font-weight: 700;
+        }
+        .btn-submit:hover {
+            background: #1d4ed8;
+        }
+
+        /* Learning log */
+        #learning-log {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            box-shadow: var(--shadow);
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #learning-log h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin: 0 0 4px 0;
+            font-weight: 700;
+        }
+        .log-entry {
+            font-size: 0.8rem;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border-left: 4px solid #94a3b8;
+            background: #f8fafc;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: baseline;
+        }
+        .log-entry.log-correct {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .log-entry.log-incorrect {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .log-entry.log-reveal {
+            border-left-color: #8b5cf6;
+            background: #faf5ff;
+        }
+        .log-time {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+        }
+        .log-step {
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .log-answer {
+            font-weight: 600;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            body {
+                padding: 8px;
+            }
+            .page-wrapper {
+                gap: 10px;
+            }
+            #canvas {
+                height: 280px;
+                min-height: 240px;
+            }
+            #canvas .tree-node {
+                width: 34px;
+                height: 34px;
+                font-size: 0.7rem;
+                border-width: 2px;
+            }
+            #code {
+                font-size: 0.7rem;
+                line-height: 1.4;
+            }
+            .btn {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+            .tick {
+                padding: 4px 7px;
+                font-size: 0.68rem;
+            }
+            #timeline {
+                gap: 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <header class="page-header">
+            <h1 id="title">Binary Tree Lowest Common Ancestor</h1>
+            <span id="subtitle">Tree / DFS / LCA</span>
+            <div class="top-info">
+                <span id="top-result">LCA of 5 &amp; 1</span>
+                <span id="top-solution">Expected output:</span>
+                <span id="answer">3</span>
+            </div>
+        </header>
+
+        <!-- Main grid: canvas + code -->
+        <div class="main-grid">
+            <!-- Canvas panel -->
+            <div class="canvas-panel">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span id="step-title" style="font-weight:700;">Initialize</span>
+                    <span id="op">setup</span>
+                </div>
+                <span id="step-desc" style="font-size:0.85rem;color:#475569;">Building the family tree and preparing the LCA search.</span>
+                <div id="canvas" role="img" aria-label="Binary tree visualization showing the family lineage tree with nodes 3, 5, 1, 6, 2, 0, 8, 7, 4">
+                    <!-- SVG edge layer injected by JS -->
+                    <!-- Node divs injected by JS -->
+                </div>
+            </div>
+
+            <!-- Code panel -->
+            <div class="code-panel">
+                <span class="code-label">Algorithm: DFS LCA</span>
+                <pre id="code"><!-- Code lines injected by JS --></pre>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+            <button id="prev" class="btn" aria-label="Previous step" title="Previous step">◀ Prev</button>
+            <button id="play" class="btn btn-play" aria-label="Play auto-advance" title="Auto-advance through steps">▶ Play</button>
+            <button id="next" class="btn" aria-label="Next step" title="Next step">Next ▶</button>
+            <input type="range" id="range" min="1" max="8" value="1" aria-label="Step slider" title="Drag to scrub through steps">
+            <span id="counter">1 / 8</span>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline" role="tablist" aria-label="Step timeline">
+            <!-- Ticks injected by JS -->
+        </div>
+
+        <!-- Info panels -->
+        <div class="info-panels">
+            <div class="info-card">
+                <h3>Teaching</h3>
+                <div id="teaching">We begin with a complete family tree. Our goal is to find the deepest common ancestor of nodes <strong>p=5</strong> and <strong>q=1</strong>. The DFS strategy checks each subtree: if both left and right contain a target, the current node is the LCA.</div>
+            </div>
+            <div class="info-card">
+                <h3>Current State (JSON)</h3>
+                <div id="state">{"phase":"initialization","root":"3","p":"5","q":"1","tree_built":true}</div>
+            </div>
+        </div>
+
+        <!-- Step evidence -->
+        <div class="info-card" style="grid-column:1/-1;">
+            <h3>Step Evidence</h3>
+            <div id="step-evidence"><strong>Operation:</strong> Initialize<br><strong>Targets:</strong> tree nodes from input JSON<br><strong>Dependencies:</strong> input edges define parent-child relationships<br><strong>Before:</strong> no tree structure<br><strong>After:</strong> adjacency list built, root identified as node 3, p=5, q=1</div>
+        </div>
+
+        <!-- Checkpoint area -->
+        <div id="checkpoint-wrap">
+            <div id="checkpoint-prompt"></div>
+            <input type="text" id="checkpoint-input" placeholder="Type your answer here..." aria-label="Checkpoint answer input">
+            <div class="checkpoint-btns">
+                <button id="checkpoint-submit" class="btn btn-submit">Submit</button>
+                <button id="checkpoint-hint" class="btn btn-hint">Hint</button>
+                <button id="checkpoint-show" class="btn btn-show">Show Answer</button>
+            </div>
+            <div id="checkpoint-feedback"></div>
+        </div>
+
+        <!-- Learning log -->
+        <div id="learning-log">
+            <h3>Learning Log</h3>
+            <div style="color:#94a3b8;font-size:0.8rem;font-style:italic;">No entries yet. Interact with checkpoints to populate the log.</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ────────────────────────────────────────
+            // DATA: Tree structure
+            // ────────────────────────────────────────
+            const treeNodes = [
+                { id: "3", parent: null },
+                { id: "5", parent: "3" },
+                { id: "1", parent: "3" },
+                { id: "6", parent: "5" },
+                { id: "2", parent: "5" },
+                { id: "0", parent: "1" },
+                { id: "8", parent: "1" },
+                { id: "7", parent: "2" },
+                { id: "4", parent: "2" },
+            ];
+            const pTarget = "5";
+            const qTarget = "1";
+            const rootId = "3";
+            const expectedLCA = "3";
+
+            // Node positions as percentages for the canvas (x%, y%)
+            const nodePositions = {
+                "3": { x: 50, y: 10 },
+                "5": { x: 25, y: 32 },
+                "1": { x: 75, y: 32 },
+                "6": { x: 12, y: 56 },
+                "2": { x: 38, y: 56 },
+                "0": { x: 62, y: 56 },
+                "8": { x: 88, y: 56 },
+                "7": { x: 28, y: 78 },
+                "4": { x: 48, y: 78 },
+            };
+
+            // Edges: [parent, child]
+            const edges = [
+                ["3", "5"],
+                ["3", "1"],
+                ["5", "6"],
+                ["5", "2"],
+                ["1", "0"],
+                ["1", "8"],
+                ["2", "7"],
+                ["2", "4"]
+            ];
+
+            // ────────────────────────────────────────
+            // CODE LINES for the pseudocode display
+            // ────────────────────────────────────────
+            const codeLines = [
+                'function findLCA(root, p, q):',
+                '    if root is null: return null',
+                '    if root.id == p or root.id == q:',
+                '        return root',
+                '    left = findLCA(root.left, p, q)',
+                '    right = findLCA(root.right, p, q)',
+                '    if left != null and right != null:',
+                '        return root',
+                '    if left != null: return left',
+                '    return right',
+            ];
+
+            // Map step index -> active code line index
+            const stepCodeLineMap = [0, 2, 4, 2, 4, 5, 2, 6];
+            // step 0: init -> line 0 (function sig)
+            // step 1: visit root 3, check p/q -> line 2
+            // step 2: recurse left to 5 -> line 4
+            // step 3: node 5 is p -> line 2 (return root)
+            // step 4: back at 3, left=5 -> line 5 (about to check right)
+            // step 5: recurse right to 1 -> line 5 (right call)
+            // step 6: node 1 is q -> line 2 (return root)
+            // step 7: both non-null, LCA=3 -> line 6
+
+            // ────────────────────────────────────────
+            // STEP DEFINITIONS
+            // ────────────────────────────────────────
+            const steps = [{
+                index: 0,
+                title: 'Initialize',
+                desc: 'Build the tree structure from input edges and set up the LCA search parameters.',
+                op: 'setup',
+                teaching: 'We start with a complete family tree built from the input edges. Our targets are <strong>p=&quot;5&quot;</strong> and <strong>q=&quot;1&quot;</strong>. The DFS algorithm will traverse the tree to find the deepest common ancestor. The root of the tree is node <strong>3</strong>.',
+                stateJSON: '{"phase":"initialization","root":"3","p":"5","q":"1","tree_built":true}',
+                evidence: '<strong>Operation:</strong> Initialize<br><strong>Targets:</strong> All tree nodes from input JSON<br><strong>Dependencies:</strong> Input edges define parent-child relationships<br><strong>Before:</strong> No tree structure<br><strong>After:</strong> Adjacency list built; root identified as node 3; p=5, q=1',
+                nodeClasses: {}, // all default
+                edgeClasses: {},
+                checkpoint: null,
+            }, {
+                index: 1,
+                title: 'Visit Root Node 3',
+                desc: 'Start DFS at the root node 3. Check if node 3 equals p or q.',
+                op: 'dfs-check',
+                teaching: 'The DFS begins at the <strong>root node 3</strong>. We check: is node 3 equal to p (5) or q (1)? <strong>No.</strong> So we must search both the left and right subtrees. Node 3 is not a target, but it could still be the LCA if targets are found in different subtrees.',
+                stateJSON: '{"phase":"dfs","current_node":"3","is_p_or_q":false,"action":"recurse_both_sides"}',
+                evidence: '<strong>Operation:</strong> DFS visit node 3<br><strong>Target:</strong> Node 3<br><strong>Dependencies:</strong> Root node must be identified<br><strong>Before:</strong> No nodes visited<br><strong>After:</strong> Node 3 checked; it is neither p nor q; will recurse left then right',
+                nodeClasses: { "3": "node-current" },
+                edgeClasses: {},
+                checkpoint: null,
+            }, {
+                index: 2,
+                title: 'Recurse Left to Node 5',
+                desc: 'Traverse the left child of node 3. Now visiting node 5.',
+                op: 'dfs-left',
+                teaching: 'We follow the <strong>left edge</strong> from node 3 to node <strong>5</strong>. The DFS now explores the left subtree. Node 5 is one of our targets — it is <strong>p</strong>. Let\'s check it against our base case.',
+                stateJSON: '{"phase":"dfs_left","current_node":"5","parent":"3","direction":"left"}',
+                evidence: '<strong>Operation:</strong> Recurse left from node 3 to node 5<br><strong>Target:</strong> Node 5 (left child of 3)<br><strong>Dependencies:</strong> Node 3 has a left child (5)<br><strong>Before:</strong> Current node was 3<br><strong>After:</strong> Current node is 5; edge 3→5 is being traversed',
+                nodeClasses: { "3": "node-dimmed", "5": "node-current" },
+                edgeClasses: { "3->5": "edge-active" },
+                checkpoint: null,
+            }, {
+                index: 3,
+                title: 'Node 5 Matches p – Return Up',
+                desc: 'Node 5 equals p. The base case triggers: return node 5 to the parent call.',
+                op: 'found-p',
+                teaching: '<strong>Checkpoint:</strong> Node 5 equals <strong>p</strong>! The base case <code>root.id == p</code> fires, so the DFS returns node <strong>5</strong> back to the caller (node 3). This tells node 3 that its left subtree contains one of the targets.',
+                stateJSON: '{"phase":"found_p","current_node":"5","matches":"p","return_value":"5"}',
+                evidence: '<strong>Operation:</strong> Base case match<br><strong>Target:</strong> Node 5<br><strong>Dependencies:</strong> Node 5 is p (target p=&quot;5&quot;)<br><strong>Before:</strong> Checking if node 5 equals p or q<br><strong>After:</strong> Match confirmed! Returning node 5 to parent (node 3)',
+                nodeClasses: { "3": "node-dimmed", "5": "node-found-p" },
+                edgeClasses: { "3->5": "edge-traversed" },
+                checkpoint: {
+                    prompt: 'The DFS is at node 5 and finds that node 5 equals p. What does the DFS function return at this point?',
+                    correctAnswers: ['5', 'node 5', 'node5', 'five', 'the node itself', 'return 5', 'return node 5'],
+                    hints: [
+                        'Think about the base case: when root.id equals p, what does the function return?',
+                        'The function returns the current node when it matches p or q.',
+                    ],
+                    showAnswer: 'The DFS returns node 5 (the current node) because it matches p.',
+                },
+            }, {
+                index: 4,
+                title: 'Back at Node 3 – Left Result Received',
+                desc: 'Node 3 receives left_result = 5. Now it must check the right subtree.',
+                op: 'back-at-root',
+                teaching: 'We return to <strong>node 3</strong>. The left subtree call returned <strong>5</strong> (non-null). But we cannot conclude yet — we still need to check the <strong>right subtree</strong>. If the right subtree also returns a target, then node 3 is the LCA.',
+                stateJSON: '{"phase":"check_right","current_node":"3","left_result":"5","right_result":null,"action":"recurse_right"}',
+                evidence: '<strong>Operation:</strong> Process left result at node 3<br><strong>Target:</strong> Node 3<br><strong>Dependencies:</strong> Left subtree returned 5 (non-null)<br><strong>Before:</strong> Left subtree call pending<br><strong>After:</strong> left_result = 5; must now call right subtree to determine if node 3 is the LCA',
+                nodeClasses: { "3": "node-current", "5": "node-found-p" },
+                edgeClasses: { "3->5": "edge-traversed" },
+                checkpoint: null,
+            }, {
+                index: 5,
+                title: 'Recurse Right to Node 1',
+                desc: 'Traverse the right child of node 3. Now visiting node 1.',
+                op: 'dfs-right',
+                teaching: 'We follow the <strong>right edge</strong> from node 3 to node <strong>1</strong>. Node 1 is our other target — it is <strong>q</strong>. The DFS will check it against the base case.',
+                stateJSON: '{"phase":"dfs_right","current_node":"1","parent":"3","direction":"right"}',
+                evidence: '<strong>Operation:</strong> Recurse right from node 3 to node 1<br><strong>Target:</strong> Node 1 (right child of 3)<br><strong>Dependencies:</strong> Node 3 has a right child (1)<br><strong>Before:</strong> Current node was 3, left_result=5<br><strong>After:</strong> Current node is 1; edge 3→1 is being traversed',
+                nodeClasses: { "3": "node-dimmed", "5": "node-found-p", "1": "node-current" },
+                edgeClasses: { "3->5": "edge-traversed", "3->1": "edge-active" },
+                checkpoint: null,
+            }, {
+                index: 6,
+                title: 'Node 1 Matches q – Return Up',
+                desc: 'Node 1 equals q. The base case triggers again: return node 1.',
+                op: 'found-q',
+                teaching: '<strong>Checkpoint:</strong> Node 1 equals <strong>q</strong>! The base case fires again, returning node <strong>1</strong> to the caller (node 3). Now node 3 has <strong>left_result = 5</strong> and <strong>right_result = 1</strong> — both are non-null.',
+                stateJSON: '{"phase":"found_q","current_node":"1","matches":"q","return_value":"1"}',
+                evidence: '<strong>Operation:</strong> Base case match<br><strong>Target:</strong> Node 1<br><strong>Dependencies:</strong> Node 1 is q (target q=&quot;1&quot;)<br><strong>Before:</strong> Checking if node 1 equals p or q<br><strong>After:</strong> Match confirmed! Returning node 1 to parent (node 3). Now node 3 has left=5 (non-null) and right=1 (non-null)',
+                nodeClasses: { "3": "node-dimmed", "5": "node-found-p", "1": "node-found-q" },
+                edgeClasses: { "3->5": "edge-traversed", "3->1": "edge-traversed" },
+                checkpoint: {
+                    prompt: 'Node 3 now has left_result=5 (non-null) and right_result=1 (non-null). What does this tell us about node 3?',
+                    correctAnswers: ['3', 'node 3', 'node3', 'lca', 'lowest common ancestor', 'it is the lca',
+                        'node 3 is the lca', 'the lca is 3'
+                    ],
+                    hints: [
+                        'When both left and right subtree calls return non-null, the current node is the LCA.',
+                        'Since p was found in the left subtree and q in the right subtree, their deepest common ancestor must be the current node.',
+                    ],
+                    showAnswer: 'Node 3 is the LCA because both its left and right subtrees contain one target each (5 and 1).',
+                },
+            }, {
+                index: 7,
+                title: 'LCA Confirmed – Node 3',
+                desc: 'Both left and right are non-null. Node 3 is the lowest common ancestor. Return "3".',
+                op: 'lca-found',
+                teaching: '<strong>Final answer:</strong> Since both <code>left != null</code> and <code>right != null</code>, node <strong>3</strong> is the lowest common ancestor of p=5 and q=1. The algorithm returns <strong>&quot;3&quot;</strong>. This is the deepest node that has both targets in its descendant subtrees.',
+                stateJSON: '{"phase":"lca_found","lca":"3","left_has_p":true,"right_has_q":true,"final_answer":"3"}',
+                evidence: '<strong>Operation:</strong> Determine LCA<br><strong>Target:</strong> Node 3<br><strong>Dependencies:</strong> left_result=5 (non-null), right_result=1 (non-null)<br><strong>Before:</strong> Both subtree results received<br><strong>After:</strong> Node 3 confirmed as LCA; final answer is &quot;3&quot;',
+                nodeClasses: { "3": "node-lca", "5": "node-found-p", "1": "node-found-q" },
+                edgeClasses: { "3->5": "edge-traversed", "3->1": "edge-traversed" },
+                checkpoint: {
+                    prompt: 'The algorithm has determined the LCA. What is the final answer returned by findLCA?',
+                    correctAnswers: ['3', 'node 3', 'node3', 'three', 'the root', 'root node 3'],
+                    hints: [
+                        'The LCA is the node where both targets are found in different subtrees.',
+                        'Node 3 is the only node that has p=5 in its left subtree and q=1 in its right subtree.',
+                    ],
+                    showAnswer: 'The final answer is &quot;3&quot; — node 3 is the lowest common ancestor.',
+                },
+            }];
+
+            const totalSteps = steps.length; // N = 8
+
+            // ────────────────────────────────────────
+            // DOM REFERENCES
+            // ────────────────────────────────────────
+            const $canvas = document.getElementById('canvas');
+            const $code = document.getElementById('code');
+            const $stepTitle = document.getElementById('step-title');
+            const $stepDesc = document.getElementById('step-desc');
+            const $op = document.getElementById('op');
+            const $teaching = document.getElementById('teaching');
+            const $state = document.getElementById('state');
+            const $stepEvidence = document.getElementById('step-evidence');
+            const $counter = document.getElementById('counter');
+            const $range = document.getElementById('range');
+            const $timeline = document.getElementById('timeline');
+            const $prevBtn = document.getElementById('prev');
+            const $playBtn = document.getElementById('play');
+            const $nextBtn = document.getElementById('next');
+            const $answer = document.getElementById('answer');
+            const $checkpointWrap = document.getElementById('checkpoint-wrap');
+            const $checkpointPrompt = document.getElementById('checkpoint-prompt');
+            const $checkpointInput = document.getElementById('checkpoint-input');
+            const $checkpointFeedback = document.getElementById('checkpoint-feedback');
+            const $checkpointSubmit = document.getElementById('checkpoint-submit');
+            const $checkpointHint = document.getElementById('checkpoint-hint');
+            const $checkpointShow = document.getElementById('checkpoint-show');
+            const $learningLog = document.getElementById('learning-log');
+            const $topResult = document.getElementById('top-result');
+
+            // Set range max
+            $range.max = totalSteps;
+            $range.value = 1;
+
+            // ────────────────────────────────────────
+            // BUILD CANVAS: SVG edges + node divs
+            // ────────────────────────────────────────
+            function buildCanvas() {
+                // Clear canvas
+                $canvas.innerHTML = '';
+
+                // Create SVG layer for edges
+                const svgNS = 'http://www.w3.org/2000/svg';
+                const svg = document.createElementNS(svgNS, 'svg');
+                svg.setAttribute('class', 'edge-layer');
+                svg.setAttribute('viewBox', '0 0 100 100');
+                svg.setAttribute('preserveAspectRatio', 'none');
+                svg.setAttribute('aria-hidden', 'true');
+
+                edges.forEach(([parentId, childId]) => {
+                    const pPos = nodePositions[parentId];
+                    const cPos = nodePositions[childId];
+                    const line = document.createElementNS(svgNS, 'line');
+                    line.setAttribute('x1', pPos.x);
+                    line.setAttribute('y1', pPos.y);
+                    line.setAttribute('x2', cPos.x);
+                    line.setAttribute('y2', cPos.y);
+                    line.setAttribute('class', 'edge-line');
+                    line.setAttribute('data-edge', `${parentId}->${childId}`);
+                    line.setAttribute('data-parent', parentId);
+                    line.setAttribute('data-child', childId);
+                    svg.appendChild(line);
+                });
+                $canvas.appendChild(svg);
+
+                // Create node divs
+                treeNodes.forEach(node => {
+                    const div = document.createElement('div');
+                    div.className = 'tree-node';
+                    div.setAttribute('data-node-id', node.id);
+                    div.textContent = node.id;
+                    const pos = nodePositions[node.id];
+                    div.style.left = pos.x + '%';
+                    div.style.top = pos.y + '%';
+                    div.setAttribute('aria-label', 'Tree node ' + node.id);
+                    div.title = 'Node ' + node.id;
+                    $canvas.appendChild(div);
+                });
+            }
+
+            buildCanvas();
+
+            // ────────────────────────────────────────
+            // BUILD CODE DISPLAY
+            // ────────────────────────────────────────
+            function buildCodeDisplay() {
+                $code.innerHTML = '';
+                codeLines.forEach((line, i) => {
+                    const span = document.createElement('span');
+                    span.className = 'code-line';
+                    span.setAttribute('data-line-index', i);
+                    // Simple syntax highlighting
+                    let html = line
+                        .replace(/function/g, '<span class="code-keyword">function</span>')
+                        .replace(/if /g, '<span class="code-keyword">if </span>')
+                        .replace(/return /g, '<span class="code-keyword">return </span>')
+                        .replace(/null/g, '<span class="code-keyword">null</span>')
+                        .replace(/or /g, '<span class="code-keyword">or </span>')
+                        .replace(/and /g, '<span class="code-keyword">and </span>')
+                        .replace(/findLCA/g, '<span class="code-func">findLCA</span>')
+                        .replace(/"p"|"q"|'p'|'q'/g, '<span class="code-string">$&</span>')
+                        .replace(/is null/g, '<span class="code-keyword">is null</span>');
+                    // Also highlight the comments
+                    if (line.trim().startsWith('//') || line.trim().startsWith('#')) {
+                        html = '<span class="code-comment">' + line + '</span>';
+                    }
+                    span.innerHTML = html;
+                    $code.appendChild(span);
+                    // Add newline after each except last
+                    if (i < codeLines.length - 1) {
+                        $code.appendChild(document.createTextNode('\n'));
+                    }
+                });
+            }
+            buildCodeDisplay();
+
+            // ────────────────────────────────────────
+            // BUILD TIMELINE TICKS
+            // ────────────────────────────────────────
+            function buildTimeline() {
+                $timeline.innerHTML = '';
+                steps.forEach((step, i) => {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step-index', i);
+                    tick.setAttribute('role', 'tab');
+                    tick.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + step.title);
+                    tick.innerHTML =
+                        '<span class="tick-label">' + (i + 1) + '</span>' +
+                        '<span class="tick-op">' + step.op + '</span>';
+                    tick.addEventListener('click', () => goToStep(i));
+                    $timeline.appendChild(tick);
+                });
+            }
+            buildTimeline();
+
+            // ────────────────────────────────────────
+            // STATE
+            // ────────────────────────────────────────
+            let currentStepIndex = 0;
+            let isPlaying = false;
+            let playInterval = null;
+            let hintCounters = {}; // per step index
+            let checkpointSubmitted = {}; // track if checkpoint was already submitted this session
+
+            function getTickElements() {
+                return Array.from($timeline.querySelectorAll('.tick'));
+            }
+            function getCodeLineElements() {
+                return Array.from($code.querySelectorAll('.code-line'));
+            }
+            function getNodeElements() {
+                return Array.from($canvas.querySelectorAll('.tree-node'));
+            }
+            function getEdgeElements() {
+                return Array.from($canvas.querySelectorAll('.edge-line'));
+            }
+
+            // ────────────────────────────────────────
+            // RENDER STEP
+            // ────────────────────────────────────────
+            function renderStep(stepIndex) {
+                const step = steps[stepIndex];
+                if (!step) return;
+
+                // Update text elements
+                $stepTitle.textContent = step.title;
+                $stepDesc.textContent = step.desc;
+                $op.textContent = step.op;
+                $teaching.innerHTML = step.teaching;
+                $state.textContent = step.stateJSON;
+                $stepEvidence.innerHTML = step.evidence;
+                $counter.textContent = (stepIndex + 1) + ' / ' + totalSteps;
+                $range.value = stepIndex + 1;
+
+                // Update code highlighting
+                const codeLineEls = getCodeLineElements();
+                codeLineEls.forEach((el, i) => {
+                    el.classList.remove('code-active');
+                    if (i === stepCodeLineMap[stepIndex]) {
+                        el.classList.add('code-active');
+                    }
+                });
+
+                // Update timeline ticks
+                const ticks = getTickElements();
+                ticks.forEach((tick, i) => {
+                    tick.classList.remove('tick-active', 'tick-visited');
+                    if (i === stepIndex) {
+                        tick.classList.add('tick-active');
+                    } else if (i < stepIndex) {
+                        tick.classList.add('tick-visited');
+                    }
+                });
+
+                // Update node colors
+                const nodeEls = getNodeElements();
+                nodeEls.forEach(el => {
+                    const nodeId = el.getAttribute('data-node-id');
+                    // Reset all classes
+                    el.className = 'tree-node';
+                    const cls = step.nodeClasses[nodeId];
+                    if (cls) {
+                        el.classList.add(cls);
+                    }
+                });
+
+                // Update edge colors
+                const edgeEls = getEdgeElements();
+                edgeEls.forEach(el => {
+                    const edgeKey = el.getAttribute('data-edge');
+                    el.classList.remove('edge-active', 'edge-traversed');
+                    const cls = step.edgeClasses[edgeKey];
+                    if (cls) {
+                        el.classList.add(cls);
+                    }
+                });
+
+                // Update checkpoint area
+                if (step.checkpoint) {
+                    $checkpointWrap.classList.add('visible');
+                    $checkpointPrompt.textContent = step.checkpoint.prompt;
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = '';
+                    if (!checkpointSubmitted[stepIndex]) {
+                        $checkpointInput.value = '';
+                        $checkpointInput.disabled = false;
+                        $checkpointSubmit.disabled = false;
+                        $checkpointHint.disabled = false;
+                        $checkpointShow.disabled = false;
+                        if (!hintCounters[stepIndex]) hintCounters[stepIndex] = 0;
+                    } else {
+                        // Already submitted correctly
+                        $checkpointInput.disabled = true;
+                        $checkpointSubmit.disabled = true;
+                        $checkpointHint.disabled = true;
+                        $checkpointShow.disabled = true;
+                    }
+                    $checkpointInput.focus();
+                } else {
+                    $checkpointWrap.classList.remove('visible');
+                    $checkpointFeedback.textContent = '';
+                    $checkpointFeedback.className = '';
+                    $checkpointInput.value = '';
+                }
+
+                // Update prev/next button states
+                $prevBtn.disabled = (stepIndex === 0);
+                $nextBtn.disabled = (stepIndex === totalSteps - 1);
+
+                // Scroll active code line into view if needed
+                const activeCodeLine = $code.querySelector('.code-active');
+                if (activeCodeLine && $code.scrollHeight > $code.clientHeight) {
+                    activeCodeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                // Ensure the active tick is visible in the timeline
+                const activeTick = $timeline.querySelector('.tick-active');
+                if (activeTick && $timeline.scrollWidth > $timeline.clientWidth) {
+                    activeTick.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            function goToStep(stepIndex) {
+                const clamped = Math.max(0, Math.min(totalSteps - 1, stepIndex));
+                if (clamped !== currentStepIndex) {
+                    // If moving away from a checkpoint step that wasn't submitted, reset hint counter
+                    const oldStep = steps[currentStepIndex];
+                    if (oldStep && oldStep.checkpoint && !checkpointSubmitted[currentStepIndex]) {
+                        hintCounters[currentStepIndex] = 0;
+                    }
+                }
+                currentStepIndex = clamped;
+                renderStep(currentStepIndex);
+                // If we reached the last step and were playing, stop
+                if (currentStepIndex >= totalSteps - 1 && isPlaying) {
+                    stopPlay();
+                }
+            }
+
+            // ────────────────────────────────────────
+            // PLAY / PAUSE
+            // ────────────────────────────────────────
+            function startPlay() {
+                isPlaying = true;
+                $playBtn.textContent = '⏸ Pause';
+                $playBtn.classList.add('paused');
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < totalSteps - 1) {
+                        goToStep(currentStepIndex + 1);
+                    } else {
+                        stopPlay();
+                    }
+                }, 1800);
+            }
+
+            function stopPlay() {
+                isPlaying = false;
+                $playBtn.textContent = '▶ Play';
+                $playBtn.classList.remove('paused');
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+            }
+
+            function togglePlay() {
+                if (isPlaying) {
+                    stopPlay();
+                } else {
+                    // If at the end, restart from beginning
+                    if (currentStepIndex >= totalSteps - 1) {
+                        goToStep(0);
+                    }
+                    startPlay();
+                }
+            }
+
+            // ────────────────────────────────────────
+            // EVENT LISTENERS
+            // ────────────────────────────────────────
+            $prevBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex - 1);
+            });
+            $nextBtn.addEventListener('click', () => {
+                stopPlay();
+                goToStep(currentStepIndex + 1);
+            });
+            $playBtn.addEventListener('click', togglePlay);
+            $range.addEventListener('input', () => {
+                stopPlay();
+                const val = parseInt($range.value, 10);
+                goToStep(val - 1);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'checkpoint-input') return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStepIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    stopPlay();
+                    goToStep(currentStepIndex + 1);
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ────────────────────────────────────────
+            // CHECKPOINT HANDLERS
+            // ────────────────────────────────────────
+            function normalizeAnswer(str) {
+                return str.trim().toLowerCase().replace(/\s+/g, ' ').replace(/["']/g, '');
+            }
+
+            function checkAnswer(userInput, correctAnswers) {
+                const normalized = normalizeAnswer(userInput);
+                if (normalized.length === 0) return false;
+                return correctAnswers.some(ans => normalizeAnswer(ans) === normalized ||
+                    normalized.includes(normalizeAnswer(ans)) ||
+                    normalizeAnswer(ans).includes(normalized));
+            }
+
+            function appendLogEntry(stepIndex, userAnswer, isCorrect, feedbackText, entryType) {
+                const step = steps[stepIndex];
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry';
+                if (entryType === 'correct') entryDiv.classList.add('log-correct');
+                if (entryType === 'incorrect') entryDiv.classList.add('log-incorrect');
+                if (entryType === 'reveal') entryDiv.classList.add('log-reveal');
+
+                entryDiv.innerHTML =
+                    '<span class="log-time">' + timeStr + '</span>' +
+                    '<span class="log-step">Step ' + (stepIndex + 1) + '</span>' +
+                    '<span>Q: ' + (step.checkpoint ? step.checkpoint.prompt : '') + '</span>' +
+                    '<span class="log-answer">Answer: &quot;' + escapeHTML(userAnswer) + '&quot;</span>' +
+                    '<span>(' + (isCorrect ? 'Correct' : (entryType === 'reveal' ? 'Revealed' : 'Incorrect')) +
+                    ')</span>' +
+                    '<span style="font-size:0.75rem;color:#64748b;">' + escapeHTML(feedbackText) + '</span>';
+                $learningLog.appendChild(entryDiv);
+
+                // Remove the placeholder if present
+                const placeholder = $learningLog.querySelector('div[style]');
+                if (placeholder && placeholder.style.color === '#94a3b8') {
+                    placeholder.remove();
+                }
+                // Scroll log to bottom
+                $learningLog.scrollTop = $learningLog.scrollHeight;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            $checkpointSubmit.addEventListener('click', () => {
+                const step = steps[currentStepIndex];
+                if (!step || !step.checkpoint) return;
+                if (checkpointSubmitted[currentStepIndex]) return;
+
+                const userAnswer = $checkpointInput.value;
+                if (userAnswer.trim().length === 0) {
+                    $checkpointFeedback.textContent = 'Please type an answer before submitting.';
+                    $checkpointFeedback.className = 'feedback-incorrect';
+                    return;
+                }
+
+                const isCorrect = checkAnswer(userAnswer, step.checkpoint.correctAnswers);
+                if (isCorrect) {
+                    $checkpointFeedback.textContent =
+                        '✓ Correct! ' + step.checkpoint.correctAnswers[0] + ' is the right answer. Well done!';
+                    $checkpointFeedback.className = 'feedback-correct';
+                    checkpointSubmitted[currentStepIndex] = true;
+                    $checkpointInput.disabled = true;
+                    $checkpointSubmit.disabled = true;
+                    $checkpointHint.disabled = true;
+                    $checkpointShow.disabled = true;
+                    appendLogEntry(currentStepIndex, userAnswer, true,
+                        'Correctly identified: ' + step.checkpoint.correctAnswers[0], 'correct');
+                } else {
+                    $checkpointFeedback.textContent =
+                        '✗ Not quite. "' + escapeHTML(userAnswer) +
+                        '" is incorrect. Review the current state and try again, or use Hint / Show Answer.';
+                    $checkpointFeedback.className = 'feedback-incorrect';
+                    appendLogEntry(currentStepIndex, userAnswer, false,
+                        'Submitted: "' + userAnswer + '" — incorrect', 'incorrect');
+                }
+            });
+
+            $checkpointHint.addEventListener('click', () => {
+                const step = steps[currentStepIndex];
+                if (!step || !step.checkpoint) return;
+                if (checkpointSubmitted[currentStepIndex]) return;
+                if (!hintCounters[currentStepIndex]) hintCounters[currentStepIndex] = 0;
+                const hintIdx = hintCounters[currentStepIndex];
+                const hints = step.checkpoint.hints;
+                if (hintIdx < hints.length) {
+                    $checkpointFeedback.textContent = '💡 Hint ' + (hintIdx + 1) + ': ' + hints[hintIdx];
+                    $checkpointFeedback.className = '';
+                    hintCounters[currentStepIndex] = hintIdx + 1;
+                    appendLogEntry(currentStepIndex, '[Hint requested]', false,
+                        'Hint ' + (hintIdx + 1) + ': ' + hints[hintIdx], 'reveal');
+                } else {
+                    $checkpointFeedback.textContent =
+                        '💡 No more hints available. Try "Show Answer" to reveal the solution.';
+                    $checkpointFeedback.className = '';
+                }
+            });
+
+            $checkpointShow.addEventListener('click', () => {
+                const step = steps[currentStepIndex];
+                if (!step || !step.checkpoint) return;
+                if (checkpointSubmitted[currentStepIndex]) return;
+                $checkpointFeedback.textContent = '🔍 Answer: ' + step.checkpoint.showAnswer;
+                $checkpointFeedback.className = '';
+                checkpointSubmitted[currentStepIndex] = true;
+                $checkpointInput.disabled = true;
+                $checkpointSubmit.disabled = true;
+                $checkpointHint.disabled = true;
+                $checkpointShow.disabled = true;
+                appendLogEntry(currentStepIndex, '[Show Answer]', true,
+                    'Revealed: ' + step.checkpoint.showAnswer, 'reveal');
+            });
+
+            // Allow Enter key to submit checkpoint
+            $checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    $checkpointSubmit.click();
+                }
+            });
+
+            // ────────────────────────────────────────
+            // INITIALIZATION
+            // ────────────────────────────────────────
+            function init() {
+                // Ensure #answer has the correct bare final-return JSON
+                $answer.textContent = expectedLCA;
+                $topResult.textContent = 'LCA of ' + pTarget + ' & ' + qTarget;
+                // Set initial step
+                currentStepIndex = 0;
+                renderStep(0);
+                // Reset hint counters
+                hintCounters = {};
+                checkpointSubmitted = {};
+                // Clear learning log placeholder
+                const placeholder = $learningLog.querySelector('div[style]');
+                if (!placeholder || placeholder.style.color !== '#94a3b8') {
+                    const ph = document.createElement('div');
+                    ph.style.cssText = 'color:#94a3b8;font-size:0.8rem;font-style:italic;';
+                    ph.textContent = 'No entries yet. Interact with checkpoints to populate the log.';
+                    $learningLog.appendChild(ph);
+                }
+                $answer.textContent = expectedLCA;
+            }
+
+            init();
+
+            // ────────────────────────────────────────
+            // RESPONSIVE RESIZE HANDLER
+            // ────────────────────────────────────────
+            function handleResize() {
+                // The canvas uses percentage-based positioning, so it auto-scales.
+                // SVG viewBox handles line scaling automatically.
+                // No additional action needed, but we keep this for future extensibility.
+            }
+            window.addEventListener('resize', handleResize);
+
+            // ────────────────────────────────────────
+            // EXPORT FOR DEBUG (non-intrusive)
+            // ────────────────────────────────────────
+            if (typeof window !== 'undefined') {
+                window._algoLabState = {
+                    currentStepIndex,
+                    totalSteps,
+                    steps,
+                    goToStep,
+                    togglePlay,
+                    stopPlay,
+                    expectedLCA,
+                };
+            }
+
+            console.log('AlgoLab Tutorial: Binary Tree LCA — ready. Steps: ' + totalSteps +
+                '. Use arrow keys, Play, or the timeline to explore.');
+        })();
+    </script>
+</body>
+</html>

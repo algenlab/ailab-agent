@@ -1,0 +1,883 @@
+{
+  "schema_version": "boundary-cases-v1",
+  "description": "Boundary coverage registry for current family_core deterministic benchmark cases. Coverage entries point to existing sample indexes; not_applicable entries must explain why a category is not meaningful for that case.",
+  "categories": [
+    "empty",
+    "single",
+    "duplicate",
+    "zero_or_negative",
+    "extreme",
+    "no_solution",
+    "multiple_solutions"
+  ],
+  "cases": [
+    {
+      "case_id": "house_robber",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "empty nums returns 0"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "nums contains repeated value 1"},
+        {"category": "extreme", "sample_index": 0, "evidence": "longer non-trivial robbery plan"}
+      ],
+      "not_applicable": [
+        {"category": "single", "reason": "current deterministic case set has no one-house sample yet"},
+        {"category": "zero_or_negative", "reason": "house values are modeled as non-negative rewards; zero is covered by the empty total boundary"},
+        {"category": "no_solution", "reason": "optimization always has at least the empty plan"},
+        {"category": "multiple_solutions", "reason": "case output is only max value and does not expose plan multiplicity"}
+      ]
+    },
+    {
+      "case_id": "binary_search",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-element array hit"},
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "array includes -1 and 0"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "target 2 is absent and returns -1"},
+        {"category": "extreme", "sample_index": 0, "evidence": "target near right side of sorted array"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty array is a planned boundary sample, not in current deterministic set"},
+        {"category": "duplicate", "reason": "closed interval search fixture assumes distinct sorted values"},
+        {"category": "multiple_solutions", "reason": "distinct sorted values make the target index unique"}
+      ]
+    },
+    {
+      "case_id": "binary_answer_sqrt",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "n=1 is the scalar lower boundary used by the answer-domain search"},
+        {"category": "extreme", "sample_index": 1, "evidence": "perfect square n=16 exercises the inclusive right boundary and exact answer update"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "integer square root input is a scalar n, not a collection"},
+        {"category": "duplicate", "reason": "duplicate collection elements do not apply to scalar answer-domain search"},
+        {"category": "zero_or_negative", "reason": "negative n is outside the input contract and n=0 is not in current deterministic samples"},
+        {"category": "no_solution", "reason": "floor square root is defined for every non-negative integer n"},
+        {"category": "multiple_solutions", "reason": "the floor square root value is unique"}
+      ]
+    },
+    {
+      "case_id": "two_pointer_pair_sum",
+      "coverage": [
+        {"category": "no_solution", "sample_index": 1, "evidence": "target 20 has no pair in the sorted array"},
+        {"category": "extreme", "sample_index": 0, "evidence": "five-element array requires pointer movement before finding the pair"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty array is not in current deterministic two-pointer samples"},
+        {"category": "single", "reason": "one-element array cannot form a pair and is not in current samples"},
+        {"category": "duplicate", "reason": "current sorted arrays use distinct values"},
+        {"category": "zero_or_negative", "reason": "current samples contain positive values only"},
+        {"category": "multiple_solutions", "reason": "current fixture returns one pair and current samples do not expose multiple valid pairs"}
+      ]
+    },
+    {
+      "case_id": "sliding_window_min_len",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-element array reaches target with window length 1"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "array contains repeated value 1"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "sum never reaches target 5 and returns 0"},
+        {"category": "extreme", "sample_index": 0, "evidence": "mixed window expansions and contractions find a shorter inner window"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty nums is not in current deterministic sliding-window samples"},
+        {"category": "zero_or_negative", "reason": "this positive-window contract excludes zero and negative values"},
+        {"category": "multiple_solutions", "reason": "the output is the minimum length, not the identity of every minimum window"}
+      ]
+    },
+    {
+      "case_id": "prefix_sum_range",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-element array and query [0,0]"},
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "array contains -1 and query starts at left boundary"},
+        {"category": "extreme", "sample_index": 0, "evidence": "query [1,2] exercises subtracting two prefix entries"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "range query requires a non-empty array in current deterministic samples"},
+        {"category": "duplicate", "reason": "current prefix-sum arrays do not contain repeated values"},
+        {"category": "no_solution", "reason": "all current queries are valid closed intervals"},
+        {"category": "multiple_solutions", "reason": "the range-sum value for a fixed query is unique"}
+      ]
+    },
+    {
+      "case_id": "difference_array_range_add",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-element array with update [0,0,-3]"},
+        {"category": "duplicate", "sample_index": 0, "evidence": "initial nums contains repeated value 1"},
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "initial array contains zeros and one update has negative delta -2"},
+        {"category": "extreme", "sample_index": 1, "evidence": "multiple updates include right-boundary update [1,3,5] and an overlapping point update"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "difference-array restoration requires a non-empty array in current deterministic samples"},
+        {"category": "no_solution", "reason": "all current range updates are valid and always produce a final array"},
+        {"category": "multiple_solutions", "reason": "the final array after applying ordered updates is deterministic"}
+      ]
+    },
+    {
+      "case_id": "fast_slow_cycle",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "empty nums has no start node and returns false"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "two positions point to index 3"},
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "value 0 closes the cycle back to the start index"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "empty input has no reachable cycle"},
+        {"category": "extreme", "sample_index": 1, "evidence": "path enters a self-loop after several fast/slow pointer moves"}
+      ],
+      "not_applicable": [
+        {"category": "single", "reason": "single-node pointer graph is not in current deterministic samples"},
+        {"category": "multiple_solutions", "reason": "the fixture returns a boolean cycle-existence result, not distinct cycle identities"}
+      ]
+    },
+    {
+      "case_id": "unique_paths",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "one-row grid m=1"},
+        {"category": "extreme", "sample_index": 0, "evidence": "rectangular 3x7 grid exercises larger DP table"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "grid dimensions must be positive"},
+        {"category": "duplicate", "reason": "there is no element multiset in the input"},
+        {"category": "zero_or_negative", "reason": "zero or negative dimensions are outside the input contract"},
+        {"category": "no_solution", "reason": "positive grid dimensions always have at least one path"},
+        {"category": "multiple_solutions", "reason": "output is a path count, not individual solution identities"}
+      ]
+    },
+    {
+      "case_id": "knapsack_01_subset_sum",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 0, "evidence": "nums contains repeated value 5 while still reaching equal partition"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "odd total sum cannot be split into equal subset sums"},
+        {"category": "multiple_solutions", "sample_index": 3, "evidence": "target 9 can be reached by different subset compositions such as 4+5 or 3+3+3"},
+        {"category": "extreme", "sample_index": 0, "evidence": "four-element positive array exercises non-trivial reverse-capacity updates"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty nums is outside the current positive-array deterministic samples"},
+        {"category": "single", "reason": "single-number partition sample is not in the current deterministic set"},
+        {"category": "zero_or_negative", "reason": "input contract uses positive integers, so zero and negative values are outside scope"}
+      ]
+    },
+    {
+      "case_id": "complete_knapsack_coin_change",
+      "coverage": [
+        {"category": "single", "sample_index": 1, "evidence": "single coin type coins=[2] cannot form amount 3"},
+        {"category": "zero_or_negative", "sample_index": 2, "evidence": "amount 0 returns 0 without needing any coin"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "amount 3 is unreachable using only coin 2"},
+        {"category": "multiple_solutions", "sample_index": 3, "evidence": "amount 7 has multiple combinations with coins [2,3,5], while the minimum uses two coins"},
+        {"category": "extreme", "sample_index": 0, "evidence": "amount 11 exercises repeated use of coin 5 and residual capacity updates"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty coins is outside the current deterministic input contract"},
+        {"category": "duplicate", "reason": "coin denominations are treated as distinct available denominations and current samples do not duplicate them"}
+      ]
+    },
+    {
+      "case_id": "bounded_knapsack_max_value",
+      "coverage": [
+        {"category": "single", "sample_index": 1, "evidence": "single item type with count limit 2 and capacity 5"},
+        {"category": "duplicate", "sample_index": 0, "evidence": "count 2 permits duplicate copies of the same weight-2 item"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "all item weights exceed capacity 3, so max value remains 0"},
+        {"category": "extreme", "sample_index": 3, "evidence": "mixed small weights, count limits and exact capacity exercise bounded enumeration"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty item lists are outside the current deterministic bounded-knapsack samples"},
+        {"category": "zero_or_negative", "reason": "weights, values, counts and capacity are modeled as non-negative positive-contract quantities in current samples"},
+        {"category": "multiple_solutions", "reason": "current samples return only the max value and do not expose tied optimal take-count plans"}
+      ]
+    },
+    {
+      "case_id": "lcs_length",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 3, "evidence": "text strings contain repeated letters while the LCS remains length 1"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "abc and def have no common character, so LCS length is 0"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "identical strings expose multiple matching character positions across the DP table"},
+        {"category": "extreme", "sample_index": 3, "evidence": "longer unequal strings exercise a larger LCS DP table"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty string sample is not in the current LCS deterministic set"},
+        {"category": "single", "reason": "single-character string sample is not in the current deterministic set"},
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "edit_distance",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "word1 is empty and converting to abc costs three insertions"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "intention and execution include repeated characters while filling a larger DP table"},
+        {"category": "extreme", "sample_index": 1, "evidence": "intention to execution exercises a larger 2D edit-distance table"}
+      ],
+      "not_applicable": [
+        {"category": "single", "reason": "single-character word sample is not in the current deterministic set"},
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"},
+        {"category": "no_solution", "reason": "edit distance is defined for every pair of strings; identical strings are a zero-cost case, not no-solution"},
+        {"category": "multiple_solutions", "reason": "the fixture returns only minimum edit distance and current samples do not expose tied edit scripts"}
+      ]
+    },
+    {
+      "case_id": "interval_dp_merge_stones",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single stone has merge cost 0"},
+        {"category": "duplicate", "sample_index": 3, "evidence": "stones contains repeated value 1"},
+        {"category": "extreme", "sample_index": 0, "evidence": "four piles exercise multiple interval lengths and split points"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty stones is outside the current deterministic merge-stones samples"},
+        {"category": "zero_or_negative", "reason": "stone weights are positive in the current input contract"},
+        {"category": "no_solution", "reason": "every non-empty stones array has a defined minimum merge cost"},
+        {"category": "multiple_solutions", "reason": "current samples return only minimum cost and do not expose tied optimal merge trees"}
+      ]
+    },
+    {
+      "case_id": "state_compression_tsp",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "two-node distance matrix is the smallest current TSP tour sample"},
+        {"category": "duplicate", "sample_index": 0, "evidence": "symmetric distance matrix contains repeated edge costs such as 1 and 15"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "symmetric three-node tour has equivalent clockwise and counterclockwise orders"},
+        {"category": "extreme", "sample_index": 0, "evidence": "three-node matrix exercises bitmask state expansion beyond the base tour"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty distance matrix is outside the current deterministic TSP input contract"},
+        {"category": "zero_or_negative", "reason": "edge distances are non-negative and current samples use positive off-diagonal weights"},
+        {"category": "no_solution", "reason": "complete distance matrices in current samples always have a Hamiltonian cycle"}
+      ]
+    },
+    {
+      "case_id": "digit_dp_no_seven",
+      "coverage": [
+        {"category": "single", "sample_index": 1, "evidence": "single-digit n=7 excludes the forbidden digit itself"},
+        {"category": "zero_or_negative", "sample_index": 3, "evidence": "n=0 returns 0 for the empty positive range 1..n"},
+        {"category": "extreme", "sample_index": 2, "evidence": "n=100 exercises three prefix digits and powers-of-ten boundary handling"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "digit DP input is scalar n, not a collection"},
+        {"category": "duplicate", "reason": "duplicate collection elements do not apply to scalar decimal bound n"},
+        {"category": "no_solution", "reason": "counting numbers without a forbidden digit is defined for every non-negative n"},
+        {"category": "multiple_solutions", "reason": "the output is a deterministic count, not identities of all counted numbers"}
+      ]
+    },
+    {
+      "case_id": "graph_bfs",
+      "coverage": [
+        {"category": "no_solution", "sample_index": 1, "evidence": "node 4 is unreachable from start"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "D is reachable through B or C at the same depth"},
+        {"category": "extreme", "sample_index": 1, "evidence": "disconnected graph component is present"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "BFS benchmark requires a valid start node"},
+        {"category": "single", "reason": "current deterministic graph samples have more than one node"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of neighbors"},
+        {"category": "zero_or_negative", "reason": "node ids are labels, not signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "graph_dfs_traversal",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single-node graph X returns only X"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "node 4 is disconnected from start and is not visited"},
+        {"category": "multiple_solutions", "sample_index": 2, "evidence": "C is reachable from both A and B while DFS records the first path"},
+        {"category": "extreme", "sample_index": 4, "evidence": "undirected edge back to an already visited node exercises cycle avoidance"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "DFS traversal benchmark requires a valid start node"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of neighbors"},
+        {"category": "zero_or_negative", "reason": "node ids are labels, not signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "graph_connected_components",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single isolated node X forms one component"},
+        {"category": "no_solution", "sample_index": 0, "evidence": "node C has no edge to the A-B component and remains isolated"},
+        {"category": "multiple_solutions", "sample_index": 4, "evidence": "graph has three disconnected components"},
+        {"category": "extreme", "sample_index": 1, "evidence": "two multi-node components exercise repeated DFS starts"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty graph is outside current deterministic component samples"},
+        {"category": "duplicate", "reason": "undirected adjacency mirrors edges structurally rather than duplicate input values"},
+        {"category": "zero_or_negative", "reason": "node ids are labels, not signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "graph_topological_sort",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single-node DAG X has topo order [X]"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "nodes 1 and 2 are both initially zero indegree"},
+        {"category": "extreme", "sample_index": 4, "evidence": "larger DAG exercises multiple indegree updates before node 3 becomes ready"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty DAG is outside current deterministic topo samples"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of outgoing edges"},
+        {"category": "zero_or_negative", "reason": "node ids are labels, not signed numeric values"},
+        {"category": "no_solution", "reason": "current topo benchmark only includes DAG inputs with valid topological orders"}
+      ]
+    },
+    {
+      "case_id": "graph_bipartite_coloring",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single isolated node X receives color 0"},
+        {"category": "multiple_solutions", "sample_index": 4, "evidence": "two disconnected bipartite components can be colored independently"},
+        {"category": "extreme", "sample_index": 3, "evidence": "two left nodes share R2 while preserving opposite colors"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty graph is outside current deterministic coloring samples"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of edges"},
+        {"category": "zero_or_negative", "reason": "colors are 0/1 labels and node ids are not signed numeric values"},
+        {"category": "no_solution", "reason": "current deterministic coloring samples are all bipartite"}
+      ]
+    },
+    {
+      "case_id": "dijkstra_shortest_path",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single source node X has distance 0"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "node 3 is unreachable from start 1"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "C has a direct edge and an improved path through B"},
+        {"category": "extreme", "sample_index": 1, "evidence": "four-node graph exercises stale longer candidate S-B before shorter S-A-B path"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "Dijkstra benchmark requires a valid start node"},
+        {"category": "duplicate", "reason": "weighted adjacency entries are treated as unique directed edges"},
+        {"category": "zero_or_negative", "reason": "Dijkstra strong contract only covers non-negative edge weights"}
+      ]
+    },
+    {
+      "case_id": "bellman_ford_shortest_path",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "edge B->C has negative weight -2"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "component 3-4 is unreachable from start 1"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "B has direct S-B edge and improved path S-A-B"},
+        {"category": "extreme", "sample_index": 1, "evidence": "negative edge plus downstream T relaxation requires repeated edge scans"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "Bellman-Ford benchmark requires at least one edge and a start"},
+        {"category": "single", "reason": "single-node no-edge graph is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "edge list is treated as a set of directed weighted edges"}
+      ]
+    },
+    {
+      "case_id": "floyd_warshall_all_pairs",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "two-node matrix is the smallest current all-pairs sample"},
+        {"category": "duplicate", "sample_index": 0, "evidence": "undirected matrix contains symmetric repeated weights"},
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "zero diagonal distances are preserved"},
+        {"category": "multiple_solutions", "sample_index": 3, "evidence": "0 to 1 improves through node 2 and mirrors 1 to 0"},
+        {"category": "extreme", "sample_index": 1, "evidence": "100000000 sentinel represents initially unreachable pairs that become reachable"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty distance matrix is outside current deterministic Floyd samples"},
+        {"category": "no_solution", "reason": "all-pairs distance matrix is always returned; unreachable pairs use the sentinel value"}
+      ]
+    },
+    {
+      "case_id": "zero_one_bfs_shortest_path",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "edge A->B has zero weight and is pushed to deque front"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "node 3 is unreachable from start 1"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "T can be reached through A or B with competing 0/1 costs"},
+        {"category": "extreme", "sample_index": 1, "evidence": "mixed zero and one weights exercise deque front and back pushes"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "0-1 BFS benchmark requires a valid start node"},
+        {"category": "single", "reason": "single-node graph is not in current deterministic 0-1 BFS samples"},
+        {"category": "duplicate", "reason": "weighted adjacency entries are treated as unique directed edges"}
+      ]
+    },
+    {
+      "case_id": "kruskal_mst_weight",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single edge X-Y is the smallest current connected MST sample"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "two MST edges have equal weight 1"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "equal-weight choices require union-find to decide acyclic selections"},
+        {"category": "extreme", "sample_index": 1, "evidence": "five edges over four nodes include both accepted and rejected cycle-forming edges"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty edge list is outside current deterministic MST samples"},
+        {"category": "zero_or_negative", "reason": "current MST samples use positive edge weights"},
+        {"category": "no_solution", "reason": "current deterministic MST samples are connected graphs"}
+      ]
+    },
+    {
+      "case_id": "kmp",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "empty pattern returns index 0"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "text has repeated a characters"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "pattern bba is absent"},
+        {"category": "extreme", "sample_index": 0, "evidence": "partial prefix overlap before match"}
+      ],
+      "not_applicable": [
+        {"category": "single", "reason": "current deterministic KMP samples do not use one-character pattern/text"},
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"},
+        {"category": "multiple_solutions", "reason": "current KMP fixture returns first match only and lacks multi-match sample"}
+      ]
+    },
+    {
+      "case_id": "rabin_karp",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 1, "evidence": "aaaaa contains repeated overlapping windows"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "pattern longer than text returns -1"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "pattern aa appears at multiple offsets"},
+        {"category": "extreme", "sample_index": 2, "evidence": "pattern length exceeds text length"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty string boundary is not in current Rabin-Karp deterministic samples"},
+        {"category": "single", "reason": "current deterministic samples use multi-character patterns"},
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "z_algorithm",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 1, "evidence": "aaaaa is fully repetitive"},
+        {"category": "extreme", "sample_index": 1, "evidence": "repetitive string produces maximal Z values"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty text is not in current deterministic Z samples"},
+        {"category": "single", "reason": "current deterministic Z samples have length at least 3"},
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"},
+        {"category": "no_solution", "reason": "Z table is defined for every non-empty text"},
+        {"category": "multiple_solutions", "reason": "the output is a deterministic Z table, not a solution set"}
+      ]
+    },
+    {
+      "case_id": "manacher",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "abc has only single-character palindromes"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "cbbd contains repeated b"},
+        {"category": "multiple_solutions", "sample_index": 2, "evidence": "three single-character palindromes tie for length 1"},
+        {"category": "extreme", "sample_index": 0, "evidence": "full odd-length palindrome ababa"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty text is not in current deterministic Manacher samples"},
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"},
+        {"category": "no_solution", "reason": "every non-empty string has at least one palindrome"}
+      ]
+    },
+    {
+      "case_id": "string_sliding_window_unique",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "empty text returns longest unique window length 0"},
+        {"category": "single", "sample_index": 1, "evidence": "all duplicate characters force best window length 1"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "bbbbb repeatedly triggers duplicate-window contraction"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "abcabcbb has several length-3 unique windows"},
+        {"category": "extreme", "sample_index": 0, "evidence": "mixed expansion and contraction across a longer repeated string"}
+      ],
+      "not_applicable": [
+        {"category": "zero_or_negative", "reason": "string inputs do not contain signed numeric values"},
+        {"category": "no_solution", "reason": "longest unique substring is defined for every string, including the empty string"}
+      ]
+    },
+    {
+      "case_id": "trie_prefix_match_string",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 0, "evidence": "apple/app/ape share the ap prefix path"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "prefix z is absent and returns 0"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "three words match prefix ap"},
+        {"category": "extreme", "sample_index": 1, "evidence": "prefix doo follows a deeper path with one matching branch"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty prefix is not in current deterministic Trie prefix-match samples"},
+        {"category": "single", "reason": "single-word dictionary is not in current deterministic samples"},
+        {"category": "zero_or_negative", "reason": "word and prefix inputs are strings, not signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "two_sum",
+      "coverage": [
+        {"category": "no_solution", "sample_index": 2, "evidence": "target 7 has no pair"},
+        {"category": "extreme", "sample_index": 0, "evidence": "classic pair at the beginning of a longer array"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty array is not in current deterministic Two Sum samples"},
+        {"category": "single", "reason": "one-element array cannot produce a pair and is not in current samples"},
+        {"category": "duplicate", "reason": "current samples do not include duplicate values"},
+        {"category": "zero_or_negative", "reason": "current samples contain positive values only"},
+        {"category": "multiple_solutions", "reason": "current fixture returns one pair and lacks multi-pair input"}
+      ]
+    },
+    {
+      "case_id": "subarray_sum_equals_k",
+      "coverage": [
+        {"category": "single", "sample_index": 4, "evidence": "single element equals k and contributes one subarray"},
+        {"category": "duplicate", "sample_index": 0, "evidence": "three repeated 1 values produce two matching length-2 subarrays"},
+        {"category": "zero_or_negative", "sample_index": 2, "evidence": "array contains -1 and 0 while k is 0"},
+        {"category": "extreme", "sample_index": 2, "evidence": "overlapping zero-sum subarrays exercise repeated prefix counts"},
+        {"category": "no_solution", "sample_index": 3, "evidence": "no contiguous subarray sums to k=7"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "two different subarrays sum to k"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty nums is outside the current deterministic prefix-sum-count samples"}
+      ]
+    },
+    {
+      "case_id": "daily_temperatures",
+      "coverage": [
+        {"category": "no_solution", "sample_index": 2, "evidence": "last day has no warmer future day"},
+        {"category": "extreme", "sample_index": 0, "evidence": "mixed rises and drops exercise stack pops"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty temperature list is not in current deterministic samples"},
+        {"category": "single", "reason": "one-day list is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "current samples have no repeated temperatures"},
+        {"category": "zero_or_negative", "reason": "temperatures are positive in current fixtures"},
+        {"category": "multiple_solutions", "reason": "next warmer day distance is deterministic per index"}
+      ]
+    },
+    {
+      "case_id": "insertion_sort",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 2, "evidence": "value 3 appears twice"},
+        {"category": "zero_or_negative", "sample_index": 2, "evidence": "array includes -1 and 0"},
+        {"category": "extreme", "sample_index": 0, "evidence": "unsorted four-element array"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty array is not in current insertion sort samples"},
+        {"category": "single", "reason": "single-element array is not in current insertion sort samples"},
+        {"category": "no_solution", "reason": "sorting always has a result for valid arrays"},
+        {"category": "multiple_solutions", "reason": "sorted output is unique even when equal values exist"}
+      ]
+    },
+    {
+      "case_id": "reverse_linked_list",
+      "coverage": [
+        {"category": "empty", "sample_index": 2, "evidence": "empty values list returns an empty reversed list"},
+        {"category": "single", "sample_index": 1, "evidence": "single-node list exercises no-op pointer boundary"},
+        {"category": "extreme", "sample_index": 0, "evidence": "three-node list exercises multiple next-pointer rewires"}
+      ],
+      "not_applicable": [
+        {"category": "duplicate", "reason": "current deterministic linked-list values are unique"},
+        {"category": "zero_or_negative", "reason": "node ids are generated labels and values are positive in current samples"},
+        {"category": "no_solution", "reason": "reversal is defined for every finite linked list"},
+        {"category": "multiple_solutions", "reason": "reversed linked-list order is unique"}
+      ]
+    },
+    {
+      "case_id": "jump_game",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-position array is already at the target"},
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "zero jump blocks progress in the middle"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "sample cannot reach the final index"},
+        {"category": "extreme", "sample_index": 0, "evidence": "classic reachable sample exercises repeated reach expansion"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty nums is outside the current jump-game input contract"},
+        {"category": "duplicate", "reason": "duplicate jump lengths do not affect the yes/no reachability identity"},
+        {"category": "multiple_solutions", "reason": "current output is a boolean reachability result, not a selected path"}
+      ]
+    },
+    {
+      "case_id": "merge_intervals",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single interval remains unchanged"},
+        {"category": "duplicate", "sample_index": 1, "evidence": "touching endpoint 4 appears in adjacent intervals"},
+        {"category": "zero_or_negative", "sample_index": 2, "evidence": "interval starting at 0 exercises lower boundary"},
+        {"category": "extreme", "sample_index": 0, "evidence": "mixed overlapping and disjoint intervals exercise both branches"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty interval list is outside the current deterministic merge-interval samples"},
+        {"category": "no_solution", "reason": "merge intervals is defined for every finite interval list"},
+        {"category": "multiple_solutions", "reason": "sorted merged closed intervals have a unique canonical result"}
+      ]
+    },
+    {
+      "case_id": "binary_tree_inorder",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single-node tree returns that node"},
+        {"category": "extreme", "sample_index": 4, "evidence": "chain-shaped tree exercises deep recursion"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty tree is outside current deterministic tree traversal samples"},
+        {"category": "duplicate", "reason": "node ids are unique"},
+        {"category": "zero_or_negative", "reason": "node ids are labels"},
+        {"category": "no_solution", "reason": "valid tree traversal always returns an order"},
+        {"category": "multiple_solutions", "reason": "inorder traversal is deterministic for the encoded tree"}
+      ]
+    },
+    {
+      "case_id": "lca",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "one query node is an ancestor of the other in a chain"},
+        {"category": "extreme", "sample_index": 0, "evidence": "larger tree with deep query nodes"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty tree is outside the LCA input contract"},
+        {"category": "duplicate", "reason": "node ids are unique"},
+        {"category": "zero_or_negative", "reason": "node ids are labels"},
+        {"category": "no_solution", "reason": "queries use existing nodes in a connected tree"},
+        {"category": "multiple_solutions", "reason": "LCA is unique in a rooted tree"}
+      ]
+    },
+    {
+      "case_id": "tree_diameter",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-node tree has diameter 0"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "two leaves can produce equivalent longest paths through node 2"},
+        {"category": "extreme", "sample_index": 3, "evidence": "unbalanced tree exercises diameter across different branches"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty tree is outside current deterministic samples"},
+        {"category": "duplicate", "reason": "node ids are unique"},
+        {"category": "zero_or_negative", "reason": "node ids are labels"},
+        {"category": "no_solution", "reason": "valid tree always has a diameter"}
+      ]
+    },
+    {
+      "case_id": "tree_max_independent_set",
+      "coverage": [
+        {"category": "single", "sample_index": 3, "evidence": "single-node weighted tree returns that node value"},
+        {"category": "extreme", "sample_index": 2, "evidence": "weighted tree has high-value grandchildren that dominate root choice"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty tree is outside current deterministic tree DP samples"},
+        {"category": "duplicate", "reason": "node ids are unique and repeated weights do not alter the boundary meaning here"},
+        {"category": "zero_or_negative", "reason": "current weights are positive"},
+        {"category": "no_solution", "reason": "the empty independent set is always feasible"},
+        {"category": "multiple_solutions", "reason": "current samples do not expose multiple optimal independent sets"}
+      ]
+    },
+    {
+      "case_id": "kth_largest",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 1, "evidence": "array contains repeated 2, 3 and 5"},
+        {"category": "single", "sample_index": 2, "evidence": "single-element heap with k=1"},
+        {"category": "zero_or_negative", "sample_index": 3, "evidence": "input includes negative and zero values"},
+        {"category": "extreme", "sample_index": 7, "evidence": "k=1 keeps only the maximum value"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "kth largest requires a non-empty array"},
+        {"category": "no_solution", "reason": "k is valid for all deterministic samples"},
+        {"category": "multiple_solutions", "reason": "the kth value is unique as a scalar even with duplicate inputs"}
+      ]
+    },
+    {
+      "case_id": "trie_prefix",
+      "coverage": [
+        {"category": "empty", "sample_index": 6, "evidence": "empty prefix matches all words"},
+        {"category": "single", "sample_index": 3, "evidence": "single-word dictionary with matching prefix"},
+        {"category": "duplicate", "sample_index": 4, "evidence": "word list contains duplicate same entries"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "prefix z has no matching word"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "prefix ap matches three words"},
+        {"category": "extreme", "sample_index": 7, "evidence": "three words share prefix pre while another branch diverges"}
+      ],
+      "not_applicable": [
+        {"category": "zero_or_negative", "reason": "string keys do not contain signed numeric values"}
+      ]
+    },
+    {
+      "case_id": "provinces",
+      "coverage": [
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "three disconnected singleton provinces"},
+        {"category": "extreme", "sample_index": 1, "evidence": "identity matrix has no off-diagonal connections"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty matrix is outside current deterministic samples"},
+        {"category": "single", "reason": "single-city matrix is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "matrix symmetry is structural rather than duplicate input values"},
+        {"category": "zero_or_negative", "reason": "connectivity matrix uses 0/1 booleans, not signed weights"},
+        {"category": "no_solution", "reason": "connected component count is always defined"}
+      ]
+    },
+    {
+      "case_id": "permutations",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "single-element input has one permutation"},
+        {"category": "zero_or_negative", "sample_index": 4, "evidence": "input includes a negative value"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "three values produce six permutations"},
+        {"category": "extreme", "sample_index": 0, "evidence": "3! output exercises branching"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty permutation input is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "permutation fixture assumes distinct input values"},
+        {"category": "no_solution", "reason": "valid finite input always has permutations"}
+      ]
+    },
+    {
+      "case_id": "convex_hull",
+      "coverage": [
+        {"category": "duplicate", "sample_index": 1, "evidence": "point [0,0] appears twice"},
+        {"category": "zero_or_negative", "sample_index": 0, "evidence": "coordinates include 0"},
+        {"category": "extreme", "sample_index": 0, "evidence": "interior point is excluded from hull"},
+        {"category": "multiple_solutions", "sample_index": 1, "evidence": "duplicate point should not duplicate hull vertex"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty point set is outside current deterministic samples"},
+        {"category": "single", "reason": "single-point hull is not in current deterministic samples"},
+        {"category": "no_solution", "reason": "non-empty point set always has a hull"}
+      ]
+    },
+    {
+      "case_id": "segment_tree_range_sum",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "array contains -1"},
+        {"category": "extreme", "sample_index": 0, "evidence": "query and update touch different internal ranges"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "range query requires a non-empty array"},
+        {"category": "single", "reason": "single-element range case is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "current arrays do not contain repeated values"},
+        {"category": "no_solution", "reason": "queries and updates are valid"},
+        {"category": "multiple_solutions", "reason": "range sum result is deterministic"}
+      ]
+    },
+    {
+      "case_id": "fenwick_tree_prefix_sum",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "array contains -2"},
+        {"category": "extreme", "sample_index": 0, "evidence": "query/update exercises prefix decomposition"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "Fenwick tree requires a non-empty array"},
+        {"category": "single", "reason": "single-element range case is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "current arrays do not contain repeated values"},
+        {"category": "no_solution", "reason": "queries and updates are valid"},
+        {"category": "multiple_solutions", "reason": "range sum result is deterministic"}
+      ]
+    },
+    {
+      "case_id": "sparse_table_range_min",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "array contains 0"},
+        {"category": "extreme", "sample_index": 0, "evidence": "length-six table uses multiple powers of two"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "sparse table requires a non-empty array"},
+        {"category": "single", "reason": "single-element query is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "current arrays do not contain repeated values"},
+        {"category": "no_solution", "reason": "range minimum query is valid for all samples"},
+        {"category": "multiple_solutions", "reason": "minimum value output is deterministic"}
+      ]
+    },
+    {
+      "case_id": "gcd_euclid",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 2, "evidence": "b=0 boundary"},
+        {"category": "extreme", "sample_index": 1, "evidence": "larger composite inputs 270 and 192"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "GCD input is two integers, not a collection"},
+        {"category": "single", "reason": "two-argument GCD does not have a single-element form"},
+        {"category": "duplicate", "reason": "equal-number GCD sample is not in current deterministic set"},
+        {"category": "no_solution", "reason": "GCD is defined for current non-negative inputs"},
+        {"category": "multiple_solutions", "reason": "GCD value is unique"}
+      ]
+    },
+    {
+      "case_id": "fast_power_mod",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 2, "evidence": "exponent 0 returns multiplicative identity"},
+        {"category": "extreme", "sample_index": 1, "evidence": "exponent 10 exercises repeated squaring"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "fast power input is scalar fields, not a collection"},
+        {"category": "single", "reason": "single-element collection boundary does not apply"},
+        {"category": "duplicate", "reason": "duplicate collection values do not apply"},
+        {"category": "no_solution", "reason": "modular exponentiation is defined for valid mod values"},
+        {"category": "multiple_solutions", "reason": "modular exponentiation result is unique"}
+      ]
+    },
+    {
+      "case_id": "sieve_primes",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "n=1 lower boundary"},
+        {"category": "no_solution", "sample_index": 2, "evidence": "n=1 has no primes"},
+        {"category": "extreme", "sample_index": 0, "evidence": "n=20 produces several primes and composites"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "sieve input is scalar n"},
+        {"category": "duplicate", "reason": "there is no input multiset"},
+        {"category": "zero_or_negative", "reason": "n<=0 is outside current deterministic samples"},
+        {"category": "multiple_solutions", "reason": "prime list up to n is unique"}
+      ]
+    },
+    {
+      "case_id": "combinations_pascal",
+      "coverage": [
+        {"category": "single", "sample_index": 2, "evidence": "k=0 boundary returns 1"},
+        {"category": "extreme", "sample_index": 1, "evidence": "n=6,k=3 exercises interior Pascal table"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "combination input is scalar n and k"},
+        {"category": "duplicate", "reason": "there is no input collection"},
+        {"category": "zero_or_negative", "reason": "negative n/k is outside input contract"},
+        {"category": "no_solution", "reason": "all current samples satisfy 0<=k<=n"},
+        {"category": "multiple_solutions", "reason": "combination count is unique"}
+      ]
+    },
+    {
+      "case_id": "bitmask_subsets",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 1, "evidence": "input includes 0"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "three elements produce eight subsets"},
+        {"category": "extreme", "sample_index": 0, "evidence": "full bitmask enumeration over 3 values"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty nums is not in current deterministic samples"},
+        {"category": "single", "reason": "single-element nums is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "subset fixture assumes distinct values"},
+        {"category": "no_solution", "reason": "subset enumeration always includes the empty subset"}
+      ]
+    },
+    {
+      "case_id": "lowbit_decomposition",
+      "coverage": [
+        {"category": "zero_or_negative", "sample_index": 2, "evidence": "n=0 returns empty decomposition"},
+        {"category": "extreme", "sample_index": 0, "evidence": "n=12 decomposes into multiple lowbit parts"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "lowbit input is scalar n"},
+        {"category": "single", "reason": "single set-bit input is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "there is no input collection"},
+        {"category": "no_solution", "reason": "decomposition is defined for current non-negative inputs"},
+        {"category": "multiple_solutions", "reason": "lowbit decomposition is unique"}
+      ]
+    },
+    {
+      "case_id": "tarjan_scc",
+      "coverage": [
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "graph has two SCCs"},
+        {"category": "no_solution", "sample_index": 1, "evidence": "node 4 has no outgoing cycle and forms singleton SCC"},
+        {"category": "extreme", "sample_index": 0, "evidence": "cycle plus second component exercises lowlink stack behavior"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty graph is not in current deterministic samples"},
+        {"category": "single", "reason": "single-node graph is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of edges"},
+        {"category": "zero_or_negative", "reason": "node ids are labels"}
+      ]
+    },
+    {
+      "case_id": "articulation_bridges",
+      "coverage": [
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "two articulation points and two bridges"},
+        {"category": "extreme", "sample_index": 0, "evidence": "cycle with leaf bridge exercises lowlink comparisons"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty graph is not in current deterministic samples"},
+        {"category": "single", "reason": "single-node graph is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "adjacency lists are treated as sets of edges"},
+        {"category": "zero_or_negative", "reason": "node ids are labels"},
+        {"category": "no_solution", "reason": "current samples both contain articulation/bridge results"}
+      ]
+    },
+    {
+      "case_id": "bipartite_matching",
+      "coverage": [
+        {"category": "no_solution", "sample_index": 0, "evidence": "L3 remains unmatched in a maximum matching"},
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "maximum size can be reached by different augmenting choices"},
+        {"category": "extreme", "sample_index": 1, "evidence": "perfect matching covers all left nodes"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty bipartite graph is not in current deterministic samples"},
+        {"category": "single", "reason": "single-edge graph is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "neighbor lists are treated as sets"},
+        {"category": "zero_or_negative", "reason": "node ids are labels"}
+      ]
+    },
+    {
+      "case_id": "edmonds_karp",
+      "coverage": [
+        {"category": "multiple_solutions", "sample_index": 0, "evidence": "flow can be sent through S-A-T and S-B-T"},
+        {"category": "extreme", "sample_index": 1, "evidence": "residual route A-B-T is needed to reach max flow"}
+      ],
+      "not_applicable": [
+        {"category": "empty", "reason": "empty network is outside current deterministic samples"},
+        {"category": "single", "reason": "single-edge network is not in current deterministic samples"},
+        {"category": "duplicate", "reason": "capacity map keys are unique edges"},
+        {"category": "zero_or_negative", "reason": "capacities are positive in current deterministic samples"},
+        {"category": "no_solution", "reason": "current networks have positive S-T max flow"}
+      ]
+    }
+  ]
+}

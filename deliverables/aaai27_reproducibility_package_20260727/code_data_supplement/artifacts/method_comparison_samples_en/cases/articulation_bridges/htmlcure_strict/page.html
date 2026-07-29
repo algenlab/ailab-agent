@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Articulation Points and Bridges - AlgoLab Tutorial</title>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --card: #ffffff;
+            --border: #e5e7eb;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --highlight: #fef3c7;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --code-highlight: #334155;
+            --node-unvisited: #d1d5db;
+            --node-current: #3b82f6;
+            --node-instack: #93c5fd;
+            --node-processed: #86efac;
+            --node-articulation: #ef4444;
+            --edge-normal: #9ca3af;
+            --edge-bridge: #ef4444;
+            --edge-back: #f59e0b;
+            --timeline-active: #3b82f6;
+            --timeline-done: #10b981;
+            --timeline-pending: #d1d5db;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f0f2f5;
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .page-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .header-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        #title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #111827;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 4px 0 0 0;
+            font-weight: 400;
+        }
+
+        .results-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        #top-result,
+        #top-solution {
+            flex: 1 1 280px;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        #top-result h4,
+        #top-solution h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            margin: 0 0 6px 0;
+        }
+        #top-result .result-val {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            background: #f8fafc;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            word-break: break-all;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .panel h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: #374151;
+        }
+
+        #code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.82rem;
+            padding: 14px 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.7;
+            margin: 0;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        #code .line {
+            display: block;
+            padding: 1px 8px;
+            margin: 0 -8px;
+            border-radius: 4px;
+            transition: background 0.25s;
+        }
+        #code .line.highlight {
+            background: var(--code-highlight);
+            color: #fbbf24;
+            font-weight: 600;
+        }
+        #code .line.highlight2 {
+            background: #475569;
+            color: #fcd34d;
+        }
+
+        #canvas {
+            min-height: 320px;
+            position: relative;
+            background: #fafbfc;
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #canvas svg {
+            width: 100%;
+            height: 100%;
+            max-height: 340px;
+        }
+
+        .node-circle {
+            transition: fill 0.35s, stroke 0.35s, stroke-width 0.35s;
+            cursor: default;
+        }
+        .node-unvisited {
+            fill: #e5e7eb;
+            stroke: #9ca3af;
+            stroke-width: 2;
+        }
+        .node-current {
+            fill: #dbeafe;
+            stroke: #3b82f6;
+            stroke-width: 3.5;
+        }
+        .node-instack {
+            fill: #bfdbfe;
+            stroke: #60a5fa;
+            stroke-width: 2.5;
+        }
+        .node-processed {
+            fill: #d1fae5;
+            stroke: #10b981;
+            stroke-width: 2.5;
+        }
+        .node-articulation {
+            fill: #fecaca;
+            stroke: #ef4444;
+            stroke-width: 3.5;
+        }
+        .edge-normal {
+            stroke: #9ca3af;
+            stroke-width: 2;
+            transition: stroke 0.35s, stroke-width 0.35s;
+        }
+        .edge-bridge {
+            stroke: #ef4444;
+            stroke-width: 3;
+            stroke-dasharray: 8 4;
+        }
+        .edge-back {
+            stroke: #f59e0b;
+            stroke-width: 2.5;
+            stroke-dasharray: 5 5;
+        }
+        .edge-highlight {
+            stroke: #3b82f6;
+            stroke-width: 3;
+        }
+
+        .dfn-label,
+        .low-label {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 10px;
+            fill: #374151;
+            pointer-events: none;
+        }
+        .dfn-label {
+            font-weight: 700;
+            fill: #1e40af;
+        }
+        .low-label {
+            fill: #b45309;
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.18s;
+            color: #374151;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background: #f3f4f6;
+            border-color: #cbd5e1;
+        }
+        .btn:active {
+            background: #e5e7eb;
+            transform: scale(0.97);
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .btn.accent:hover {
+            background: var(--accent-hover);
+        }
+        .btn.small {
+            padding: 5px 10px;
+            font-size: 0.78rem;
+            border-radius: 5px;
+        }
+        .btn.hint-btn {
+            background: #fffbeb;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .btn.show-answer-btn {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        #counter {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #374151;
+            min-width: 70px;
+            text-align: center;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+        }
+        #range {
+            flex: 1 1 100px;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        #timeline {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 7px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid var(--timeline-pending);
+            background: #fafafa;
+            transition: all 0.22s;
+            min-width: 52px;
+            text-align: center;
+            font-size: 0.72rem;
+            user-select: none;
+        }
+        .tick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+        .tick.active {
+            border-color: var(--timeline-active);
+            background: #dbeafe;
+            font-weight: 700;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .tick.done {
+            border-color: var(--timeline-done);
+            background: #ecfdf5;
+        }
+        .tick-label {
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #374151;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        #state {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.76rem;
+            background: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        #teaching {
+            font-size: 0.88rem;
+            color: #374151;
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            background: #fefce8;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid #fde68a;
+            color: #713f12;
+            line-height: 1.5;
+        }
+
+        .checkpoint-area {
+            margin-top: 12px;
+            padding: 14px 16px;
+            background: #f0f9ff;
+            border: 2px solid #7dd3fc;
+            border-radius: 10px;
+        }
+        .checkpoint-area h4 {
+            margin: 0 0 6px 0;
+            font-size: 0.9rem;
+            color: #0c4a6e;
+        }
+        .checkpoint-area input[type="text"] {
+            padding: 8px 10px;
+            border-radius: 5px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.85rem;
+            width: 100%;
+            max-width: 300px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            margin-bottom: 8px;
+        }
+        .checkpoint-feedback {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .checkpoint-feedback.correct {
+            display: block;
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .checkpoint-feedback.incorrect {
+            display: block;
+            background: #fecaca;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        #learning-log {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 10px 14px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+        #learning-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #fde68a;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.73rem;
+        }
+        #learning-log .log-entry:last-child {
+            border-bottom: none;
+        }
+        #learning-log .log-correct {
+            color: #065f46;
+            font-weight: 600;
+        }
+        #learning-log .log-incorrect {
+            color: #991b1b;
+            font-weight: 600;
+        }
+
+        #answer {
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.82rem;
+            background: #f0fdf4;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 2px solid #10b981;
+            color: #065f46;
+            word-break: break-all;
+            margin-top: 4px;
+        }
+
+        #step-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1e3a5f;
+            margin: 0;
+        }
+        #step-desc {
+            color: #4b5563;
+            font-size: 0.85rem;
+            margin: 2px 0 0 0;
+        }
+        #op {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="header-card">
+            <h1 id="title">Articulation Points and Bridges</h1>
+            <p id="subtitle">DFS-based algorithm: find critical nodes and unique edges in an undirected communication network</p>
+        </div>
+
+        <!-- Top result and solution -->
+        <div class="results-row">
+            <div id="top-result">
+                <h4>Current Result</h4>
+                <div class="result-val" id="top-result-val">Articulations: none | Bridges: none</div>
+            </div>
+            <div id="top-solution">
+                <h4>Algorithm Strategy</h4>
+                <span>DFS maintains <strong>dfn</strong> (discovery time), <strong>low</strong> (lowest reachable dfn), and <strong>parent</strong>. Bridge condition: <code>low[child] &gt; dfn[u]</code>. Articulation condition: <code>low[child] &gt;= dfn[u]</code> (non-root) or root with &gt;1 children.</span>
+            </div>
+        </div>
+
+        <!-- Main grid: left column (code + canvas), right column (details) -->
+        <div class="main-grid">
+            <!-- Left column -->
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="panel">
+                    <h3>Pseudocode</h3>
+                    <pre id="code"><span class="line" data-line="0">function findArticulationPointsAndBridges(graph):</span><span class="line" data-line="1">    dfn = {}, low = {}, parent = {}</span><span class="line" data-line="2">    time = 0, articulations = [], bridges = []</span><span class="line" data-line="3">    for each node in graph:</span><span class="line" data-line="4">        if node not in dfn: dfs(node)</span><span class="line" data-line="5"></span><span class="line" data-line="6">    function dfs(u):</span><span class="line" data-line="7">        dfn[u] = low[u] = ++time</span><span class="line" data-line="8">        children = 0</span><span class="line" data-line="9">        for each v in graph[u]:</span><span class="line" data-line="10">            if v not in dfn:</span><span class="line" data-line="11">                parent[v] = u; children++</span><span class="line" data-line="12">                dfs(v)</span><span class="line" data-line="13">                low[u] = min(low[u], low[v])</span><span class="line" data-line="14">                if low[v] > dfn[u]: bridges.push([u,v])</span><span class="line" data-line="15">                if (parent[u]==null and children>1): articulations.push(u)</span><span class="line" data-line="16">                if (parent[u]!=null and low[v]>=dfn[u]): articulations.push(u)</span><span class="line" data-line="17">            else if v != parent[u]:</span><span class="line" data-line="18">                low[u] = min(low[u], dfn[v])</span></pre>
+                </div>
+                <div class="panel">
+                    <h3>Graph Visualization</h3>
+                    <div id="canvas">
+                        <svg viewBox="0 0 560 300" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Edges -->
+                            <line id="edge-AB" x1="100" y1="80" x2="230" y2="80" class="edge-normal" />
+                            <line id="edge-BC" x1="230" y1="80" x2="170" y2="195" class="edge-normal" />
+                            <line id="edge-BD" x1="230" y1="80" x2="340" y2="155" class="edge-normal" />
+                            <line id="edge-CD" x1="170" y1="195" x2="340" y2="155" class="edge-normal" />
+                            <line id="edge-DE" x1="340" y1="155" x2="470" y2="155" class="edge-normal" />
+                            <!-- Nodes -->
+                            <circle id="node-A" cx="100" cy="80" r="24" class="node-circle node-unvisited" />
+                            <circle id="node-B" cx="230" cy="80" r="24" class="node-circle node-unvisited" />
+                            <circle id="node-C" cx="170" cy="195" r="24" class="node-circle node-unvisited" />
+                            <circle id="node-D" cx="340" cy="155" r="24" class="node-circle node-unvisited" />
+                            <circle id="node-E" cx="470" cy="155" r="24" class="node-circle node-unvisited" />
+                            <!-- Node labels -->
+                            <text x="100" y="85" text-anchor="middle" fill="#1f2937" font-weight="700" font-size="15" pointer-events="none">A</text>
+                            <text x="230" y="85" text-anchor="middle" fill="#1f2937" font-weight="700" font-size="15" pointer-events="none">B</text>
+                            <text x="170" y="200" text-anchor="middle" fill="#1f2937" font-weight="700" font-size="15" pointer-events="none">C</text>
+                            <text x="340" y="160" text-anchor="middle" fill="#1f2937" font-weight="700" font-size="15" pointer-events="none">D</text>
+                            <text x="470" y="160" text-anchor="middle" fill="#1f2937" font-weight="700" font-size="15" pointer-events="none">E</text>
+                            <!-- dfn / low labels -->
+                            <text id="dfn-A" x="100" y="50" text-anchor="middle" class="dfn-label" opacity="0">-</text>
+                            <text id="low-A" x="100" y="112" text-anchor="middle" class="low-label" opacity="0">-</text>
+                            <text id="dfn-B" x="230" y="50" text-anchor="middle" class="dfn-label" opacity="0">-</text>
+                            <text id="low-B" x="230" y="112" text-anchor="middle" class="low-label" opacity="0">-</text>
+                            <text id="dfn-C" x="170" y="228" text-anchor="middle" class="dfn-label" opacity="0">-</text>
+                            <text id="low-C" x="170" y="245" text-anchor="middle" class="low-label" opacity="0">-</text>
+                            <text id="dfn-D" x="340" y="125" text-anchor="middle" class="dfn-label" opacity="0">-</text>
+                            <text id="low-D" x="340" y="188" text-anchor="middle" class="low-label" opacity="0">-</text>
+                            <text id="dfn-E" x="470" y="125" text-anchor="middle" class="dfn-label" opacity="0">-</text>
+                            <text id="low-E" x="470" y="188" text-anchor="middle" class="low-label" opacity="0">-</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right column -->
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="panel">
+                    <h3 id="step-title">Step 1: Initialize</h3>
+                    <p id="step-desc">Set up empty data structures for the DFS traversal.</p>
+                    <span id="op">Initialization</span>
+                </div>
+
+                <div class="panel">
+                    <h3>Current State</h3>
+                    <pre id="state">{ "dfn": {}, "low": {}, "parent": {}, "time": 0, "articulations": [], "bridges": [] }</pre>
+                </div>
+
+                <div class="panel" id="teaching-panel">
+                    <h3>Explanation</h3>
+                    <div id="teaching">We begin by creating empty maps for dfn (discovery time), low (lowest reachable ancestor dfn), and parent. The time counter starts at 0. We also initialize empty lists for articulations and bridges. The graph has 5 nodes (A-E) and 5 undirected edges.</div>
+                    <div id="checkpoint-container" style="display:none;"></div>
+                </div>
+
+                <div class="panel">
+                    <h3>Step Evidence</h3>
+                    <div id="step-evidence">Operation: Initialize all tracking structures. Targets: dfn map, low map, parent map, time counter, result lists. Before: undefined. After: all maps empty, time=0, results empty.</div>
+                </div>
+
+                <div class="panel">
+                    <h3>Learning Log</h3>
+                    <div id="learning-log">
+                        <div class="log-entry" style="color:#6b7280;">Session started. Follow the steps and answer checkpoint questions.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel">
+            <div class="controls-row" style="margin-bottom:10px;">
+                <button class="btn" id="prev" title="Previous step">◀ Prev</button>
+                <button class="btn accent" id="play" title="Auto-play steps">▶ Play</button>
+                <button class="btn" id="next" title="Next step">Next ▶</button>
+                <input type="range" id="range" min="1" max="10" value="1" step="1" title="Step slider" />
+                <span id="counter">1 / 10</span>
+            </div>
+            <div id="timeline">
+                <!-- Ticks generated by JS -->
+            </div>
+        </div>
+
+        <!-- Final answer display -->
+        <div class="panel">
+            <h3>Final Answer (Expected Output)</h3>
+            <div id="answer">{"articulation": ["B", "D"], "bridges": [["D", "E"], ["A", "B"]]}</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step definitions
+            // ──────────────────────────────────────
+            const steps = [{
+                id: 1,
+                title: 'Step 1: Initialize',
+                desc: 'Set up empty data structures for the DFS traversal.',
+                op: 'Initialization',
+                codeLines: [0, 2],
+                state: { dfn: {}, low: {}, parent: {}, time: 0, articulations: [],
+                bridges: [] },
+                nodeClasses: {
+                    A: 'node-unvisited',
+                    B: 'node-unvisited',
+                    C: 'node-unvisited',
+                    D: 'node-unvisited',
+                    E: 'node-unvisited' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-normal', BD: 'edge-normal', CD: 'edge-normal',
+                    DE: 'edge-normal' },
+                dfnLabels: { A: '-', B: '-', C: '-', D: '-', E: '-' },
+                lowLabels: { A: '-', B: '-', C: '-', D: '-', E: '-' },
+                dfnOpacity: { A: 0, B: 0, C: 0, D: 0, E: 0 },
+                lowOpacity: { A: 0, B: 0, C: 0, D: 0, E: 0 },
+                teaching: 'We begin by creating empty maps for dfn (discovery time), low (lowest reachable ancestor dfn), and parent. The time counter starts at 0. We also initialize empty lists for articulations and bridges. The graph has 5 nodes (A through E) and 5 undirected edges: A-B, B-C, B-D, C-D, D-E.',
+                evidence: 'Operation: Initialize all tracking structures. Targets: dfn map, low map, parent map, time counter, result lists. Before: undefined. After: all maps empty, time=0, results empty.',
+                checkpoint: null,
+                resultSummary: 'Articulations: none | Bridges: none'
+            }, {
+                id: 2,
+                title: 'Step 2: Start DFS at Node A',
+                desc: 'Visit node A — set dfn[A]=1, low[A]=1, time becomes 1.',
+                op: 'Visit A (root)',
+                codeLines: [7],
+                state: { dfn: { A: 1 }, low: { A: 1 }, parent: { A: null }, time: 1, articulations: [],
+                    bridges: [] },
+                nodeClasses: {
+                    A: 'node-current',
+                    B: 'node-unvisited',
+                    C: 'node-unvisited',
+                    D: 'node-unvisited',
+                    E: 'node-unvisited' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-normal', BD: 'edge-normal', CD: 'edge-normal',
+                    DE: 'edge-normal' },
+                dfnLabels: { A: '1', B: '-', C: '-', D: '-', E: '-' },
+                lowLabels: { A: '1', B: '-', C: '-', D: '-', E: '-' },
+                dfnOpacity: { A: 1, B: 0, C: 0, D: 0, E: 0 },
+                lowOpacity: { A: 1, B: 0, C: 0, D: 0, E: 0 },
+                teaching: 'We pick node A as the starting point (it is the root of this DFS tree). Its dfn and low are both set to 1. Node A has only one neighbor: B. Since A is the root, it will need more than one child in the DFS tree to become an articulation point.',
+                evidence: 'Operation: Visit A. dfn[A] = low[A] = ++time = 1. parent[A] = null (root). Targets: A. Dependencies: none. After: dfn={A:1}, low={A:1}, time=1.',
+                checkpoint: null,
+                resultSummary: 'Articulations: none | Bridges: none'
+            }, {
+                id: 3,
+                title: 'Step 3: Visit Node B from A',
+                desc: 'DFS moves to B — set dfn[B]=2, low[B]=2, parent[B]=A.',
+                op: 'Visit B (child of A)',
+                codeLines: [11, 7],
+                state: { dfn: { A: 1, B: 2 }, low: { A: 1, B: 2 }, parent: { A: null, B: 'A' }, time: 2,
+                    articulations: [], bridges: [] },
+                nodeClasses: {
+                    A: 'node-instack',
+                    B: 'node-current',
+                    C: 'node-unvisited',
+                    D: 'node-unvisited',
+                    E: 'node-unvisited' },
+                edgeClasses: { AB: 'edge-highlight', BC: 'edge-normal', BD: 'edge-normal', CD: 'edge-normal',
+                    DE: 'edge-normal' },
+                dfnLabels: { A: '1', B: '2', C: '-', D: '-', E: '-' },
+                lowLabels: { A: '1', B: '2', C: '-', D: '-', E: '-' },
+                dfnOpacity: { A: 1, B: 1, C: 0, D: 0, E: 0 },
+                lowOpacity: { A: 1, B: 1, C: 0, D: 0, E: 0 },
+                teaching: 'From A, we traverse edge A-B to node B. B gets dfn=2 and low=2. Its parent is A. Node A remains on the recursion stack (shown in light blue). The edge A-B is highlighted as the current tree edge.',
+                evidence: 'Operation: Visit B via tree edge A→B. Set dfn[B]=2, low[B]=2, parent[B]=A, children of A = 1. Targets: B. Dependencies: A must be visited. After: dfn includes A:1 and B:2.',
+                checkpoint: null,
+                resultSummary: 'Articulations: none | Bridges: none'
+            }, {
+                id: 4,
+                title: 'Step 4: Visit Node C from B',
+                desc: 'DFS moves to C — set dfn[C]=3, low[C]=3, parent[C]=B.',
+                op: 'Visit C (child of B)',
+                codeLines: [11, 7],
+                state: { dfn: { A: 1, B: 2, C: 3 }, low: { A: 1, B: 2, C: 3 }, parent: { A: null, B: 'A',
+                        C: 'B' }, time: 3, articulations: [], bridges: [] },
+                nodeClasses: {
+                    A: 'node-instack',
+                    B: 'node-instack',
+                    C: 'node-current',
+                    D: 'node-unvisited',
+                    E: 'node-unvisited' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-highlight', BD: 'edge-normal', CD: 'edge-normal',
+                    DE: 'edge-normal' },
+                dfnLabels: { A: '1', B: '2', C: '3', D: '-', E: '-' },
+                lowLabels: { A: '1', B: '2', C: '3', D: '-', E: '-' },
+                dfnOpacity: { A: 1, B: 1, C: 1, D: 0, E: 0 },
+                lowOpacity: { A: 1, B: 1, C: 1, D: 0, E: 0 },
+                teaching: 'From B, we move to its unvisited neighbor C. C gets dfn=3 and low=3. Nodes A and B are on the recursion stack. C has neighbors B (parent) and D (unvisited).',
+                evidence: 'Operation: Visit C via tree edge B→C. Set dfn[C]=3, low[C]=3, parent[C]=B. Targets: C. Dependencies: B visited. After: dfn includes C:3.',
+                checkpoint: null,
+                resultSummary: 'Articulations: none | Bridges: none'
+            }, {
+                id: 5,
+                title: 'Step 5: Visit Node D from C — Back Edge Found',
+                desc: 'DFS visits D (dfn=4), discovers back edge to B, updates low[D]=2.',
+                op: 'Visit D, back edge D→B',
+                codeLines: [7, 18],
+                state: { dfn: { A: 1, B: 2, C: 3, D: 4 }, low: { A: 1, B: 2, C: 3, D: 2 }, parent: { A: null,
+                        B: 'A', C: 'B', D: 'C' }, time: 4, articulations: [], bridges: [] },
+                nodeClasses: {
+                    A: 'node-instack',
+                    B: 'node-instack',
+                    C: 'node-instack',
+                    D: 'node-current',
+                    E: 'node-unvisited' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-normal', BD: 'edge-back', CD: 'edge-highlight',
+                    DE: 'edge-normal' },
+                dfnLabels: { A: '1', B: '2', C: '3', D: '4', E: '-' },
+                lowLabels: { A: '1', B: '2', C: '3', D: '2', E: '-' },
+                dfnOpacity: { A: 1, B: 1, C: 1, D: 1, E: 0 },
+                lowOpacity: { A: 1, B: 1, C: 1, D: 1, E: 0 },
+                teaching: 'Node D is visited from C with dfn=4, low=4 (initially). D has neighbors: B, C, and E. C is the parent — skipped. B is already visited (dfn=2) and is NOT the parent — this is a <strong>back edge</strong>! We update low[D] = min(4, dfn[B]=2) = 2. The back edge D-B is shown in orange dashed style. D still has unvisited neighbor E.',
+                evidence: 'Operation: Visit D (dfn=4), then process neighbor B (already visited, not parent). Back edge D→B detected. low[D] updated from 4 to min(4, dfn[B]=2) = 2. Targets: D, low[D]. Dependencies: B must be visited. After: low[D]=2.',
+                checkpoint: null,
+                resultSummary: 'Articulations: none | Bridges: none'
+            }, {
+                id: 6,
+                title: 'Step 6: Visit Node E from D',
+                desc: 'DFS visits E — set dfn[E]=5, low[E]=5, parent[E]=D.',
+                op: 'Visit E (leaf)',
+                codeLines: [11, 7],
+                state: { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 3, D: 2, E: 5 },
+                    parent: { A: null, B: 'A', C: 'B', D: 'C', E: 'D' }, time: 5, articulations: [],
+                    bridges: [] },
+                nodeClasses: {
+                    A: 'node-instack',
+                    B: 'node-instack',
+                    C: 'node-instack',
+                    D: 'node-instack',
+                    E: 'node-current' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-normal', BD: 'edge-back', CD: 'edge-normal',
+                    DE: 'edge-highlight' },
+                dfnLabels: { A: '1', B: '2', C: '3', D: '4', E: '5' },
+                lowLabels: { A: '1', B: '2', C: '3', D: '2', E: '5' },
+                dfnOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                lowOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                teaching: 'From D, we visit the last unvisited node: E. E gets dfn=5 and low=5. Its only neighbor is D (the parent), so no back edges exist from E. E is a leaf in the DFS tree. Next, we will backtrack from E to D and check the bridge and articulation conditions.',
+                evidence: 'Operation: Visit E via tree edge D→E. Set dfn[E]=5, low[E]=5, parent[E]=D. Targets: E. Dependencies: D visited. After: all 5 nodes have dfn values.',
+                checkpoint: null,
+                resultSummary: 'Articulations: none | Bridges: none'
+            }, {
+                id: 7,
+                title: 'Step 7: Backtrack E→D — Bridge & Articulation Found',
+                desc: 'Backtrack from E to D: low[E]=5 > dfn[D]=4 → bridge D-E. low[E]>=dfn[D] → D is articulation.',
+                op: 'Backtrack E→D, find bridge',
+                codeLines: [13, 14, 16],
+                state: { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 3, D: 2, E: 5 },
+                    parent: { A: null, B: 'A', C: 'B', D: 'C', E: 'D' }, time: 5, articulations: ['D'],
+                    bridges: [
+                        ['D', 'E']
+                    ] },
+                nodeClasses: {
+                    A: 'node-instack',
+                    B: 'node-instack',
+                    C: 'node-instack',
+                    D: 'node-articulation',
+                    E: 'node-processed' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-normal', BD: 'edge-back', CD: 'edge-normal',
+                    DE: 'edge-bridge' },
+                dfnLabels: { A: '1', B: '2', C: '3', D: '4', E: '5' },
+                lowLabels: { A: '1', B: '2', C: '3', D: '2', E: '5' },
+                dfnOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                lowOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                teaching: 'Backtracking from E to D: we compute low[D] = min(low[D], low[E]) = min(2, 5) = 2 (unchanged). Now check conditions:<br><br>• <strong>Bridge check:</strong> low[E]=5 &gt; dfn[D]=4 → <strong>TRUE</strong>. Edge D-E is a <strong>bridge</strong>!<br>• <strong>Articulation check (non-root):</strong> D is not root. low[E]=5 &gt;= dfn[D]=4 → <strong>TRUE</strong>. D is an <strong>articulation point</strong>!<br><br>Node E is now fully processed (green). D is marked with a red border for articulation.',
+                evidence: 'Operation: Backtrack E→D. low[D] = min(2, 5) = 2. Bridge condition: low[E]=5 > dfn[D]=4 → TRUE → bridge [D,E] added. Articulation condition: low[E]=5 >= dfn[D]=4 → TRUE → D added to articulations. Targets: bridge D-E, articulation D. After: articulations=[D], bridges=[[D,E]].',
+                checkpoint: {
+                    question: 'What bridge is discovered when backtracking from E to D? (Enter the edge as X-Y, e.g., D-E)',
+                    answer: 'D-E',
+                    hint: 'Look at the two nodes involved: E is the child, D is the parent in the DFS tree. The condition low[child] > dfn[parent] was true.',
+                    showAnswer: 'D-E'
+                },
+                resultSummary: 'Articulations: [D] | Bridges: [(D,E)]'
+            }, {
+                id: 8,
+                title: 'Step 8: Backtrack D→C — Update low[C]',
+                desc: 'Backtrack from D to C: low[C] = min(3, low[D]=2) = 2. Check: low[D]>=dfn[C]? 2>=3 is false.',
+                op: 'Backtrack D→C',
+                codeLines: [13],
+                state: { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: 'A', C: 'B', D: 'C', E: 'D' }, time: 5, articulations: ['D'],
+                    bridges: [
+                        ['D', 'E']
+                    ] },
+                nodeClasses: {
+                    A: 'node-instack',
+                    B: 'node-instack',
+                    C: 'node-current',
+                    D: 'node-processed',
+                    E: 'node-processed' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-normal', BD: 'edge-back', CD: 'edge-highlight',
+                    DE: 'edge-bridge' },
+                dfnLabels: { A: '1', B: '2', C: '3', D: '4', E: '5' },
+                lowLabels: { A: '1', B: '2', C: '2', D: '2', E: '5' },
+                dfnOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                lowOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                teaching: 'Backtracking from D to C: low[C] = min(low[C]=3, low[D]=2) = <strong>2</strong>. Now check articulation for C: low[D]=2 &gt;= dfn[C]=3 → <strong>FALSE</strong> (2 &lt; 3). So C is NOT an articulation point via child D. Node D is now fully processed (green). C becomes the current node again.',
+                evidence: 'Operation: Backtrack D→C. low[C] updated from 3 to min(3, low[D]=2) = 2. Articulation check: low[D]=2 >= dfn[C]=3 → FALSE. C is not articulation via D. Targets: low[C]. After: low[C]=2.',
+                checkpoint: null,
+                resultSummary: 'Articulations: [D] | Bridges: [(D,E)]'
+            }, {
+                id: 9,
+                title: 'Step 9: Backtrack C→B — B is Articulation',
+                desc: 'Backtrack from C to B: low[B]=min(2, low[C]=2)=2. low[C]>=dfn[B] → 2>=2 true → B is articulation.',
+                op: 'Backtrack C→B, B articulation',
+                codeLines: [13, 16],
+                state: { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: 'A', C: 'B', D: 'C', E: 'D' }, time: 5, articulations: ['D', 'B'],
+                    bridges: [
+                        ['D', 'E']
+                    ] },
+                nodeClasses: {
+                    A: 'node-instack',
+                    B: 'node-articulation',
+                    C: 'node-processed',
+                    D: 'node-processed',
+                    E: 'node-processed' },
+                edgeClasses: { AB: 'edge-normal', BC: 'edge-highlight', BD: 'edge-back', CD: 'edge-normal',
+                    DE: 'edge-bridge' },
+                dfnLabels: { A: '1', B: '2', C: '3', D: '4', E: '5' },
+                lowLabels: { A: '1', B: '2', C: '2', D: '2', E: '5' },
+                dfnOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                lowOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                teaching: 'Backtracking from C to B: low[B] = min(low[B]=2, low[C]=2) = 2 (unchanged). Now check articulation for B: B is NOT the root (parent is A). low[C]=2 &gt;= dfn[B]=2 → <strong>TRUE</strong> (2 &gt;= 2). So B is an <strong>articulation point</strong>! Node C is now fully processed. B is marked with a red border.',
+                evidence: 'Operation: Backtrack C→B. low[B] = min(2, 2) = 2. Articulation check: low[C]=2 >= dfn[B]=2 → TRUE → B added to articulations. Targets: B (articulation). After: articulations=[D, B].',
+                checkpoint: {
+                    question: 'Is node B an articulation point? (yes/no)',
+                    answer: 'yes',
+                    hint: 'Check the condition: low[C] >= dfn[B]. low[C]=2, dfn[B]=2, so 2 >= 2 is true.',
+                    showAnswer: 'yes'
+                },
+                resultSummary: 'Articulations: [D, B] | Bridges: [(D,E)]'
+            }, {
+                id: 10,
+                title: 'Step 10: Backtrack B→A — Bridge A-B Found, Final Result',
+                desc: 'Backtrack to A: low[A]=min(1,2)=1. low[B]>dfn[A]? 2>1 true → bridge A-B. Root A has 1 child → not articulation. Done.',
+                op: 'Backtrack B→A, bridge A-B',
+                codeLines: [13, 14, 15],
+                state: { dfn: { A: 1, B: 2, C: 3, D: 4, E: 5 }, low: { A: 1, B: 2, C: 2, D: 2, E: 5 },
+                    parent: { A: null, B: 'A', C: 'B', D: 'C', E: 'D' }, time: 5, articulations: ['D', 'B'],
+                    bridges: [
+                        ['D', 'E'],
+                        ['A', 'B']
+                    ] },
+                nodeClasses: {
+                    A: 'node-processed',
+                    B: 'node-processed',
+                    C: 'node-processed',
+                    D: 'node-processed',
+                    E: 'node-processed' },
+                edgeClasses: { AB: 'edge-bridge', BC: 'edge-normal', BD: 'edge-back', CD: 'edge-normal',
+                    DE: 'edge-bridge' },
+                dfnLabels: { A: '1', B: '2', C: '3', D: '4', E: '5' },
+                lowLabels: { A: '1', B: '2', C: '2', D: '2', E: '5' },
+                dfnOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                lowOpacity: { A: 1, B: 1, C: 1, D: 1, E: 1 },
+                teaching: 'Backtracking from B to A: low[A] = min(low[A]=1, low[B]=2) = 1 (unchanged).<br><br>• <strong>Bridge check:</strong> low[B]=2 &gt; dfn[A]=1 → <strong>TRUE</strong>. Edge A-B is a <strong>bridge</strong>!<br>• <strong>Articulation check for root A:</strong> A is root with only 1 child (B). Root needs &gt;1 children to be articulation, so A is <strong>NOT</strong> an articulation point.<br><br>DFS complete! Final results: <strong>Articulations = [D, B]</strong> (order may vary), <strong>Bridges = [(D,E), (A,B)]</strong>.',
+                evidence: 'Operation: Backtrack B→A. low[A] = min(1, 2) = 1. Bridge check: low[B]=2 > dfn[A]=1 → TRUE → bridge [A,B] added. Root check: A has 1 child → not articulation. Targets: bridge A-B. After: articulations=[D,B], bridges=[[D,E],[A,B]]. Final.',
+                checkpoint: {
+                    question: 'What bridge is discovered when backtracking from B to A? (Enter as X-Y)',
+                    answer: 'A-B',
+                    hint: 'The edge connects the root A with its child B. Condition low[B] > dfn[A] was satisfied.',
+                    showAnswer: 'A-B'
+                },
+                resultSummary: 'Articulations: [D, B] | Bridges: [(D,E), (A,B)]'
+            }];
+
+            const totalSteps = steps.length;
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            const counterEl = $('#counter');
+            const rangeEl = $('#range');
+            const prevBtn = $('#prev');
+            const nextBtn = $('#next');
+            const playBtn = $('#play');
+            const stepTitleEl = $('#step-title');
+            const stepDescEl = $('#step-desc');
+            const opEl = $('#op');
+            const teachingEl = $('#teaching');
+            const stepEvidenceEl = $('#step-evidence');
+            const stateEl = $('#state');
+            const timelineEl = $('#timeline');
+            const topResultVal = $('#top-result-val');
+            const checkpointContainer = $('#checkpoint-container');
+            const learningLog = $('#learning-log');
+            const answerEl = $('#answer');
+            const codeEl = $('#code');
+
+            let currentStepIndex = 0;
+            let playInterval = null;
+            let checkpointSubmitted = {}; // track which step checkpoints have been submitted
+
+            // ──────────────────────────────────────
+            // Build timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                steps.forEach((s, i) => {
+                    const tick = document.createElement('div');
+                    tick.className = 'tick';
+                    tick.setAttribute('data-step', i);
+                    tick.innerHTML =
+                        '<span class="tick-label">Step ' + s.id + '</span><span class="tick-op">' + s.op +
+                        '</span>';
+                    tick.addEventListener('click', () => {
+                        goToStep(i);
+                    });
+                    timelineEl.appendChild(tick);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Update all UI for a given step index
+            // ──────────────────────────────────────
+            function goToStep(index) {
+                if (index < 0 || index >= totalSteps) return;
+                currentStepIndex = index;
+                const step = steps[index];
+
+                // Counter and range
+                counterEl.textContent = (index + 1) + ' / ' + totalSteps;
+                rangeEl.value = index + 1;
+
+                // Step info
+                stepTitleEl.textContent = step.title;
+                stepDescEl.textContent = step.desc;
+                opEl.textContent = step.op;
+
+                // Teaching
+                teachingEl.innerHTML = step.teaching;
+
+                // Step evidence
+                stepEvidenceEl.innerHTML = step.evidence;
+
+                // State JSON
+                stateEl.textContent = JSON.stringify(step.state, null, 2);
+
+                // Top result
+                topResultVal.textContent = step.resultSummary;
+
+                // Timeline ticks
+                const ticks = $$('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.remove('active', 'done');
+                    if (i === index) t.classList.add('active');
+                    else if (i < index) t.classList.add('done');
+                });
+
+                // Code highlighting
+                const lines = $$('#code .line');
+                lines.forEach(l => l.classList.remove('highlight', 'highlight2'));
+                if (step.codeLines && step.codeLines.length > 0) {
+                    step.codeLines.forEach(cl => {
+                        const lineEl = document.querySelector('#code .line[data-line="' + cl + '"]');
+                        if (lineEl) lineEl.classList.add('highlight');
+                    });
+                }
+
+                // Graph visualization (SVG)
+                updateGraphVisualization(step);
+
+                // Checkpoint
+                renderCheckpoint(step, index);
+
+                // Buttons
+                prevBtn.disabled = (index === 0);
+                nextBtn.disabled = (index === totalSteps - 1);
+            }
+
+            // ──────────────────────────────────────
+            // Update SVG graph visualization
+            // ──────────────────────────────────────
+            function updateGraphVisualization(step) {
+                const nodeIds = ['A', 'B', 'C', 'D', 'E'];
+                nodeIds.forEach(n => {
+                    const circle = $('#node-' + n);
+                    if (circle && step.nodeClasses[n]) {
+                        circle.className = 'node-circle ' + step.nodeClasses[n];
+                    }
+                    const dfnLabel = $('#dfn-' + n);
+                    const lowLabel = $('#low-' + n);
+                    if (dfnLabel) {
+                        dfnLabel.textContent = 'dfn=' + (step.dfnLabels[n] || '-');
+                        dfnLabel.setAttribute('opacity', step.dfnOpacity[n] || 0);
+                    }
+                    if (lowLabel) {
+                        lowLabel.textContent = 'low=' + (step.lowLabels[n] || '-');
+                        lowLabel.setAttribute('opacity', step.lowOpacity[n] || 0);
+                    }
+                });
+                const edgeIds = ['AB', 'BC', 'BD', 'CD', 'DE'];
+                edgeIds.forEach(e => {
+                    const edgeEl = $('#edge-' + e);
+                    if (edgeEl && step.edgeClasses[e]) {
+                        edgeEl.className = step.edgeClasses[e];
+                    }
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Render checkpoint if present
+            // ──────────────────────────────────────
+            function renderCheckpoint(step, index) {
+                checkpointContainer.style.display = 'none';
+                checkpointContainer.innerHTML = '';
+                if (!step.checkpoint) return;
+
+                checkpointContainer.style.display = 'block';
+                const cp = step.checkpoint;
+                const alreadySubmitted = checkpointSubmitted['step_' + index];
+
+                let html = '<div class="checkpoint-area">';
+                html += '<h4>🔍 Checkpoint Question</h4>';
+                html += '<p style="margin:0 0 8px 0;font-weight:500;">' + cp.question + '</p>';
+
+                if (alreadySubmitted) {
+                    html +=
+                        '<p style="color:#065f46;font-weight:600;">✅ You answered: <code>' + alreadySubmitted
+                        .userAnswer + '</code> — ' + (alreadySubmitted.correct ? 'Correct!' : 'Incorrect.') +
+                        '</p>';
+                    html +=
+                        '<p style="color:#6b7280;font-size:0.8rem;">Correct answer: <code>' + cp.showAnswer +
+                        '</code></p>';
+                } else {
+                    html +=
+                        '<input type="text" id="checkpoint-input" placeholder="Type your answer..." autocomplete="off" />';
+                    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+                    html += '<button class="btn accent small" id="checkpoint-submit">Submit</button>';
+                    html += '<button class="btn hint-btn small" id="checkpoint-hint">💡 Hint</button>';
+                    html += '<button class="btn show-answer-btn small" id="checkpoint-show">👁 Show Answer</button>';
+                    html += '</div>';
+                    html += '<div class="checkpoint-feedback" id="checkpoint-feedback"></div>';
+                }
+                html += '</div>';
+                checkpointContainer.innerHTML = html;
+
+                if (!alreadySubmitted) {
+                    // Bind events
+                    const submitBtn = $('#checkpoint-submit');
+                    const hintBtn = $('#checkpoint-hint');
+                    const showBtn = $('#checkpoint-show');
+                    const inputEl = $('#checkpoint-input');
+                    const feedbackEl = $('#checkpoint-feedback');
+
+                    submitBtn.addEventListener('click', () => {
+                        const userAnswer = inputEl.value.trim();
+                        if (!userAnswer) return;
+                        const correct = (userAnswer.toLowerCase() === cp.answer.toLowerCase());
+                        feedbackEl.textContent = correct ?
+                            '✅ Correct! ' + cp.showAnswer + ' is the right answer.' :
+                            '❌ Incorrect. The correct answer is: ' + cp.showAnswer + '.';
+                        feedbackEl.className = 'checkpoint-feedback ' + (correct ? 'correct' :
+                            'incorrect');
+                        checkpointSubmitted['step_' + index] = {
+                            userAnswer: userAnswer,
+                            correct: correct,
+                            timestamp: new Date().toISOString()
+                        };
+                        appendLearningLog(index, userAnswer, correct);
+                        // Re-render after short delay to show the submitted state
+                        setTimeout(() => renderCheckpoint(step, index), 1200);
+                    });
+
+                    hintBtn.addEventListener('click', () => {
+                        feedbackEl.textContent = '💡 Hint: ' + cp.hint;
+                        feedbackEl.className = 'checkpoint-feedback';
+                        feedbackEl.style.display = 'block';
+                        feedbackEl.style.background = '#fffbeb';
+                        feedbackEl.style.color = '#92400e';
+                        feedbackEl.style.border = '1px solid #fcd34d';
+                    });
+
+                    showBtn.addEventListener('click', () => {
+                        feedbackEl.textContent = '📖 Answer: ' + cp.showAnswer;
+                        feedbackEl.className = 'checkpoint-feedback';
+                        feedbackEl.style.display = 'block';
+                        feedbackEl.style.background = '#fef2f2';
+                        feedbackEl.style.color = '#991b1b';
+                        feedbackEl.style.border = '1px solid #fca5a5';
+                    });
+
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') submitBtn.click();
+                    });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Append to learning log
+            // ──────────────────────────────────────
+            function appendLearningLog(stepIndex, userAnswer, correct) {
+                const step = steps[stepIndex];
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                const statusClass = correct ? 'log-correct' : 'log-incorrect';
+                const statusIcon = correct ? '✅' : '❌';
+                entry.innerHTML =
+                    '<span class="' + statusClass + '">' + statusIcon + ' Step ' + step.id + ' checkpoint: answered "' +
+                    userAnswer + '" — ' + (correct ? 'Correct' : 'Incorrect') + '.</span> <span style="color:#6b7280;">Expected: ' +
+                    step.checkpoint.showAnswer + '</span>';
+                learningLog.appendChild(entry);
+                learningLog.scrollTop = learningLog.scrollHeight;
+            }
+
+            // ──────────────────────────────────────
+            // Navigation functions
+            // ──────────────────────────────────────
+            function stepPrev() {
+                if (currentStepIndex > 0) goToStep(currentStepIndex - 1);
+            }
+
+            function stepNext() {
+                if (currentStepIndex < totalSteps - 1) goToStep(currentStepIndex + 1);
+            }
+
+            function togglePlay() {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                    playBtn.textContent = '▶ Play';
+                    playBtn.classList.add('accent');
+                } else {
+                    playInterval = setInterval(() => {
+                        if (currentStepIndex < totalSteps - 1) {
+                            goToStep(currentStepIndex + 1);
+                        } else {
+                            clearInterval(playInterval);
+                            playInterval = null;
+                            playBtn.textContent = '▶ Play';
+                            playBtn.classList.add('accent');
+                        }
+                    }, 1800);
+                    playBtn.textContent = '⏸ Pause';
+                    playBtn.classList.remove('accent');
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Event listeners
+            // ──────────────────────────────────────
+            prevBtn.addEventListener('click', stepPrev);
+            nextBtn.addEventListener('click', stepNext);
+            playBtn.addEventListener('click', togglePlay);
+            rangeEl.addEventListener('input', () => {
+                const val = parseInt(rangeEl.value);
+                goToStep(val - 1);
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') stepPrev();
+                if (e.key === 'ArrowRight') stepNext();
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize
+            // ──────────────────────────────────────
+            rangeEl.min = 1;
+            rangeEl.max = totalSteps;
+            rangeEl.value = 1;
+            buildTimeline();
+            goToStep(0);
+            answerEl.textContent =
+                '{"articulation": ["B", "D"], "bridges": [["D", "E"], ["A", "B"]]}';
+
+            console.log('AlgoLab Tutorial: Articulation Points and Bridges — ready.');
+        })();
+    </script>
+</body>
+</html>

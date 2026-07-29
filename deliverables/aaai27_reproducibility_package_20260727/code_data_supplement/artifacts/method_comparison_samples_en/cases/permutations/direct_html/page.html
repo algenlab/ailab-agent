@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permutations - Backtracking Algorithm Tutor</title>
+    <style>
+        :root {
+            --bg: #f9f7f3;
+            --card-bg: #ffffff;
+            --text: #2c2c2c;
+            --text-secondary: #5a5a5a;
+            --accent: #4a6fa5;
+            --accent-light: #e8f0fa;
+            --green: #4caf84;
+            --green-light: #e8f8f0;
+            --blue: #5b8cc9;
+            --blue-light: #eaf2fb;
+            --orange: #e8963a;
+            --orange-light: #fef5ea;
+            --purple: #7c5cbf;
+            --purple-light: #f3effb;
+            --red: #d95555;
+            --red-light: #fdf0f0;
+            --gray: #9e9e9e;
+            --gray-light: #f0f0f0;
+            --border: #e0dcd5;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --font-mono: 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: var(--font-sans);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        #title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            letter-spacing: -0.3px;
+        }
+        #subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        #top-result {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: var(--gray-light);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            max-width: 400px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        #top-solution {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Two-column layout */
+        .content-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .panel-left {
+            flex: 1 1 420px;
+            min-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .panel-right {
+            flex: 1 1 480px;
+            min-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        /* Code panel */
+        #code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            background: #1e1e2e;
+            color: #d4d4d4;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            overflow-x: auto;
+            line-height: 1.7;
+            white-space: pre;
+            border: 1px solid #2a2a3a;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        #code .code-line {
+            display: block;
+            padding: 2px 8px;
+            margin: 0 -8px;
+            border-radius: 3px;
+            transition: background 0.3s;
+        }
+        #code .code-line.active {
+            background: #3a4a6a;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 #f0c040;
+        }
+        #code .code-line.line-num {
+            color: #6a6a7a;
+            user-select: none;
+            display: inline-block;
+            width: 28px;
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        /* Canvas (DOM container) */
+        #canvas {
+            min-height: 180px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 8px 0;
+        }
+        .viz-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 100px;
+        }
+        .viz-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+        .viz-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .num-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            transition: all 0.35s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .num-box.available {
+            background: var(--green-light);
+            border-color: var(--green);
+            color: #2e7d52;
+        }
+        .num-box.in-path {
+            background: var(--blue-light);
+            border-color: var(--blue);
+            color: #1a4a7a;
+            animation: popIn 0.3s ease-out;
+        }
+        .num-box.current-pick {
+            background: var(--orange-light);
+            border-color: var(--orange);
+            color: #8b5a1e;
+            box-shadow: 0 0 0 4px rgba(232, 150, 58, 0.25);
+            animation: pulse 0.8s ease-in-out infinite;
+        }
+        .num-box.removing {
+            background: var(--red-light);
+            border-color: var(--red);
+            color: #a03030;
+            animation: fadeOut 0.4s ease-out;
+        }
+        .num-box.unused-dim {
+            background: #fafafa;
+            border-color: #d5d5d5;
+            color: #999;
+        }
+        .result-item {
+            display: inline-block;
+            background: var(--purple-light);
+            border: 1px solid var(--purple);
+            color: #4a2d7a;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin: 2px 4px;
+        }
+        .depth-indicator {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+        .depth-bar {
+            width: 8px;
+            border-radius: 4px;
+            background: var(--blue);
+            transition: height 0.3s;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            70% {
+                transform: scale(1.08);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(232, 150, 58, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(232, 150, 58, 0.05);
+            }
+        }
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0.4;
+                transform: scale(0.85);
+            }
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: var(--font-sans);
+            color: var(--text);
+        }
+        .btn:hover {
+            background: #f5f5f5;
+            border-color: #bbb;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        .btn.primary:hover {
+            background: #3d5d8a;
+        }
+        .btn.hint-btn {
+            background: #fff8e1;
+            border-color: #e0c060;
+            color: #8b6914;
+        }
+        .btn.show-answer-btn {
+            background: #fce4ec;
+            border-color: #e0a0b0;
+            color: #8b2040;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #counter {
+            font-weight: 700;
+            font-size: 1rem;
+            min-width: 60px;
+            text-align: center;
+            font-family: var(--font-mono);
+            color: var(--accent);
+        }
+        #range {
+            flex: 1;
+            min-width: 80px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #op {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: #f5f5f5;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.4px;
+        }
+
+        /* Timeline */
+        #timeline {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 4px 0;
+        }
+        .tick {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 9px;
+            border-radius: var(--radius-sm);
+            border: 2px solid transparent;
+            cursor: pointer;
+            background: #f8f8f6;
+            transition: all 0.25s;
+            min-width: 44px;
+            font-family: var(--font-sans);
+            gap: 1px;
+            user-select: none;
+        }
+        .tick:hover {
+            background: #eef2f8;
+            border-color: #c0c8d8;
+        }
+        .tick.active {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+        }
+        .tick.active .tick-label {
+            color: var(--accent);
+        }
+        .tick-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .tick-op {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            color: #888;
+            text-align: center;
+        }
+        .tick.active .tick-op {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Panels */
+        #state {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            background: #fafaf8;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            border: 1px solid #e8e6e0;
+            max-height: 200px;
+            overflow-y: auto;
+            color: #3a3a3a;
+        }
+        #teaching {
+            font-size: 0.9rem;
+            color: #3a3a3a;
+            line-height: 1.55;
+        }
+        #step-evidence {
+            font-size: 0.82rem;
+            color: #555;
+            background: #fdfcfa;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--orange);
+            line-height: 1.5;
+        }
+        #step-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        #step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Checkpoint area */
+        #checkpoint-area {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            padding: 14px 16px;
+            background: #fffef9;
+            border-radius: var(--radius-sm);
+            border: 2px dashed #e0d8b0;
+        }
+        #checkpoint-area.visible {
+            display: flex;
+        }
+        #checkpoint-question {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #5a4a1a;
+        }
+        #checkpoint-input {
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border: 2px solid #d5d0c0;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            transition: border-color 0.2s;
+        }
+        #checkpoint-input:focus {
+            outline: none;
+            border-color: var(--orange);
+            box-shadow: 0 0 0 3px rgba(232, 150, 58, 0.1);
+        }
+        .checkpoint-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #checkpoint-feedback {
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-height: 20px;
+            padding: 6px 0;
+        }
+        #checkpoint-feedback.correct {
+            color: #2e7d52;
+        }
+        #checkpoint-feedback.incorrect {
+            color: #b04040;
+        }
+
+        /* Learning log */
+        #learning-log {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        #learning-log li {
+            padding: 7px 10px;
+            border-radius: 4px;
+            background: #fafaf8;
+            border-left: 4px solid #ccc;
+            animation: slideIn 0.3s ease-out;
+        }
+        #learning-log li.correct-entry {
+            border-left-color: var(--green);
+            background: var(--green-light);
+        }
+        #learning-log li.incorrect-entry {
+            border-left-color: var(--red);
+            background: var(--red-light);
+        }
+        #learning-log li.show-answer-entry {
+            border-left-color: var(--purple);
+            background: var(--purple-light);
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        #answer {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: #f5f5f0;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            color: #555;
+            word-break: break-all;
+            border: 1px solid #e0dcd5;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .log-count {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        @media (max-width: 800px) {
+            .content-row {
+                flex-direction: column;
+            }
+            .panel-left,
+            .panel-right {
+                min-width: auto;
+                flex: 1 1 auto;
+            }
+            #timeline {
+                gap: 2px;
+            }
+            .tick {
+                padding: 4px 6px;
+                min-width: 34px;
+            }
+            .tick-label {
+                font-size: 0.62rem;
+            }
+            .tick-op {
+                font-size: 0.58rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-card">
+            <div>
+                <div id="title">Permutations</div>
+                <div id="subtitle">Backtracking / Recursion — Generate all unlocking sequences</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+                <div id="top-solution">Goal: all 6 permutations of [1, 2, 3]</div>
+                <div id="top-result">Result: []</div>
+            </div>
+        </div>
+
+        <!-- Two-column content -->
+        <div class="content-row">
+            <!-- Left panel: Code + Visualization -->
+            <div class="panel-left">
+                <div class="card">
+                    <h3>Algorithm Pseudocode</h3>
+                    <div id="code"></div>
+                </div>
+                <div class="card">
+                    <h3>Visualization</h3>
+                    <div id="canvas"></div>
+                </div>
+            </div>
+
+            <!-- Right panel: State, Teaching, Evidence, Checkpoints -->
+            <div class="panel-right">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                        <div>
+                            <div id="step-title">Initialization</div>
+                            <div id="step-desc">Setting up the backtracking environment</div>
+                        </div>
+                        <span id="op">setup</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Current State (JSON)</h3>
+                    <div id="state"></div>
+                </div>
+                <div class="card">
+                    <h3>Teaching Notes</h3>
+                    <div id="teaching"></div>
+                </div>
+                <div class="card">
+                    <h3>Step Evidence</h3>
+                    <div id="step-evidence"></div>
+                </div>
+                <!-- Checkpoint area -->
+                <div class="card" id="checkpoint-area">
+                    <div id="checkpoint-question"></div>
+                    <input type="text" id="checkpoint-input" placeholder="Type your answer here...">
+                    <div class="checkpoint-btns">
+                        <button class="btn primary" id="checkpoint-submit">Submit Answer</button>
+                        <button class="btn hint-btn" id="checkpoint-hint">Hint</button>
+                        <button class="btn show-answer-btn" id="checkpoint-show-answer">Show Answer</button>
+                    </div>
+                    <div id="checkpoint-feedback"></div>
+                </div>
+                <!-- Learning Log -->
+                <div class="card">
+                    <div class="log-header">
+                        <h3>Learning Log</h3>
+                        <span class="log-count" id="log-count">0 entries</span>
+                    </div>
+                    <ul id="learning-log"></ul>
+                </div>
+                <div class="card">
+                    <h3>Final Answer (Expected Output)</h3>
+                    <div id="answer">[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="controls-row">
+                <button class="btn" id="prev" title="Previous step">◀ Prev</button>
+                <button class="btn primary" id="play" title="Play / Pause auto-advance">▶ Play</button>
+                <button class="btn" id="next" title="Next step">Next ▶</button>
+                <span id="counter">1 / 15</span>
+                <input type="range" id="range" min="0" max="14" value="0" title="Scrub through steps">
+            </div>
+            <div id="timeline" style="margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // Step data for the permutations backtracking algorithm
+            // ──────────────────────────────────────
+            const totalSteps = 15;
+            const steps = [{
+                index: 0,
+                title: 'Initialization',
+                desc: 'Set up result list, path array, and used set.',
+                codeLine: 0,
+                path: [],
+                used: [],
+                result: [],
+                depth: 0,
+                currentPick: null,
+                removing: null,
+                teaching: 'We start with an empty result list, an empty path (current permutation being built), and an empty used set. The input numbers are [1, 2, 3]. The backtracking algorithm will explore all possible orderings.',
+                evidence: 'Operation: INITIALIZE. Targets: result=[], path=[], used={}. Before: nothing. After: empty structures ready for recursion.',
+                timelineLabel: 'Init',
+                timelineOp: 'setup',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 1,
+                title: 'Start Recursion',
+                desc: 'Call backtrack() — begin exploring choices at depth 0.',
+                codeLine: 5,
+                path: [],
+                used: [],
+                result: [],
+                depth: 0,
+                currentPick: null,
+                removing: null,
+                teaching: 'The backtrack function is called for the first time. At depth 0, the path is empty. The loop will consider each unused number: 1, 2, and 3. The invariant is that path always contains distinct numbers and its length equals the recursion depth.',
+                evidence: 'Operation: CALL backtrack(). Targets: path=[], depth=0. Before: idle. After: entering recursive exploration. All numbers [1,2,3] are available.',
+                timelineLabel: 'Start',
+                timelineOp: 'recurse',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 2,
+                title: 'Choose 1',
+                desc: 'Add 1 to path. Mark 1 as used. Recurse deeper.',
+                codeLine: 12,
+                path: [1],
+                used: [1],
+                result: [],
+                depth: 1,
+                currentPick: 1,
+                removing: null,
+                teaching: 'The loop at depth 0 picks num=1. It is unused, so we append 1 to path, add 1 to used, and make a recursive call. This is the "forward" phase of backtracking. The path now represents a partial permutation.',
+                evidence: 'Operation: SELECT 1. Targets: path[0], used{1}. Before: path=[], used={}. After: path=[1], used={1}, depth=1. Dependency: 1 was available in nums.',
+                timelineLabel: 'Pick 1',
+                timelineOp: 'select',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 3,
+                title: 'Choose 2',
+                desc: 'Add 2 to path. Mark 2 as used. Continue deeper.',
+                codeLine: 12,
+                path: [1, 2],
+                used: [1, 2],
+                result: [],
+                depth: 2,
+                currentPick: 2,
+                removing: null,
+                teaching: 'At depth 1, the loop finds 2 is unused. We append 2, mark it used, and recurse again. Common error: forgetting to mark a number as used can lead to duplicate selections and incorrect permutations.',
+                evidence: 'Operation: SELECT 2. Targets: path[1], used{2}. Before: path=[1], used={1}. After: path=[1,2], used={1,2}, depth=2.',
+                timelineLabel: 'Pick 2',
+                timelineOp: 'select',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 4,
+                title: 'Complete First Permutation',
+                desc: 'Add 3 → path length equals nums length. Record [1,2,3]!',
+                codeLine: 7,
+                path: [1, 2, 3],
+                used: [1, 2, 3],
+                result: [
+                    [1, 2, 3]
+                ],
+                depth: 3,
+                currentPick: 3,
+                removing: null,
+                teaching: 'At depth 2, the only unused number is 3. We append it, and now path.length (3) equals nums.length (3). The base case triggers: we push a copy of path into result. This is the first complete permutation found!',
+                evidence: 'Operation: RECORD [1,2,3]. Targets: result[0]. Before: result=[]. After: result=[[1,2,3]]. Condition: len(path)==len(nums) triggered base case.',
+                timelineLabel: 'Found!',
+                timelineOp: 'record',
+                isCheckpoint: true,
+                cpQuestion: 'What permutation was just added to the result? (Type it as a JSON array, e.g. [1,2,3])',
+                cpAnswer: '[1,2,3]',
+                cpHint: 'Look at the current path — that is the permutation just recorded. It contains all three numbers in the order they were selected.'
+            }, {
+                index: 5,
+                title: 'Backtrack from 3',
+                desc: 'Return from base case. Remove 3, unmark it.',
+                codeLine: 15,
+                path: [1, 2],
+                used: [1, 2],
+                result: [
+                    [1, 2, 3]
+                ],
+                depth: 2,
+                currentPick: null,
+                removing: 3,
+                teaching: 'After recording [1,2,3], the function returns. We must undo the last choice: remove 3 from path and from used. This "backtracking" step restores the state so we can try other options. This is the key mechanism that enables exploring all permutations.',
+                evidence: 'Operation: BACKTRACK (undo 3). Targets: path, used. Before: path=[1,2,3], used={1,2,3}. After: path=[1,2], used={1,2}. Removed 3 from both.',
+                timelineLabel: 'Back',
+                timelineOp: 'undo',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 6,
+                title: 'Backtrack from 2',
+                desc: 'No more unused numbers at depth 2. Remove 2, unmark it.',
+                codeLine: 15,
+                path: [1],
+                used: [1],
+                result: [
+                    [1, 2, 3]
+                ],
+                depth: 1,
+                currentPick: null,
+                removing: 2,
+                teaching: 'Back at depth 2, the loop has exhausted all numbers (only 3 was tried). We return and undo the choice of 2. Now path is back to [1] and only 1 is marked used. The algorithm can now try 3 at this level.',
+                evidence: 'Operation: BACKTRACK (undo 2). Targets: path, used. Before: path=[1,2], used={1,2}. After: path=[1], used={1}. Loop exhausted at depth 2.',
+                timelineLabel: 'Back',
+                timelineOp: 'undo',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 7,
+                title: 'Choose 3 (alternate branch)',
+                desc: 'From path=[1], now pick 3 instead of 2.',
+                codeLine: 12,
+                path: [1, 3],
+                used: [1, 3],
+                result: [
+                    [1, 2, 3]
+                ],
+                depth: 2,
+                currentPick: 3,
+                removing: null,
+                teaching: 'The loop at depth 1 continues. After trying 2 (and backtracking), it now tries 3. This demonstrates how backtracking systematically explores all branches. The invariant holds: path contains distinct numbers.',
+                evidence: 'Operation: SELECT 3. Targets: path[1], used{3}. Before: path=[1], used={1}. After: path=[1,3], used={1,3}. Branch switched from 2 to 3.',
+                timelineLabel: 'Pick 3',
+                timelineOp: 'select',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 8,
+                title: 'Complete Second Permutation',
+                desc: 'From [1,3], pick 2 → record [1,3,2].',
+                codeLine: 7,
+                path: [1, 3, 2],
+                used: [1, 2, 3],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2]
+                ],
+                depth: 3,
+                currentPick: 2,
+                removing: null,
+                teaching: 'At depth 2 with path=[1,3], the only unused number is 2. We append it, hit the base case, and record [1,3,2]. Now result has 2 permutations. The algorithm will continue backtracking to find all 6.',
+                evidence: 'Operation: RECORD [1,3,2]. Targets: result[1]. Before: result=[[1,2,3]]. After: result=[[1,2,3],[1,3,2]]. Base case triggered again.',
+                timelineLabel: 'Found!',
+                timelineOp: 'record',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 9,
+                title: 'Backtrack to Root',
+                desc: 'Undo 2, undo 3, undo 1. Return to empty path.',
+                codeLine: 15,
+                path: [],
+                used: [],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2]
+                ],
+                depth: 0,
+                currentPick: null,
+                removing: 1,
+                teaching: 'After exhausting all options starting with 1, we backtrack all the way to depth 0. The path is empty again, and no numbers are marked used. The for-loop at depth 0 will now try starting with 2. This shows the full unwind phase.',
+                evidence: 'Operation: BACKTRACK chain (undo 2,3,1). Targets: path, used. Before: path=[1,3,2], used={1,2,3}. After: path=[], used={}. Ready for next top-level choice.',
+                timelineLabel: 'Back',
+                timelineOp: 'undo',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 10,
+                title: 'Choose 2 at Root',
+                desc: 'Start new branch: path=[2].',
+                codeLine: 12,
+                path: [2],
+                used: [2],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2]
+                ],
+                depth: 1,
+                currentPick: 2,
+                removing: null,
+                teaching: 'The top-level loop now picks 2. This starts a new family of permutations: all those beginning with 2. The algorithm will explore [2,1,3] and [2,3,1] from this branch.',
+                evidence: 'Operation: SELECT 2 at root. Targets: path[0], used{2}. Before: path=[], used={}. After: path=[2], used={2}, depth=1. New top-level branch.',
+                timelineLabel: 'Pick 2',
+                timelineOp: 'select',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 11,
+                title: 'Choose 1 (depth 2)',
+                desc: 'From [2], pick 1 → path=[2,1].',
+                codeLine: 12,
+                path: [2, 1],
+                used: [1, 2],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2]
+                ],
+                depth: 2,
+                currentPick: 1,
+                removing: null,
+                teaching: 'At depth 1 with path=[2], the loop finds 1 unused. We append it and continue. The exploration is symmetric to the earlier [1,2] branch but with a different starting number.',
+                evidence: 'Operation: SELECT 1. Targets: path[1], used{1}. Before: path=[2], used={2}. After: path=[2,1], used={1,2}.',
+                timelineLabel: 'Pick 1',
+                timelineOp: 'select',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 12,
+                title: 'Complete Third Permutation',
+                desc: 'From [2,1], pick 3 → record [2,1,3].',
+                codeLine: 7,
+                path: [2, 1, 3],
+                used: [1, 2, 3],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2],
+                    [2, 1, 3]
+                ],
+                depth: 3,
+                currentPick: 3,
+                removing: null,
+                teaching: 'The base case triggers again. [2,1,3] is added to result. We now have 3 out of 6 permutations. The pattern should be clear: the algorithm is generating permutations in a depth-first manner.',
+                evidence: 'Operation: RECORD [2,1,3]. Targets: result[2]. Before: result had 2 items. After: result has 3 items. Halfway to the full set of 6 permutations.',
+                timelineLabel: 'Found!',
+                timelineOp: 'record',
+                isCheckpoint: true,
+                cpQuestion: 'How many permutations have been found so far? (Type a number, e.g. 3)',
+                cpAnswer: '3',
+                cpHint: 'Count the items in the result list shown in the state. Each complete permutation that was recorded is stored there.'
+            }, {
+                index: 13,
+                title: 'Continue Exploration',
+                desc: 'Backtrack and explore remaining branches: find [2,3,1], [3,1,2].',
+                codeLine: 14,
+                path: [3, 1],
+                used: [1, 3],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2],
+                    [2, 1, 3],
+                    [2, 3, 1],
+                    [3, 1, 2]
+                ],
+                depth: 2,
+                currentPick: null,
+                removing: null,
+                teaching: 'The algorithm continues systematically. After [2,1,3], it backtracks and finds [2,3,1]. Then it backtracks to the root and starts with 3, finding [3,1,2]. Only one more permutation remains to be discovered.',
+                evidence: 'Operation: CONTINUE exploration. Targets: result[3], result[4]. After backtracking from [2,1,3], the algorithm found [2,3,1] and then [3,1,2]. Now 5 of 6 permutations are in the result.',
+                timelineLabel: 'Continue',
+                timelineOp: 'recurse',
+                isCheckpoint: false,
+                cpQuestion: '',
+                cpAnswer: '',
+                cpHint: ''
+            }, {
+                index: 14,
+                title: 'All Permutations Found',
+                desc: 'Final permutation [3,2,1] recorded. Algorithm complete!',
+                codeLine: 18,
+                path: [],
+                used: [],
+                result: [
+                    [1, 2, 3],
+                    [1, 3, 2],
+                    [2, 1, 3],
+                    [2, 3, 1],
+                    [3, 1, 2],
+                    [3, 2, 1]
+                ],
+                depth: 0,
+                currentPick: null,
+                removing: null,
+                teaching: 'The final permutation [3,2,1] has been found. All 6 permutations (3! = 6) are now in the result. The backtracking algorithm has systematically explored every possible ordering exactly once. The time complexity is O(n! × n) and space complexity is O(n) for the recursion stack.',
+                evidence: 'Operation: COMPLETE. All 6 permutations recorded. The algorithm returns the full result list. Every branch of the recursion tree has been explored. Total permutations = 3! = 6.',
+                timelineLabel: 'Done',
+                timelineOp: 'complete',
+                isCheckpoint: true,
+                cpQuestion: 'What is the complete list of all 6 permutations? (Type as a JSON array of arrays)',
+                cpAnswer: '[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]',
+                cpHint: 'The full set includes all orderings of 1, 2, and 3. There are exactly 6 (which is 3 factorial). The answer is shown in the Final Answer box above.'
+            }];
+
+            // ──────────────────────────────────────
+            // DOM references
+            // ──────────────────────────────────────
+            const $ = (id) => document.getElementById(id);
+            const titleEl = $('title');
+            const subtitleEl = $('subtitle');
+            const topResultEl = $('top-result');
+            const topSolutionEl = $('top-solution');
+            const codeEl = $('code');
+            const stepTitleEl = $('step-title');
+            const stepDescEl = $('step-desc');
+            const opEl = $('op');
+            const canvasEl = $('canvas');
+            const prevBtn = $('prev');
+            const playBtn = $('play');
+            const nextBtn = $('next');
+            const rangeEl = $('range');
+            const counterEl = $('counter');
+            const timelineEl = $('timeline');
+            const teachingEl = $('teaching');
+            const stateEl = $('state');
+            const stepEvidenceEl = $('step-evidence');
+            const answerEl = $('answer');
+            const checkpointArea = $('checkpoint-area');
+            const checkpointQuestion = $('checkpoint-question');
+            const checkpointInput = $('checkpoint-input');
+            const checkpointSubmit = $('checkpoint-submit');
+            const checkpointHint = $('checkpoint-hint');
+            const checkpointShowAnswer = $('checkpoint-show-answer');
+            const checkpointFeedback = $('checkpoint-feedback');
+            const learningLog = $('learning-log');
+            const logCount = $('log-count');
+
+            // ──────────────────────────────────────
+            // Code lines for pseudocode
+            // ──────────────────────────────────────
+            const codeLines = [
+                'function permute(nums):',
+                '    result = []',
+                '    path = []',
+                '    used = new Set()',
+                '',
+                '    function backtrack():',
+                '        if len(path) == len(nums):',
+                '            result.push([...path])',
+                '            return',
+                '',
+                '        for each num in nums:',
+                '            if num not in used:',
+                '                path.push(num)',
+                '                used.add(num)',
+                '                backtrack()',
+                '                used.delete(num)',
+                '                path.pop()',
+                '',
+                '    backtrack()',
+                '    return result'
+            ];
+
+            function renderCode(activeLine) {
+                let html = '';
+                for (let i = 0; i < codeLines.length; i++) {
+                    const lineClass = (i === activeLine) ? 'code-line active' : 'code-line';
+                    const numStr = String(i).padStart(2, ' ');
+                    html +=
+                        `<span class="${lineClass}"><span class="line-num">${numStr}</span>${escapeHTML(codeLines[i])}</span>\n`;
+                }
+                codeEl.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ──────────────────────────────────────
+            // Timeline ticks
+            // ──────────────────────────────────────
+            function buildTimeline() {
+                timelineEl.innerHTML = '';
+                for (let i = 0; i < totalSteps; i++) {
+                    const tick = document.createElement('button');
+                    tick.className = 'tick';
+                    tick.setAttribute('type', 'button');
+                    tick.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + steps[i].timelineLabel);
+                    tick.innerHTML =
+                        `<span class="tick-label">${steps[i].timelineLabel}</span><span class="tick-op">${steps[i].timelineOp}</span>`;
+                    tick.addEventListener('click', () => {
+                        setStep(i);
+                        stopAutoPlay();
+                    });
+                    timelineEl.appendChild(tick);
+                }
+            }
+
+            function updateTimelineActive(stepIndex) {
+                const ticks = timelineEl.querySelectorAll('.tick');
+                ticks.forEach((t, i) => {
+                    t.classList.toggle('active', i === stepIndex);
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Canvas visualization
+            // ──────────────────────────────────────
+            function renderCanvas(stepData) {
+                const nums = [1, 2, 3];
+                const path = stepData.path;
+                const used = new Set(stepData.used);
+                const result = stepData.result;
+                const currentPick = stepData.currentPick;
+                const removing = stepData.removing;
+                const depth = stepData.depth;
+
+                let html = '';
+
+                // Numbers row
+                html += '<div class="viz-section"><span class="viz-label">Numbers</span><div class="viz-row">';
+                for (const n of nums) {
+                    let cls = 'num-box';
+                    if (removing === n) {
+                        cls += ' removing';
+                    } else if (currentPick === n) {
+                        cls += ' current-pick';
+                    } else if (path.includes(n)) {
+                        cls += ' in-path';
+                    } else if (used.has(n) && !path.includes(n)) {
+                        cls += ' unused-dim';
+                    } else {
+                        cls += ' available';
+                    }
+                    html += `<span class="${cls}">${n}</span>`;
+                }
+                html += '</div></div>';
+
+                // Path row
+                html += '<div class="viz-section"><span class="viz-label">Current Path</span><div class="viz-row">';
+                if (path.length === 0) {
+                    html += '<span style="color:#999;font-style:italic;">empty</span>';
+                } else {
+                    for (let i = 0; i < path.length; i++) {
+                        const pn = path[i];
+                        let pcls = 'num-box in-path';
+                        if (i === path.length - 1 && currentPick === pn) {
+                            pcls = 'num-box current-pick';
+                        }
+                        if (removing === pn) {
+                            pcls = 'num-box removing';
+                        }
+                        html += `<span class="${pcls}">${pn}</span>`;
+                        if (i < path.length - 1) {
+                            html += '<span style="color:#aaa;font-weight:bold;">→</span>';
+                        }
+                    }
+                }
+                html += '</div></div>';
+
+                // Depth indicator
+                html += '<div class="viz-section"><span class="viz-label">Depth</span><div class="viz-row">';
+                html += `<span style="font-weight:700;font-size:1.2rem;color:var(--blue);">${depth}</span>`;
+                html += '<span style="color:#888;font-size:0.8rem;">/ 3</span>';
+                html += '<div class="depth-indicator" style="margin-left:8px;">';
+                for (let d = 0; d < 3; d++) {
+                    const h = (d < depth) ? (12 + d * 8) : 6;
+                    const bg = (d < depth) ? 'var(--blue)' : '#ddd';
+                    html +=
+                        `<span class="depth-bar" style="height:${h}px;background:${bg};display:inline-block;width:8px;border-radius:4px;margin:0 1px;"></span>`;
+                }
+                html += '</div></div>';
+
+                // Result section
+                html += '<div class="viz-section"><span class="viz-label">Result (' + result.length +
+                    ' of 6)</span><div class="viz-row" style="flex-wrap:wrap;">';
+                if (result.length === 0) {
+                    html += '<span style="color:#999;font-style:italic;">none yet</span>';
+                } else {
+                    for (const perm of result) {
+                        html += '<span class="result-item">[' + perm.join(', ') + ']</span>';
+                    }
+                }
+                html += '</div></div>';
+
+                canvasEl.innerHTML = html;
+            }
+
+            // ──────────────────────────────────────
+            // State JSON
+            // ──────────────────────────────────────
+            function renderState(stepData) {
+                const stateObj = {
+                    path: stepData.path,
+                    used: stepData.used,
+                    result: stepData.result,
+                    depth: stepData.depth,
+                    currentPick: stepData.currentPick,
+                    removing: stepData.removing
+                };
+                stateEl.textContent = JSON.stringify(stateObj, null, 2);
+            }
+
+            // ──────────────────────────────────────
+            // Main step update
+            // ──────────────────────────────────────
+            let currentStep = 0;
+            let autoPlayInterval = null;
+            let checkpointPassedForStep = {}; // track which checkpoint steps have been passed
+
+            function setStep(stepIndex) {
+                stepIndex = Math.max(0, Math.min(totalSteps - 1, stepIndex));
+                currentStep = stepIndex;
+                const sd = steps[stepIndex];
+
+                // Update counter
+                counterEl.textContent = (stepIndex + 1) + ' / ' + totalSteps;
+
+                // Update step title, desc, op
+                stepTitleEl.textContent = sd.title;
+                stepDescEl.textContent = sd.desc;
+                opEl.textContent = sd.timelineOp;
+
+                // Update top result
+                topResultEl.textContent = 'Result: ' + JSON.stringify(sd.result);
+
+                // Update code highlight
+                renderCode(sd.codeLine);
+
+                // Update canvas
+                renderCanvas(sd);
+
+                // Update state JSON
+                renderState(sd);
+
+                // Update teaching
+                teachingEl.textContent = sd.teaching;
+
+                // Update step evidence
+                stepEvidenceEl.textContent = sd.evidence;
+
+                // Update range slider
+                rangeEl.value = stepIndex;
+
+                // Update timeline
+                updateTimelineActive(stepIndex);
+
+                // Update checkpoint area
+                updateCheckpointArea(sd, stepIndex);
+
+                // Update button states
+                prevBtn.disabled = (stepIndex === 0);
+                nextBtn.disabled = (stepIndex === totalSteps - 1);
+            }
+
+            function updateCheckpointArea(sd, stepIndex) {
+                if (sd.isCheckpoint) {
+                    checkpointArea.classList.add('visible');
+                    checkpointQuestion.textContent = sd.cpQuestion;
+                    checkpointInput.value = '';
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.className = '';
+                    checkpointInput.disabled = false;
+                    checkpointSubmit.disabled = false;
+                    checkpointHint.disabled = false;
+                    checkpointShowAnswer.disabled = false;
+
+                    // If already passed, show that
+                    if (checkpointPassedForStep[stepIndex]) {
+                        checkpointFeedback.textContent = '✓ Checkpoint passed! You answered correctly.';
+                        checkpointFeedback.className = 'correct';
+                        checkpointInput.disabled = true;
+                        checkpointSubmit.disabled = true;
+                        checkpointHint.disabled = true;
+                        checkpointShowAnswer.disabled = true;
+                    }
+                } else {
+                    checkpointArea.classList.remove('visible');
+                    checkpointFeedback.textContent = '';
+                    checkpointFeedback.className = '';
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Checkpoint interactions
+            // ──────────────────────────────────────
+            function addLogEntry(message, entryClass) {
+                const li = document.createElement('li');
+                li.textContent = message;
+                li.className = entryClass || '';
+                learningLog.appendChild(li);
+                learningLog.scrollTop = learningLog.scrollHeight;
+                const count = learningLog.querySelectorAll('li').length;
+                logCount.textContent = count + ' ' + (count === 1 ? 'entry' : 'entries');
+            }
+
+            function normalizeAnswer(str) {
+                // Remove all whitespace and normalize
+                return str.replace(/\s+/g, '').replace(/�/g, '').trim();
+            }
+
+            function checkAnswer(userAnswer, correctAnswer) {
+                const normUser = normalizeAnswer(userAnswer);
+                const normCorrect = normalizeAnswer(correctAnswer);
+                return normUser === normCorrect;
+            }
+
+            checkpointSubmit.addEventListener('click', () => {
+                const sd = steps[currentStep];
+                if (!sd.isCheckpoint) return;
+                if (checkpointPassedForStep[currentStep]) return;
+
+                const userAnswer = checkpointInput.value.trim();
+                if (!userAnswer) {
+                    checkpointFeedback.textContent = 'Please type an answer before submitting.';
+                    checkpointFeedback.className = 'incorrect';
+                    return;
+                }
+
+                const isCorrect = checkAnswer(userAnswer, sd.cpAnswer);
+                const now = new Date().toLocaleTimeString();
+
+                if (isCorrect) {
+                    checkpointFeedback.textContent =
+                        '✓ Correct! ' + sd.cpAnswer + ' is the right answer. Well done!';
+                    checkpointFeedback.className = 'correct';
+                    checkpointPassedForStep[currentStep] = true;
+                    checkpointInput.disabled = true;
+                    checkpointSubmit.disabled = true;
+                    checkpointHint.disabled = true;
+                    checkpointShowAnswer.disabled = true;
+                    addLogEntry('[' + now + '] Step ' + (currentStep + 1) + ' — CORRECT: answered "' + userAnswer +
+                        '" for "' + sd.cpQuestion + '"', 'correct-entry');
+                } else {
+                    checkpointFeedback.textContent =
+                        '✗ Not quite. "' + userAnswer + '" is incorrect. Review the state and try again, or use Hint.';
+                    checkpointFeedback.className = 'incorrect';
+                    addLogEntry('[' + now + '] Step ' + (currentStep + 1) + ' — INCORRECT: answered "' + userAnswer +
+                        '" (expected: ' + sd.cpAnswer + ')', 'incorrect-entry');
+                }
+            });
+
+            checkpointHint.addEventListener('click', () => {
+                const sd = steps[currentStep];
+                if (!sd.isCheckpoint) return;
+                if (checkpointPassedForStep[currentStep]) return;
+                checkpointFeedback.textContent = 'Hint: ' + sd.cpHint;
+                checkpointFeedback.className = '';
+                const now = new Date().toLocaleTimeString();
+                addLogEntry('[' + now + '] Step ' + (currentStep + 1) + ' — HINT requested: "' + sd.cpHint + '"',
+                    '');
+            });
+
+            checkpointShowAnswer.addEventListener('click', () => {
+                const sd = steps[currentStep];
+                if (!sd.isCheckpoint) return;
+                checkpointFeedback.textContent = 'The answer is: ' + sd.cpAnswer;
+                checkpointFeedback.className = 'correct';
+                checkpointPassedForStep[currentStep] = true;
+                checkpointInput.disabled = true;
+                checkpointSubmit.disabled = true;
+                checkpointHint.disabled = true;
+                checkpointShowAnswer.disabled = true;
+                checkpointInput.value = sd.cpAnswer;
+                const now = new Date().toLocaleTimeString();
+                addLogEntry('[' + now + '] Step ' + (currentStep + 1) + ' — SHOW ANSWER: revealed "' + sd.cpAnswer +
+                    '"', 'show-answer-entry');
+            });
+
+            // Allow Enter key to submit checkpoint
+            checkpointInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    checkpointSubmit.click();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Navigation controls
+            // ──────────────────────────────────────
+            prevBtn.addEventListener('click', () => {
+                if (currentStep > 0) {
+                    setStep(currentStep - 1);
+                    stopAutoPlay();
+                }
+            });
+
+            nextBtn.addEventListener('click', () => {
+                if (currentStep < totalSteps - 1) {
+                    // If at a checkpoint that hasn't been passed, warn but allow
+                    const sd = steps[currentStep];
+                    if (sd.isCheckpoint && !checkpointPassedForStep[currentStep]) {
+                        checkpointFeedback.textContent =
+                            '⚠ You have not completed this checkpoint yet. Consider answering before moving on.';
+                        checkpointFeedback.className = 'incorrect';
+                    }
+                    setStep(currentStep + 1);
+                    stopAutoPlay();
+                }
+            });
+
+            rangeEl.addEventListener('input', () => {
+                const val = parseInt(rangeEl.value, 10);
+                setStep(val);
+                stopAutoPlay();
+            });
+
+            playBtn.addEventListener('click', () => {
+                if (autoPlayInterval) {
+                    stopAutoPlay();
+                    playBtn.textContent = '▶ Play';
+                    playBtn.classList.add('primary');
+                } else {
+                    startAutoPlay();
+                    playBtn.textContent = '⏸ Pause';
+                    playBtn.classList.remove('primary');
+                }
+            });
+
+            function startAutoPlay() {
+                stopAutoPlay();
+                autoPlayInterval = setInterval(() => {
+                    const sd = steps[currentStep];
+                    if (sd.isCheckpoint && !checkpointPassedForStep[currentStep]) {
+                        // Pause at unpassed checkpoint
+                        stopAutoPlay();
+                        playBtn.textContent = '▶ Play';
+                        playBtn.classList.add('primary');
+                        return;
+                    }
+                    if (currentStep < totalSteps - 1) {
+                        setStep(currentStep + 1);
+                    } else {
+                        stopAutoPlay();
+                        playBtn.textContent = '▶ Play';
+                        playBtn.classList.add('primary');
+                    }
+                }, 1800);
+            }
+
+            function stopAutoPlay() {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+                playBtn.textContent = '▶ Play';
+                playBtn.classList.add('primary');
+            }
+
+            // ──────────────────────────────────────
+            // Keyboard navigation
+            // ──────────────────────────────────────
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' && e.target.id === 'checkpoint-input') return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevBtn.click();
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    nextBtn.click();
+                } else if (e.key === ' ') {
+                    e.preventDefault();
+                    playBtn.click();
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Initialize page
+            // ──────────────────────────────────────
+            function init() {
+                // Set answer (already in HTML, but confirm)
+                answerEl.textContent = '[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]';
+
+                // Build timeline
+                buildTimeline();
+
+                // Set initial step
+                setStep(0);
+
+                // Set range max
+                rangeEl.max = totalSteps - 1;
+                rangeEl.value = 0;
+
+                // Update top solution
+                topSolutionEl.textContent = 'Goal: all 6 permutations of [1, 2, 3]';
+
+                // Ensure play button has primary class initially
+                playBtn.classList.add('primary');
+            }
+
+            init();
+
+            console.log('Permutations backtracking tutor ready. Use arrow keys, buttons, or timeline to navigate.');
+        })();
+    </script>
+</body>
+</html>
